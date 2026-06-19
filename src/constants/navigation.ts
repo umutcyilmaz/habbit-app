@@ -23,5 +23,9 @@ export const tabRoutes = [
 
 export const routes = {
   home: "/(tabs)/today",
+  log: "/(tabs)/log",
+  pause: "/pause",
+  progress: "/(tabs)/progress",
+  protect: "/(tabs)/protect",
   settings: "/settings"
 } as const;
