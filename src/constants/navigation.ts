@@ -23,5 +23,10 @@ export const tabRoutes = [
 
 export const routes = {
   home: "/(tabs)/today",
-  settings: "/settings"
+  settings: "/settings",
+  settingsPrivacy: "/settings/privacy",
+  settingsDataControls: "/settings/data-controls",
+  settingsNotifications: "/settings/notifications",
+  settingsAppLock: "/settings/app-lock",
+  settingsSubscription: "/settings/subscription"
 } as const;
