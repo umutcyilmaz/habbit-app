@@ -2,7 +2,7 @@
 
 ## Goals
 
-Bloom should be built as a production-minded mobile app, not a quick prototype. The architecture should keep product logic testable, privacy decisions explicit, and future backend sync possible without requiring a backend in the MVP.
+The app should be built as a production-minded mobile app, not a quick prototype. The architecture should keep product logic testable, privacy decisions explicit, and future backend sync possible without requiring a backend in the MVP.
 
 ## Proposed Stack
 
@@ -58,6 +58,57 @@ src/
 
 If Expo Router's default `app/` directory must live at the repository root, route files can stay in `app/` while feature modules live in `src/features/`. The important boundary is that route files should compose feature screens rather than contain domain logic.
 
+## Implemented Phase 1 Structure
+
+The current scaffold uses Expo Router at the repository root and feature code under `src/`:
+
+```txt
+app/
+  _layout.tsx
+  index.tsx
+  (tabs)/
+    _layout.tsx
+    today.tsx
+    log.tsx
+    exercises.tsx
+    progress.tsx
+    protect.tsx
+  settings/
+    index.tsx
+
+src/
+  app/
+    config/
+      appConfig.json
+      appConfig.ts
+    providers/
+      AppProviders.tsx
+  constants/
+    copy.ts
+    navigation.ts
+  domain/
+    models/
+  features/
+    onboarding/
+    today/
+    log/
+    pause/
+    exercises/
+    progress/
+    protect/
+    settings/
+    subscription/
+  shared/
+    components/
+    design-system/
+    hooks/
+    types/
+    utils/
+  storage/
+```
+
+Visible app naming is centralized in `src/app/config/appConfig.json`, with a typed wrapper in `src/app/config/appConfig.ts`. This keeps the current working title easy to replace when the final brand name is chosen.
+
 ## Feature-Based Architecture
 
 Each feature should own its UI composition, domain functions, hooks, storage adapter, and feature-specific types.
@@ -106,9 +157,17 @@ Recommended route groups:
 - `(tabs)` for Today, Log, Exercises, Progress, and Protect.
 - `onboarding` for Welcome, Safety Note, Privacy / Trust, Goal Selection, Adaptive Questions, Starting Profile, and Starting Plan.
 - `settings` for Account & Settings, Privacy Overview, Data Controls, Notification Preferences, and App Lock.
-- `subscription` for Bloom Plus when payment exploration begins.
+- `subscription` for Plus or premium experiments when payment exploration begins.
 
 Today should be the post-onboarding home route.
+
+Current routing implementation:
+
+- `app/index.tsx` redirects to `/(tabs)/today`.
+- `app/(tabs)/_layout.tsx` defines exactly five bottom tabs: Today, Log, Exercises, Progress, and Protect.
+- `app/settings/index.tsx` is outside the bottom tab group.
+- Route files compose feature screens and do not contain domain logic.
+- `app.config.ts` sets `extra.router.root` to `app` so `src/app/config` and `src/app/providers` remain infrastructure folders, not route folders.
 
 ## State Management Suggestion
 
@@ -135,6 +194,12 @@ Recommended direction:
 - Avoid storing sensitive values in analytics or crash metadata.
 
 Do not add backend storage in the foundation phase.
+
+Current storage implementation:
+
+- `src/storage/storageClient.ts` defines a placeholder `StorageClient` interface.
+- No storage package is installed yet.
+- `src/storage/README.md` documents local-first direction, deletion requirements, and sensitive analytics constraints.
 
 ## Validation Approach
 

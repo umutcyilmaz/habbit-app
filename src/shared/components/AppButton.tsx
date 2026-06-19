@@ -1,0 +1,95 @@
+import type { PropsWithChildren } from "react";
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  type PressableProps,
+  type ViewStyle
+} from "react-native";
+
+import { theme } from "../design-system/theme";
+import { AppText } from "./AppText";
+
+type AppButtonVariant = "primary" | "secondary" | "ghost";
+
+type AppButtonProps = PropsWithChildren<
+  Omit<PressableProps, "style"> & {
+    variant?: AppButtonVariant;
+    loading?: boolean;
+    style?: ViewStyle;
+  }
+>;
+
+export function AppButton({
+  children,
+  variant = "primary",
+  loading = false,
+  disabled,
+  style,
+  ...props
+}: AppButtonProps) {
+  const isDisabled = disabled || loading;
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      disabled={isDisabled}
+      {...props}
+      style={({ pressed }) => [
+        styles.base,
+        variantStyles[variant],
+        pressed && !isDisabled ? pressedStyles[variant] : undefined,
+        isDisabled ? styles.disabled : undefined,
+        style
+      ]}
+    >
+      {loading ? (
+        <ActivityIndicator color={variant === "primary" ? theme.colors.white : theme.colors.primary} />
+      ) : (
+        <AppText variant="label" tone={variant === "primary" ? "inverse" : "primary"}>
+          {children}
+        </AppText>
+      )}
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  base: {
+    minHeight: 48,
+    borderRadius: theme.radius.pill,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: theme.spacing.xl,
+    paddingVertical: theme.spacing.md
+  },
+  disabled: {
+    opacity: 0.5
+  }
+});
+
+const variantStyles = StyleSheet.create({
+  primary: {
+    backgroundColor: theme.colors.primary
+  },
+  secondary: {
+    backgroundColor: theme.colors.lavender,
+    borderWidth: 1,
+    borderColor: theme.colors.border
+  },
+  ghost: {
+    backgroundColor: "transparent"
+  }
+});
+
+const pressedStyles = StyleSheet.create({
+  primary: {
+    backgroundColor: theme.colors.primaryPressed
+  },
+  secondary: {
+    backgroundColor: theme.colors.surfaceMuted
+  },
+  ghost: {
+    backgroundColor: theme.colors.surfaceMuted
+  }
+});
