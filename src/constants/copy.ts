@@ -16,7 +16,7 @@ export const modulePlaceholders = {
       "Weekly progress preview",
       "Settings access"
     ],
-    primaryAction: "Start a quick check-in"
+    primaryAction: "Pause Now"
   },
   log: {
     title: "Log",
