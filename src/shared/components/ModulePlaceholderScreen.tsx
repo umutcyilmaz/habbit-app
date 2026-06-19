@@ -19,6 +19,10 @@ type ModulePlaceholderScreenProps = {
   onPrimaryAction?: () => void;
 };
 
+/**
+ * @deprecated Main MVP routes now render feature screens directly. Keep this only
+ * for future scaffolding or temporary internal placeholders.
+ */
 export function ModulePlaceholderScreen({
   title,
   purpose,
