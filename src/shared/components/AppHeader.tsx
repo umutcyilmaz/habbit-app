@@ -7,8 +7,8 @@ import { AppText } from "./AppText";
 
 type AppHeaderProps = {
   title: string;
-  subtitle?: string;
-  eyebrow?: string;
+  subtitle?: string | undefined;
+  eyebrow?: string | undefined;
   onSettingsPress?: (() => void) | undefined;
 };
 
