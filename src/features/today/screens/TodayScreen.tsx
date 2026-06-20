@@ -3,7 +3,10 @@ import { StyleSheet, View } from "react-native";
 
 import { useDemoAppState } from "../../../app/providers/DemoAppStateProvider";
 import { routes } from "../../../constants/navigation";
-import { selectTodayDashboardData } from "../../../domain/demo/demoSelectors";
+import {
+  selectIsFirstUse,
+  selectTodayDashboardData
+} from "../../../domain/demo/demoSelectors";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
 import { AppHeader } from "../../../shared/components/AppHeader";
@@ -15,6 +18,7 @@ export function TodayScreen() {
   const router = useRouter();
   const state = useDemoAppState();
   const dashboard = selectTodayDashboardData(state);
+  const isFirstUse = selectIsFirstUse(state);
 
   return (
     <AppScreen>
@@ -25,13 +29,30 @@ export function TodayScreen() {
       />
 
       <View style={styles.stack}>
+        {state.isOfflinePreview ? (
+          <AppCard style={styles.offlineCard}>
+            <View style={styles.cardStack}>
+              <AppText variant="title">Offline</AppText>
+              <AppText tone="secondary">
+                Some updates may wait until you are back online. You can still review current guidance.
+              </AppText>
+            </View>
+          </AppCard>
+        ) : null}
+
         <AppCard style={styles.primaryCard}>
           <View style={styles.cardStack}>
             <AppText variant="caption" tone="secondary">
               Today
             </AppText>
-            <AppText variant="title">{dashboard.recommendationTitle}</AppText>
-            <AppText tone="secondary">{dashboard.recommendationBody}</AppText>
+            <AppText variant="title">
+              {isFirstUse ? "Start with your first check-in" : dashboard.recommendationTitle}
+            </AppText>
+            <AppText tone="secondary">
+              {isFirstUse
+                ? "A quick check-in helps shape this space around what is actually happening today."
+                : dashboard.recommendationBody}
+            </AppText>
             <View style={styles.actions}>
               <AppButton onPress={() => router.push(routes.pause)}>Pause Now</AppButton>
               <AppButton variant="secondary" onPress={() => router.push(routes.log)}>
@@ -61,9 +82,15 @@ export function TodayScreen() {
         <AppCard style={styles.infoCard}>
           <View style={styles.cardStack}>
             <AppText variant="title">Weekly preview</AppText>
-            <AppText tone="secondary">{dashboard.weeklyPreview}</AppText>
+            <AppText tone="secondary">
+              {isFirstUse
+                ? "Your first few check-ins will shape this weekly view."
+                : dashboard.weeklyPreview}
+            </AppText>
             <AppText variant="bodySmall" tone="secondary">
-              {dashboard.coachInsight}
+              {isFirstUse
+                ? "Patterns appear after a little activity. For now, start with one small entry."
+                : dashboard.coachInsight}
             </AppText>
             <AppButton variant="secondary" onPress={() => router.push(routes.progress)}>
               View Progress
@@ -92,5 +119,9 @@ const styles = StyleSheet.create({
   infoCard: {
     backgroundColor: theme.colors.lavender,
     borderColor: theme.colors.lavenderDeep
+  },
+  offlineCard: {
+    backgroundColor: theme.colors.surfaceMuted,
+    borderColor: theme.colors.border
   }
 });

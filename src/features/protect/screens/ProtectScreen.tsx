@@ -10,7 +10,7 @@ import {
   selectProtectionState,
   selectSuggestedSensitiveWindow
 } from "../../../domain/demo/demoSelectors";
-import type { DemoSupportLevel } from "../../../domain/demo/demoTypes";
+import type { DemoProtectionStatus, DemoSupportLevel } from "../../../domain/demo/demoTypes";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
 import { AppHeader } from "../../../shared/components/AppHeader";
@@ -36,12 +36,54 @@ const supportLevels: ReadonlyArray<{
   }
 ];
 
+function getProtectionStatusCopy(status: DemoProtectionStatus) {
+  switch (status) {
+    case "active":
+      return {
+        caption: "Active",
+        title: "Evening support is active",
+        body: "Support is ready around your sensitive window while you remain in control.",
+        primaryAction: "Save support window"
+      };
+    case "paused":
+      return {
+        caption: "Paused",
+        title: "Support is paused for now",
+        body: "You can resume the evening window whenever it feels useful.",
+        primaryAction: "Resume support window"
+      };
+    case "off":
+      return {
+        caption: "Off",
+        title: "Protection is off",
+        body: "The suggested evening window is still available if you want support later.",
+        primaryAction: "Turn support on"
+      };
+    case "setup":
+      return {
+        caption: "Setup",
+        title: "Review your support window",
+        body: "Recent activity suggests support may help during this part of the evening.",
+        primaryAction: "Save support window"
+      };
+    case "suggested":
+    default:
+      return {
+        caption: "Suggested",
+        title: "Evening support",
+        body: "Recent activity suggests support may help during this part of the evening.",
+        primaryAction: "Save support window"
+      };
+  }
+}
+
 export function ProtectScreen() {
   const router = useRouter();
   const state = useDemoAppState();
   const dispatch = useDemoAppDispatch();
   const protection = selectProtectionState(state);
   const window = selectSuggestedSensitiveWindow(state);
+  const statusCopy = getProtectionStatusCopy(protection.status);
 
   return (
     <AppScreen>
@@ -55,11 +97,11 @@ export function ProtectScreen() {
         <AppCard style={styles.windowCard}>
           <View style={styles.cardStack}>
             <AppText variant="caption" tone="secondary">
-              {protection.status}
+              {statusCopy.caption}
             </AppText>
-            <AppText variant="title">{window.label}</AppText>
+            <AppText variant="title">{statusCopy.title}</AppText>
             <AppText tone="secondary">
-              Recent activity suggests support between {window.startTime} and {window.endTime}.
+              {statusCopy.body} Suggested time: {window.startTime} to {window.endTime}.
             </AppText>
           </View>
         </AppCard>
@@ -102,7 +144,7 @@ export function ProtectScreen() {
                   })
                 }
               >
-                Save support window
+                {statusCopy.primaryAction}
               </AppButton>
               <AppButton variant="secondary" onPress={() => router.push(routes.pause)}>
                 Start 90-Second Pause

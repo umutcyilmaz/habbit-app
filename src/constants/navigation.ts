@@ -36,5 +36,6 @@ export const routes = {
   settingsDataControls: "/settings/data-controls",
   settingsNotifications: "/settings/notifications",
   settingsAppLock: "/settings/app-lock",
-  settingsSubscription: "/settings/subscription"
+  settingsSubscription: "/settings/subscription",
+  debug: "/debug"
 } as const;

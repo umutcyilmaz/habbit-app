@@ -1,3 +1,5 @@
+import type { DemoMode } from "./demoModes";
+
 export type DemoProtectionStatus = "suggested" | "setup" | "active" | "paused" | "off";
 export type DemoSupportLevel = "gentle" | "balanced" | "strong";
 export type DemoMood = "calm" | "bored" | "stressed" | "tired" | "restless" | "neutral";
@@ -24,6 +26,8 @@ export interface DemoPauseSession {
 }
 
 export interface DemoAppState {
+  demoMode: DemoMode;
+  isOfflinePreview: boolean;
   user: {
     name: string;
     currentWeek: number;

@@ -5,8 +5,14 @@ import type {
   DemoProtectionStatus,
   DemoSupportLevel
 } from "./demoTypes";
+import type { DemoMode } from "./demoModes";
+import { createDemoStateForMode } from "./demoPresets";
 
 export type DemoAppAction =
+  | {
+      type: "SET_DEMO_MODE";
+      payload: DemoMode;
+    }
   | {
       type: "ADD_CHECK_IN";
       payload: DemoCheckIn;
@@ -33,6 +39,8 @@ export type DemoAppAction =
 
 export function demoAppStateReducer(state: DemoAppState, action: DemoAppAction): DemoAppState {
   switch (action.type) {
+    case "SET_DEMO_MODE":
+      return createDemoStateForMode(action.payload);
     case "ADD_CHECK_IN":
       return {
         ...state,

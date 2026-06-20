@@ -9,10 +9,12 @@ import {
 
 import { demoAppStateReducer, type DemoAppAction } from "../../domain/demo/demoActions";
 import { demoInitialState } from "../../domain/demo/demoInitialState";
+import type { DemoMode } from "../../domain/demo/demoModes";
 import type { DemoAppState } from "../../domain/demo/demoTypes";
 
 type DemoAppStateContextValue = {
   state: DemoAppState;
+  demoMode: DemoMode;
   dispatch: Dispatch<DemoAppAction>;
 };
 
@@ -20,7 +22,7 @@ const DemoAppStateContext = createContext<DemoAppStateContextValue | undefined>(
 
 export function DemoAppStateProvider({ children }: PropsWithChildren) {
   const [state, dispatch] = useReducer(demoAppStateReducer, demoInitialState);
-  const value = useMemo(() => ({ state, dispatch }), [state]);
+  const value = useMemo(() => ({ state, demoMode: state.demoMode, dispatch }), [state]);
 
   return <DemoAppStateContext.Provider value={value}>{children}</DemoAppStateContext.Provider>;
 }
@@ -33,6 +35,16 @@ export function useDemoAppState() {
   }
 
   return context.state;
+}
+
+export function useDemoAppStateValue() {
+  const context = useContext(DemoAppStateContext);
+
+  if (context === undefined) {
+    throw new Error("useDemoAppStateValue must be used inside DemoAppStateProvider.");
+  }
+
+  return context;
 }
 
 export function useDemoAppDispatch() {

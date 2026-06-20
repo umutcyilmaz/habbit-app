@@ -16,6 +16,7 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="pause" />
         <Stack.Screen name="settings" />
+        <Stack.Screen name="debug" />
       </Stack>
     </AppProviders>
   );

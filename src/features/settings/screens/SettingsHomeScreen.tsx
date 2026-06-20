@@ -12,6 +12,7 @@ import { theme } from "../../../shared/design-system/theme";
 
 export function SettingsHomeScreen() {
   const router = useRouter();
+  const showDeveloperPreview = __DEV__;
 
   return (
     <AppScreen>
@@ -47,6 +48,18 @@ export function SettingsHomeScreen() {
             Subscription
           </AppButton>
         </SettingsSection>
+
+        {showDeveloperPreview ? (
+          <SettingsSection title="Developer Preview">
+            <AppText variant="bodySmall" tone="secondary">
+              Switch preview states while building the app.
+            </AppText>
+            {/* TODO: hide or remove this development entry before production release. */}
+            <AppButton variant="secondary" onPress={() => router.push(routes.debug)}>
+              Debug Preview
+            </AppButton>
+          </SettingsSection>
+        ) : null}
 
         <AppButton variant="ghost" onPress={() => router.replace(routes.home)}>
           Return to Today

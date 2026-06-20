@@ -5,6 +5,7 @@ import { useDemoAppState } from "../../../app/providers/DemoAppStateProvider";
 import { routes } from "../../../constants/navigation";
 import {
   selectGentleInsights,
+  selectHasLowProgressData,
   selectProgressSummary
 } from "../../../domain/demo/demoSelectors";
 import { AppButton } from "../../../shared/components/AppButton";
@@ -19,6 +20,7 @@ export function ProgressScreen() {
   const state = useDemoAppState();
   const metrics = selectProgressSummary(state);
   const insights = selectGentleInsights(state);
+  const hasLowProgressData = selectHasLowProgressData(state);
 
   return (
     <AppScreen>
@@ -43,16 +45,30 @@ export function ProgressScreen() {
           </AppCard>
         ))}
 
-        <AppCard style={styles.insightCard}>
-          <View style={styles.cardStack}>
-            <AppText variant="title">Gentle observations</AppText>
-            {insights.map((insight) => (
-              <AppText key={insight} tone="secondary">
-                {insight}
+        {hasLowProgressData ? (
+          <AppCard style={styles.insightCard}>
+            <View style={styles.cardStack}>
+              <AppText variant="title">Gentle observations</AppText>
+              <AppText tone="secondary">
+                A few more check-ins will help patterns become clearer.
               </AppText>
-            ))}
-          </View>
-        </AppCard>
+              <AppText variant="bodySmall" tone="secondary">
+                For now, focus on noticing the moment and taking one useful next step.
+              </AppText>
+            </View>
+          </AppCard>
+        ) : (
+          <AppCard style={styles.insightCard}>
+            <View style={styles.cardStack}>
+              <AppText variant="title">Gentle observations</AppText>
+              {insights.map((insight) => (
+                <AppText key={insight} tone="secondary">
+                  {insight}
+                </AppText>
+              ))}
+            </View>
+          </AppCard>
+        )}
 
         <AppCard>
           <View style={styles.cardStack}>

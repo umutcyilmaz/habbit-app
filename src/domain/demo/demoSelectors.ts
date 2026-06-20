@@ -12,6 +12,26 @@ export function selectProtectionState(state: DemoAppState) {
   return state.protection;
 }
 
+export function selectIsFirstUse(state: DemoAppState) {
+  return state.demoMode === "firstUse";
+}
+
+export function selectHasLowProgressData(state: DemoAppState) {
+  return state.demoMode === "lowData" || state.checkIns.length < 2 || state.pauseSessions.length === 0;
+}
+
+export function selectCanShowInsights(state: DemoAppState) {
+  return !selectIsFirstUse(state) && !selectHasLowProgressData(state);
+}
+
+export function selectIsProtectionPaused(state: DemoAppState) {
+  return state.protection.status === "paused";
+}
+
+export function selectIsProtectionOff(state: DemoAppState) {
+  return state.protection.status === "off";
+}
+
 export function selectTodayDashboardData(state: DemoAppState): TodayDashboardData {
   const checkInCount = state.checkIns.length;
   const pauseCount = state.pauseSessions.length;
