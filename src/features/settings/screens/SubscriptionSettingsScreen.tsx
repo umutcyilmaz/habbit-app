@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
@@ -10,56 +11,56 @@ import { AppText } from "../../../shared/components/AppText";
 import { ComingNextCard } from "../../../shared/components/states";
 import { theme } from "../../../shared/design-system/theme";
 
-const futureTools = ["Breathing Reset", "Arousal Awareness", "Content Support", "Evening Wind-Down"] as const;
-
-export function ExercisesScreen() {
+export function SubscriptionSettingsScreen() {
   const router = useRouter();
+  const [showComingNext, setShowComingNext] = useState(false);
 
   return (
     <AppScreen>
       <AppHeader
-        title="Exercises"
-        subtitle="Short practices for pausing, resetting, and noticing the moment."
-        onSettingsPress={() => router.push(routes.settings)}
+        eyebrow="Settings"
+        title="Subscription"
+        subtitle="Manage optional premium features."
       />
 
       <View style={styles.stack}>
-        <AppCard style={styles.featuredCard}>
+        <AppCard style={styles.essentialCard}>
           <View style={styles.cardStack}>
-            <AppText variant="caption" tone="secondary">
-              Recommended
-            </AppText>
-            <AppText variant="title">90-Second Pause</AppText>
+            <AppText variant="title">Essential support stays available</AppText>
             <AppText tone="secondary">
-              A brief reset before choosing what comes next.
+              Basic check-ins, pause tools, privacy overview, and deletion basics should remain
+              available without premium.
             </AppText>
-            <AppButton onPress={() => router.push(routes.pause)}>Start 90-Second Pause</AppButton>
           </View>
         </AppCard>
 
         <AppCard>
           <View style={styles.cardStack}>
-            <AppText variant="title">Quick support</AppText>
+            <AppText variant="title">Premium later</AppText>
             <AppText tone="secondary">
-              Check in first if you want to name what is present.
+              Premium may include deeper insights, long-term trends, custom routines, and expanded
+              reports.
             </AppText>
-            <AppButton variant="secondary" onPress={() => router.push(routes.log)}>
-              Quick Check-In
+            <AppButton onPress={() => setShowComingNext(true)}>View premium options</AppButton>
+            <AppButton variant="secondary" onPress={() => setShowComingNext(true)}>
+              Restore purchases
             </AppButton>
           </View>
         </AppCard>
 
-        {futureTools.map((tool) => (
+        {showComingNext ? (
           <ComingNextCard
-            key={tool}
-            title={tool}
             body="This support tool is planned for a future version."
             action={{
               label: "Back",
-              onPress: () => router.push(routes.home)
+              onPress: () => setShowComingNext(false)
             }}
           />
-        ))}
+        ) : null}
+
+        <AppButton variant="ghost" onPress={() => router.push(routes.settings)}>
+          Back to Settings
+        </AppButton>
       </View>
     </AppScreen>
   );
@@ -72,8 +73,8 @@ const styles = StyleSheet.create({
   cardStack: {
     gap: theme.spacing.lg
   },
-  featuredCard: {
-    backgroundColor: theme.colors.lavender,
-    borderColor: theme.colors.lavenderDeep
+  essentialCard: {
+    backgroundColor: theme.colors.sageMuted,
+    borderColor: theme.colors.sage
   }
 });

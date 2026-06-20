@@ -2,7 +2,7 @@ import { appConfig } from "../app/config/appConfig";
 
 export const appCopy = {
   tagline: appConfig.APP_TAGLINE,
-  foundationNote: "Placeholder foundation only. Real flows will be added in later phases.",
+  foundationNote: "This area is prepared for a later flow.",
   settingsSubtitle: "Trust controls and preferences will live outside the bottom tabs."
 } as const;
 
