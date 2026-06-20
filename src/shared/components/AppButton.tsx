@@ -10,7 +10,7 @@ import {
 import { theme } from "../design-system/theme";
 import { AppText } from "./AppText";
 
-type AppButtonVariant = "primary" | "secondary" | "ghost";
+type AppButtonVariant = "primary" | "secondary" | "ghost" | "subtle";
 
 type AppButtonProps = PropsWithChildren<
   Omit<PressableProps, "style"> & {
@@ -75,10 +75,15 @@ const variantStyles = StyleSheet.create({
   secondary: {
     backgroundColor: theme.colors.lavender,
     borderWidth: 1,
-    borderColor: theme.colors.border
+    borderColor: theme.colors.lavenderDeep
   },
   ghost: {
     backgroundColor: "transparent"
+  },
+  subtle: {
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border
   }
 });
 
@@ -90,6 +95,9 @@ const pressedStyles = StyleSheet.create({
     backgroundColor: theme.colors.surfaceMuted
   },
   ghost: {
+    backgroundColor: theme.colors.surfaceMuted
+  },
+  subtle: {
     backgroundColor: theme.colors.surfaceMuted
   }
 });

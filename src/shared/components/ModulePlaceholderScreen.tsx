@@ -19,6 +19,10 @@ type ModulePlaceholderScreenProps = {
   onPrimaryAction?: () => void;
 };
 
+/**
+ * @deprecated Main MVP routes render feature screens directly. Keep this only
+ * for temporary internal scaffolding.
+ */
 export function ModulePlaceholderScreen({
   title,
   purpose,
@@ -40,7 +44,7 @@ export function ModulePlaceholderScreen({
       <View style={styles.stack}>
         <AppCard>
           <View style={styles.cardStack}>
-            <AppText variant="title">Module foundation</AppText>
+            <AppText variant="title">Temporary screen</AppText>
             <AppText tone="secondary">{appCopy.foundationNote}</AppText>
             <AppButton onPress={onPrimaryAction}>{primaryAction}</AppButton>
           </View>
@@ -48,7 +52,7 @@ export function ModulePlaceholderScreen({
 
         <AppCard>
           <View style={styles.cardStack}>
-            <AppText variant="title">Future responsibilities</AppText>
+            <AppText variant="title">Upcoming areas</AppText>
             <View style={styles.list}>
               {responsibilities.map((item) => (
                 <View key={item} style={styles.listItem}>

@@ -31,7 +31,9 @@ export function AppHeader({
           </AppText>
         ) : null}
       </View>
-      {onSettingsPress ? <AppIconButton accessibilityLabel="Open settings" onPress={onSettingsPress} /> : null}
+      {onSettingsPress ? (
+        <AppIconButton accessibilityLabel="Open settings" icon={<AppText variant="title">⚙</AppText>} onPress={onSettingsPress} />
+      ) : null}
     </View>
   );
 }

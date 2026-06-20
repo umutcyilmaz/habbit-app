@@ -8,18 +8,29 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
+        tabBarIcon: () => null,
+        tabBarIconStyle: styles.hiddenIcon,
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.textSecondary,
+        tabBarLabelPosition: "below-icon",
         tabBarLabelStyle: {
           fontSize: 12,
-          fontWeight: "600"
+          fontWeight: "700",
+          lineHeight: 16,
+          marginBottom: 0,
+          marginTop: 0
         },
         tabBarStyle: {
           backgroundColor: theme.colors.surface,
           borderTopColor: theme.colors.border,
-          minHeight: 64,
-          paddingBottom: 8,
-          paddingTop: 8
+          height: 82,
+          minHeight: 82,
+          paddingBottom: 18,
+          paddingTop: 12
+        },
+        tabBarItemStyle: {
+          justifyContent: "center",
+          paddingVertical: 0
         }
       }}
     >
@@ -35,3 +46,11 @@ export default function TabsLayout() {
     </Tabs>
   );
 }
+
+const styles = {
+  hiddenIcon: {
+    display: "none",
+    height: 0,
+    width: 0
+  }
+} as const;

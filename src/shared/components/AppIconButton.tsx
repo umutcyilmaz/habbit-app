@@ -19,21 +19,22 @@ export function AppIconButton({ accessibilityLabel, icon, style, ...props }: App
       {...props}
       style={({ pressed }) => [styles.button, pressed ? styles.pressed : undefined, style]}
     >
-      {icon ?? <AppText variant="label">...</AppText>}
+      {icon ?? <AppText variant="label">Settings</AppText>}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   button: {
-    width: 44,
+    minWidth: 44,
     height: 44,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: theme.radius.pill,
     backgroundColor: theme.colors.surface,
     borderColor: theme.colors.border,
-    borderWidth: 1
+    borderWidth: 1,
+    paddingHorizontal: theme.spacing.md
   },
   pressed: {
     backgroundColor: theme.colors.surfaceMuted
