@@ -1,6 +1,6 @@
 import type { PropsWithChildren } from "react";
 import { ScrollView, StyleSheet, View, type ViewStyle } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { theme } from "../design-system/theme";
 
@@ -9,11 +9,17 @@ type AppScreenProps = PropsWithChildren<{
 }>;
 
 export function AppScreen({ children, contentContainerStyle }: AppScreenProps) {
+  const insets = useSafeAreaInsets();
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
         alwaysBounceVertical={false}
-        contentContainerStyle={[styles.scrollContent, contentContainerStyle]}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: 184 + insets.bottom },
+          contentContainerStyle
+        ]}
       >
         <View style={styles.content}>{children}</View>
       </ScrollView>
@@ -29,8 +35,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: theme.spacing.xl,
-    paddingTop: theme.spacing.xl,
-    paddingBottom: 128
+    paddingTop: theme.spacing.xl
   },
   content: {
     width: "100%",
