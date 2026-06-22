@@ -33,11 +33,11 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: theme.radius.xxl,
     borderColor: theme.colors.sage,
-    backgroundColor: theme.colors.sageMuted,
+    backgroundColor: theme.colors.surface,
     padding: theme.spacing.xl
   },
   stack: {
-    gap: theme.spacing.lg
+    gap: theme.spacing.md
   },
   copy: {
     gap: theme.spacing.sm

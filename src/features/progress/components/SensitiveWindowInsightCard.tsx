@@ -41,7 +41,7 @@ const styles = StyleSheet.create({
     padding: theme.spacing.xl
   },
   stack: {
-    gap: theme.spacing.md
+    gap: theme.spacing.lg
   },
   topRow: {
     flexDirection: "row",
@@ -49,11 +49,11 @@ const styles = StyleSheet.create({
     gap: theme.spacing.md
   },
   iconCircle: {
-    width: 44,
-    height: 44,
+    width: 46,
+    height: 46,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 22,
+    borderRadius: 23,
     borderColor: theme.colors.lavenderDeep,
     borderWidth: 1,
     backgroundColor: theme.colors.surface

@@ -23,7 +23,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.xxl,
     borderColor: theme.colors.peach,
     backgroundColor: theme.colors.peachMuted,
-    padding: theme.spacing.xl
+    padding: theme.spacing.lg
   },
   stack: {
     gap: theme.spacing.sm

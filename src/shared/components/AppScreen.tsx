@@ -18,7 +18,7 @@ export function AppScreen({ children, contentContainerStyle, contentStyle }: App
         alwaysBounceVertical={false}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: 184 + insets.bottom },
+          { paddingBottom: 232 + insets.bottom },
           contentContainerStyle
         ]}
       >

@@ -13,11 +13,16 @@ export function PauseImpactCard({ onStartPausePress }: PauseImpactCardProps) {
   return (
     <AppCard style={styles.card}>
       <View style={styles.stack}>
-        <View style={styles.copy}>
-          <AppText variant="title">Pause impact</AppText>
-          <AppText tone="secondary">
-            Recent pauses suggest that creating space before continuing may help.
-          </AppText>
+        <View style={styles.headerRow}>
+          <View style={styles.iconCircle}>
+            <AppText variant="label">Ⅱ</AppText>
+          </View>
+          <View style={styles.copy}>
+            <AppText variant="title">Pause impact</AppText>
+            <AppText tone="secondary">
+              Recent pauses suggest that creating space before continuing may help.
+            </AppText>
+          </View>
         </View>
 
         <View style={styles.metricRow}>
@@ -61,7 +66,22 @@ const styles = StyleSheet.create({
   stack: {
     gap: theme.spacing.lg
   },
+  headerRow: {
+    flexDirection: "row",
+    gap: theme.spacing.md
+  },
+  iconCircle: {
+    width: 46,
+    height: 46,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 23,
+    borderColor: theme.colors.sage,
+    borderWidth: 1,
+    backgroundColor: theme.colors.surface
+  },
   copy: {
+    flex: 1,
     gap: theme.spacing.sm
   },
   metricRow: {

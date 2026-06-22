@@ -1,56 +1,55 @@
 import { StyleSheet, View } from "react-native";
 
+import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
 
-type ProgressWeeklySummaryCardProps = {
+type TodayWeeklyPreviewCardProps = {
   checkInCount: number;
   pauseCount: number;
-  supportWindowCount: number;
+  onViewProgressPress: () => void;
 };
 
-function getLabel(count: number, singular: string, plural: string) {
+function getMetricLabel(count: number, singular: string, plural: string) {
   return count === 1 ? singular : plural;
 }
 
-export function ProgressWeeklySummaryCard({
+export function TodayWeeklyPreviewCard({
   checkInCount,
   pauseCount,
-  supportWindowCount
-}: ProgressWeeklySummaryCardProps) {
+  onViewProgressPress
+}: TodayWeeklyPreviewCardProps) {
   return (
     <AppCard style={styles.card}>
       <View style={styles.stack}>
         <View style={styles.copy}>
           <AppText variant="title">This week so far</AppText>
           <AppText tone="secondary">
-            Small moments of awareness can make the next choice feel less automatic.
+            Recent logs suggest boredom and evenings may be connected.
           </AppText>
         </View>
-
-        <View style={styles.metricGrid}>
-          <MetricPill value={checkInCount} label={getLabel(checkInCount, "check-in", "check-ins")} />
-          <MetricPill value={pauseCount} label={getLabel(pauseCount, "pause", "pauses")} />
-          <MetricPill
-            value={supportWindowCount}
-            label={getLabel(supportWindowCount, "support window", "support windows")}
-          />
+        <View style={styles.metrics}>
+          <MetricChip value={checkInCount} label={getMetricLabel(checkInCount, "check-in", "check-ins")} />
+          <MetricChip value={pauseCount} label={getMetricLabel(pauseCount, "pause", "pauses")} />
         </View>
+        <AppButton variant="secondary" onPress={onViewProgressPress}>
+          View Progress
+        </AppButton>
       </View>
     </AppCard>
   );
 }
 
-type MetricPillProps = {
+type MetricChipProps = {
   value: number;
   label: string;
 };
 
-function MetricPill({ value, label }: MetricPillProps) {
+function MetricChip({ value, label }: MetricChipProps) {
   return (
     <View style={styles.metric}>
-      <AppText variant="title">{value}</AppText>
+      <AppText variant="label">{value}</AppText>
       <AppText variant="bodySmall" tone="secondary">
         {label}
       </AppText>
@@ -69,19 +68,20 @@ const styles = StyleSheet.create({
   copy: {
     gap: theme.spacing.sm
   },
-  metricGrid: {
+  metrics: {
     flexDirection: "row",
-    flexWrap: "wrap",
     gap: theme.spacing.md
   },
   metric: {
-    minWidth: 96,
     flex: 1,
+    flexDirection: "row",
     alignItems: "center",
-    borderRadius: theme.radius.xl,
+    gap: theme.spacing.sm,
+    borderRadius: theme.radius.pill,
     borderColor: theme.colors.border,
     borderWidth: 1,
-    backgroundColor: theme.colors.surface,
-    padding: theme.spacing.sm
+    backgroundColor: theme.colors.surfaceMuted,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm
   }
 });

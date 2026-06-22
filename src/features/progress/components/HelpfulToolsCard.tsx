@@ -65,13 +65,13 @@ const styles = StyleSheet.create({
     padding: theme.spacing.xl
   },
   stack: {
-    gap: theme.spacing.lg
+    gap: theme.spacing.md
   },
   rows: {
     gap: theme.spacing.md
   },
   row: {
-    minHeight: 72,
+    minHeight: 66,
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing.md,
@@ -82,11 +82,11 @@ const styles = StyleSheet.create({
     padding: theme.spacing.md
   },
   iconCircle: {
-    width: 42,
-    height: 42,
+    width: 40,
+    height: 40,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 21,
+    borderRadius: 20,
     borderColor: theme.colors.sage,
     borderWidth: 1,
     backgroundColor: theme.colors.sageMuted
