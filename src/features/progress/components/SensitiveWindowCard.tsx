@@ -5,23 +5,25 @@ import { AppCard } from "../../../shared/components/AppCard";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
 
-type SensitiveWindowInsightCardProps = {
+type SensitiveWindowCardProps = {
   onSetupPress: () => void;
 };
 
-export function SensitiveWindowInsightCard({ onSetupPress }: SensitiveWindowInsightCardProps) {
+export function SensitiveWindowCard({ onSetupPress }: SensitiveWindowCardProps) {
   return (
     <AppCard style={styles.card}>
       <View style={styles.stack}>
-        <View style={styles.topRow}>
+        <View style={styles.headerRow}>
           <View style={styles.iconCircle}>
             <AppText variant="label">☾</AppText>
           </View>
-          <AppText variant="title">Sensitive window</AppText>
+          <View style={styles.copy}>
+            <AppText variant="title">Sensitive window</AppText>
+            <AppText tone="secondary">
+              Evenings between 22:00 and 00:00 appear often in recent activity.
+            </AppText>
+          </View>
         </View>
-        <AppText tone="secondary">
-          Evenings between 22:00 and 00:00 appear often in recent activity.
-        </AppText>
         <AppText variant="bodySmall" tone="secondary">
           A short pause before this window may help you notice the loop earlier.
         </AppText>
@@ -41,11 +43,10 @@ const styles = StyleSheet.create({
     padding: theme.spacing.xl
   },
   stack: {
-    gap: theme.spacing.lg
+    gap: theme.spacing.md
   },
-  topRow: {
+  headerRow: {
     flexDirection: "row",
-    alignItems: "center",
     gap: theme.spacing.md
   },
   iconCircle: {
@@ -57,5 +58,9 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.lavenderDeep,
     borderWidth: 1,
     backgroundColor: theme.colors.surface
+  },
+  copy: {
+    flex: 1,
+    gap: theme.spacing.sm
   }
 });

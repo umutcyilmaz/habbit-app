@@ -12,10 +12,10 @@ import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
 import { HelpfulToolsCard } from "../components/HelpfulToolsCard";
 import { NextFocusCard } from "../components/NextFocusCard";
-import { PauseImpactCard } from "../components/PauseImpactCard";
-import { ProgressObservationCard } from "../components/ProgressObservationCard";
-import { ProgressWeeklySummaryCard } from "../components/ProgressWeeklySummaryCard";
-import { SensitiveWindowInsightCard } from "../components/SensitiveWindowInsightCard";
+import { PauseEffectCard } from "../components/PauseEffectCard";
+import { ProgressHeroCard } from "../components/ProgressHeroCard";
+import { ProgressObservationNote } from "../components/ProgressObservationNote";
+import { SensitiveWindowCard } from "../components/SensitiveWindowCard";
 
 export function ProgressScreen() {
   const router = useRouter();
@@ -46,16 +46,14 @@ export function ProgressScreen() {
           </AppCard>
         ) : (
           <>
-            <ProgressWeeklySummaryCard
+            <ProgressHeroCard
               checkInCount={checkInCount}
               pauseCount={pauseCount}
               supportWindowCount={1}
             />
-            <PauseImpactCard onStartPausePress={() => router.push(routes.pause)} />
-            <SensitiveWindowInsightCard
-              onSetupPress={() => router.push(routes.protectNightSetup)}
-            />
-            <ProgressObservationCard />
+            <PauseEffectCard onStartPausePress={() => router.push(routes.pause)} />
+            <SensitiveWindowCard onSetupPress={() => router.push(routes.protectNightSetup)} />
+            <ProgressObservationNote />
             <HelpfulToolsCard
               pauseCount={pauseCount}
               checkInCount={checkInCount}

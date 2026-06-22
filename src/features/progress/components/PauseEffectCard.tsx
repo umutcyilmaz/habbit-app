@@ -5,11 +5,11 @@ import { AppCard } from "../../../shared/components/AppCard";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
 
-type PauseImpactCardProps = {
+type PauseEffectCardProps = {
   onStartPausePress: () => void;
 };
 
-export function PauseImpactCard({ onStartPausePress }: PauseImpactCardProps) {
+export function PauseEffectCard({ onStartPausePress }: PauseEffectCardProps) {
   return (
     <AppCard style={styles.card}>
       <View style={styles.stack}>
@@ -18,20 +18,27 @@ export function PauseImpactCard({ onStartPausePress }: PauseImpactCardProps) {
             <AppText variant="label">Ⅱ</AppText>
           </View>
           <View style={styles.copy}>
-            <AppText variant="title">Pause impact</AppText>
+            <AppText variant="title">Pause effect</AppText>
             <AppText tone="secondary">
               Recent pauses suggest that creating space before continuing may help.
             </AppText>
           </View>
         </View>
 
-        <View style={styles.metricRow}>
-          <ImpactMetric label="Urge before" value="8/10" />
-          <ImpactMetric label="Urge after" value="5/10" />
+        <View style={styles.comparisonRow}>
+          <ComparisonMetric label="Before" value="8/10" />
+          <View style={styles.arrow}>
+            <AppText variant="bodySmall" tone="secondary">
+              →
+            </AppText>
+          </View>
+          <ComparisonMetric label="After" value="5/10" />
         </View>
 
-        <View style={styles.statusPill}>
-          <AppText variant="caption">Reduced</AppText>
+        <View style={styles.footerRow}>
+          <View style={styles.badge}>
+            <AppText variant="caption">Reduced</AppText>
+          </View>
         </View>
 
         <AppButton onPress={onStartPausePress}>Start 90-Second Pause</AppButton>
@@ -40,12 +47,12 @@ export function PauseImpactCard({ onStartPausePress }: PauseImpactCardProps) {
   );
 }
 
-type ImpactMetricProps = {
+type ComparisonMetricProps = {
   label: string;
   value: string;
 };
 
-function ImpactMetric({ label, value }: ImpactMetricProps) {
+function ComparisonMetric({ label, value }: ComparisonMetricProps) {
   return (
     <View style={styles.metric}>
       <AppText variant="caption" tone="secondary">
@@ -84,9 +91,10 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: theme.spacing.sm
   },
-  metricRow: {
+  comparisonRow: {
     flexDirection: "row",
-    gap: theme.spacing.md
+    alignItems: "stretch",
+    gap: theme.spacing.sm
   },
   metric: {
     flex: 1,
@@ -96,8 +104,13 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     padding: theme.spacing.md
   },
-  statusPill: {
-    alignSelf: "flex-start",
+  arrow: {
+    justifyContent: "center"
+  },
+  footerRow: {
+    flexDirection: "row"
+  },
+  badge: {
     borderRadius: theme.radius.pill,
     borderColor: theme.colors.sage,
     borderWidth: 1,

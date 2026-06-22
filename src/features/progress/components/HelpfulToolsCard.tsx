@@ -1,5 +1,6 @@
 import { StyleSheet, View } from "react-native";
 
+import type { DemoProtectionStatus } from "../../../domain/demo/demoTypes";
 import { AppCard } from "../../../shared/components/AppCard";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
@@ -7,15 +8,23 @@ import { theme } from "../../../shared/design-system/theme";
 type HelpfulToolsCardProps = {
   pauseCount: number;
   checkInCount: number;
-  protectionStatus: string;
+  protectionStatus: DemoProtectionStatus;
 };
 
-function getProtectionDetail(status: string) {
+function getProtectionDetail(status: DemoProtectionStatus) {
   return status === "active" ? "Active during selected hours" : "Not active yet";
 }
 
 function getUsedLabel(count: number) {
-  return `Used ${count} ${count === 1 ? "time" : "times"} this week`;
+  if (count === 1) {
+    return "Used once this week";
+  }
+
+  if (count === 2) {
+    return "Used twice this week";
+  }
+
+  return `Used ${count} times this week`;
 }
 
 export function HelpfulToolsCard({
@@ -30,7 +39,7 @@ export function HelpfulToolsCard({
         <View style={styles.rows}>
           <ToolRow icon="Ⅱ" title="90-Second Pause" detail={getUsedLabel(pauseCount)} />
           <ToolRow icon="✓" title="Quick Check-In" detail={getUsedLabel(checkInCount)} />
-          <ToolRow icon="◇" title="Protection" detail={getProtectionDetail(protectionStatus)} />
+          <ToolRow icon="☾" title="Protection" detail={getProtectionDetail(protectionStatus)} />
         </View>
       </View>
     </AppCard>
@@ -62,31 +71,32 @@ function ToolRow({ icon, title, detail }: ToolRowProps) {
 const styles = StyleSheet.create({
   card: {
     borderRadius: theme.radius.xxl,
-    padding: theme.spacing.xl
+    padding: theme.spacing.lg
   },
   stack: {
-    gap: theme.spacing.md
+    gap: theme.spacing.lg
   },
   rows: {
-    gap: theme.spacing.md
+    gap: theme.spacing.sm
   },
   row: {
-    minHeight: 66,
+    minHeight: 60,
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing.md,
-    borderRadius: theme.radius.xl,
+    borderRadius: theme.radius.lg,
     borderColor: theme.colors.border,
     borderWidth: 1,
     backgroundColor: theme.colors.surface,
-    padding: theme.spacing.md
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm
   },
   iconCircle: {
-    width: 40,
-    height: 40,
+    width: 38,
+    height: 38,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 20,
+    borderRadius: 19,
     borderColor: theme.colors.sage,
     borderWidth: 1,
     backgroundColor: theme.colors.sageMuted
