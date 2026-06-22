@@ -26,7 +26,11 @@ export function ProtectionStatusHero({
             <AppText variant="caption">{statusLabel}</AppText>
           </View>
           <View style={styles.heroMark}>
-            <AppText variant="label">P</AppText>
+            <View style={[styles.heroMarkInner, variantMarkStyles[variant]]}>
+              <AppText variant="caption" tone={variant === "active" ? "inverse" : "primary"}>
+                P
+              </AppText>
+            </View>
           </View>
         </View>
         <AppText variant="title">{title}</AppText>
@@ -68,14 +72,22 @@ const styles = StyleSheet.create({
     borderRadius: 4
   },
   heroMark: {
-    width: 54,
-    height: 54,
+    width: 62,
+    height: 62,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 27,
-    backgroundColor: theme.colors.surface,
+    borderRadius: 31,
+    backgroundColor: theme.colors.sageMuted,
     borderColor: theme.colors.sage,
     borderWidth: 1
+  },
+  heroMarkInner: {
+    width: 38,
+    height: 38,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 19,
+    backgroundColor: theme.colors.surface
   }
 });
 
@@ -103,5 +115,17 @@ const variantDotStyles = StyleSheet.create({
   },
   paused: {
     backgroundColor: theme.colors.lavenderDeep
+  }
+});
+
+const variantMarkStyles = StyleSheet.create({
+  active: {
+    backgroundColor: theme.colors.primary
+  },
+  off: {
+    backgroundColor: theme.colors.surface
+  },
+  paused: {
+    backgroundColor: theme.colors.surface
   }
 });

@@ -18,6 +18,8 @@ export function ProtectionModeCard({
   enabled = true,
   onPress
 }: ProtectionModeCardProps) {
+  const isToggle = onPress !== undefined;
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -35,13 +37,15 @@ export function ProtectionModeCard({
       </View>
       <View style={styles.copy}>
         <AppText variant="label">{title}</AppText>
-        <AppText variant="bodySmall" tone="secondary">
-          {value}
-        </AppText>
+        {isToggle ? (
+          <AppText variant="bodySmall" tone="secondary">
+            {value}
+          </AppText>
+        ) : null}
       </View>
-      <View style={[styles.toggle, enabled ? styles.toggleEnabled : undefined]}>
-        <AppText variant="caption" tone={enabled ? "inverse" : "secondary"}>
-          {enabled ? "On" : "Off"}
+      <View style={[styles.toggle, isToggle && enabled ? styles.toggleEnabled : undefined]}>
+        <AppText variant="caption" tone={isToggle && enabled ? "inverse" : "secondary"}>
+          {isToggle ? (enabled ? "On" : "Off") : value}
         </AppText>
       </View>
     </Pressable>
@@ -88,8 +92,9 @@ const styles = StyleSheet.create({
     minWidth: 52,
     alignItems: "center",
     borderRadius: theme.radius.pill,
-    borderColor: theme.colors.border,
+    borderColor: theme.colors.sage,
     borderWidth: 1,
+    backgroundColor: theme.colors.sageMuted,
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.xs
   },

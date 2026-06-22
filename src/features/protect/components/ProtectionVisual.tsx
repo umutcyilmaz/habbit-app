@@ -11,14 +11,16 @@ type ProtectionVisualProps = {
 
 export function ProtectionVisual({
   label = "Support",
-  symbol = "✓",
+  symbol = "P",
   size = "medium"
 }: ProtectionVisualProps) {
   const isLarge = size === "large";
 
   return (
     <View style={[styles.outer, isLarge ? styles.outerLarge : undefined]}>
+      <View style={[styles.orbitDot, isLarge ? styles.orbitDotLarge : undefined]} />
       <View style={[styles.middle, isLarge ? styles.middleLarge : undefined]}>
+        <View style={[styles.glowRing, isLarge ? styles.glowRingLarge : undefined]} />
         <View style={[styles.inner, isLarge ? styles.innerLarge : undefined]}>
           <AppText variant="heading" tone="inverse" align="center" style={styles.symbol}>
             {symbol}
@@ -58,7 +60,8 @@ const styles = StyleSheet.create({
     borderRadius: 66,
     backgroundColor: theme.colors.surface,
     borderColor: theme.colors.white,
-    borderWidth: 1
+    borderWidth: 1,
+    position: "relative"
   },
   middleLarge: {
     width: 158,
@@ -71,7 +74,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 42,
-    backgroundColor: theme.colors.primary
+    backgroundColor: theme.colors.primary,
+    zIndex: 1
   },
   innerLarge: {
     width: 106,
@@ -81,5 +85,35 @@ const styles = StyleSheet.create({
   symbol: {
     fontSize: 34,
     lineHeight: 38
+  },
+  orbitDot: {
+    position: "absolute",
+    top: 30,
+    right: 34,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: theme.colors.sage,
+    borderColor: theme.colors.surface,
+    borderWidth: 3
+  },
+  orbitDotLarge: {
+    top: 36,
+    right: 42,
+    width: 22,
+    height: 22,
+    borderRadius: 11
+  },
+  glowRing: {
+    position: "absolute",
+    width: 112,
+    height: 112,
+    borderRadius: 56,
+    backgroundColor: theme.colors.sageMuted
+  },
+  glowRingLarge: {
+    width: 136,
+    height: 136,
+    borderRadius: 68
   }
 });

@@ -26,7 +26,7 @@ export function ProtectionInterceptScreen() {
       <View style={styles.stack}>
         <AppCard style={styles.visualCard}>
           <View style={styles.cardStack}>
-            <ProtectionVisual label="Pause" symbol="Ⅱ" />
+            <ProtectionVisual label="Pause" symbol="II" />
             <AppText tone="secondary" align="center">
               You remain in control. Choose the next helpful step.
             </AppText>

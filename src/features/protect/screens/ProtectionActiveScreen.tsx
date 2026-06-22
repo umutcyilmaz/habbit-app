@@ -34,7 +34,7 @@ export function ProtectionActiveScreen() {
 
       <View style={styles.stack}>
         <View style={styles.heroPanel}>
-          <ProtectionVisual label="Active" symbol="✓" size="large" />
+          <ProtectionVisual label="Active" symbol="P" size="large" />
           <View style={styles.heroCopy}>
             <AppText variant="title" align="center">
               Gentle support is on
