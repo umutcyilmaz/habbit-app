@@ -1,0 +1,25 @@
+import { StyleSheet, View } from "react-native";
+
+import { AppText } from "../../../shared/components/AppText";
+import { theme } from "../../../shared/design-system/theme";
+
+export function ExerciseReminderNote() {
+  return (
+    <View style={styles.note}>
+      <AppText variant="bodySmall" tone="secondary" align="center">
+        There is no perfect way to practice. Choosing one small pause is enough.
+      </AppText>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  note: {
+    borderRadius: theme.radius.xl,
+    borderColor: theme.colors.peach,
+    borderWidth: 1,
+    backgroundColor: theme.colors.peachMuted,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.md
+  }
+});
