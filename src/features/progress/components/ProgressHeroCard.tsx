@@ -11,10 +11,6 @@ type ProgressHeroCardProps = {
   supportWindowCount: number;
 };
 
-function getLabel(count: number, singular: string, plural: string) {
-  return count === 1 ? singular : plural;
-}
-
 export function ProgressHeroCard({
   checkInCount,
   pauseCount,
@@ -41,18 +37,11 @@ export function ProgressHeroCard({
         </View>
 
         <View style={styles.statsRow}>
-          <ProgressMetricChip
-            value={String(checkInCount)}
-            label={getLabel(checkInCount, "check-in", "check-ins")}
-          />
-          <ProgressMetricChip
-            value={String(pauseCount)}
-            label={getLabel(pauseCount, "pause", "pauses")}
-          />
-          <ProgressMetricChip
-            value={String(supportWindowCount)}
-            label={getLabel(supportWindowCount, "support window", "support windows")}
-          />
+          <ProgressMetricChip value={String(checkInCount)} label="Check-ins" />
+          <View style={styles.statSeparator} />
+          <ProgressMetricChip value={String(pauseCount)} label="Pause" />
+          <View style={styles.statSeparator} />
+          <ProgressMetricChip value={String(supportWindowCount)} label="Support" />
         </View>
       </View>
     </AppCard>
@@ -96,7 +85,17 @@ const styles = StyleSheet.create({
   },
   statsRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: theme.spacing.sm
+    alignItems: "center",
+    borderRadius: theme.radius.xl,
+    borderColor: theme.colors.border,
+    borderWidth: 1,
+    backgroundColor: theme.colors.surface,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.md
+  },
+  statSeparator: {
+    width: 1,
+    height: 34,
+    backgroundColor: theme.colors.border
   }
 });

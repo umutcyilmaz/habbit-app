@@ -25,17 +25,16 @@ export function PauseEffectCard({ onStartPausePress }: PauseEffectCardProps) {
           </View>
         </View>
 
-        <View style={styles.comparisonRow}>
-          <ComparisonMetric label="Before" value="8/10" />
-          <View style={styles.arrow}>
-            <AppText variant="bodySmall" tone="secondary">
-              →
-            </AppText>
+        <View style={styles.comparisonPanel}>
+          <View style={styles.comparisonRow}>
+            <ComparisonMetric label="Before" value="8/10" />
+            <View style={styles.arrowCircle}>
+              <AppText variant="bodySmall" tone="secondary">
+                →
+              </AppText>
+            </View>
+            <ComparisonMetric label="After" value="5/10" />
           </View>
-          <ComparisonMetric label="After" value="5/10" />
-        </View>
-
-        <View style={styles.footerRow}>
           <View style={styles.badge}>
             <AppText variant="caption">Reduced</AppText>
           </View>
@@ -91,30 +90,41 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: theme.spacing.sm
   },
-  comparisonRow: {
-    flexDirection: "row",
-    alignItems: "stretch",
-    gap: theme.spacing.sm
-  },
-  metric: {
-    flex: 1,
+  comparisonPanel: {
+    gap: theme.spacing.md,
     borderRadius: theme.radius.xl,
     borderColor: theme.colors.sage,
     borderWidth: 1,
     backgroundColor: theme.colors.surface,
-    padding: theme.spacing.md
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.md
   },
-  arrow: {
-    justifyContent: "center"
+  comparisonRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: theme.spacing.sm
   },
-  footerRow: {
-    flexDirection: "row"
+  metric: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: "center",
+    gap: theme.spacing.xs
+  },
+  arrowCircle: {
+    width: 30,
+    height: 30,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 15,
+    backgroundColor: theme.colors.sageMuted
   },
   badge: {
+    alignSelf: "center",
     borderRadius: theme.radius.pill,
     borderColor: theme.colors.sage,
     borderWidth: 1,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.sageMuted,
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.xs
   }

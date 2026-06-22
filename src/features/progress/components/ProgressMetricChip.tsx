@@ -11,8 +11,8 @@ type ProgressMetricChipProps = {
 export function ProgressMetricChip({ value, label }: ProgressMetricChipProps) {
   return (
     <View style={styles.chip}>
-      <AppText variant="label">{value}</AppText>
-      <AppText variant="bodySmall" tone="secondary">
+      <AppText variant="title">{value}</AppText>
+      <AppText variant="bodySmall" tone="secondary" numberOfLines={1}>
         {label}
       </AppText>
     </View>
@@ -22,14 +22,9 @@ export function ProgressMetricChip({ value, label }: ProgressMetricChipProps) {
 const styles = StyleSheet.create({
   chip: {
     flex: 1,
-    minWidth: 90,
+    minWidth: 0,
     alignItems: "center",
     gap: theme.spacing.xs,
-    borderRadius: theme.radius.xl,
-    borderColor: theme.colors.border,
-    borderWidth: 1,
-    backgroundColor: theme.colors.surfaceMuted,
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: theme.spacing.md
+    paddingHorizontal: theme.spacing.xs
   }
 });
