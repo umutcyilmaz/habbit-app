@@ -90,16 +90,8 @@ export function ExercisesScreen() {
       <View style={styles.stack}>
         <FeaturedPracticeCard
           {...(practiceMessage !== undefined ? { message: practiceMessage } : {})}
-          onStartPress={() =>
-            setPracticeMessage(
-              "Start by noticing your arousal level, then choose one small pause below."
-            )
-          }
-          onLearnPress={() =>
-            setPracticeMessage(
-              "This practice is about noticing pressure and rushing earlier, then continuing gently or finishing today."
-            )
-          }
+          onStartPress={() => router.push(routes.arousalControl)}
+          onLearnPress={() => router.push(routes.arousalControl)}
         />
         <QuickPracticeGrid practices={quickPractices} />
         <GuidedToolsCard tools={guidedTools} />

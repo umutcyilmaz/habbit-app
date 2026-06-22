@@ -25,6 +25,8 @@ export const routes = {
   home: "/(tabs)/today",
   log: "/(tabs)/log",
   exercises: "/(tabs)/exercises",
+  arousalControl: "/exercises/arousal-control",
+  arousalControlMode: "/exercises/arousal-control/mode",
   progress: "/(tabs)/progress",
   protect: "/(tabs)/protect",
   protectSetup: "/protect/setup",

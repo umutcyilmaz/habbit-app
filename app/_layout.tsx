@@ -14,6 +14,7 @@ export default function RootLayout() {
       >
         <Stack.Screen name="index" />
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="exercises" />
         <Stack.Screen name="pause" />
         <Stack.Screen name="protect" />
         <Stack.Screen name="settings" />
