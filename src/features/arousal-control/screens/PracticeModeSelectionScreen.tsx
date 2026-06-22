@@ -5,7 +5,6 @@ import { StyleSheet, View } from "react-native";
 import { routes } from "../../../constants/navigation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppScreen } from "../../../shared/components/AppScreen";
-import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
 import { ArousalControlFlowHeader } from "../components/ArousalControlFlowHeader";
 import { PracticeModeCard, type PracticeModeId } from "../components/PracticeModeCard";
@@ -42,7 +41,6 @@ const modes = [
 export function PracticeModeSelectionScreen() {
   const router = useRouter();
   const [selectedMode, setSelectedMode] = useState<PracticeModeId>("onePause");
-  const [continueMessage, setContinueMessage] = useState<string | undefined>();
 
   return (
     <AppScreen contentStyle={styles.content}>
@@ -70,18 +68,8 @@ export function PracticeModeSelectionScreen() {
           ))}
         </View>
 
-        {continueMessage ? (
-          <View style={styles.placeholderNote}>
-            <AppText variant="bodySmall" tone="secondary" align="center">
-              {continueMessage}
-            </AppText>
-          </View>
-        ) : null}
-
         <View style={styles.actions}>
-          <AppButton
-            onPress={() => setContinueMessage("Practice setup saved.")}
-          >
+          <AppButton onPress={() => router.push(routes.arousalControlCheckIn)}>
             Continue
           </AppButton>
           <AppButton variant="secondary" onPress={() => router.replace(routes.exercises)}>
@@ -102,14 +90,6 @@ const styles = StyleSheet.create({
   },
   modeStack: {
     gap: theme.spacing.md
-  },
-  placeholderNote: {
-    borderRadius: theme.radius.xl,
-    borderColor: theme.colors.sage,
-    borderWidth: 1,
-    backgroundColor: theme.colors.sageMuted,
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md
   },
   actions: {
     gap: theme.spacing.sm
