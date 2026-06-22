@@ -27,28 +27,29 @@ export function ArousalInfoRow({ title, body, icon }: ArousalInfoRowProps) {
 
 const styles = StyleSheet.create({
   row: {
-    minHeight: 76,
+    minHeight: 86,
     flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.md,
-    borderRadius: theme.radius.xl,
+    alignItems: "flex-start",
+    gap: theme.spacing.lg,
+    borderRadius: theme.radius.xxl,
     borderColor: theme.colors.border,
     borderWidth: 1,
     backgroundColor: theme.colors.surface,
-    padding: theme.spacing.md
+    padding: theme.spacing.lg,
+    ...theme.shadows.card
   },
   iconCircle: {
-    width: 42,
-    height: 42,
+    width: 40,
+    height: 40,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 21,
-    borderColor: theme.colors.sage,
+    borderRadius: 20,
+    borderColor: theme.colors.border,
     borderWidth: 1,
-    backgroundColor: theme.colors.sageMuted
+    backgroundColor: theme.colors.surfaceMuted
   },
   copy: {
     flex: 1,
-    gap: theme.spacing.xs
+    gap: theme.spacing.sm
   }
 });

@@ -8,6 +8,7 @@ type ArousalControlFlowHeaderProps = {
   label: string;
   title: string;
   subtitle: string;
+  icon?: string;
   onBackPress: () => void;
   onClosePress?: () => void;
 };
@@ -16,18 +17,25 @@ export function ArousalControlFlowHeader({
   label,
   title,
   subtitle,
+  icon,
   onBackPress,
   onClosePress
 }: ArousalControlFlowHeaderProps) {
   return (
     <View style={styles.container}>
-      <View style={styles.actions}>
+      <View style={styles.glow} />
+      <View style={styles.topBar}>
         <AppIconButton
           accessibilityLabel="Go back"
           icon={<AppText variant="title">‹</AppText>}
           onPress={onBackPress}
           style={styles.iconButton}
         />
+        <View style={styles.labelWrap}>
+          <AppText variant="caption" tone="secondary" align="center" style={styles.label}>
+            {label}
+          </AppText>
+        </View>
         {onClosePress ? (
           <AppIconButton
             accessibilityLabel="Close practice"
@@ -41,13 +49,17 @@ export function ArousalControlFlowHeader({
       </View>
 
       <View style={styles.copy}>
-        <AppText variant="caption" tone="secondary">
-          {label}
-        </AppText>
+        {icon ? (
+          <View style={styles.heroIcon}>
+            <AppText variant="label">{icon}</AppText>
+          </View>
+        ) : null}
         <AppText variant="heading" style={styles.title}>
           {title}
         </AppText>
-        <AppText tone="secondary">{subtitle}</AppText>
+        <AppText tone="secondary" align="center">
+          {subtitle}
+        </AppText>
       </View>
     </View>
   );
@@ -55,13 +67,36 @@ export function ArousalControlFlowHeader({
 
 const styles = StyleSheet.create({
   container: {
-    gap: theme.spacing.xl,
-    marginBottom: theme.spacing.xl
+    position: "relative",
+    overflow: "hidden",
+    gap: theme.spacing.xxl,
+    marginBottom: theme.spacing.xl,
+    paddingTop: theme.spacing.sm
   },
-  actions: {
+  glow: {
+    position: "absolute",
+    top: -74,
+    right: -20,
+    width: 168,
+    height: 168,
+    borderRadius: 84,
+    backgroundColor: theme.colors.sageMuted,
+    opacity: 0.72
+  },
+  topBar: {
+    minHeight: 46,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center"
+  },
+  labelWrap: {
+    position: "absolute",
+    left: 58,
+    right: 58,
+    alignItems: "center"
+  },
+  label: {
+    textTransform: "uppercase"
   },
   iconButton: {
     width: 46,
@@ -75,8 +110,19 @@ const styles = StyleSheet.create({
     height: 46
   },
   copy: {
-    gap: theme.spacing.sm,
-    paddingRight: theme.spacing.lg
+    alignItems: "center",
+    gap: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md
+  },
+  heroIcon: {
+    width: 48,
+    height: 48,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 24,
+    borderColor: theme.colors.sage,
+    borderWidth: 1,
+    backgroundColor: theme.colors.sageMuted
   },
   title: {
     fontFamily: Platform.select({
@@ -84,7 +130,8 @@ const styles = StyleSheet.create({
       android: "serif",
       web: "Georgia, serif"
     }),
-    fontSize: 38,
-    lineHeight: 44
+    fontSize: 42,
+    lineHeight: 48,
+    textAlign: "center"
   }
 });

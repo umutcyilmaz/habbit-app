@@ -78,8 +78,8 @@ export function FeaturedPracticeCard({
 const styles = StyleSheet.create({
   card: {
     borderRadius: 26,
-    borderColor: theme.colors.lavenderDeep,
-    backgroundColor: theme.colors.lavender,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
     padding: theme.spacing.xl
   },
   stack: {
@@ -93,9 +93,9 @@ const styles = StyleSheet.create({
   },
   badge: {
     borderRadius: theme.radius.pill,
-    borderColor: theme.colors.lavenderDeep,
+    borderColor: theme.colors.sage,
     borderWidth: 1,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.sageMuted,
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.xs
   },
@@ -105,9 +105,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 23,
-    borderColor: theme.colors.lavenderDeep,
+    borderColor: theme.colors.sage,
     borderWidth: 1,
-    backgroundColor: theme.colors.surface
+    backgroundColor: theme.colors.sageMuted
   },
   copy: {
     gap: theme.spacing.sm

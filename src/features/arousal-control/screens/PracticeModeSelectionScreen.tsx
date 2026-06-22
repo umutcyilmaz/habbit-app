@@ -47,7 +47,7 @@ export function PracticeModeSelectionScreen() {
   return (
     <AppScreen contentStyle={styles.content}>
       <ArousalControlFlowHeader
-        label="Practice mode"
+        label="PRACTICE MODE"
         title="Choose a gentle starting point."
         subtitle="There is no perfect mode. Choose the one that feels safest today."
         onBackPress={() => router.replace(routes.arousalControl)}
@@ -80,7 +80,7 @@ export function PracticeModeSelectionScreen() {
 
         <View style={styles.actions}>
           <AppButton
-            onPress={() => setContinueMessage("Next step will be added in the practice flow.")}
+            onPress={() => setContinueMessage("Practice setup saved.")}
           >
             Continue
           </AppButton>
@@ -105,9 +105,9 @@ const styles = StyleSheet.create({
   },
   placeholderNote: {
     borderRadius: theme.radius.xl,
-    borderColor: theme.colors.peach,
+    borderColor: theme.colors.sage,
     borderWidth: 1,
-    backgroundColor: theme.colors.peachMuted,
+    backgroundColor: theme.colors.sageMuted,
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.md
   },

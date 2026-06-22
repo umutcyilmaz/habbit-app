@@ -37,23 +37,32 @@ export function PracticeModeCard({
     >
       <View style={styles.headerRow}>
         <View style={styles.titleStack}>
-          <AppText variant="title">{title}</AppText>
-          <AppText tone="secondary">{description}</AppText>
-        </View>
-        {badge ? (
-          <View
-            style={[styles.badge, badge === "Recommended" ? styles.recommendedBadge : undefined]}
-          >
-            <AppText variant="caption">{badge}</AppText>
+          <View style={styles.titleRow}>
+            <AppText variant="title">{title}</AppText>
+            {badge ? (
+              <View
+                style={[
+                  styles.badge,
+                  badge === "Recommended" ? styles.recommendedBadge : undefined
+                ]}
+              >
+                <AppText variant="caption">{badge}</AppText>
+              </View>
+            ) : null}
           </View>
-        ) : null}
-      </View>
-
-      <View style={styles.bestFor}>
-        <AppText variant="caption" tone="secondary">
-          Best for
-        </AppText>
-        <AppText variant="bodySmall">{bestFor}</AppText>
+          <AppText tone="secondary">{description}</AppText>
+          <AppText variant="bodySmall" tone="secondary">
+            <AppText variant="caption" tone="secondary">
+              Best for:{" "}
+            </AppText>
+            {bestFor}
+          </AppText>
+        </View>
+        <View style={[styles.radio, selected ? styles.radioSelected : undefined]}>
+          {selected ? (
+            <View style={styles.radioDot} />
+          ) : null}
+        </View>
       </View>
     </Pressable>
   );
@@ -62,7 +71,7 @@ export function PracticeModeCard({
 const styles = StyleSheet.create({
   card: {
     gap: theme.spacing.md,
-    borderRadius: theme.radius.xxl,
+    borderRadius: 24,
     borderColor: theme.colors.border,
     borderWidth: 1,
     backgroundColor: theme.colors.surface,
@@ -85,6 +94,12 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: theme.spacing.sm
   },
+  titleRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: theme.spacing.sm
+  },
   badge: {
     borderRadius: theme.radius.pill,
     borderColor: theme.colors.border,
@@ -97,12 +112,24 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.sage,
     backgroundColor: theme.colors.surface
   },
-  bestFor: {
-    gap: theme.spacing.xs,
-    borderRadius: theme.radius.xl,
+  radio: {
+    width: 24,
+    height: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 12,
     borderColor: theme.colors.border,
     borderWidth: 1,
-    backgroundColor: theme.colors.surface,
-    padding: theme.spacing.md
+    backgroundColor: theme.colors.surface
+  },
+  radioSelected: {
+    borderColor: theme.colors.sage,
+    backgroundColor: theme.colors.surface
+  },
+  radioDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: theme.colors.sage
   }
 });
