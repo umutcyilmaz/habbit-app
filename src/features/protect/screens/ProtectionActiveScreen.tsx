@@ -34,7 +34,7 @@ export function ProtectionActiveScreen() {
 
       <View style={styles.stack}>
         <View style={styles.heroPanel}>
-          <ProtectionVisual label="Active" symbol="P" size="large" />
+          <ProtectionVisual label="Active" symbol="◇" size="large" />
           <View style={styles.heroCopy}>
             <AppText variant="title" align="center">
               Gentle support is on
@@ -49,14 +49,14 @@ export function ProtectionActiveScreen() {
           <ProtectionActionRow
             title="Pause protection"
             description="Take a break from the current support plan."
-            iconLabel="P"
+            iconLabel="Ⅱ"
             accent="peach"
             onPress={pauseProtection}
           />
           <ProtectionActionRow
             title="Edit schedule"
             description="Adjust selected hours and support level."
-            iconLabel="E"
+            iconLabel="◷"
             accent="lavender"
             onPress={() => router.push(routes.protectSetup)}
           />

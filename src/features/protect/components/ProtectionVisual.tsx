@@ -11,7 +11,7 @@ type ProtectionVisualProps = {
 
 export function ProtectionVisual({
   label = "Support",
-  symbol = "P",
+  symbol = "◇",
   size = "medium"
 }: ProtectionVisualProps) {
   const isLarge = size === "large";

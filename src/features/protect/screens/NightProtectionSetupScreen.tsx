@@ -37,22 +37,22 @@ export function NightProtectionSetupScreen() {
       <View style={styles.stack}>
         <ProtectionSetupSection title="Bedtime support">
           <View style={styles.optionStack}>
-            <ProtectionModeCard title="Start before bed" value="30 min" iconLabel="B" />
+            <ProtectionModeCard title="Start before bed" value="30 min" iconLabel="◷" />
             <ProtectionModeCard
               title="Put phone away"
               value={putPhoneAwayEnabled ? "Enabled" : "Off"}
-              iconLabel="P"
+              iconLabel="⊘"
               enabled={putPhoneAwayEnabled}
               onPress={() => setPutPhoneAwayEnabled((isEnabled) => !isEnabled)}
             />
             <ProtectionModeCard
               title="Dim the screen"
               value={dimScreenEnabled ? "Enabled" : "Off"}
-              iconLabel="D"
+              iconLabel="◐"
               enabled={dimScreenEnabled}
               onPress={() => setDimScreenEnabled((isEnabled) => !isEnabled)}
             />
-            <ProtectionModeCard title="Protect until" value="7:00 AM" iconLabel="7" />
+            <ProtectionModeCard title="Protect until" value="7:00 AM" iconLabel="☾" />
           </View>
         </ProtectionSetupSection>
 

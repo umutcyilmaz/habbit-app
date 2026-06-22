@@ -19,6 +19,8 @@ export function ProtectionLevelCard({
   selected,
   onSelect
 }: ProtectionLevelCardProps) {
+  const icon = id === "gentle" ? "◡" : id === "balanced" ? "◇" : "◆";
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -31,7 +33,7 @@ export function ProtectionLevelCard({
       ]}
     >
       <View style={[styles.iconCircle, selected ? styles.selectedIconCircle : undefined]}>
-        <AppText variant="label">{title.charAt(0)}</AppText>
+        <AppText variant="label">{icon}</AppText>
       </View>
       <View style={styles.copy}>
         <AppText variant="label">{title}</AppText>

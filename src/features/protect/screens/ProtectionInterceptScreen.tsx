@@ -26,7 +26,7 @@ export function ProtectionInterceptScreen() {
       <View style={styles.stack}>
         <AppCard style={styles.visualCard}>
           <View style={styles.cardStack}>
-            <ProtectionVisual label="Pause" symbol="II" />
+            <ProtectionVisual label="Pause" symbol="Ⅱ" />
             <AppText tone="secondary" align="center">
               You remain in control. Choose the next helpful step.
             </AppText>
@@ -44,21 +44,21 @@ export function ProtectionInterceptScreen() {
           <ProtectionActionRow
             title="Put phone away"
             description="Step back and breathe."
-            iconLabel="P"
+            iconLabel="⊘"
             accent="lavender"
             onPress={() => router.replace(routes.home)}
           />
           <ProtectionActionRow
             title="Message support"
             description="Talk with someone who gets it."
-            iconLabel="M"
+            iconLabel="…"
             accent="lavender"
             onPress={() => router.replace(routes.home)}
           />
           <ProtectionActionRow
             title="Continue anyway"
             description="You remain in control."
-            iconLabel="C"
+            iconLabel="→"
             accent="peach"
             onPress={() => router.replace(routes.home)}
           />

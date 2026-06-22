@@ -114,7 +114,7 @@ export function ProtectionSetupScreen() {
                 id={schedule.id}
                 title={schedule.title}
                 description={schedule.description}
-                iconLabel={schedule.id === "night" ? "N" : schedule.id === "custom" ? "C" : "A"}
+                iconLabel={schedule.id === "night" ? "☾" : schedule.id === "custom" ? "◷" : "∞"}
                 selected={selectedSchedule === schedule.id}
                 onSelect={setSelectedSchedule}
               />

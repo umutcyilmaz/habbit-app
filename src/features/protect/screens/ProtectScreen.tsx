@@ -34,7 +34,7 @@ function getStatusCopy(status: DemoProtectionStatus) {
         statusLabel: "Paused",
         title: "Support paused",
         body: "Protection is paused. You can turn it back on anytime.",
-        primaryAction: "Manage protection"
+        primaryAction: "Turn support back on"
       };
     case "off":
     case "setup":
@@ -60,8 +60,9 @@ export function ProtectScreen() {
   const protection = selectProtectionState(state);
   const window = selectSuggestedSensitiveWindow(state);
   const statusCopy = getStatusCopy(protection.status);
-  const activeHours = `${window.startTime}-${window.endTime}`;
+  const activeHours = `${window.startTime}–${window.endTime}`;
   const isActive = protection.status === "active";
+  const isPaused = protection.status === "paused";
   const statusVariant =
     protection.status === "active" ? "active" : protection.status === "paused" ? "paused" : "off";
 
@@ -82,7 +83,19 @@ export function ProtectScreen() {
         />
 
         <View style={styles.actions}>
-          <AppButton onPress={() => router.push(routes.protectSetup)}>
+          <AppButton
+            onPress={() => {
+              if (isPaused) {
+                dispatch({
+                  type: "SET_PROTECTION_STATUS",
+                  payload: "active"
+                });
+                return;
+              }
+
+              router.push(routes.protectSetup);
+            }}
+          >
             {statusCopy.primaryAction}
           </AppButton>
           <AppButton variant="secondary" onPress={() => router.push(routes.protectIntercept)}>
@@ -121,7 +134,7 @@ export function ProtectScreen() {
                 title="Active hours"
                 description="Support hours"
                 value={activeHours}
-                iconLabel="H"
+                iconLabel="◷"
                 accent="lavender"
                 onPress={() => router.push(routes.protectSetup)}
               />
@@ -129,7 +142,7 @@ export function ProtectScreen() {
                 title="Protection level"
                 description="How firmly support guides the pause"
                 value={formatLevel(protection.level)}
-                iconLabel="B"
+                iconLabel="◇"
                 accent="sage"
                 onPress={() => router.push(routes.protectSetup)}
               />
@@ -137,7 +150,7 @@ export function ProtectScreen() {
                 title="Night Protection"
                 description="A softer bedtime support plan"
                 value="Optional"
-                iconLabel="N"
+                iconLabel="☾"
                 accent="peach"
                 onPress={() => router.push(routes.protectNightSetup)}
               />
@@ -146,7 +159,7 @@ export function ProtectScreen() {
         </AppCard>
 
         <AppCard style={styles.noteCard}>
-          <View style={styles.cardStack}>
+          <View style={styles.noteStack}>
             <AppText variant="title">You remain in control</AppText>
             <AppText tone="secondary">
               Protection creates a pause before continuing. It is optional, reversible, and yours
@@ -179,10 +192,13 @@ const styles = StyleSheet.create({
   rowStack: {
     gap: theme.spacing.md
   },
+  noteStack: {
+    gap: theme.spacing.sm
+  },
   noteCard: {
-    backgroundColor: theme.colors.peachMuted,
-    borderColor: theme.colors.peach,
+    backgroundColor: theme.colors.surface,
+    borderColor: theme.colors.border,
     borderRadius: theme.radius.xxl,
-    padding: 26
+    padding: theme.spacing.lg
   }
 });

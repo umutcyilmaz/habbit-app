@@ -28,7 +28,7 @@ export function ProtectionStatusHero({
           <View style={styles.heroMark}>
             <View style={[styles.heroMarkInner, variantMarkStyles[variant]]}>
               <AppText variant="caption" tone={variant === "active" ? "inverse" : "primary"}>
-                P
+                ◇
               </AppText>
             </View>
           </View>
