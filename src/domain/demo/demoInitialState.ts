@@ -3,7 +3,7 @@ import type { DemoAppState } from "./demoTypes";
 const sensitiveWindow = {
   label: "Evening support",
   startTime: "22:00",
-  endTime: "00:00"
+  endTime: "08:00"
 } as const;
 
 export const demoInitialState: DemoAppState = {

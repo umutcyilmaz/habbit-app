@@ -10,31 +10,48 @@ import {
   selectProtectionState,
   selectSuggestedSensitiveWindow
 } from "../../../domain/demo/demoSelectors";
-import type { DemoSupportLevel } from "../../../domain/demo/demoTypes";
+import type { DemoProtectionStatus } from "../../../domain/demo/demoTypes";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
 import { AppHeader } from "../../../shared/components/AppHeader";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
+import { ProtectionActionRow } from "../components/ProtectionActionRow";
+import { ProtectionStatusHero } from "../components/ProtectionStatusHero";
 
-const supportLevels: ReadonlyArray<{
-  id: DemoSupportLevel;
-  label: string;
-}> = [
-  {
-    id: "gentle",
-    label: "Gentle"
-  },
-  {
-    id: "balanced",
-    label: "Balanced"
-  },
-  {
-    id: "strong",
-    label: "Strong"
+function getStatusCopy(status: DemoProtectionStatus) {
+  switch (status) {
+    case "active":
+      return {
+        statusLabel: "Active",
+        title: "Protection is active",
+        body: "Active during selected hours.",
+        primaryAction: "Manage protection"
+      };
+    case "paused":
+      return {
+        statusLabel: "Paused",
+        title: "Support paused",
+        body: "Protection is paused. You can turn it back on anytime.",
+        primaryAction: "Manage protection"
+      };
+    case "off":
+    case "setup":
+    case "suggested":
+    default:
+      return {
+        statusLabel: "Off",
+        title: "Protection is off",
+        body: "Add gentle support during selected hours when you want it.",
+        primaryAction: "Enable protection"
+      };
   }
-];
+}
+
+function formatLevel(level: string) {
+  return `${level.charAt(0).toUpperCase()}${level.slice(1)}`;
+}
 
 export function ProtectScreen() {
   const router = useRouter();
@@ -42,74 +59,37 @@ export function ProtectScreen() {
   const dispatch = useDemoAppDispatch();
   const protection = selectProtectionState(state);
   const window = selectSuggestedSensitiveWindow(state);
+  const statusCopy = getStatusCopy(protection.status);
+  const activeHours = `${window.startTime}-${window.endTime}`;
+  const isActive = protection.status === "active";
+  const statusVariant =
+    protection.status === "active" ? "active" : protection.status === "paused" ? "paused" : "off";
 
   return (
     <AppScreen>
       <AppHeader
-        title="Protect"
-        subtitle="Optional support around sensitive windows while you remain in control."
+        title="Protection"
+        subtitle="Create space before automatic habits."
         onSettingsPress={() => router.push(routes.settings)}
       />
 
       <View style={styles.stack}>
-        <AppCard style={styles.windowCard}>
-          <View style={styles.cardStack}>
-            <AppText variant="caption" tone="secondary">
-              {protection.status}
-            </AppText>
-            <AppText variant="title">{window.label}</AppText>
-            <AppText tone="secondary">
-              Recent activity suggests support between {window.startTime} and {window.endTime}.
-            </AppText>
-          </View>
-        </AppCard>
+        <ProtectionStatusHero
+          statusLabel={statusCopy.statusLabel}
+          title={statusCopy.title}
+          body={statusCopy.body}
+          variant={statusVariant}
+        />
 
-        <AppCard>
-          <View style={styles.cardStack}>
-            <AppText variant="title">Support level</AppText>
-            <View style={styles.optionGrid}>
-              {supportLevels.map((level) => (
-                <AppButton
-                  key={level.id}
-                  variant={protection.level === level.id ? "primary" : "subtle"}
-                  style={styles.optionButton}
-                  onPress={() =>
-                    dispatch({
-                      type: "SET_PROTECTION_LEVEL",
-                      payload: level.id
-                    })
-                  }
-                >
-                  {level.label}
-                </AppButton>
-              ))}
-            </View>
-          </View>
-        </AppCard>
-
-        <AppCard>
-          <View style={styles.cardStack}>
-            <AppText variant="title">Actions</AppText>
-            <AppText tone="secondary">
-              These controls are here to help you adjust support when needed.
-            </AppText>
-            <View style={styles.actions}>
-              <AppButton
-                onPress={() =>
-                  dispatch({
-                    type: "SET_PROTECTION_STATUS",
-                    payload: "active"
-                  })
-                }
-              >
-                Save support window
-              </AppButton>
-              <AppButton variant="secondary" onPress={() => router.push(routes.pause)}>
-                Start 90-Second Pause
-              </AppButton>
-              <AppButton variant="secondary" onPress={() => router.push(routes.log)}>
-                Quick Check-In
-              </AppButton>
+        <View style={styles.actions}>
+          <AppButton onPress={() => router.push(routes.protectSetup)}>
+            {statusCopy.primaryAction}
+          </AppButton>
+          <AppButton variant="secondary" onPress={() => router.push(routes.protectIntercept)}>
+            Start temporary support
+          </AppButton>
+          {isActive ? (
+            <>
               <AppButton
                 variant="ghost"
                 onPress={() =>
@@ -119,12 +99,59 @@ export function ProtectScreen() {
                   })
                 }
               >
-                Pause for tonight
+                Pause protection
               </AppButton>
-              <AppButton variant="ghost" onPress={() => router.push(routes.home)}>
-                Back to Today
+              <AppButton variant="ghost" onPress={() => router.push(routes.protectSetup)}>
+                Edit schedule
               </AppButton>
+            </>
+          ) : null}
+        </View>
+
+        <AppCard style={styles.settingsCard}>
+          <View style={styles.cardStack}>
+            <View style={styles.sectionCopy}>
+              <AppText variant="title">Current settings</AppText>
+              <AppText tone="secondary">
+                You can change this anytime.
+              </AppText>
             </View>
+            <View style={styles.rowStack}>
+              <ProtectionActionRow
+                title="Active hours"
+                description="Support hours"
+                value={activeHours}
+                iconLabel="H"
+                accent="lavender"
+                onPress={() => router.push(routes.protectSetup)}
+              />
+              <ProtectionActionRow
+                title="Protection level"
+                description="How firmly support guides the pause"
+                value={formatLevel(protection.level)}
+                iconLabel="B"
+                accent="sage"
+                onPress={() => router.push(routes.protectSetup)}
+              />
+              <ProtectionActionRow
+                title="Night Protection"
+                description="A softer bedtime support plan"
+                value="Optional"
+                iconLabel="N"
+                accent="peach"
+                onPress={() => router.push(routes.protectNightSetup)}
+              />
+            </View>
+          </View>
+        </AppCard>
+
+        <AppCard style={styles.noteCard}>
+          <View style={styles.cardStack}>
+            <AppText variant="title">You remain in control</AppText>
+            <AppText tone="secondary">
+              Protection creates a pause before continuing. It is optional, reversible, and yours
+              to adjust.
+            </AppText>
           </View>
         </AppCard>
       </View>
@@ -139,20 +166,23 @@ const styles = StyleSheet.create({
   cardStack: {
     gap: theme.spacing.lg
   },
-  optionGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: theme.spacing.sm
-  },
-  optionButton: {
-    minWidth: 104,
-    flexGrow: 1
-  },
   actions: {
     gap: theme.spacing.md
   },
-  windowCard: {
+  settingsCard: {
+    borderRadius: theme.radius.xxl,
+    padding: 26
+  },
+  sectionCopy: {
+    gap: theme.spacing.sm
+  },
+  rowStack: {
+    gap: theme.spacing.md
+  },
+  noteCard: {
     backgroundColor: theme.colors.peachMuted,
-    borderColor: theme.colors.peach
+    borderColor: theme.colors.peach,
+    borderRadius: theme.radius.xxl,
+    padding: 26
   }
 });

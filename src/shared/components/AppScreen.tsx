@@ -6,9 +6,10 @@ import { theme } from "../design-system/theme";
 
 type AppScreenProps = PropsWithChildren<{
   contentContainerStyle?: ViewStyle;
+  contentStyle?: ViewStyle;
 }>;
 
-export function AppScreen({ children, contentContainerStyle }: AppScreenProps) {
+export function AppScreen({ children, contentContainerStyle, contentStyle }: AppScreenProps) {
   const insets = useSafeAreaInsets();
 
   return (
@@ -21,7 +22,7 @@ export function AppScreen({ children, contentContainerStyle }: AppScreenProps) {
           contentContainerStyle
         ]}
       >
-        <View style={styles.content}>{children}</View>
+        <View style={[styles.content, contentStyle]}>{children}</View>
       </ScrollView>
     </SafeAreaView>
   );
