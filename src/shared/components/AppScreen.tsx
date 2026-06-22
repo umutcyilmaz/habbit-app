@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, View, type ViewStyle } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { theme } from "../design-system/theme";
+import { TAB_SCREEN_BOTTOM_PADDING } from "../layout/tabSpacing";
 
 type AppScreenProps = PropsWithChildren<{
   contentContainerStyle?: ViewStyle;
@@ -13,12 +14,12 @@ export function AppScreen({ children, contentContainerStyle, contentStyle }: App
   const insets = useSafeAreaInsets();
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView edges={["top", "left", "right"]} style={styles.safeArea}>
       <ScrollView
         alwaysBounceVertical={false}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: 232 + insets.bottom },
+          { paddingBottom: TAB_SCREEN_BOTTOM_PADDING + insets.bottom },
           contentContainerStyle
         ]}
       >

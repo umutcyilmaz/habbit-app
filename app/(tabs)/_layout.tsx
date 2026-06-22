@@ -1,10 +1,20 @@
 import { Tabs } from "expo-router";
 import { Pressable, type ViewStyle } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { tabRoutes } from "../../src/constants/navigation";
 import { theme } from "../../src/shared/design-system/theme";
+import {
+  getTabBarBottomPadding,
+  getTabBarHeight,
+  TAB_BAR_TOP_PADDING
+} from "../../src/shared/layout/tabSpacing";
 
 export default function TabsLayout() {
+  const insets = useSafeAreaInsets();
+  const tabBarBottomPadding = getTabBarBottomPadding(insets.bottom);
+  const tabBarHeight = getTabBarHeight(insets.bottom);
+
   return (
     <Tabs
       screenOptions={{
@@ -39,6 +49,7 @@ export default function TabsLayout() {
           fontSize: 12,
           fontWeight: "700",
           lineHeight: 16,
+          includeFontPadding: false,
           marginBottom: 0,
           marginTop: 0
         },
@@ -46,11 +57,11 @@ export default function TabsLayout() {
           backgroundColor: theme.colors.surface,
           borderTopColor: theme.colors.border,
           borderTopWidth: 1,
-          height: 92,
-          minHeight: 92,
-          paddingBottom: 24,
+          height: tabBarHeight,
+          minHeight: tabBarHeight,
+          paddingBottom: tabBarBottomPadding,
           paddingHorizontal: 8,
-          paddingTop: 12
+          paddingTop: TAB_BAR_TOP_PADDING
         },
         tabBarItemStyle: {
           justifyContent: "center",
