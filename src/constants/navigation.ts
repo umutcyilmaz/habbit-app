@@ -30,6 +30,7 @@ export const routes = {
   arousalControlCheckIn: "/exercises/arousal-control/check-in",
   arousalControlPractice: "/exercises/arousal-control/practice",
   arousalControlPause: "/exercises/arousal-control/pause",
+  arousalControlAfterPause: "/exercises/arousal-control/after-pause",
   progress: "/(tabs)/progress",
   protect: "/(tabs)/protect",
   protectSetup: "/protect/setup",

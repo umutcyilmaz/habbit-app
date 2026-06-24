@@ -6,11 +6,32 @@ import { theme } from "../../../shared/design-system/theme";
 type ArousalLevelPickerProps = {
   value: number;
   onChange: (value: number) => void;
+  minLabel?: string;
+  maxLabel?: string;
+  groups?: readonly LevelGroup[];
 };
 
 const levels = Array.from({ length: 11 }, (_, index) => index);
 
-export function ArousalLevelPicker({ value, onChange }: ArousalLevelPickerProps) {
+type LevelGroup = {
+  label: string;
+  detail: string;
+};
+
+const defaultGroups: readonly LevelGroup[] = [
+  { label: "1–3", detail: "Low" },
+  { label: "4–5", detail: "Building" },
+  { label: "6–7", detail: "Pause zone" },
+  { label: "8–10", detail: "Very high" }
+];
+
+export function ArousalLevelPicker({
+  value,
+  onChange,
+  minLabel = "0 = calm",
+  maxLabel = "10 = very close to climax",
+  groups = defaultGroups
+}: ArousalLevelPickerProps) {
   return (
     <View style={styles.stack}>
       <View style={styles.grid}>
@@ -37,19 +58,20 @@ export function ArousalLevelPicker({ value, onChange }: ArousalLevelPickerProps)
 
       <View style={styles.helperRow}>
         <AppText variant="caption" tone="secondary">
-          0 = calm
+          {minLabel}
         </AppText>
         <AppText variant="caption" tone="secondary">
-          10 = very close to climax
+          {maxLabel}
         </AppText>
       </View>
 
-      <View style={styles.groupGrid}>
-        <ScaleGroup label="1–3" detail="Low" />
-        <ScaleGroup label="4–5" detail="Building" />
-        <ScaleGroup label="6–7" detail="Pause zone" />
-        <ScaleGroup label="8–10" detail="Very high" />
-      </View>
+      {groups.length > 0 ? (
+        <View style={styles.groupGrid}>
+          {groups.map((group) => (
+            <ScaleGroup key={`${group.label}-${group.detail}`} label={group.label} detail={group.detail} />
+          ))}
+        </View>
+      ) : null}
     </View>
   );
 }

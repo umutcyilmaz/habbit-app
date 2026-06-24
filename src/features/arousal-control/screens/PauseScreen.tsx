@@ -76,7 +76,7 @@ export function PauseScreen() {
         ) : null}
 
         <View style={styles.actions}>
-          <AppButton onPress={() => router.replace(routes.arousalControlPractice)}>
+          <AppButton onPress={() => router.replace(routes.arousalControlAfterPause)}>
             I'm ready to check in
           </AppButton>
           <AppButton variant="secondary" onPress={extendPause}>
