@@ -34,6 +34,7 @@ export const routes = {
   arousalControlFinish: "/exercises/arousal-control/finish",
   arousalControlReflection: "/exercises/arousal-control/reflection",
   arousalControlDuration: "/exercises/arousal-control/duration",
+  arousalControlSaved: "/exercises/arousal-control/saved",
   progress: "/(tabs)/progress",
   protect: "/(tabs)/protect",
   protectSetup: "/protect/setup",

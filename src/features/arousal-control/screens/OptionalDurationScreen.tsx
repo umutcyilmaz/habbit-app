@@ -35,26 +35,25 @@ export function OptionalDurationScreen() {
   const [exactTimeVisible, setExactTimeVisible] = useState(false);
   const [minutes, setMinutes] = useState("");
   const [seconds, setSeconds] = useState("");
-  const [durationConfirmed, setDurationConfirmed] = useState(false);
 
   const selectDuration = (value: DurationOption) => {
     setDuration(value);
-    setDurationConfirmed(false);
   };
 
   const showExactTime = () => {
     setExactTimeVisible(true);
-    setDurationConfirmed(false);
   };
 
   const updateMinutes = (value: string) => {
     setMinutes(value.replace(/\D/g, "").slice(0, 3));
-    setDurationConfirmed(false);
   };
 
   const updateSeconds = (value: string) => {
     setSeconds(value.replace(/\D/g, "").slice(0, 2));
-    setDurationConfirmed(false);
+  };
+
+  const savePractice = () => {
+    router.push(routes.arousalControlSaved);
   };
 
   return (
@@ -159,26 +158,12 @@ export function OptionalDurationScreen() {
           </View>
         </View>
 
-        {durationConfirmed ? (
-          <View style={styles.confirmation}>
-            <View style={styles.noteCopy}>
-              <AppText variant="title" align="center">
-                Duration choice saved.
-              </AppText>
-              <AppText tone="secondary" align="center">
-                You can return to Exercises when ready.
-              </AppText>
-            </View>
-            <AppButton onPress={() => router.replace(routes.exercises)}>Back to Exercises</AppButton>
-          </View>
-        ) : (
-          <View style={styles.actions}>
-            <AppButton onPress={() => setDurationConfirmed(true)}>Save Practice</AppButton>
-            <AppButton variant="ghost" onPress={() => setDurationConfirmed(true)}>
-              Skip duration
-            </AppButton>
-          </View>
-        )}
+        <View style={styles.actions}>
+          <AppButton onPress={savePractice}>Save Practice</AppButton>
+          <AppButton variant="ghost" onPress={savePractice}>
+            Skip duration
+          </AppButton>
+        </View>
       </View>
     </AppScreen>
   );
@@ -258,15 +243,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     backgroundColor: theme.colors.surfaceMuted,
     padding: theme.spacing.lg
-  },
-  confirmation: {
-    gap: theme.spacing.lg,
-    borderRadius: theme.radius.xxl,
-    borderColor: theme.colors.sage,
-    borderWidth: 1,
-    backgroundColor: theme.colors.surface,
-    padding: theme.spacing.lg,
-    ...theme.shadows.card
   },
   noteCopy: {
     gap: theme.spacing.sm
