@@ -63,37 +63,6 @@ export function SessionReflectionScreen() {
   const [pleasureQuality, setPleasureQuality] = useState(7);
   const [pressure, setPressure] = useState<PressureOption>("medium");
   const [afterFeeling, setAfterFeeling] = useState<AfterFeelingOption>("neutral");
-  const [reflectionConfirmed, setReflectionConfirmed] = useState(false);
-
-  const updatePauseCount = (value: PauseCountOption) => {
-    setPauseCount(value);
-    setReflectionConfirmed(false);
-  };
-
-  const updateHighestArousal = (value: number) => {
-    setHighestArousal(value);
-    setReflectionConfirmed(false);
-  };
-
-  const updateControlFeeling = (value: number) => {
-    setControlFeeling(value);
-    setReflectionConfirmed(false);
-  };
-
-  const updatePleasureQuality = (value: number) => {
-    setPleasureQuality(value);
-    setReflectionConfirmed(false);
-  };
-
-  const updatePressure = (value: PressureOption) => {
-    setPressure(value);
-    setReflectionConfirmed(false);
-  };
-
-  const updateAfterFeeling = (value: AfterFeelingOption) => {
-    setAfterFeeling(value);
-    setReflectionConfirmed(false);
-  };
 
   return (
     <AppScreen contentStyle={styles.content}>
@@ -108,17 +77,17 @@ export function SessionReflectionScreen() {
 
       <View style={styles.stack}>
         <ReflectionSection title="How many pauses did you take?">
-          <ChipGroup options={pauseCountOptions} selected={pauseCount} onSelect={updatePauseCount} />
+          <ChipGroup options={pauseCountOptions} selected={pauseCount} onSelect={setPauseCount} />
         </ReflectionSection>
 
         <ReflectionSection title="Highest arousal level you noticed">
-          <ArousalLevelPicker value={highestArousal} onChange={updateHighestArousal} />
+          <ArousalLevelPicker value={highestArousal} onChange={setHighestArousal} />
         </ReflectionSection>
 
         <ReflectionSection title="Control feeling">
           <ArousalLevelPicker
             value={controlFeeling}
-            onChange={updateControlFeeling}
+            onChange={setControlFeeling}
             minLabel="0 = low control"
             maxLabel="10 = strong control"
             groups={controlFeelingGroups}
@@ -128,7 +97,7 @@ export function SessionReflectionScreen() {
         <ReflectionSection title="Pleasure quality">
           <ArousalLevelPicker
             value={pleasureQuality}
-            onChange={updatePleasureQuality}
+            onChange={setPleasureQuality}
             minLabel="0 = low"
             maxLabel="10 = high"
             groups={[]}
@@ -136,11 +105,11 @@ export function SessionReflectionScreen() {
         </ReflectionSection>
 
         <ReflectionSection title="Pressure or rushing">
-          <ChipGroup options={pressureOptions} selected={pressure} onSelect={updatePressure} />
+          <ChipGroup options={pressureOptions} selected={pressure} onSelect={setPressure} />
         </ReflectionSection>
 
         <ReflectionSection title="How do you feel afterward?">
-          <ChipGroup options={afterFeelingOptions} selected={afterFeeling} onSelect={updateAfterFeeling} />
+          <ChipGroup options={afterFeelingOptions} selected={afterFeeling} onSelect={setAfterFeeling} />
         </ReflectionSection>
 
         <View style={styles.supportNote}>
@@ -154,21 +123,7 @@ export function SessionReflectionScreen() {
           </View>
         </View>
 
-        {reflectionConfirmed ? (
-          <View style={styles.confirmation}>
-            <View style={styles.noteCopy}>
-              <AppText variant="title" align="center">
-                Reflection saved.
-              </AppText>
-              <AppText tone="secondary" align="center">
-                You can return to Exercises when ready.
-              </AppText>
-            </View>
-            <AppButton onPress={() => router.replace(routes.exercises)}>Back to Exercises</AppButton>
-          </View>
-        ) : (
-          <AppButton onPress={() => setReflectionConfirmed(true)}>Continue</AppButton>
-        )}
+        <AppButton onPress={() => router.push(routes.arousalControlDuration)}>Continue</AppButton>
       </View>
     </AppScreen>
   );
@@ -270,15 +225,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     backgroundColor: theme.colors.surfaceMuted,
     padding: theme.spacing.lg
-  },
-  confirmation: {
-    gap: theme.spacing.lg,
-    borderRadius: theme.radius.xxl,
-    borderColor: theme.colors.sage,
-    borderWidth: 1,
-    backgroundColor: theme.colors.surface,
-    padding: theme.spacing.lg,
-    ...theme.shadows.card
   },
   noteCopy: {
     gap: theme.spacing.sm
