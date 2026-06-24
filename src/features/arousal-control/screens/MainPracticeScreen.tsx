@@ -22,11 +22,6 @@ type Guidance = {
   };
 };
 
-type PracticeMessage = {
-  title: string;
-  body: string;
-};
-
 function getGuidance(level: number): Guidance {
   if (level >= 9) {
     return {
@@ -74,7 +69,6 @@ function getGuidance(level: number): Guidance {
 export function MainPracticeScreen() {
   const router = useRouter();
   const [level, setLevel] = useState(5);
-  const [practiceMessage, setPracticeMessage] = useState<PracticeMessage | undefined>();
   const [showNote, setShowNote] = useState(false);
   const [note, setNote] = useState("");
   const [noteMessage, setNoteMessage] = useState<string | undefined>();
@@ -86,11 +80,8 @@ export function MainPracticeScreen() {
     router.push(routes.arousalControlPause);
   };
 
-  const showFinishMessage = () => {
-    setPracticeMessage({
-      title: "Practice noted.",
-      body: "You can return to Exercises for now."
-    });
+  const finishPractice = () => {
+    router.push(routes.arousalControlFinish);
   };
 
   return (
@@ -125,21 +116,10 @@ export function MainPracticeScreen() {
             ? {
                 actionLabel: guidanceAction.label,
                 onActionPress:
-                  guidanceAction.type === "pause" ? startPause : showFinishMessage
+                  guidanceAction.type === "pause" ? startPause : finishPractice
               }
             : {})}
         />
-
-        {practiceMessage ? (
-          <View style={styles.localMessage}>
-            <AppText variant="title" align="center">
-              {practiceMessage.title}
-            </AppText>
-            <AppText tone="secondary" align="center">
-              {practiceMessage.body}
-            </AppText>
-          </View>
-        ) : null}
 
         {showNote ? (
           <AppCard style={styles.noteCard}>
@@ -183,7 +163,7 @@ export function MainPracticeScreen() {
         <View style={styles.actions}>
           {isFinishOriented ? (
             <>
-              <AppButton onPress={showFinishMessage}>Finish today</AppButton>
+              <AppButton onPress={finishPractice}>Finish today</AppButton>
               <AppButton variant="secondary" onPress={() => setShowNote(true)}>
                 Add Quick Note
               </AppButton>
@@ -191,7 +171,7 @@ export function MainPracticeScreen() {
           ) : (
             <>
               <AppButton onPress={startPause}>Start Pause</AppButton>
-              <AppButton variant="secondary" onPress={showFinishMessage}>
+              <AppButton variant="secondary" onPress={finishPractice}>
                 Finish Practice
               </AppButton>
               <AppButton variant="ghost" onPress={() => setShowNote(true)}>
@@ -221,14 +201,6 @@ const styles = StyleSheet.create({
   },
   copy: {
     gap: theme.spacing.sm
-  },
-  localMessage: {
-    gap: theme.spacing.sm,
-    borderRadius: theme.radius.xl,
-    borderColor: theme.colors.sage,
-    borderWidth: 1,
-    backgroundColor: theme.colors.sageMuted,
-    padding: theme.spacing.md
   },
   noteCard: {
     borderRadius: theme.radius.xxl,

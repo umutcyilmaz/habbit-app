@@ -17,7 +17,6 @@ const INITIAL_SECONDS = 30;
 export function PauseScreen() {
   const router = useRouter();
   const [secondsLeft, setSecondsLeft] = useState(INITIAL_SECONDS);
-  const [finishMessageVisible, setFinishMessageVisible] = useState(false);
 
   useEffect(() => {
     if (secondsLeft <= 0) {
@@ -61,20 +60,6 @@ export function PauseScreen() {
 
         <BreathingGuideCard />
 
-        {finishMessageVisible ? (
-          <View style={styles.finishMessage}>
-            <View style={styles.cardStack}>
-              <AppText variant="title" align="center">
-                Practice noted.
-              </AppText>
-              <AppText tone="secondary" align="center">
-                You can return to Exercises when ready.
-              </AppText>
-            </View>
-            <AppButton onPress={() => router.replace(routes.exercises)}>Back to Exercises</AppButton>
-          </View>
-        ) : null}
-
         <View style={styles.actions}>
           <AppButton onPress={() => router.replace(routes.arousalControlAfterPause)}>
             I'm ready to check in
@@ -82,7 +67,7 @@ export function PauseScreen() {
           <AppButton variant="secondary" onPress={extendPause}>
             Extend 30 seconds
           </AppButton>
-          <AppButton variant="ghost" onPress={() => setFinishMessageVisible(true)}>
+          <AppButton variant="ghost" onPress={() => router.push(routes.arousalControlFinish)}>
             Finish practice
           </AppButton>
         </View>
@@ -106,14 +91,6 @@ const styles = StyleSheet.create({
   },
   cardStack: {
     gap: theme.spacing.sm
-  },
-  finishMessage: {
-    gap: theme.spacing.lg,
-    borderRadius: theme.radius.xxl,
-    borderColor: theme.colors.peach,
-    borderWidth: 1,
-    backgroundColor: theme.colors.peachMuted,
-    padding: theme.spacing.lg
   },
   actions: {
     gap: theme.spacing.sm

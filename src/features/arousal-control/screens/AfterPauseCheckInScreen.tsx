@@ -41,13 +41,7 @@ export function AfterPauseCheckInScreen() {
   const [firmnessChange, setFirmnessChange] = useState<FirmnessChangeOption>("notSure");
   const [anxiety, setAnxiety] = useState(3);
   const [nextStep, setNextStep] = useState<NextStepOption>("continueGently");
-  const [finishConfirmed, setFinishConfirmed] = useState(false);
   const showSupportNote = firmnessChange === "decreasedDifficult" || anxiety >= 7;
-
-  const selectNextStep = (value: NextStepOption) => {
-    setNextStep(value);
-    setFinishConfirmed(false);
-  };
 
   const continueFromSelection = () => {
     if (nextStep === "continueGently") {
@@ -60,7 +54,7 @@ export function AfterPauseCheckInScreen() {
       return;
     }
 
-    setFinishConfirmed(true);
+    router.push(routes.arousalControlFinish);
   };
 
   return (
@@ -124,27 +118,13 @@ export function AfterPauseCheckInScreen() {
                 value={option.value}
                 title={option.title}
                 selected={nextStep === option.value}
-                onSelect={selectNextStep}
+                onSelect={setNextStep}
               />
             ))}
           </View>
         </PracticeQuestionCard>
 
-        {finishConfirmed ? (
-          <View style={styles.confirmation}>
-            <View style={styles.noteCopy}>
-              <AppText variant="title" align="center">
-                Practice noted.
-              </AppText>
-              <AppText tone="secondary" align="center">
-                You can return to Exercises when ready.
-              </AppText>
-            </View>
-            <AppButton onPress={() => router.replace(routes.exercises)}>Back to Exercises</AppButton>
-          </View>
-        ) : (
-          <AppButton onPress={continueFromSelection}>Continue</AppButton>
-        )}
+        <AppButton onPress={continueFromSelection}>Continue</AppButton>
       </View>
     </AppScreen>
   );
@@ -165,14 +145,6 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.peach,
     borderWidth: 1,
     backgroundColor: theme.colors.peachMuted,
-    padding: theme.spacing.lg
-  },
-  confirmation: {
-    gap: theme.spacing.lg,
-    borderRadius: theme.radius.xxl,
-    borderColor: theme.colors.sage,
-    borderWidth: 1,
-    backgroundColor: theme.colors.sageMuted,
     padding: theme.spacing.lg
   },
   noteCopy: {
