@@ -18,8 +18,7 @@ type Guidance = {
   tone: "neutral" | "pause" | "high";
   action?: {
     label: string;
-    messageTitle: string;
-    messageBody: string;
+    type: "pause" | "finish";
   };
 };
 
@@ -36,8 +35,7 @@ function getGuidance(level: number): Guidance {
       tone: "high",
       action: {
         label: "Finish today",
-        messageTitle: "Practice noted.",
-        messageBody: "You can return to Exercises for now."
+        type: "finish"
       }
     };
   }
@@ -49,8 +47,7 @@ function getGuidance(level: number): Guidance {
       tone: "high",
       action: {
         label: "Slow down now",
-        messageTitle: "Slow down now.",
-        messageBody: "Let your body settle and notice what changes."
+        type: "pause"
       }
     };
   }
@@ -62,8 +59,7 @@ function getGuidance(level: number): Guidance {
       tone: "pause",
       action: {
         label: "Take a 30-second pause",
-        messageTitle: "Pause started.",
-        messageBody: "Take 30 seconds to slow down and notice your body response."
+        type: "pause"
       }
     };
   }
@@ -86,11 +82,8 @@ export function MainPracticeScreen() {
   const guidanceAction = guidance.action;
   const isFinishOriented = level >= 9;
 
-  const showPauseMessage = () => {
-    setPracticeMessage({
-      title: "Pause started.",
-      body: "Take 30 seconds to slow down and notice your body response."
-    });
+  const startPause = () => {
+    router.push(routes.arousalControlPause);
   };
 
   const showFinishMessage = () => {
@@ -131,11 +124,8 @@ export function MainPracticeScreen() {
           {...(guidanceAction !== undefined
             ? {
                 actionLabel: guidanceAction.label,
-                onActionPress: () =>
-                  setPracticeMessage({
-                    title: guidanceAction.messageTitle,
-                    body: guidanceAction.messageBody
-                  })
+                onActionPress:
+                  guidanceAction.type === "pause" ? startPause : showFinishMessage
               }
             : {})}
         />
@@ -200,7 +190,7 @@ export function MainPracticeScreen() {
             </>
           ) : (
             <>
-              <AppButton onPress={showPauseMessage}>Start Pause</AppButton>
+              <AppButton onPress={startPause}>Start Pause</AppButton>
               <AppButton variant="secondary" onPress={showFinishMessage}>
                 Finish Practice
               </AppButton>
