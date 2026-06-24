@@ -31,12 +31,6 @@ const endingOptions: readonly { value: PracticeEndingOption; title: string }[] =
 export function FinishPracticeScreen() {
   const router = useRouter();
   const [ending, setEnding] = useState<PracticeEndingOption>("stoppedByChoice");
-  const [endingConfirmed, setEndingConfirmed] = useState(false);
-
-  const selectEnding = (value: PracticeEndingOption) => {
-    setEnding(value);
-    setEndingConfirmed(false);
-  };
 
   return (
     <AppScreen contentStyle={styles.content}>
@@ -58,7 +52,7 @@ export function FinishPracticeScreen() {
                 value={option.value}
                 title={option.title}
                 selected={ending === option.value}
-                onSelect={selectEnding}
+                onSelect={setEnding}
               />
             ))}
           </View>
@@ -76,21 +70,7 @@ export function FinishPracticeScreen() {
           </View>
         </View>
 
-        {endingConfirmed ? (
-          <View style={styles.confirmation}>
-            <View style={styles.noteCopy}>
-              <AppText variant="title" align="center">
-                Ending noted.
-              </AppText>
-              <AppText tone="secondary" align="center">
-                You can return to Exercises when ready.
-              </AppText>
-            </View>
-            <AppButton onPress={() => router.replace(routes.exercises)}>Back to Exercises</AppButton>
-          </View>
-        ) : (
-          <AppButton onPress={() => setEndingConfirmed(true)}>Continue</AppButton>
-        )}
+        <AppButton onPress={() => router.push(routes.arousalControlReflection)}>Continue</AppButton>
       </View>
     </AppScreen>
   );
@@ -112,15 +92,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     backgroundColor: theme.colors.sageMuted,
     padding: theme.spacing.lg
-  },
-  confirmation: {
-    gap: theme.spacing.lg,
-    borderRadius: theme.radius.xxl,
-    borderColor: theme.colors.sage,
-    borderWidth: 1,
-    backgroundColor: theme.colors.surface,
-    padding: theme.spacing.lg,
-    ...theme.shadows.card
   },
   noteCopy: {
     gap: theme.spacing.sm
