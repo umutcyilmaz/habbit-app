@@ -10,15 +10,15 @@ import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
 import { ArousalControlFlowHeader } from "../components/ArousalControlFlowHeader";
 
-const summaryItems = [
-  { label: "Pauses", value: "1" },
-  { label: "Highest arousal", value: "7/10" },
-  { label: "Control feeling", value: "6/10" },
-  { label: "Pleasure quality", value: "7/10" },
-  { label: "Pressure", value: "Medium" },
-  { label: "Firmness during pause", value: "Slightly decreased" },
-  { label: "Duration", value: "Prefer not to log" }
-] as const;
+const sessionSummary = {
+  pauses: "1",
+  highestArousal: "7/10",
+  controlFeeling: "6/10",
+  pleasureQuality: "7/10",
+  pressure: "Medium",
+  firmness: "Slightly decreased",
+  duration: "Prefer not to log"
+} as const;
 
 export function PracticeSavedScreen() {
   const router = useRouter();
@@ -47,11 +47,15 @@ export function PracticeSavedScreen() {
 
       <View style={styles.stack}>
         <AppCard style={styles.successCard}>
-          <View style={styles.successStack}>
-            <View style={styles.successIcon}>
-              <AppText variant="label">✓</AppText>
+          <View style={styles.successGlow} />
+          <View style={styles.successContent}>
+            <View style={styles.successMark}>
+              <AppText variant="title">✓</AppText>
             </View>
-            <View style={styles.noteCopy}>
+            <View style={styles.successCopy}>
+              <AppText variant="caption" tone="secondary" align="center" style={styles.eyebrow}>
+                PRACTICE SAVED
+              </AppText>
               <AppText variant="title" align="center">
                 Practice saved
               </AppText>
@@ -65,32 +69,57 @@ export function PracticeSavedScreen() {
 
         <AppCard style={styles.summaryCard}>
           <View style={styles.cardStack}>
-            <AppText variant="title">Session summary</AppText>
-            <View style={styles.summaryList}>
-              {summaryItems.map((item) => (
-                <View key={item.label} style={styles.summaryRow}>
-                  <AppText variant="bodySmall" tone="secondary" style={styles.summaryLabel}>
-                    {item.label}
-                  </AppText>
-                  <AppText variant="label" style={styles.summaryValue}>
-                    {item.value}
-                  </AppText>
-                </View>
-              ))}
+            <View style={styles.sectionHeader}>
+              <AppText variant="title">Session summary</AppText>
+              <AppText variant="bodySmall" tone="secondary">
+                A neutral snapshot of what you noticed.
+              </AppText>
+            </View>
+
+            <View style={styles.featureMetric}>
+              <View style={styles.featureColumn}>
+                <AppText variant="caption" tone="secondary">
+                  Highest arousal
+                </AppText>
+                <AppText variant="heading">{sessionSummary.highestArousal}</AppText>
+              </View>
+              <View style={styles.featureDivider} />
+              <View style={styles.featureColumn}>
+                <AppText variant="caption" tone="secondary">
+                  Pauses
+                </AppText>
+                <AppText variant="heading">{sessionSummary.pauses}</AppText>
+              </View>
+            </View>
+
+            <View style={styles.metricGrid}>
+              <SummaryMetric label="Control feeling" value={sessionSummary.controlFeeling} />
+              <SummaryMetric label="Pleasure quality" value={sessionSummary.pleasureQuality} />
+              <SummaryMetric label="Pressure" value={sessionSummary.pressure} />
+            </View>
+
+            <View style={styles.contextPanel}>
+              <ContextRow label="Firmness during pause" value={sessionSummary.firmness} />
+              <View style={styles.contextDivider} />
+              <ContextRow
+                label="Duration"
+                value={sessionSummary.duration}
+                detail="Private context, not a score."
+              />
             </View>
           </View>
         </AppCard>
 
         <View style={styles.insightCard}>
-          <View style={styles.cardStack}>
+          <View style={styles.insightAccent} />
+          <View style={styles.insightCopy}>
             <AppText variant="title">Gentle insight</AppText>
-            <View style={styles.insightList}>
-              <AppText tone="secondary">You noticed your pause zone around 7/10.</AppText>
-              <AppText tone="secondary">
-                A pause can still be useful even if the session ended differently than expected.
-              </AppText>
-              <AppText tone="secondary">Duration is private context, not a score.</AppText>
-              <AppText tone="secondary">
+            <AppText tone="secondary">
+              You noticed your pause zone around 7/10. A pause can still be useful when the session
+              ends differently than expected.
+            </AppText>
+            <View style={styles.insightFooter}>
+              <AppText variant="bodySmall" tone="secondary">
                 Next time, the practice can be noticing the rise a little earlier.
               </AppText>
             </View>
@@ -100,7 +129,7 @@ export function PracticeSavedScreen() {
         {noteVisible ? (
           <AppCard style={styles.noteCard}>
             <View style={styles.cardStack}>
-              <View style={styles.noteCopy}>
+              <View style={styles.sectionHeader}>
                 <AppText variant="title">Private note</AppText>
                 <AppText variant="bodySmall" tone="secondary">
                   Add one detail you want to remember.
@@ -125,17 +154,18 @@ export function PracticeSavedScreen() {
               </AppButton>
             </View>
           </AppCard>
-        ) : (
-          <AppButton variant="subtle" onPress={() => setNoteVisible(true)}>
-            Add private note
-          </AppButton>
-        )}
+        ) : null}
 
         <View style={styles.actions}>
           <AppButton onPress={() => router.replace(routes.home)}>Back to Today</AppButton>
           <AppButton variant="secondary" onPress={() => router.replace(routes.progress)}>
             View Progress
           </AppButton>
+          {!noteVisible ? (
+            <AppButton variant="subtle" onPress={() => setNoteVisible(true)}>
+              Add private note
+            </AppButton>
+          ) : null}
           <AppButton variant="ghost" onPress={() => router.replace(routes.exercises)}>
             Back to Exercises
           </AppButton>
@@ -145,71 +175,186 @@ export function PracticeSavedScreen() {
   );
 }
 
+type SummaryMetricProps = {
+  label: string;
+  value: string;
+};
+
+function SummaryMetric({ label, value }: SummaryMetricProps) {
+  return (
+    <View style={styles.metricTile}>
+      <AppText variant="caption" tone="secondary">
+        {label}
+      </AppText>
+      <AppText variant="label">{value}</AppText>
+    </View>
+  );
+}
+
+type ContextRowProps = {
+  label: string;
+  value: string;
+  detail?: string;
+};
+
+function ContextRow({ label, value, detail }: ContextRowProps) {
+  return (
+    <View style={styles.contextRow}>
+      <View style={styles.contextCopy}>
+        <AppText variant="bodySmall" tone="secondary">
+          {label}
+        </AppText>
+        {detail ? (
+          <AppText variant="caption" tone="secondary">
+            {detail}
+          </AppText>
+        ) : null}
+      </View>
+      <AppText variant="label" style={styles.contextValue}>
+        {value}
+      </AppText>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   content: {
     maxWidth: 430
   },
   stack: {
-    gap: theme.spacing.lg
+    gap: theme.spacing.xl
   },
   successCard: {
+    position: "relative",
+    overflow: "hidden",
     borderRadius: theme.radius.xxl,
     borderColor: theme.colors.sage,
-    backgroundColor: theme.colors.sageMuted,
-    padding: theme.spacing.lg
+    backgroundColor: theme.colors.surface,
+    padding: theme.spacing.xl
   },
-  successStack: {
+  successGlow: {
+    position: "absolute",
+    top: -52,
+    alignSelf: "center",
+    width: 176,
+    height: 176,
+    borderRadius: 88,
+    backgroundColor: theme.colors.sageMuted
+  },
+  successContent: {
     alignItems: "center",
-    gap: theme.spacing.md
+    gap: theme.spacing.lg
   },
-  successIcon: {
-    width: 52,
-    height: 52,
+  successMark: {
+    width: 64,
+    height: 64,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 26,
+    borderRadius: 32,
     borderColor: theme.colors.sage,
     borderWidth: 1,
     backgroundColor: theme.colors.surface
   },
+  successCopy: {
+    gap: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.sm
+  },
+  eyebrow: {
+    textTransform: "uppercase"
+  },
   summaryCard: {
     borderRadius: theme.radius.xxl,
-    padding: theme.spacing.lg
+    padding: theme.spacing.xl
   },
   cardStack: {
     gap: theme.spacing.lg
   },
-  summaryList: {
+  sectionHeader: {
     gap: theme.spacing.sm
   },
-  summaryRow: {
-    minHeight: 42,
+  featureMetric: {
     flexDirection: "row",
     alignItems: "center",
+    borderRadius: theme.radius.xxl,
+    borderColor: theme.colors.sage,
+    borderWidth: 1,
+    backgroundColor: theme.colors.sageMuted,
+    padding: theme.spacing.lg
+  },
+  featureColumn: {
+    flex: 1
+  },
+  featureDivider: {
+    width: 1,
+    height: 58,
+    marginHorizontal: theme.spacing.lg,
+    backgroundColor: theme.colors.sage
+  },
+  metricGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: theme.spacing.sm
+  },
+  metricTile: {
+    minHeight: 82,
+    flexGrow: 1,
+    flexBasis: "30%",
     justifyContent: "space-between",
-    gap: theme.spacing.md,
-    borderRadius: theme.radius.lg,
+    borderRadius: theme.radius.xl,
+    borderColor: theme.colors.border,
+    borderWidth: 1,
+    backgroundColor: theme.colors.surface,
+    padding: theme.spacing.md
+  },
+  contextPanel: {
+    borderRadius: theme.radius.xl,
     backgroundColor: theme.colors.surfaceMuted,
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm
   },
-  summaryLabel: {
-    flex: 1
+  contextRow: {
+    minHeight: 54,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: theme.spacing.md,
+    paddingVertical: theme.spacing.sm
   },
-  summaryValue: {
+  contextCopy: {
+    flex: 1,
+    gap: theme.spacing.xs
+  },
+  contextValue: {
     flexShrink: 1,
     textAlign: "right"
   },
+  contextDivider: {
+    height: 1,
+    backgroundColor: theme.colors.border
+  },
   insightCard: {
+    flexDirection: "row",
+    gap: theme.spacing.md,
     borderRadius: theme.radius.xxl,
-    borderColor: theme.colors.border,
+    borderColor: theme.colors.lavenderDeep,
     borderWidth: 1,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.lavender,
     padding: theme.spacing.lg,
     ...theme.shadows.card
   },
-  insightList: {
-    gap: theme.spacing.sm
+  insightAccent: {
+    width: 4,
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.primary
+  },
+  insightCopy: {
+    flex: 1,
+    gap: theme.spacing.md
+  },
+  insightFooter: {
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.colors.surface,
+    padding: theme.spacing.md
   },
   noteCard: {
     borderRadius: theme.radius.xxl,
