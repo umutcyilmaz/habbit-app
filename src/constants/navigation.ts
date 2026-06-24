@@ -28,6 +28,7 @@ export const routes = {
   arousalControl: "/exercises/arousal-control",
   arousalControlMode: "/exercises/arousal-control/mode",
   arousalControlCheckIn: "/exercises/arousal-control/check-in",
+  arousalControlPractice: "/exercises/arousal-control/practice",
   progress: "/(tabs)/progress",
   protect: "/(tabs)/protect",
   protectSetup: "/protect/setup",

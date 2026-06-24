@@ -10,7 +10,6 @@ import { theme } from "../../../shared/design-system/theme";
 import { ArousalControlFlowHeader } from "../components/ArousalControlFlowHeader";
 import { PracticeOptionChip } from "../components/PracticeOptionChip";
 import { PracticeQuestionCard } from "../components/PracticeQuestionCard";
-import { PracticeSetupConfirmation } from "../components/PracticeSetupConfirmation";
 
 type FocusOption =
   | "noticeRising"
@@ -49,7 +48,6 @@ export function BeforePracticeCheckInScreen() {
   const [focus, setFocus] = useState<FocusOption>("noticeRising");
   const [adultContent, setAdultContent] = useState<AdultContentOption>("no");
   const [firmnessPlan, setFirmnessPlan] = useState<FirmnessPlanOption>("appSuggest");
-  const [setupSaved, setSetupSaved] = useState(false);
 
   return (
     <AppScreen contentStyle={styles.content}>
@@ -117,11 +115,9 @@ export function BeforePracticeCheckInScreen() {
           You can stop anytime. This is not a test.
         </AppText>
 
-        {setupSaved ? (
-          <PracticeSetupConfirmation onBackToExercises={() => router.replace(routes.exercises)} />
-        ) : (
-          <AppButton onPress={() => setSetupSaved(true)}>Begin Practice</AppButton>
-        )}
+        <AppButton onPress={() => router.push(routes.arousalControlPractice)}>
+          Begin Practice
+        </AppButton>
       </View>
     </AppScreen>
   );
