@@ -158,7 +158,10 @@ export function PracticeSavedScreen() {
 
         <View style={styles.actions}>
           <AppButton onPress={() => router.replace(routes.home)}>Back to Today</AppButton>
-          <AppButton variant="secondary" onPress={() => router.replace(routes.progress)}>
+          <AppButton
+            variant="secondary"
+            onPress={() => router.push(routes.arousalControlProgressPreview)}
+          >
             View Progress
           </AppButton>
           {!noteVisible ? (
