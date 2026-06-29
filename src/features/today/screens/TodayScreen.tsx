@@ -49,6 +49,8 @@ export function TodayScreen() {
 
         <TodayPathTimeline />
 
+        <TodayGuideEntry onPress={() => router.push(routes.whatShouldIUse)} />
+
         <SensitiveWindowCard />
       </View>
     </AppScreen>
@@ -160,6 +162,28 @@ function TodayPathStep({ number, title, body, isLast }: TodayPathStepProps) {
         </AppText>
       </View>
     </View>
+  );
+}
+
+type TodayGuideEntryProps = {
+  onPress: () => void;
+};
+
+function TodayGuideEntry({ onPress }: TodayGuideEntryProps) {
+  return (
+    <AppCard style={styles.guideEntryCard}>
+      <View style={styles.guideEntryRow}>
+        <View style={styles.guideEntryCopy}>
+          <AppText variant="label">Not sure what to use?</AppText>
+          <AppText variant="bodySmall" tone="secondary">
+            Choose the tool based on what is happening right now.
+          </AppText>
+        </View>
+        <AppButton variant="subtle" onPress={onPress} style={styles.guideEntryButton}>
+          Open guide
+        </AppButton>
+      </View>
+    </AppCard>
   );
 }
 
@@ -331,6 +355,24 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: theme.spacing.xs,
     paddingTop: 2
+  },
+  guideEntryCard: {
+    borderRadius: theme.radius.xl,
+    padding: theme.spacing.lg
+  },
+  guideEntryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.md
+  },
+  guideEntryCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: theme.spacing.xs
+  },
+  guideEntryButton: {
+    minHeight: 42,
+    paddingHorizontal: theme.spacing.lg
   },
   windowCard: {
     gap: theme.spacing.lg,
