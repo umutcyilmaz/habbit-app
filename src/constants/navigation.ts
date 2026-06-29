@@ -44,6 +44,7 @@ export const routes = {
   protectActive: "/protect/active",
   protectNightSetup: "/protect/night-setup",
   protectIntercept: "/protect/intercept",
+  tenDayReset: "/reset/ten-day",
   pause: "/pause",
   pauseCheckIn: "/pause/check-in",
   pauseTimer: "/pause/timer",

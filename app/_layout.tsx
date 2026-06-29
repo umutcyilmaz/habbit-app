@@ -19,6 +19,7 @@ export default function RootLayout() {
         <Stack.Screen name="exercises" />
         <Stack.Screen name="pause" />
         <Stack.Screen name="protect" />
+        <Stack.Screen name="reset" />
         <Stack.Screen name="settings" />
       </Stack>
     </AppProviders>

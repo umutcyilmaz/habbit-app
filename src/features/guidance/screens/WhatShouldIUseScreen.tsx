@@ -60,7 +60,8 @@ const guidanceCards: readonly GuidanceCardConfig[] = [
     tool: "Use 10-Day Reset",
     helper: "Step away from pressure and checking for now.",
     icon: "↻",
-    status: "comingSoon"
+    status: "available",
+    route: routes.tenDayReset
   },
   {
     situation: "If you feel rushing or tension",
