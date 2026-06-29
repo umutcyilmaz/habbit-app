@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 
 import { routes } from "../../../constants/navigation";
+import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
 import { AppIconButton } from "../../../shared/components/AppIconButton";
@@ -33,6 +34,7 @@ const resetDurationSeconds = 120;
 
 export function TenDayResetPracticeScreen() {
   const router = useRouter();
+  const { startTenDayReset, completeTodayReset } = useBloomLocalState();
   const [timerStarted, setTimerStarted] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(resetDurationSeconds);
 
@@ -51,10 +53,16 @@ export function TenDayResetPracticeScreen() {
   }, [secondsLeft, timerStarted]);
 
   const startTimer = () => {
+    startTenDayReset();
     if (secondsLeft === 0) {
       setSecondsLeft(resetDurationSeconds);
     }
     setTimerStarted(true);
+  };
+
+  const saveToday = () => {
+    completeTodayReset();
+    router.replace(routes.tenDayResetSaved);
   };
 
   const timerComplete = secondsLeft === 0;
@@ -72,13 +80,13 @@ export function TenDayResetPracticeScreen() {
           timerStarted={timerStarted}
           timerComplete={timerComplete}
           onStartPress={startTimer}
-          onAlreadyDonePress={() => router.replace(routes.tenDayResetSaved)}
+          onAlreadyDonePress={saveToday}
         />
 
         <DuringResetCard />
 
         <View style={styles.bottomActions}>
-          <AppButton onPress={() => router.replace(routes.tenDayResetSaved)}>
+          <AppButton onPress={saveToday}>
             Finish today’s reset
           </AppButton>
         </View>

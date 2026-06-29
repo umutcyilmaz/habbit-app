@@ -2,6 +2,7 @@ import { useRouter } from "expo-router";
 import { Platform, StyleSheet, View } from "react-native";
 
 import { routes } from "../../../constants/navigation";
+import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
 import { AppIconButton } from "../../../shared/components/AppIconButton";
@@ -11,10 +12,8 @@ import { theme } from "../../../shared/design-system/theme";
 
 const activePlan = {
   label: "YOUR PLAN",
-  name: "Porn loop reset",
   primaryPattern: "Porn Loop",
   secondaryPattern: "Pressure Pattern",
-  primaryAction: "Set up Protection",
   secondaryAction: "Quick Check-In",
   sensitiveWindow: "Evening window"
 } as const;
@@ -36,14 +35,41 @@ const todayPathSteps = [
 
 export function TodayScreen() {
   const router = useRouter();
+  const { state, resetDay, resetTodayCompleted, startTenDayReset } = useBloomLocalState();
+  const resetStarted = state.tenDayReset.startedAt !== null;
+  const heroState = getTodayHeroState({
+    resetStarted,
+    resetTodayCompleted,
+    resetDay
+  });
 
   return (
     <AppScreen contentStyle={styles.content}>
       <View style={styles.stack}>
-        <PlanHeader onSettingsPress={() => router.push(routes.settings)} />
+        <PlanHeader
+          planName={state.activePlan.planName}
+          onSettingsPress={() => router.push(routes.settings)}
+        />
 
         <TodayHeroCard
-          onPrimaryPress={() => router.push(routes.protectSetup)}
+          statusLabel={heroState.statusLabel}
+          title={heroState.title}
+          body={heroState.body}
+          primaryAction={heroState.primaryAction}
+          onPrimaryPress={() => {
+            if (!resetStarted) {
+              router.push(routes.protectSetup);
+              return;
+            }
+
+            if (resetTodayCompleted) {
+              router.push(routes.tenDayResetSaved);
+              return;
+            }
+
+            startTenDayReset();
+            router.push(routes.tenDayResetPractice);
+          }}
           onSecondaryPress={() => router.push(routes.pauseCheckIn)}
         />
 
@@ -57,11 +83,45 @@ export function TodayScreen() {
   );
 }
 
+type TodayHeroStateInput = {
+  resetStarted: boolean;
+  resetTodayCompleted: boolean;
+  resetDay: number;
+};
+
+function getTodayHeroState({ resetStarted, resetTodayCompleted, resetDay }: TodayHeroStateInput) {
+  if (!resetStarted) {
+    return {
+      statusLabel: null,
+      title: "Create a pause before porn.",
+      body: "Your first goal is to notice the automatic loop before it starts.",
+      primaryAction: "Set up Protection"
+    };
+  }
+
+  if (resetTodayCompleted) {
+    return {
+      statusLabel: "Today’s reset completed",
+      title: "Today’s reset completed.",
+      body: "Come back tomorrow and repeat the same reset.",
+      primaryAction: "View saved reset"
+    };
+  }
+
+  return {
+    statusLabel: `10-Day Reset · Day ${resetDay} of 10`,
+    title: "Start today’s reset.",
+    body: "Keep today simple: no porn, no masturbation, no checking.",
+    primaryAction: "Start today’s reset"
+  };
+}
+
 type PlanHeaderProps = {
+  planName: string;
   onSettingsPress: () => void;
 };
 
-function PlanHeader({ onSettingsPress }: PlanHeaderProps) {
+function PlanHeader({ planName, onSettingsPress }: PlanHeaderProps) {
   return (
     <View style={styles.planHeader}>
       <View style={styles.planIdentity}>
@@ -73,7 +133,7 @@ function PlanHeader({ onSettingsPress }: PlanHeaderProps) {
             {activePlan.label}
           </AppText>
           <AppText variant="title" style={styles.planName}>
-            {activePlan.name}
+            {planName}
           </AppText>
         </View>
       </View>
@@ -88,26 +148,44 @@ function PlanHeader({ onSettingsPress }: PlanHeaderProps) {
 }
 
 type TodayHeroCardProps = {
+  statusLabel: string | null;
+  title: string;
+  body: string;
+  primaryAction: string;
   onPrimaryPress: () => void;
   onSecondaryPress: () => void;
 };
 
-function TodayHeroCard({ onPrimaryPress, onSecondaryPress }: TodayHeroCardProps) {
+function TodayHeroCard({
+  statusLabel,
+  title,
+  body,
+  primaryAction,
+  onPrimaryPress,
+  onSecondaryPress
+}: TodayHeroCardProps) {
   return (
     <AppCard style={styles.heroCard}>
       <View style={styles.heroIcon}>
         <AppText variant="title">⏸</AppText>
       </View>
       <View style={styles.heroCopy}>
+        {statusLabel ? (
+          <View style={styles.heroStatusPill}>
+            <AppText variant="caption" tone="secondary">
+              {statusLabel}
+            </AppText>
+          </View>
+        ) : null}
         <AppText variant="heading" align="center" style={styles.heroTitle}>
-          Create a pause before porn.
+          {title}
         </AppText>
         <AppText tone="secondary" align="center" style={styles.heroBody}>
-          Your first goal is to notice the automatic loop before it starts.
+          {body}
         </AppText>
       </View>
       <View style={styles.heroActions}>
-        <AppButton onPress={onPrimaryPress}>{activePlan.primaryAction}</AppButton>
+        <AppButton onPress={onPrimaryPress}>{primaryAction}</AppButton>
         <AppButton variant="subtle" onPress={onSecondaryPress}>
           {activePlan.secondaryAction}
         </AppButton>
@@ -288,6 +366,14 @@ const styles = StyleSheet.create({
   heroCopy: {
     alignItems: "center",
     gap: theme.spacing.sm
+  },
+  heroStatusPill: {
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.sageMuted,
+    borderColor: theme.colors.sage,
+    borderWidth: 1,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.xs
   },
   heroTitle: {
     fontFamily: Platform.select({
