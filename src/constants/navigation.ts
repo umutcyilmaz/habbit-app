@@ -25,6 +25,7 @@ export const routes = {
   home: "/(tabs)/today",
   log: "/(tabs)/log",
   exercises: "/(tabs)/exercises",
+  onboardingResult: "/onboarding/result",
   arousalControl: "/exercises/arousal-control",
   arousalControlMode: "/exercises/arousal-control/mode",
   arousalControlCheckIn: "/exercises/arousal-control/check-in",
