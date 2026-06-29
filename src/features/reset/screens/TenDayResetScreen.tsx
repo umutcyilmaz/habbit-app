@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useRouter } from "expo-router";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 
@@ -23,7 +22,7 @@ const resetRules = [
   },
   {
     title: "No checking",
-    body: "Avoid testing your erection or forcing arousal."
+    body: "Avoid testing or forcing arousal."
   }
 ] as const;
 
@@ -47,60 +46,37 @@ const replacementActions = [
   },
   {
     title: "Controlled practice later",
-    body: "After the reset, rebuild with guided practice.",
+    body: "Rebuild with guided practice after the reset.",
     icon: "∿",
     route: routes.arousalControl
   }
 ] as const;
 
-const practiceSteps = [
-  "Put the phone down",
-  "Relax your belly and jaw",
-  "Breathe slowly for 2 minutes",
-  "Let the urge pass without testing"
-] as const;
-
-const futureSteps = [
-  "Start without porn",
-  "Use lighter pressure",
-  "Notice arousal before rushing"
-] as const;
-
 export function TenDayResetScreen() {
   const router = useRouter();
-  const [resetStarted, setResetStarted] = useState(false);
-  const [practiceStarted, setPracticeStarted] = useState(false);
-
-  const startReset = () => {
-    setResetStarted(true);
-  };
-
-  const startPractice = () => {
-    setResetStarted(true);
-    setPracticeStarted(true);
-  };
 
   return (
     <AppScreen contentStyle={styles.content}>
       <ResetHeader
+        label="RESET PLAN"
+        title="10-Day Reset"
+        subtitle="Step away from pressure, porn, and checking so you can rebuild with more awareness."
         onBackPress={() => router.back()}
         onClosePress={() => router.replace(routes.home)}
       />
 
       <View style={styles.stack}>
-        <HeroCard started={resetStarted} onStartPress={startReset} />
+        <DayOverviewCard />
         <ResetRulesCard />
         <ReplacementActionsCard
           onRoutePress={(route) => {
             router.push(route);
           }}
         />
-        <TodayPracticeCard started={practiceStarted} onStartPress={startPractice} />
-        <AfterResetCard onPracticePress={() => router.push(routes.arousalControl)} />
 
         <View style={styles.bottomActions}>
-          <AppButton onPress={startReset}>
-            {resetStarted ? "Today’s reset is open" : "Start today’s reset"}
+          <AppButton onPress={() => router.push(routes.tenDayResetPractice)}>
+            Start today’s reset
           </AppButton>
           <AppButton variant="subtle" onPress={() => router.replace(routes.home)}>
             Back to Today
@@ -112,11 +88,14 @@ export function TenDayResetScreen() {
 }
 
 type ResetHeaderProps = {
+  label: string;
+  title: string;
+  subtitle: string;
   onBackPress: () => void;
   onClosePress: () => void;
 };
 
-function ResetHeader({ onBackPress, onClosePress }: ResetHeaderProps) {
+function ResetHeader({ label, title, subtitle, onBackPress, onClosePress }: ResetHeaderProps) {
   return (
     <View style={styles.header}>
       <View style={styles.headerActions}>
@@ -128,7 +107,7 @@ function ResetHeader({ onBackPress, onClosePress }: ResetHeaderProps) {
         />
         <View style={styles.headerLabelWrap}>
           <AppText variant="caption" tone="secondary" align="center" style={styles.eyebrow}>
-            RESET PLAN
+            {label}
           </AppText>
         </View>
         <AppIconButton
@@ -141,22 +120,17 @@ function ResetHeader({ onBackPress, onClosePress }: ResetHeaderProps) {
 
       <View style={styles.titleBlock}>
         <AppText variant="heading" align="center" style={styles.title}>
-          10-Day Reset
+          {title}
         </AppText>
         <AppText tone="secondary" align="center" style={styles.subtitle}>
-          Step away from pressure, porn, and checking so you can rebuild with more awareness.
+          {subtitle}
         </AppText>
       </View>
     </View>
   );
 }
 
-type HeroCardProps = {
-  started: boolean;
-  onStartPress: () => void;
-};
-
-function HeroCard({ started, onStartPress }: HeroCardProps) {
+function DayOverviewCard() {
   return (
     <AppCard style={styles.heroCard}>
       <View style={styles.heroCopy}>
@@ -164,30 +138,19 @@ function HeroCard({ started, onStartPress }: HeroCardProps) {
           DAY 1 OF 10
         </AppText>
         <AppText variant="title" style={styles.heroTitle}>
-          Start by creating a clean pause from the pattern.
+          Create a clean pause from the pattern.
         </AppText>
         <AppText tone="secondary">
-          For today, the reset means no porn, no masturbation, and no erection testing.
+          Today means no porn, no masturbation, and no checking.
         </AppText>
       </View>
 
-      <ResetProgressRow />
-
-      {started ? (
-        <View style={styles.startedNote}>
-          <AppText variant="label">Today’s reset is open.</AppText>
-          <AppText variant="bodySmall" tone="secondary">
-            Begin with the 2-minute breathing reset when you are ready.
-          </AppText>
-        </View>
-      ) : null}
-
-      <AppButton onPress={onStartPress}>Start today’s reset</AppButton>
+      <ResetProgressSegments />
     </AppCard>
   );
 }
 
-function ResetProgressRow() {
+function ResetProgressSegments() {
   return (
     <View style={styles.progressRow} accessibilityRole="image">
       {Array.from({ length: 10 }, (_, index) => (
@@ -250,7 +213,7 @@ function ReplacementActionsCard({ onRoutePress }: ReplacementActionsCardProps) {
         <AppText variant="title" style={styles.sectionTitle}>
           What to do instead
         </AppText>
-        <View style={styles.rowStack}>
+        <View style={styles.alternativeStack}>
           {replacementActions.map((action) => (
             <ReplacementActionRow
               key={action.title}
@@ -284,7 +247,7 @@ function ReplacementActionRow({
 }: ReplacementActionRowProps) {
   const isTappable = route !== undefined;
   const content = (
-    <View style={styles.actionRowContent}>
+    <>
       <View style={styles.iconCircle}>
         <AppText variant="label">{icon}</AppText>
       </View>
@@ -299,96 +262,21 @@ function ReplacementActionRow({
           ›
         </AppText>
       ) : null}
-    </View>
+    </>
   );
 
   if (!isTappable) {
-    return <View style={styles.actionRow}>{content}</View>;
+    return <View style={styles.alternativeRow}>{content}</View>;
   }
 
   return (
     <Pressable
       accessibilityRole="button"
       onPress={() => onRoutePress(route)}
-      style={({ pressed }) => [styles.actionRow, pressed ? styles.actionRowPressed : undefined]}
+      style={({ pressed }) => [styles.alternativeRow, pressed ? styles.rowPressed : undefined]}
     >
       {content}
     </Pressable>
-  );
-}
-
-type TodayPracticeCardProps = {
-  started: boolean;
-  onStartPress: () => void;
-};
-
-function TodayPracticeCard({ started, onStartPress }: TodayPracticeCardProps) {
-  return (
-    <AppCard style={styles.practiceCard}>
-      <View style={styles.cardStack}>
-        <View style={styles.practiceHeader}>
-          <AppText variant="title" style={styles.sectionTitle}>
-            Today’s practice
-          </AppText>
-          <View style={styles.practicePill}>
-            <AppText variant="caption" tone="secondary">
-              2 minutes
-            </AppText>
-          </View>
-        </View>
-        <AppText variant="label">2-minute breathing reset</AppText>
-        <View style={styles.stepStack}>
-          {practiceSteps.map((step, index) => (
-            <View key={step} style={styles.practiceStep}>
-              <AppText variant="caption" tone="secondary">
-                {index + 1}
-              </AppText>
-              <AppText variant="bodySmall">{step}</AppText>
-            </View>
-          ))}
-        </View>
-        {started ? (
-          <AppText variant="bodySmall" tone="secondary">
-            Start simply. Let these two minutes create space before the next choice.
-          </AppText>
-        ) : null}
-        <AppButton variant="subtle" onPress={onStartPress}>
-          Start 2-minute reset
-        </AppButton>
-      </View>
-    </AppCard>
-  );
-}
-
-type AfterResetCardProps = {
-  onPracticePress: () => void;
-};
-
-function AfterResetCard({ onPracticePress }: AfterResetCardProps) {
-  return (
-    <AppCard style={styles.card}>
-      <View style={styles.cardStack}>
-        <View style={styles.afterHeader}>
-          <AppText variant="title" style={styles.sectionTitle}>
-            After the reset
-          </AppText>
-          <AppText tone="secondary">
-            When real desire is present, use controlled practice to rebuild with less pressure and
-            more awareness.
-          </AppText>
-        </View>
-        <View style={styles.futureStepWrap}>
-          {futureSteps.map((step) => (
-            <View key={step} style={styles.futureStep}>
-              <AppText variant="bodySmall">{step}</AppText>
-            </View>
-          ))}
-        </View>
-        <AppButton variant="subtle" onPress={onPracticePress}>
-          View Arousal Control Practice
-        </AppButton>
-      </View>
-    </AppCard>
   );
 }
 
@@ -473,14 +361,6 @@ const styles = StyleSheet.create({
   progressSegmentActive: {
     backgroundColor: theme.colors.sage
   },
-  startedNote: {
-    gap: theme.spacing.xs,
-    borderRadius: theme.radius.xl,
-    borderColor: theme.colors.sage,
-    borderWidth: 1,
-    backgroundColor: theme.colors.sageMuted,
-    padding: theme.spacing.lg
-  },
   card: {
     borderRadius: theme.radius.xxl,
     padding: 28
@@ -496,7 +376,7 @@ const styles = StyleSheet.create({
     })
   },
   rowStack: {
-    gap: theme.spacing.md
+    gap: theme.spacing.lg
   },
   infoRow: {
     flexDirection: "row",
@@ -518,72 +398,34 @@ const styles = StyleSheet.create({
     minWidth: 0,
     gap: theme.spacing.xs
   },
-  actionRow: {
+  alternativeStack: {
     borderRadius: theme.radius.xl,
     borderColor: theme.colors.border,
     borderWidth: 1,
-    backgroundColor: theme.colors.surface,
-    padding: theme.spacing.lg
+    overflow: "hidden"
   },
-  actionRowPressed: {
-    backgroundColor: theme.colors.surfaceMuted
-  },
-  actionRowContent: {
+  alternativeRow: {
+    minHeight: 68,
     flexDirection: "row",
     alignItems: "center",
-    gap: theme.spacing.md
+    gap: theme.spacing.md,
+    borderBottomColor: theme.colors.border,
+    borderBottomWidth: 1,
+    backgroundColor: theme.colors.surface,
+    padding: theme.spacing.md
+  },
+  rowPressed: {
+    backgroundColor: theme.colors.surfaceMuted
   },
   iconCircle: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 20,
+    borderRadius: 18,
     backgroundColor: theme.colors.sageMuted,
     borderColor: theme.colors.sage,
     borderWidth: 1
-  },
-  practiceCard: {
-    borderRadius: theme.radius.xxl,
-    borderColor: theme.colors.sage,
-    backgroundColor: theme.colors.sageMuted,
-    padding: 28
-  },
-  practiceHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: theme.spacing.md
-  },
-  practicePill: {
-    borderRadius: theme.radius.pill,
-    backgroundColor: theme.colors.surface,
-    borderColor: theme.colors.border,
-    borderWidth: 1,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.xs
-  },
-  stepStack: {
-    gap: theme.spacing.sm
-  },
-  practiceStep: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.sm
-  },
-  afterHeader: {
-    gap: theme.spacing.sm
-  },
-  futureStepWrap: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: theme.spacing.sm
-  },
-  futureStep: {
-    borderRadius: theme.radius.pill,
-    backgroundColor: theme.colors.surfaceMuted,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.xs
   },
   bottomActions: {
     gap: theme.spacing.md,
