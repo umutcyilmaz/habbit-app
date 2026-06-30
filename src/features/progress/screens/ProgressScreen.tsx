@@ -71,6 +71,9 @@ export function ProgressScreen() {
                 router.push(resetTodayCompleted ? routes.home : routes.tenDayResetPractice);
               }}
             />
+            {__DEV__ ? (
+              <DeveloperToolsCard onPress={() => router.push(routes.debugBloomState)} />
+            ) : null}
           </>
         )}
       </View>
@@ -291,6 +294,24 @@ function getNextStepCopy(resetStarted: boolean, resetTodayCompleted: boolean) {
   };
 }
 
+type DeveloperToolsCardProps = {
+  onPress: () => void;
+};
+
+function DeveloperToolsCard({ onPress }: DeveloperToolsCardProps) {
+  return (
+    <AppCard style={styles.devToolsCard}>
+      <View style={styles.cardStack}>
+        <AppText variant="title">Developer tools</AppText>
+        <AppText tone="secondary">Inspect and reset local Bloom state.</AppText>
+        <AppButton variant="subtle" onPress={onPress}>
+          Open debug state
+        </AppButton>
+      </View>
+    </AppCard>
+  );
+}
+
 const styles = StyleSheet.create({
   content: {
     maxWidth: 430
@@ -361,5 +382,10 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.sage,
     backgroundColor: theme.colors.sageMuted,
     padding: 28
+  },
+  devToolsCard: {
+    borderRadius: theme.radius.xl,
+    borderStyle: "dashed",
+    padding: theme.spacing.lg
   }
 });

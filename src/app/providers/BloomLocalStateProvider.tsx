@@ -11,6 +11,7 @@ import {
 import {
   completeTodayResetState,
   defaultBloomLocalState,
+  getTodayKey,
   getResetDay,
   isTodayCompleted,
   loadBloomLocalState,
@@ -24,8 +25,13 @@ type BloomLocalStateContextValue = {
   isLoading: boolean;
   startTenDayReset: () => void;
   completeTodayReset: () => void;
+  resetBloomLocalData: () => void;
+  clearTenDayResetProgress: () => void;
+  simulateNextDay: () => void;
+  simulatePreviousDay: () => void;
   resetTodayCompleted: boolean;
   resetDay: number;
+  todayKey: string;
 };
 
 const BloomLocalStateContext = createContext<BloomLocalStateContextValue | undefined>(undefined);
@@ -33,8 +39,9 @@ const BloomLocalStateContext = createContext<BloomLocalStateContextValue | undef
 export function BloomLocalStateProvider({ children }: PropsWithChildren) {
   const [state, setState] = useState<BloomLocalState>(defaultBloomLocalState);
   const [isLoading, setIsLoading] = useState(true);
-  const resetTodayCompleted = isTodayCompleted(state.tenDayReset);
-  const resetDay = getResetDay(state.tenDayReset);
+  const todayKey = getTodayKey(state.debug.dateOffsetDays);
+  const resetTodayCompleted = isTodayCompleted(state.tenDayReset, todayKey);
+  const resetDay = getResetDay(state.tenDayReset, todayKey);
 
   useEffect(() => {
     let isMounted = true;
@@ -74,22 +81,63 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
     setState((currentState) => completeTodayResetState(currentState));
   }, []);
 
+  const resetBloomLocalData = useCallback(() => {
+    setState(defaultBloomLocalState);
+  }, []);
+
+  const clearTenDayResetProgress = useCallback(() => {
+    setState((currentState) => ({
+      ...currentState,
+      tenDayReset: defaultBloomLocalState.tenDayReset
+    }));
+  }, []);
+
+  const simulateNextDay = useCallback(() => {
+    setState((currentState) => ({
+      ...currentState,
+      debug: {
+        ...currentState.debug,
+        dateOffsetDays: currentState.debug.dateOffsetDays + 1
+      }
+    }));
+  }, []);
+
+  const simulatePreviousDay = useCallback(() => {
+    setState((currentState) => ({
+      ...currentState,
+      debug: {
+        ...currentState.debug,
+        dateOffsetDays: Math.max(currentState.debug.dateOffsetDays - 1, -30)
+      }
+    }));
+  }, []);
+
   const value = useMemo(
     () => ({
       state,
       isLoading,
       startTenDayReset,
       completeTodayReset,
+      resetBloomLocalData,
+      clearTenDayResetProgress,
+      simulateNextDay,
+      simulatePreviousDay,
       resetTodayCompleted,
-      resetDay
+      resetDay,
+      todayKey
     }),
     [
+      clearTenDayResetProgress,
       completeTodayReset,
       isLoading,
       resetDay,
+      resetBloomLocalData,
       resetTodayCompleted,
+      simulateNextDay,
+      simulatePreviousDay,
       startTenDayReset,
-      state
+      state,
+      todayKey
     ]
   );
 

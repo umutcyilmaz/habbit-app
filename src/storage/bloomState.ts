@@ -14,9 +14,14 @@ export type TenDayResetState = {
   lastCompletedAt: string | null;
 };
 
+export type BloomDebugState = {
+  dateOffsetDays: number;
+};
+
 export type BloomLocalState = {
   activePlan: ActivePlan;
   tenDayReset: TenDayResetState;
+  debug: BloomDebugState;
 };
 
 export const defaultBloomLocalState: BloomLocalState = {
@@ -29,13 +34,18 @@ export const defaultBloomLocalState: BloomLocalState = {
     startedAt: null,
     completedDates: [],
     lastCompletedAt: null
+  },
+  debug: {
+    dateOffsetDays: 0
   }
 };
 
-export function getTodayKey(date = new Date()) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
+export function getTodayKey(dateOffsetDays = 0, date = new Date()) {
+  const simulatedDate = new Date(date);
+  simulatedDate.setDate(simulatedDate.getDate() + dateOffsetDays);
+  const year = simulatedDate.getFullYear();
+  const month = String(simulatedDate.getMonth() + 1).padStart(2, "0");
+  const day = String(simulatedDate.getDate()).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
 }
@@ -62,7 +72,7 @@ export function isTodayCompleted(resetState: TenDayResetState, todayKey = getTod
 
 export function startTenDayResetState(
   state: BloomLocalState,
-  todayKey = getTodayKey()
+  todayKey = getTodayKey(state.debug.dateOffsetDays)
 ): BloomLocalState {
   if (state.tenDayReset.startedAt !== null) {
     return state;
@@ -79,7 +89,7 @@ export function startTenDayResetState(
 
 export function completeTodayResetState(
   state: BloomLocalState,
-  todayKey = getTodayKey(),
+  todayKey = getTodayKey(state.debug.dateOffsetDays),
   completedAt = new Date().toISOString()
 ): BloomLocalState {
   const resetStartedState = startTenDayResetState(state, todayKey);
@@ -125,6 +135,10 @@ function mergeWithDefaultState(state: BloomLocalState): BloomLocalState {
       ...defaultBloomLocalState.tenDayReset,
       ...state.tenDayReset,
       completedDates: Array.from(new Set(state.tenDayReset.completedDates)).sort()
+    },
+    debug: {
+      ...defaultBloomLocalState.debug,
+      ...state.debug
     }
   };
 }
@@ -134,7 +148,11 @@ function isBloomLocalState(value: unknown): value is BloomLocalState {
     return false;
   }
 
-  return isActivePlan(value.activePlan) && isTenDayResetState(value.tenDayReset);
+  return (
+    isActivePlan(value.activePlan) &&
+    isTenDayResetState(value.tenDayReset) &&
+    (value.debug === undefined || isBloomDebugState(value.debug))
+  );
 }
 
 function isActivePlan(value: unknown): value is ActivePlan {
@@ -160,6 +178,14 @@ function isTenDayResetState(value: unknown): value is TenDayResetState {
     value.completedDates.every((date) => typeof date === "string") &&
     (typeof value.lastCompletedAt === "string" || value.lastCompletedAt === null)
   );
+}
+
+function isBloomDebugState(value: unknown): value is BloomDebugState {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return typeof value.dateOffsetDays === "number" && Number.isFinite(value.dateOffsetDays);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
