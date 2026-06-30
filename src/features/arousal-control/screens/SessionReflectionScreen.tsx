@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 
+import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
@@ -55,14 +56,34 @@ const controlFeelingGroups = [
   { label: "7–10", detail: "Strong" }
 ] as const;
 
+const pauseCountValues: Record<PauseCountOption, number> = {
+  none: 0,
+  one: 1,
+  two: 2,
+  threePlus: 3
+};
+
 export function SessionReflectionScreen() {
   const router = useRouter();
+  const { updateArousalControlDraft } = useBloomLocalState();
   const [pauseCount, setPauseCount] = useState<PauseCountOption>("one");
   const [highestArousal, setHighestArousal] = useState(7);
   const [controlFeeling, setControlFeeling] = useState(6);
   const [pleasureQuality, setPleasureQuality] = useState(7);
   const [pressure, setPressure] = useState<PressureOption>("medium");
   const [afterFeeling, setAfterFeeling] = useState<AfterFeelingOption>("neutral");
+
+  const continueToDuration = () => {
+    updateArousalControlDraft({
+      pauseCount: pauseCountValues[pauseCount],
+      highestArousal,
+      controlFeeling,
+      pleasureQuality: `${pleasureQuality}/10`,
+      pressureRushing: pressure,
+      afterwardFeeling: afterFeeling
+    });
+    router.push(routes.arousalControlDuration);
+  };
 
   return (
     <AppScreen contentStyle={styles.content}>
@@ -123,7 +144,7 @@ export function SessionReflectionScreen() {
           </View>
         </View>
 
-        <AppButton onPress={() => router.push(routes.arousalControlDuration)}>Continue</AppButton>
+        <AppButton onPress={continueToDuration}>Continue</AppButton>
       </View>
     </AppScreen>
   );

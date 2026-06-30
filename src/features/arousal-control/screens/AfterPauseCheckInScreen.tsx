@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
+import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppScreen } from "../../../shared/components/AppScreen";
@@ -37,6 +38,7 @@ const nextStepOptions: readonly { value: NextStepOption; title: string }[] = [
 
 export function AfterPauseCheckInScreen() {
   const router = useRouter();
+  const { updateArousalControlDraft, incrementArousalControlPauseCount } = useBloomLocalState();
   const [arousalNow, setArousalNow] = useState(5);
   const [firmnessChange, setFirmnessChange] = useState<FirmnessChangeOption>("notSure");
   const [anxiety, setAnxiety] = useState(3);
@@ -44,12 +46,20 @@ export function AfterPauseCheckInScreen() {
   const showSupportNote = firmnessChange === "decreasedDifficult" || anxiety >= 7;
 
   const continueFromSelection = () => {
+    updateArousalControlDraft({
+      afterPauseArousal: arousalNow,
+      anxietyLevel: anxiety,
+      afterPauseNextStep: nextStep,
+      firmnessChange
+    });
+
     if (nextStep === "continueGently") {
       router.replace(routes.arousalControlPractice);
       return;
     }
 
     if (nextStep === "pauseMore") {
+      incrementArousalControlPauseCount();
       router.replace(routes.arousalControlPause);
       return;
     }

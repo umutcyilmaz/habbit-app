@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
 
+import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
@@ -29,8 +30,19 @@ const durationOptions: readonly { value: DurationOption; label: string }[] = [
   { value: "preferNot", label: "Prefer not to log" }
 ];
 
+const estimatedDurationSeconds: Record<DurationOption, number | null> = {
+  lessThanOne: 30,
+  oneToThree: 120,
+  threeToFive: 240,
+  fiveToTen: 450,
+  tenToFifteen: 750,
+  fifteenPlus: 900,
+  preferNot: null
+};
+
 export function OptionalDurationScreen() {
   const router = useRouter();
+  const { updateArousalControlDraft } = useBloomLocalState();
   const [duration, setDuration] = useState<DurationOption>("preferNot");
   const [exactTimeVisible, setExactTimeVisible] = useState(false);
   const [minutes, setMinutes] = useState("");
@@ -52,7 +64,40 @@ export function OptionalDurationScreen() {
     setSeconds(value.replace(/\D/g, "").slice(0, 2));
   };
 
-  const savePractice = () => {
+  const getExactDurationSeconds = () => {
+    const minuteValue = Number.parseInt(minutes || "0", 10);
+    const secondValue = Number.parseInt(seconds || "0", 10);
+    const totalSeconds = minuteValue * 60 + secondValue;
+
+    return Number.isFinite(totalSeconds) && totalSeconds > 0 ? totalSeconds : null;
+  };
+
+  const savePractice = (skipDuration = false) => {
+    const exactDurationSeconds = exactTimeVisible ? getExactDurationSeconds() : null;
+    const estimatedSeconds = estimatedDurationSeconds[duration];
+
+    if (skipDuration || (duration === "preferNot" && exactDurationSeconds === null)) {
+      updateArousalControlDraft({
+        durationPreference: "notLogged",
+        durationSeconds: null
+      });
+      router.push(routes.arousalControlSaved);
+      return;
+    }
+
+    if (exactDurationSeconds !== null) {
+      updateArousalControlDraft({
+        durationPreference: "exact",
+        durationSeconds: exactDurationSeconds
+      });
+      router.push(routes.arousalControlSaved);
+      return;
+    }
+
+    updateArousalControlDraft({
+      durationPreference: "estimated",
+      durationSeconds: estimatedSeconds
+    });
     router.push(routes.arousalControlSaved);
   };
 
@@ -159,8 +204,8 @@ export function OptionalDurationScreen() {
         </View>
 
         <View style={styles.actions}>
-          <AppButton onPress={savePractice}>Save Practice</AppButton>
-          <AppButton variant="ghost" onPress={savePractice}>
+          <AppButton onPress={() => savePractice()}>Save Practice</AppButton>
+          <AppButton variant="ghost" onPress={() => savePractice(true)}>
             Skip duration
           </AppButton>
         </View>

@@ -1,16 +1,41 @@
 import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
+import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
+import {
+  getLatestArousalControlLog,
+  type ArousalControlPracticeLog
+} from "../../../storage/bloomState";
 import { ArousalControlFlowHeader } from "../components/ArousalControlFlowHeader";
+
+const notLoggedText = "Not logged";
+
+const firmnessLabels: Record<string, string> = {
+  noChange: "No change noticed",
+  slightlyDecreased: "Slightly decreased",
+  decreasedCouldContinue: "Decreased, could continue",
+  decreasedDifficult: "Decreased, continuing felt difficult",
+  notSure: "Not sure"
+};
+
+const pressureLabels: Record<string, string> = {
+  low: "Low",
+  medium: "Medium",
+  high: "High",
+  veryHigh: "Very high"
+};
 
 export function ProgressPreviewScreen() {
   const router = useRouter();
+  const { state } = useBloomLocalState();
+  const latestLog = getLatestArousalControlLog(state.arousalControl.logs);
+  const previousLog = getPreviousArousalControlLog(state.arousalControl.logs, latestLog);
 
   return (
     <AppScreen contentStyle={styles.content}>
@@ -23,28 +48,30 @@ export function ProgressPreviewScreen() {
       />
 
       <View style={styles.stack}>
-        <ControlFeelingHeroCard />
+        <ControlFeelingHeroCard latestLog={latestLog} previousLog={previousLog} />
 
         <PreviewMetricCard
           icon="Ⅱ"
           label="PAUSES TAKEN"
-          value="1"
-          valueDetail="pause this practice"
+          value={formatNumber(latestLog?.pauseCount)}
           helper="A moment caught before continuing."
+          {...(latestLog?.pauseCount !== undefined
+            ? { valueDetail: "pause this practice" }
+            : {})}
         />
 
         <PreviewMetricCard
           icon="◉"
           label="PEAK AWARENESS"
-          value="7 /10"
+          value={formatScore(latestLog?.highestArousal)}
           helper="Highest arousal level noticed before pausing in this practice."
           tone="peach"
         />
 
-        <PhysicalResponseCard />
-        <InternalPacingCard />
-        <DurationContextCard />
-        <CoachInsightCard />
+        <PhysicalResponseCard firmnessChange={latestLog?.firmnessChange} />
+        <InternalPacingCard pressureRushing={latestLog?.pressureRushing} />
+        <DurationContextCard log={latestLog} />
+        <CoachInsightCard latestLog={latestLog} />
 
         <View style={styles.actions}>
           <AppButton onPress={() => router.replace(routes.home)}>Back to Today</AppButton>
@@ -60,13 +87,18 @@ export function ProgressPreviewScreen() {
   );
 }
 
-function ControlFeelingHeroCard() {
+type ControlFeelingHeroCardProps = {
+  latestLog: ArousalControlPracticeLog | null;
+  previousLog: ArousalControlPracticeLog | null;
+};
+
+function ControlFeelingHeroCard({ latestLog, previousLog }: ControlFeelingHeroCardProps) {
   return (
     <AppCard style={styles.controlCard}>
       <View style={styles.cardTopRow}>
         <IconLabel icon="≋" label="CONTROL FEELING" />
         <View style={styles.sageBadge}>
-          <AppText variant="caption">Improving</AppText>
+          <AppText variant="caption">{getControlFeelingBadge(latestLog, previousLog)}</AppText>
         </View>
       </View>
 
@@ -76,12 +108,16 @@ function ControlFeelingHeroCard() {
         </AppText>
       </View>
 
-      <ControlFeelingComparison />
+      <ControlFeelingComparison latestLog={latestLog} previousLog={previousLog} />
     </AppCard>
   );
 }
 
-function ControlFeelingComparison() {
+function ControlFeelingComparison({ latestLog, previousLog }: ControlFeelingHeroCardProps) {
+  const latestValue = latestLog?.controlFeeling;
+  const previousValue = previousLog?.controlFeeling;
+  const hasPreviousComparison = latestValue !== undefined && previousValue !== undefined;
+
   return (
     <View style={styles.comparisonPanel}>
       <AppText variant="caption" tone="secondary" style={styles.eyebrow}>
@@ -89,17 +125,27 @@ function ControlFeelingComparison() {
       </AppText>
 
       <View style={styles.comparisonRow}>
-        <ComparisonValue label="Before pause" value="4/10" />
-        <View style={styles.comparisonArrow}>
-          <AppText variant="bodySmall" tone="secondary">
-            →
-          </AppText>
-        </View>
-        <ComparisonValue label="After pause" value="6/10" emphasized />
+        {hasPreviousComparison ? (
+          <>
+            <ComparisonValue label="Previous practice" value={formatScore(previousValue)} />
+            <View style={styles.comparisonArrow}>
+              <AppText variant="bodySmall" tone="secondary">
+                →
+              </AppText>
+            </View>
+            <ComparisonValue label="Recent practice" value={formatScore(latestValue)} emphasized />
+          </>
+        ) : (
+          <ComparisonValue
+            label="Control feeling"
+            value={formatScore(latestValue)}
+            emphasized={latestValue !== undefined}
+          />
+        )}
       </View>
 
       <View style={styles.comparisonInsight}>
-        <AppText variant="bodySmall">Created more space before continuing.</AppText>
+        <AppText variant="bodySmall">{getControlFeelingInsight(latestLog, previousLog)}</AppText>
       </View>
     </View>
   );
@@ -112,12 +158,17 @@ type ComparisonValueProps = {
 };
 
 function ComparisonValue({ label, value, emphasized = false }: ComparisonValueProps) {
+  const isMissing = value === notLoggedText;
+
   return (
     <View style={[styles.comparisonValue, emphasized ? styles.comparisonValueEmphasized : undefined]}>
       <AppText variant="caption" tone="secondary">
         {label}
       </AppText>
-      <AppText variant="heading" style={styles.comparisonNumber}>
+      <AppText
+        variant="heading"
+        style={[styles.comparisonNumber, isMissing ? styles.comparisonNumberMissing : undefined]}
+      >
         {value}
       </AppText>
     </View>
@@ -141,11 +192,16 @@ function PreviewMetricCard({
   helper,
   tone
 }: PreviewMetricCardProps) {
+  const isMissing = value === notLoggedText;
+
   return (
     <AppCard style={[styles.metricCard, tone === "peach" ? styles.peakCard : undefined]}>
       <IconLabel icon={icon} label={label} {...(tone !== undefined ? { tone } : {})} />
       <View style={styles.metricValueGroup}>
-        <AppText variant="heading" style={styles.metricValue}>
+        <AppText
+          variant="heading"
+          style={[styles.metricValue, isMissing ? styles.metricValueMissing : undefined]}
+        >
           {value}
         </AppText>
         {valueDetail ? (
@@ -162,32 +218,42 @@ function PreviewMetricCard({
   );
 }
 
-function PhysicalResponseCard() {
+type PhysicalResponseCardProps = {
+  firmnessChange: string | undefined;
+};
+
+function PhysicalResponseCard({ firmnessChange }: PhysicalResponseCardProps) {
+  const response = getFirmnessResponse(firmnessChange);
+
   return (
     <AppCard style={styles.infoCard}>
       <View style={styles.cardTopRow}>
         <IconLabel icon="○" label="PHYSICAL RESPONSE" />
         <View style={styles.sageBadge}>
-          <AppText variant="caption">Normal response</AppText>
+          <AppText variant="caption">{response.badge}</AppText>
         </View>
       </View>
 
       <View style={styles.infoCopy}>
         <AppText variant="label" style={styles.responseTitle}>
-          Firmness changed during pause
+          {response.title}
         </AppText>
         <View style={styles.responseLine}>
-          <View style={styles.responseLineFill} />
+          <View style={[styles.responseLineFill, { width: response.fillWidth }]} />
         </View>
         <AppText variant="bodySmall" tone="secondary">
-          A change during pause can still give useful information.
+          {response.helper}
         </AppText>
       </View>
     </AppCard>
   );
 }
 
-function InternalPacingCard() {
+type InternalPacingCardProps = {
+  pressureRushing: string | undefined;
+};
+
+function InternalPacingCard({ pressureRushing }: InternalPacingCardProps) {
   return (
     <AppCard style={styles.infoCard}>
       <IconLabel icon="↘" label="INTERNAL PACING" />
@@ -197,22 +263,28 @@ function InternalPacingCard() {
             Sense of rushing
           </AppText>
           <AppText variant="bodySmall" tone="secondary">
-            Next practice can focus on slowing down earlier.
+            {pressureRushing === undefined
+              ? "Save a practice to see pacing context here."
+              : "Next practice can focus on slowing down earlier."}
           </AppText>
         </View>
         <View style={styles.neutralBadge}>
-          <AppText variant="caption">Medium</AppText>
+          <AppText variant="caption">{formatOption(pressureRushing, pressureLabels)}</AppText>
         </View>
       </View>
     </AppCard>
   );
 }
 
-function DurationContextCard() {
+type DurationContextCardProps = {
+  log: ArousalControlPracticeLog | null;
+};
+
+function DurationContextCard({ log }: DurationContextCardProps) {
   return (
     <View style={styles.durationCard}>
       <IconLabel icon="◷" label="Session Duration" neutral />
-      <AppText variant="label">Prefer not to log</AppText>
+      <AppText variant="label">{formatDuration(log)}</AppText>
       <AppText variant="caption" tone="secondary">
         Duration is private context, not a score. Focus on awareness, not time.
       </AppText>
@@ -220,15 +292,18 @@ function DurationContextCard() {
   );
 }
 
-function CoachInsightCard() {
+type CoachInsightCardProps = {
+  latestLog: ArousalControlPracticeLog | null;
+};
+
+function CoachInsightCard({ latestLog }: CoachInsightCardProps) {
   return (
     <AppCard style={styles.coachCard}>
       <View style={styles.coachAccent} />
       <View style={styles.coachCopy}>
         <IconLabel icon="✦" label="Coach Insight" neutral />
         <AppText tone="secondary">
-          You noticed your pause zone around 7/10. Recognizing this point is a useful step in
-          learning your body’s response.
+          {getCoachInsight(latestLog)}
         </AppText>
       </View>
     </AppCard>
@@ -259,6 +334,165 @@ function IconLabel({ icon, label, tone, neutral = false }: IconLabelProps) {
       </AppText>
     </View>
   );
+}
+
+function getPreviousArousalControlLog(
+  logs: readonly ArousalControlPracticeLog[],
+  latestLog: ArousalControlPracticeLog | null
+) {
+  if (latestLog === null) {
+    return null;
+  }
+
+  return sortArousalControlLogs(logs.filter((log) => log.id !== latestLog.id))[0] ?? null;
+}
+
+function getControlFeelingBadge(
+  latestLog: ArousalControlPracticeLog | null,
+  previousLog: ArousalControlPracticeLog | null
+) {
+  if (latestLog?.controlFeeling === undefined) {
+    return notLoggedText;
+  }
+
+  if (previousLog?.controlFeeling === undefined) {
+    return "Steady";
+  }
+
+  return latestLog.controlFeeling > previousLog.controlFeeling ? "Improving" : "Steady";
+}
+
+function getControlFeelingInsight(
+  latestLog: ArousalControlPracticeLog | null,
+  previousLog: ArousalControlPracticeLog | null
+) {
+  if (latestLog?.controlFeeling === undefined) {
+    return "Save a practice to see regulation context here.";
+  }
+
+  if (previousLog?.controlFeeling === undefined) {
+    return "Created a local reference point for future practice.";
+  }
+
+  if (latestLog.controlFeeling > previousLog.controlFeeling) {
+    return "Created more space before continuing.";
+  }
+
+  return "Recent practice stayed steady. Keep noticing without judging.";
+}
+
+function getFirmnessResponse(firmnessChange: string | undefined): {
+  badge: string;
+  title: string;
+  helper: string;
+  fillWidth: `${number}%`;
+} {
+  if (firmnessChange === undefined) {
+    return {
+      badge: notLoggedText,
+      title: notLoggedText,
+      helper: "Save a practice to see body-response context here.",
+      fillWidth: "0%"
+    };
+  }
+
+  const firmnessResponseByValue: Record<string, {
+    title: string;
+    helper: string;
+    fillWidth: `${number}%`;
+  }> = {
+    noChange: {
+      title: "No firmness change noticed",
+      helper: "No change during pause can still be useful information.",
+      fillWidth: "24%"
+    },
+    slightlyDecreased: {
+      title: "Slight firmness change during pause",
+      helper: "A small change during pause can still give useful information.",
+      fillWidth: "44%"
+    },
+    decreasedCouldContinue: {
+      title: "Firmness changed, continuing felt possible",
+      helper: "A change during pause can still leave room to continue gently.",
+      fillWidth: "62%"
+    },
+    decreasedDifficult: {
+      title: "Firmness changed, continuing felt difficult",
+      helper: "Finishing here can still give useful information about your body response.",
+      fillWidth: "78%"
+    },
+    notSure: {
+      title: "Firmness change was unclear",
+      helper: "Not being sure is still useful context for future practice.",
+      fillWidth: "36%"
+    }
+  };
+  const response = firmnessResponseByValue[firmnessChange] ?? {
+    title: formatOption(firmnessChange, firmnessLabels),
+    helper: "A change during pause can still give useful information.",
+    fillWidth: "50%" as const
+  };
+
+  return {
+    badge: "Normal response",
+    ...response
+  };
+}
+
+function getCoachInsight(log: ArousalControlPracticeLog | null) {
+  if (log?.highestArousal !== undefined) {
+    return `You noticed arousal around ${log.highestArousal}/10. Recognizing this point is a useful step in learning your body’s response.`;
+  }
+
+  return "Save a practice to build a quiet record of what helps you notice the rise earlier.";
+}
+
+function formatNumber(value: number | undefined) {
+  return value === undefined ? notLoggedText : String(value);
+}
+
+function formatScore(value: number | undefined) {
+  return value === undefined ? notLoggedText : `${value}/10`;
+}
+
+function formatOption(value: string | undefined, labels: Record<string, string>) {
+  if (value === undefined) {
+    return notLoggedText;
+  }
+
+  return labels[value] ?? value;
+}
+
+function formatDuration(log: ArousalControlPracticeLog | null) {
+  if (log === null || log.durationPreference === undefined || log.durationPreference === "notLogged") {
+    return notLoggedText;
+  }
+
+  if (log.durationSeconds === undefined || log.durationSeconds === null) {
+    return log.durationPreference === "exact" ? "Exact time logged" : "Estimated";
+  }
+
+  if (log.durationPreference === "exact") {
+    const minutes = Math.floor(log.durationSeconds / 60);
+    const seconds = String(log.durationSeconds % 60).padStart(2, "0");
+
+    return `${minutes}:${seconds}`;
+  }
+
+  if (log.durationSeconds < 60) {
+    return "About 1 min";
+  }
+
+  return `About ${Math.round(log.durationSeconds / 60)} min`;
+}
+
+function sortArousalControlLogs(logs: readonly ArousalControlPracticeLog[]) {
+  return [...logs].sort((first, second) => {
+    const firstTime = Date.parse(first.completedAt);
+    const secondTime = Date.parse(second.completedAt);
+
+    return (Number.isFinite(secondTime) ? secondTime : 0) - (Number.isFinite(firstTime) ? firstTime : 0);
+  });
 }
 
 const styles = StyleSheet.create({
@@ -361,6 +595,10 @@ const styles = StyleSheet.create({
     fontSize: 34,
     lineHeight: 40
   },
+  comparisonNumberMissing: {
+    fontSize: 22,
+    lineHeight: 28
+  },
   comparisonArrow: {
     width: 32,
     height: 32,
@@ -395,6 +633,10 @@ const styles = StyleSheet.create({
   metricValue: {
     fontSize: 48,
     lineHeight: 54
+  },
+  metricValueMissing: {
+    fontSize: 26,
+    lineHeight: 32
   },
   metricRule: {
     height: 1,

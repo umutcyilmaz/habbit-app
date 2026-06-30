@@ -1,30 +1,59 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { StyleSheet, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
 
+import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
+import {
+  createArousalControlPracticeLogFromDraft,
+  getLatestArousalControlLog,
+  type ArousalControlPracticeLog
+} from "../../../storage/bloomState";
 import { ArousalControlFlowHeader } from "../components/ArousalControlFlowHeader";
 
-const sessionSummary = {
-  pauses: "1",
-  highestArousal: "7/10",
-  controlFeeling: "6/10",
-  pleasureQuality: "7/10",
-  pressure: "Medium",
-  firmness: "Slightly decreased",
-  duration: "Prefer not to log"
-} as const;
+const notLoggedText = "Not logged";
+
+const pressureLabels: Record<string, string> = {
+  low: "Low",
+  medium: "Medium",
+  high: "High",
+  veryHigh: "Very high"
+};
+
+const firmnessLabels: Record<string, string> = {
+  noChange: "No change",
+  slightlyDecreased: "Slightly decreased",
+  decreasedCouldContinue: "Decreased, could continue",
+  decreasedDifficult: "Decreased, continuing felt difficult",
+  notSure: "Not sure"
+};
 
 export function PracticeSavedScreen() {
   const router = useRouter();
+  const { state, completeArousalControlPractice } = useBloomLocalState();
   const [noteVisible, setNoteVisible] = useState(false);
   const [note, setNote] = useState("");
   const [noteMessage, setNoteMessage] = useState<string | undefined>();
+  const [justCompletedLog, setJustCompletedLog] = useState<ArousalControlPracticeLog | null>(null);
+  const currentDraft = state.arousalControl.draft;
+  const latestLog = getLatestArousalControlLog(state.arousalControl.logs);
+  const displayLog = justCompletedLog ?? latestLog;
+  const sessionSummary = getSessionSummary(displayLog);
+  const insight = getGentleInsight(displayLog);
+
+  useEffect(() => {
+    if (currentDraft !== null) {
+      const completedAt = new Date().toISOString();
+
+      setJustCompletedLog(createArousalControlPracticeLogFromDraft(currentDraft, completedAt));
+      completeArousalControlPractice(completedAt);
+    }
+  }, [completeArousalControlPractice, currentDraft]);
 
   const saveNote = () => {
     setNoteMessage(
@@ -115,12 +144,11 @@ export function PracticeSavedScreen() {
           <View style={styles.insightCopy}>
             <AppText variant="title">Gentle insight</AppText>
             <AppText tone="secondary">
-              You noticed your pause zone around 7/10. A pause can still be useful when the session
-              ends differently than expected.
+              {insight.body}
             </AppText>
             <View style={styles.insightFooter}>
               <AppText variant="bodySmall" tone="secondary">
-                Next time, the practice can be noticing the rise a little earlier.
+                {insight.footer}
               </AppText>
             </View>
           </View>
@@ -176,6 +204,70 @@ export function PracticeSavedScreen() {
       </View>
     </AppScreen>
   );
+}
+
+function getSessionSummary(log: ArousalControlPracticeLog | null) {
+  return {
+    pauses: formatPauseCount(log?.pauseCount),
+    highestArousal: formatScore(log?.highestArousal),
+    controlFeeling: formatScore(log?.controlFeeling),
+    pleasureQuality: log?.pleasureQuality ?? notLoggedText,
+    pressure: formatOption(log?.pressureRushing, pressureLabels),
+    firmness: formatOption(log?.firmnessChange, firmnessLabels),
+    duration: formatDuration(log)
+  };
+}
+
+function getGentleInsight(log: ArousalControlPracticeLog | null) {
+  if (log?.highestArousal !== undefined) {
+    return {
+      body: `You noticed arousal around ${log.highestArousal}/10. Saving this gives you a clearer signal about where the rise became easier or harder to slow down.`,
+      footer: "Next time, the practice can be noticing the rise a little earlier."
+    };
+  }
+
+  return {
+    body: "This saved practice gives you context about your awareness pattern without judging the outcome.",
+    footer: "Next time, add only the details that feel useful."
+  };
+}
+
+function formatPauseCount(value: number | undefined) {
+  return value === undefined ? notLoggedText : String(value);
+}
+
+function formatScore(value: number | undefined) {
+  return value === undefined ? notLoggedText : `${value}/10`;
+}
+
+function formatOption(value: string | undefined, labels: Record<string, string>) {
+  if (value === undefined) {
+    return notLoggedText;
+  }
+
+  return labels[value] ?? value;
+}
+
+function formatDuration(log: ArousalControlPracticeLog | null) {
+  if (log === null || log.durationPreference === "notLogged") {
+    return notLoggedText;
+  }
+
+  if (log.durationSeconds !== undefined && log.durationSeconds !== null) {
+    return formatDurationSeconds(log.durationSeconds);
+  }
+
+  if (log.durationPreference === undefined) {
+    return notLoggedText;
+  }
+
+  return log.durationPreference === "exact" ? "Exact time logged" : "Estimated";
+}
+
+function formatDurationSeconds(durationSeconds: number) {
+  const roundedMinutes = Math.max(1, Math.round(durationSeconds / 60));
+
+  return `About ${roundedMinutes} min`;
 }
 
 type SummaryMetricProps = {

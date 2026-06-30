@@ -9,7 +9,11 @@ import { AppHeader } from "../../../shared/components/AppHeader";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
-import { getCompletedResetDayCount, getTodayKey } from "../../../storage/bloomState";
+import {
+  getCompletedResetDayCount,
+  getLatestArousalControlLog,
+  getTodayKey
+} from "../../../storage/bloomState";
 
 export function BloomStateDebugScreen() {
   const router = useRouter();
@@ -21,10 +25,12 @@ export function BloomStateDebugScreen() {
     resetTodayCompleted,
     resetBloomLocalData,
     clearTenDayResetProgress,
+    clearArousalControlLogs,
     simulateNextDay,
     simulatePreviousDay
   } = useBloomLocalState();
   const completedDateCount = getCompletedResetDayCount(state.tenDayReset);
+  const latestArousalLog = getLatestArousalControlLog(state.arousalControl.logs);
 
   return (
     <AppScreen contentStyle={styles.content}>
@@ -52,7 +58,39 @@ export function BloomStateDebugScreen() {
                 ["Today completed", resetTodayCompleted ? "yes" : "no"],
                 ["Completed dates count", String(completedDateCount)],
                 ["Completed dates", state.tenDayReset.completedDates.join(", ") || "none"],
-                ["Last completed at", state.tenDayReset.lastCompletedAt ?? "none"]
+                ["Last completed at", state.tenDayReset.lastCompletedAt ?? "none"],
+                ["Arousal logs count", String(state.arousalControl.logs.length)],
+                ["Latest arousal log date", latestArousalLog?.dateKey ?? "none"],
+                [
+                  "Latest highest arousal",
+                  latestArousalLog?.highestArousal !== undefined
+                    ? `${latestArousalLog.highestArousal}/10`
+                    : "none"
+                ],
+                [
+                  "Latest pause count",
+                  latestArousalLog?.pauseCount !== undefined
+                    ? String(latestArousalLog.pauseCount)
+                    : "none"
+                ],
+                [
+                  "Latest control feeling",
+                  latestArousalLog?.controlFeeling !== undefined
+                    ? `${latestArousalLog.controlFeeling}/10`
+                    : "none"
+                ],
+                ["Latest pressure/rushing", latestArousalLog?.pressureRushing ?? "none"],
+                [
+                  "Latest duration preference",
+                  latestArousalLog?.durationPreference ?? "none"
+                ],
+                [
+                  "Latest duration seconds",
+                  latestArousalLog?.durationSeconds !== undefined &&
+                  latestArousalLog.durationSeconds !== null
+                    ? String(latestArousalLog.durationSeconds)
+                    : "none"
+                ]
               ]}
             />
 
@@ -83,6 +121,20 @@ export function BloomStateDebugScreen() {
                   </AppButton>
                   <AppButton variant="secondary" onPress={resetBloomLocalData}>
                     Reset Bloom local data
+                  </AppButton>
+                </View>
+              </View>
+            </AppCard>
+
+            <AppCard style={styles.card}>
+              <View style={styles.cardStack}>
+                <AppText variant="title">Arousal Control data</AppText>
+                <AppText tone="secondary">
+                  Use this when testing practice logs on a phone.
+                </AppText>
+                <View style={styles.actionStack}>
+                  <AppButton variant="subtle" onPress={clearArousalControlLogs}>
+                    Clear arousal control logs
                   </AppButton>
                 </View>
               </View>

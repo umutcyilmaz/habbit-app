@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useRouter } from "expo-router";
 import { StyleSheet, TextInput, View } from "react-native";
 
+import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
@@ -68,6 +69,11 @@ function getGuidance(level: number): Guidance {
 
 export function MainPracticeScreen() {
   const router = useRouter();
+  const {
+    state,
+    updateArousalControlDraft,
+    incrementArousalControlPauseCount
+  } = useBloomLocalState();
   const [level, setLevel] = useState(5);
   const [showNote, setShowNote] = useState(false);
   const [note, setNote] = useState("");
@@ -76,11 +82,29 @@ export function MainPracticeScreen() {
   const guidanceAction = guidance.action;
   const isFinishOriented = level >= 9;
 
+  const saveHighestArousal = (nextLevel: number) => {
+    updateArousalControlDraft({
+      highestArousal: Math.max(
+        state.arousalControl.draft?.highestArousal ?? nextLevel,
+        level,
+        nextLevel
+      )
+    });
+  };
+
+  const updateLevel = (nextLevel: number) => {
+    setLevel(nextLevel);
+    saveHighestArousal(nextLevel);
+  };
+
   const startPause = () => {
+    saveHighestArousal(level);
+    incrementArousalControlPauseCount();
     router.push(routes.arousalControlPause);
   };
 
   const finishPractice = () => {
+    saveHighestArousal(level);
     router.push(routes.arousalControlFinish);
   };
 
@@ -104,7 +128,7 @@ export function MainPracticeScreen() {
                 Tap the closest number. You can adjust it anytime.
               </AppText>
             </View>
-            <ArousalLevelPicker value={level} onChange={setLevel} />
+            <ArousalLevelPicker value={level} onChange={updateLevel} />
           </View>
         </AppCard>
 

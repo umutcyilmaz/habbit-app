@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
+import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppScreen } from "../../../shared/components/AppScreen";
@@ -30,7 +31,15 @@ const endingOptions: readonly { value: PracticeEndingOption; title: string }[] =
 
 export function FinishPracticeScreen() {
   const router = useRouter();
+  const { updateArousalControlDraft } = useBloomLocalState();
   const [ending, setEnding] = useState<PracticeEndingOption>("stoppedByChoice");
+
+  const continueToReflection = () => {
+    updateArousalControlDraft({
+      finishOutcome: ending
+    });
+    router.push(routes.arousalControlReflection);
+  };
 
   return (
     <AppScreen contentStyle={styles.content}>
@@ -70,7 +79,7 @@ export function FinishPracticeScreen() {
           </View>
         </View>
 
-        <AppButton onPress={() => router.push(routes.arousalControlReflection)}>Continue</AppButton>
+        <AppButton onPress={continueToReflection}>Continue</AppButton>
       </View>
     </AppScreen>
   );

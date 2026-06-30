@@ -9,14 +9,20 @@ import {
 } from "react";
 
 import {
+  clearArousalControlLogsState,
+  completeArousalControlPracticeState,
   completeTodayResetState,
   defaultBloomLocalState,
   getTodayKey,
   getResetDay,
+  incrementArousalControlPauseCountState,
   isTodayCompleted,
   loadBloomLocalState,
   saveBloomLocalState,
+  startArousalControlDraftState,
   startTenDayResetState,
+  updateArousalControlDraftState,
+  type ArousalControlDraft,
   type BloomLocalState
 } from "../../storage/bloomState";
 
@@ -27,8 +33,13 @@ type BloomLocalStateContextValue = {
   completeTodayReset: () => void;
   resetBloomLocalData: () => void;
   clearTenDayResetProgress: () => void;
+  clearArousalControlLogs: () => void;
   simulateNextDay: () => void;
   simulatePreviousDay: () => void;
+  startArousalControlDraft: (initial?: Partial<ArousalControlDraft>) => void;
+  updateArousalControlDraft: (patch: Partial<ArousalControlDraft>) => void;
+  incrementArousalControlPauseCount: () => void;
+  completeArousalControlPractice: (completedAt?: string) => void;
   resetTodayCompleted: boolean;
   resetDay: number;
   todayKey: string;
@@ -81,6 +92,22 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
     setState((currentState) => completeTodayResetState(currentState));
   }, []);
 
+  const startArousalControlDraft = useCallback((initial: Partial<ArousalControlDraft> = {}) => {
+    setState((currentState) => startArousalControlDraftState(currentState, initial));
+  }, []);
+
+  const updateArousalControlDraft = useCallback((patch: Partial<ArousalControlDraft>) => {
+    setState((currentState) => updateArousalControlDraftState(currentState, patch));
+  }, []);
+
+  const incrementArousalControlPauseCount = useCallback(() => {
+    setState((currentState) => incrementArousalControlPauseCountState(currentState));
+  }, []);
+
+  const completeArousalControlPractice = useCallback((completedAt?: string) => {
+    setState((currentState) => completeArousalControlPracticeState(currentState, completedAt));
+  }, []);
+
   const resetBloomLocalData = useCallback(() => {
     setState(defaultBloomLocalState);
   }, []);
@@ -90,6 +117,10 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
       ...currentState,
       tenDayReset: defaultBloomLocalState.tenDayReset
     }));
+  }, []);
+
+  const clearArousalControlLogs = useCallback(() => {
+    setState((currentState) => clearArousalControlLogsState(currentState));
   }, []);
 
   const simulateNextDay = useCallback(() => {
@@ -118,8 +149,13 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
       isLoading,
       startTenDayReset,
       completeTodayReset,
+      startArousalControlDraft,
+      updateArousalControlDraft,
+      incrementArousalControlPauseCount,
+      completeArousalControlPractice,
       resetBloomLocalData,
       clearTenDayResetProgress,
+      clearArousalControlLogs,
       simulateNextDay,
       simulatePreviousDay,
       resetTodayCompleted,
@@ -127,17 +163,22 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
       todayKey
     }),
     [
+      clearArousalControlLogs,
       clearTenDayResetProgress,
+      completeArousalControlPractice,
       completeTodayReset,
+      incrementArousalControlPauseCount,
       isLoading,
       resetDay,
       resetBloomLocalData,
       resetTodayCompleted,
       simulateNextDay,
       simulatePreviousDay,
+      startArousalControlDraft,
       startTenDayReset,
       state,
-      todayKey
+      todayKey,
+      updateArousalControlDraft
     ]
   );
 

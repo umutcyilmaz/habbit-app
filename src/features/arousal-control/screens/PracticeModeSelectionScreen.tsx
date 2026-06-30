@@ -2,10 +2,12 @@ import { useState } from "react";
 import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
+import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { theme } from "../../../shared/design-system/theme";
+import type { ArousalControlMode } from "../../../storage/bloomState";
 import { ArousalControlFlowHeader } from "../components/ArousalControlFlowHeader";
 import { PracticeModeCard, type PracticeModeId } from "../components/PracticeModeCard";
 
@@ -38,9 +40,23 @@ const modes = [
   badge?: string;
 }>;
 
+const practiceModeToLogMode: Record<PracticeModeId, ArousalControlMode> = {
+  softAwareness: "softAwareness",
+  onePause: "onePausePractice",
+  practicePlus: "practicePlus"
+};
+
 export function PracticeModeSelectionScreen() {
   const router = useRouter();
+  const { updateArousalControlDraft } = useBloomLocalState();
   const [selectedMode, setSelectedMode] = useState<PracticeModeId>("onePause");
+
+  const continueToCheckIn = () => {
+    updateArousalControlDraft({
+      mode: practiceModeToLogMode[selectedMode]
+    });
+    router.push(routes.arousalControlCheckIn);
+  };
 
   return (
     <AppScreen contentStyle={styles.content}>
@@ -69,9 +85,7 @@ export function PracticeModeSelectionScreen() {
         </View>
 
         <View style={styles.actions}>
-          <AppButton onPress={() => router.push(routes.arousalControlCheckIn)}>
-            Continue
-          </AppButton>
+          <AppButton onPress={continueToCheckIn}>Continue</AppButton>
           <AppButton variant="secondary" onPress={() => router.replace(routes.exercises)}>
             Back to Exercises
           </AppButton>

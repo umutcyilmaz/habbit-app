@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
+import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppScreen } from "../../../shared/components/AppScreen";
@@ -35,7 +36,13 @@ const infoRows = [
 
 export function ArousalControlIntroScreen() {
   const router = useRouter();
+  const { startArousalControlDraft } = useBloomLocalState();
   const [showHowItWorks, setShowHowItWorks] = useState(false);
+
+  const startPractice = () => {
+    startArousalControlDraft();
+    router.push(routes.arousalControlMode);
+  };
 
   return (
     <AppScreen contentStyle={styles.content}>
@@ -71,9 +78,7 @@ export function ArousalControlIntroScreen() {
         </View>
 
         <View style={styles.actions}>
-          <AppButton onPress={() => router.push(routes.arousalControlMode)}>
-            Start Practice →
-          </AppButton>
+          <AppButton onPress={startPractice}>Start Practice →</AppButton>
           <AppButton variant="ghost" onPress={() => setShowHowItWorks(true)}>
             Learn how it works
           </AppButton>

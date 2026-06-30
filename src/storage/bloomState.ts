@@ -18,10 +18,47 @@ export type BloomDebugState = {
   dateOffsetDays: number;
 };
 
+export type ArousalControlMode = "softAwareness" | "onePausePractice" | "practicePlus";
+
+export type ArousalControlPracticeLog = {
+  id: string;
+  startedAt: string;
+  completedAt: string;
+  dateKey: string;
+  mode?: ArousalControlMode;
+  focusIntention?: string;
+  adultContentContext?: "no" | "yes" | "notSure";
+  firmnessDecreasePreference?: string;
+  highestArousal?: number;
+  pauseCount?: number;
+  afterPauseArousal?: number;
+  anxietyLevel?: number;
+  afterPauseNextStep?: string;
+  finishOutcome?: string;
+  controlFeeling?: number;
+  pleasureQuality?: string;
+  pressureRushing?: string;
+  afterwardFeeling?: string;
+  firmnessChange?: string;
+  durationPreference?: "notLogged" | "estimated" | "exact";
+  durationSeconds?: number | null;
+};
+
+export type ArousalControlDraft = Partial<ArousalControlPracticeLog> & {
+  startedAt: string;
+  dateKey: string;
+};
+
+export type ArousalControlState = {
+  draft: ArousalControlDraft | null;
+  logs: ArousalControlPracticeLog[];
+};
+
 export type BloomLocalState = {
   activePlan: ActivePlan;
   tenDayReset: TenDayResetState;
   debug: BloomDebugState;
+  arousalControl: ArousalControlState;
 };
 
 export const defaultBloomLocalState: BloomLocalState = {
@@ -37,6 +74,10 @@ export const defaultBloomLocalState: BloomLocalState = {
   },
   debug: {
     dateOffsetDays: 0
+  },
+  arousalControl: {
+    draft: null,
+    logs: []
   }
 };
 
@@ -106,6 +147,113 @@ export function completeTodayResetState(
   };
 }
 
+export function startArousalControlDraftState(
+  state: BloomLocalState,
+  initial: Partial<ArousalControlDraft> = {},
+  now = new Date()
+): BloomLocalState {
+  return {
+    ...state,
+    arousalControl: {
+      ...state.arousalControl,
+      draft: createArousalControlDraft(state, initial, now)
+    }
+  };
+}
+
+export function updateArousalControlDraftState(
+  state: BloomLocalState,
+  patch: Partial<ArousalControlDraft>,
+  now = new Date()
+): BloomLocalState {
+  const currentDraft = state.arousalControl.draft ?? createArousalControlDraft(state, {}, now);
+  const nextDraft = {
+    ...currentDraft,
+    ...patch,
+    startedAt: patch.startedAt ?? currentDraft.startedAt,
+    dateKey: patch.dateKey ?? currentDraft.dateKey
+  };
+
+  return {
+    ...state,
+    arousalControl: {
+      ...state.arousalControl,
+      draft: nextDraft
+    }
+  };
+}
+
+export function incrementArousalControlPauseCountState(
+  state: BloomLocalState,
+  now = new Date()
+): BloomLocalState {
+  const currentDraft = state.arousalControl.draft ?? createArousalControlDraft(state, {}, now);
+
+  return updateArousalControlDraftState(
+    state,
+    {
+      pauseCount: (currentDraft.pauseCount ?? 0) + 1
+    },
+    now
+  );
+}
+
+export function completeArousalControlPracticeState(
+  state: BloomLocalState,
+  completedAt = new Date().toISOString()
+): BloomLocalState {
+  const draft = state.arousalControl.draft;
+
+  if (draft === null) {
+    return state;
+  }
+
+  const completedLog = createArousalControlPracticeLogFromDraft(draft, completedAt);
+  const existingLogIndex = state.arousalControl.logs.findIndex((log) => log.id === completedLog.id);
+  const logs =
+    existingLogIndex === -1
+      ? [...state.arousalControl.logs, completedLog]
+      : state.arousalControl.logs.map((log, index) =>
+          index === existingLogIndex ? { ...log, ...completedLog } : log
+        );
+
+  return {
+    ...state,
+    arousalControl: {
+      draft: null,
+      logs: sortArousalControlLogs(dedupeArousalControlLogs(logs))
+    }
+  };
+}
+
+export function createArousalControlPracticeLogFromDraft(
+  draft: ArousalControlDraft,
+  completedAt = new Date().toISOString()
+): ArousalControlPracticeLog {
+  const id = draft.id ?? createArousalControlId(draft.startedAt);
+
+  return {
+    ...draft,
+    id,
+    startedAt: draft.startedAt,
+    completedAt,
+    dateKey: draft.dateKey
+  };
+}
+
+export function clearArousalControlLogsState(state: BloomLocalState): BloomLocalState {
+  return {
+    ...state,
+    arousalControl: defaultBloomLocalState.arousalControl
+  };
+}
+
+export function getLatestArousalControlLog(
+  logs: readonly ArousalControlPracticeLog[]
+): ArousalControlPracticeLog | null {
+  return sortArousalControlLogs(logs)[0] ?? null;
+}
+
 export async function loadBloomLocalState() {
   try {
     const storedState = await storageClient.getItem<unknown>(bloomStateStorageKey);
@@ -125,7 +273,14 @@ export async function saveBloomLocalState(state: BloomLocalState) {
   await storageClient.setItem(bloomStateStorageKey, state);
 }
 
-function mergeWithDefaultState(state: BloomLocalState): BloomLocalState {
+type PersistedBloomLocalState = Omit<BloomLocalState, "debug" | "arousalControl"> & {
+  debug?: BloomDebugState;
+  arousalControl?: ArousalControlState;
+};
+
+function mergeWithDefaultState(state: PersistedBloomLocalState): BloomLocalState {
+  const arousalControl = state.arousalControl ?? defaultBloomLocalState.arousalControl;
+
   return {
     activePlan: {
       ...defaultBloomLocalState.activePlan,
@@ -139,11 +294,15 @@ function mergeWithDefaultState(state: BloomLocalState): BloomLocalState {
     debug: {
       ...defaultBloomLocalState.debug,
       ...state.debug
+    },
+    arousalControl: {
+      draft: arousalControl.draft,
+      logs: sortArousalControlLogs(dedupeArousalControlLogs(arousalControl.logs))
     }
   };
 }
 
-function isBloomLocalState(value: unknown): value is BloomLocalState {
+function isBloomLocalState(value: unknown): value is PersistedBloomLocalState {
   if (!isRecord(value)) {
     return false;
   }
@@ -151,7 +310,8 @@ function isBloomLocalState(value: unknown): value is BloomLocalState {
   return (
     isActivePlan(value.activePlan) &&
     isTenDayResetState(value.tenDayReset) &&
-    (value.debug === undefined || isBloomDebugState(value.debug))
+    (value.debug === undefined || isBloomDebugState(value.debug)) &&
+    (value.arousalControl === undefined || isArousalControlState(value.arousalControl))
   );
 }
 
@@ -188,6 +348,43 @@ function isBloomDebugState(value: unknown): value is BloomDebugState {
   return typeof value.dateOffsetDays === "number" && Number.isFinite(value.dateOffsetDays);
 }
 
+function isArousalControlState(value: unknown): value is ArousalControlState {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    (value.draft === null || isArousalControlDraft(value.draft)) &&
+    Array.isArray(value.logs) &&
+    value.logs.every(isArousalControlPracticeLog)
+  );
+}
+
+function isArousalControlDraft(value: unknown): value is ArousalControlDraft {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    typeof value.startedAt === "string" &&
+    typeof value.dateKey === "string" &&
+    (value.id === undefined || typeof value.id === "string")
+  );
+}
+
+function isArousalControlPracticeLog(value: unknown): value is ArousalControlPracticeLog {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    typeof value.id === "string" &&
+    typeof value.startedAt === "string" &&
+    typeof value.completedAt === "string" &&
+    typeof value.dateKey === "string"
+  );
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
@@ -204,4 +401,42 @@ function getDateKey(value: string) {
 
 function clampDay(day: number) {
   return Math.min(Math.max(day, 1), 10);
+}
+
+function createArousalControlDraft(
+  state: BloomLocalState,
+  initial: Partial<ArousalControlDraft>,
+  now: Date
+): ArousalControlDraft {
+  const startedAt = initial.startedAt ?? now.toISOString();
+
+  return {
+    ...initial,
+    id: initial.id ?? createArousalControlId(startedAt),
+    startedAt,
+    dateKey: initial.dateKey ?? getTodayKey(state.debug.dateOffsetDays, now)
+  };
+}
+
+function createArousalControlId(startedAt: string) {
+  return `arousal-${startedAt.replace(/[^0-9A-Za-z]/g, "")}`;
+}
+
+function dedupeArousalControlLogs(logs: readonly ArousalControlPracticeLog[]) {
+  const logsById = new Map<string, ArousalControlPracticeLog>();
+
+  logs.forEach((log) => {
+    logsById.set(log.id, log);
+  });
+
+  return Array.from(logsById.values());
+}
+
+function sortArousalControlLogs(logs: readonly ArousalControlPracticeLog[]) {
+  return [...logs].sort((first, second) => {
+    const firstTime = Date.parse(first.completedAt);
+    const secondTime = Date.parse(second.completedAt);
+
+    return (Number.isFinite(secondTime) ? secondTime : 0) - (Number.isFinite(firstTime) ? firstTime : 0);
+  });
 }

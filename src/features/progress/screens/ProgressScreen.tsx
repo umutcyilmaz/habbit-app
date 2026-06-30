@@ -9,7 +9,11 @@ import { AppHeader } from "../../../shared/components/AppHeader";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
-import { getCompletedResetDayCount } from "../../../storage/bloomState";
+import {
+  getCompletedResetDayCount,
+  getLatestArousalControlLog,
+  type ArousalControlPracticeLog
+} from "../../../storage/bloomState";
 
 export function ProgressScreen() {
   const router = useRouter();
@@ -21,6 +25,7 @@ export function ProgressScreen() {
   } = useBloomLocalState();
   const resetStarted = state.tenDayReset.startedAt !== null;
   const completedDayCount = getCompletedResetDayCount(state.tenDayReset);
+  const latestArousalLog = getLatestArousalControlLog(state.arousalControl.logs);
 
   return (
     <AppScreen contentStyle={styles.content}>
@@ -71,6 +76,12 @@ export function ProgressScreen() {
                 router.push(resetTodayCompleted ? routes.home : routes.tenDayResetPractice);
               }}
             />
+            <ArousalControlPracticeCard
+              logsCount={state.arousalControl.logs.length}
+              latestLog={latestArousalLog}
+              onStartPractice={() => router.push(routes.arousalControl)}
+              onViewPreview={() => router.push(routes.arousalControlProgressPreview)}
+            />
             {__DEV__ ? (
               <DeveloperToolsCard onPress={() => router.push(routes.debugBloomState)} />
             ) : null}
@@ -79,6 +90,81 @@ export function ProgressScreen() {
       </View>
     </AppScreen>
   );
+}
+
+type ArousalControlPracticeCardProps = {
+  logsCount: number;
+  latestLog: ArousalControlPracticeLog | null;
+  onStartPractice: () => void;
+  onViewPreview: () => void;
+};
+
+function ArousalControlPracticeCard({
+  logsCount,
+  latestLog,
+  onStartPractice,
+  onViewPreview
+}: ArousalControlPracticeCardProps) {
+  const hasLogs = logsCount > 0;
+
+  return (
+    <AppCard style={styles.arousalCard}>
+      <View style={styles.cardStack}>
+        <View style={styles.cardTitleCopy}>
+          <AppText variant="title">Arousal Control Practice</AppText>
+          <AppText tone="secondary">
+            {hasLogs
+              ? "A quiet snapshot from your latest saved practice."
+              : "No practice logged yet."}
+          </AppText>
+        </View>
+
+        {hasLogs ? (
+          <View style={styles.arousalMetricStack}>
+            <ProgressMetricRow label="Practices logged" value={String(logsCount)} />
+            <ProgressMetricRow
+              label="Latest peak awareness"
+              value={formatProgressScore(latestLog?.highestArousal)}
+            />
+            <ProgressMetricRow
+              label="Latest pause count"
+              value={latestLog?.pauseCount !== undefined ? String(latestLog.pauseCount) : "Not logged"}
+            />
+            <ProgressMetricRow
+              label="Latest control feeling"
+              value={formatProgressScore(latestLog?.controlFeeling)}
+            />
+          </View>
+        ) : null}
+
+        <AppButton onPress={hasLogs ? onViewPreview : onStartPractice}>
+          {hasLogs ? "View latest preview" : "Start practice"}
+        </AppButton>
+      </View>
+    </AppCard>
+  );
+}
+
+type ProgressMetricRowProps = {
+  label: string;
+  value: string;
+};
+
+function ProgressMetricRow({ label, value }: ProgressMetricRowProps) {
+  return (
+    <View style={styles.arousalMetricRow}>
+      <AppText variant="bodySmall" tone="secondary">
+        {label}
+      </AppText>
+      <AppText variant="label" style={styles.arousalMetricValue}>
+        {value}
+      </AppText>
+    </View>
+  );
+}
+
+function formatProgressScore(value: number | undefined) {
+  return value === undefined ? "Not logged" : `${value}/10`;
 }
 
 type CurrentPlanCardProps = {
@@ -382,6 +468,29 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.sage,
     backgroundColor: theme.colors.sageMuted,
     padding: 28
+  },
+  arousalCard: {
+    borderRadius: theme.radius.xxl,
+    padding: 24
+  },
+  arousalMetricStack: {
+    borderRadius: theme.radius.xl,
+    borderColor: theme.colors.border,
+    borderWidth: 1,
+    backgroundColor: theme.colors.surface,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm
+  },
+  arousalMetricRow: {
+    minHeight: 38,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: theme.spacing.md
+  },
+  arousalMetricValue: {
+    flexShrink: 0,
+    textAlign: "right"
   },
   devToolsCard: {
     borderRadius: theme.radius.xl,
