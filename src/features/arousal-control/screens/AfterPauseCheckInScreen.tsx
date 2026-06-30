@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
+import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppScreen } from "../../../shared/components/AppScreen";
@@ -35,8 +36,17 @@ const nextStepOptions: readonly { value: NextStepOption; title: string }[] = [
   { value: "finishToday", title: "Finish today’s practice" }
 ];
 
+const firmnessLabels: Record<FirmnessChangeOption, string> = {
+  noChange: "No change",
+  slightlyDecreased: "Slightly decreased",
+  decreasedCouldContinue: "Decreased, but I could continue",
+  decreasedDifficult: "Decreased and continuing felt difficult",
+  notSure: "Not sure"
+};
+
 export function AfterPauseCheckInScreen() {
   const router = useRouter();
+  const { updateArousalControlDraft } = useBloomLocalState();
   const [arousalNow, setArousalNow] = useState(5);
   const [firmnessChange, setFirmnessChange] = useState<FirmnessChangeOption>("notSure");
   const [anxiety, setAnxiety] = useState(3);
@@ -44,6 +54,12 @@ export function AfterPauseCheckInScreen() {
   const showSupportNote = firmnessChange === "decreasedDifficult" || anxiety >= 7;
 
   const continueFromSelection = () => {
+    updateArousalControlDraft({
+      firmnessChange: firmnessLabels[firmnessChange],
+      highestArousal: arousalNow,
+      anxietyLevel: anxiety
+    });
+
     if (nextStep === "continueGently") {
       router.replace(routes.arousalControlPractice);
       return;

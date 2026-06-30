@@ -1,16 +1,23 @@
 import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
+import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
+import {
+  getLatestArousalControlLog,
+  type ArousalControlPracticeLog
+} from "../../../storage/bloomState";
 import { ArousalControlFlowHeader } from "../components/ArousalControlFlowHeader";
 
 export function ProgressPreviewScreen() {
   const router = useRouter();
+  const { state } = useBloomLocalState();
+  const latestLog = getLatestArousalControlLog(state.arousalControl.logs);
 
   return (
     <AppScreen contentStyle={styles.content}>
@@ -23,28 +30,28 @@ export function ProgressPreviewScreen() {
       />
 
       <View style={styles.stack}>
-        <ControlFeelingHeroCard />
+        <ControlFeelingHeroCard log={latestLog} />
 
         <PreviewMetricCard
           icon="Ⅱ"
           label="PAUSES TAKEN"
-          value="1"
-          valueDetail="pause this practice"
+          value={formatCount(latestLog?.pauseCount)}
+          valueDetail={getPauseDetail(latestLog?.pauseCount)}
           helper="A moment caught before continuing."
         />
 
         <PreviewMetricCard
           icon="◉"
           label="PEAK AWARENESS"
-          value="7 /10"
+          value={formatScore(latestLog?.highestArousal)}
           helper="Highest arousal level noticed before pausing in this practice."
           tone="peach"
         />
 
-        <PhysicalResponseCard />
-        <InternalPacingCard />
-        <DurationContextCard />
-        <CoachInsightCard />
+        <PhysicalResponseCard firmnessChange={latestLog?.firmnessChange} />
+        <InternalPacingCard pressureRushing={latestLog?.pressureRushing} />
+        <DurationContextCard log={latestLog} />
+        <CoachInsightCard log={latestLog} />
 
         <View style={styles.actions}>
           <AppButton onPress={() => router.replace(routes.home)}>Back to Today</AppButton>
@@ -60,13 +67,19 @@ export function ProgressPreviewScreen() {
   );
 }
 
-function ControlFeelingHeroCard() {
+type LogCardProps = {
+  log: ArousalControlPracticeLog | null;
+};
+
+function ControlFeelingHeroCard({ log }: LogCardProps) {
+  const hasControlFeeling = log?.controlFeeling !== undefined && log.controlFeeling !== null;
+
   return (
     <AppCard style={styles.controlCard}>
       <View style={styles.cardTopRow}>
         <IconLabel icon="≋" label="CONTROL FEELING" />
         <View style={styles.sageBadge}>
-          <AppText variant="caption">Improving</AppText>
+          <AppText variant="caption">{hasControlFeeling ? "Saved" : "Not logged"}</AppText>
         </View>
       </View>
 
@@ -76,12 +89,18 @@ function ControlFeelingHeroCard() {
         </AppText>
       </View>
 
-      <ControlFeelingComparison />
+      <ControlFeelingComparison controlFeeling={log?.controlFeeling} />
     </AppCard>
   );
 }
 
-function ControlFeelingComparison() {
+type ControlFeelingComparisonProps = {
+  controlFeeling: number | undefined;
+};
+
+function ControlFeelingComparison({ controlFeeling }: ControlFeelingComparisonProps) {
+  const hasControlFeeling = controlFeeling !== undefined && controlFeeling !== null;
+
   return (
     <View style={styles.comparisonPanel}>
       <AppText variant="caption" tone="secondary" style={styles.eyebrow}>
@@ -89,17 +108,19 @@ function ControlFeelingComparison() {
       </AppText>
 
       <View style={styles.comparisonRow}>
-        <ComparisonValue label="Before pause" value="4/10" />
-        <View style={styles.comparisonArrow}>
-          <AppText variant="bodySmall" tone="secondary">
-            →
-          </AppText>
-        </View>
-        <ComparisonValue label="After pause" value="6/10" emphasized />
+        <ComparisonValue
+          label="Control feeling"
+          value={formatScore(controlFeeling)}
+          emphasized={hasControlFeeling}
+        />
       </View>
 
       <View style={styles.comparisonInsight}>
-        <AppText variant="bodySmall">Created more space before continuing.</AppText>
+        <AppText variant="bodySmall">
+          {hasControlFeeling
+            ? "Saved as awareness context from recent practice."
+            : "Complete a practice to see this reflection."}
+        </AppText>
       </View>
     </View>
   );
@@ -162,22 +183,33 @@ function PreviewMetricCard({
   );
 }
 
-function PhysicalResponseCard() {
+type PhysicalResponseCardProps = {
+  firmnessChange: string | undefined;
+};
+
+function PhysicalResponseCard({ firmnessChange }: PhysicalResponseCardProps) {
+  const hasFirmnessChange = firmnessChange !== undefined && firmnessChange !== null;
+
   return (
     <AppCard style={styles.infoCard}>
       <View style={styles.cardTopRow}>
         <IconLabel icon="○" label="PHYSICAL RESPONSE" />
         <View style={styles.sageBadge}>
-          <AppText variant="caption">Normal response</AppText>
+          <AppText variant="caption">{hasFirmnessChange ? "Normal response" : "Not logged"}</AppText>
         </View>
       </View>
 
       <View style={styles.infoCopy}>
         <AppText variant="label" style={styles.responseTitle}>
-          Firmness changed during pause
+          {hasFirmnessChange ? firmnessChange : "No body-response detail yet"}
         </AppText>
         <View style={styles.responseLine}>
-          <View style={styles.responseLineFill} />
+          <View
+            style={[
+              styles.responseLineFill,
+              { width: hasFirmnessChange ? "56%" : "24%" }
+            ]}
+          />
         </View>
         <AppText variant="bodySmall" tone="secondary">
           A change during pause can still give useful information.
@@ -187,7 +219,11 @@ function PhysicalResponseCard() {
   );
 }
 
-function InternalPacingCard() {
+type InternalPacingCardProps = {
+  pressureRushing: string | undefined;
+};
+
+function InternalPacingCard({ pressureRushing }: InternalPacingCardProps) {
   return (
     <AppCard style={styles.infoCard}>
       <IconLabel icon="↘" label="INTERNAL PACING" />
@@ -201,18 +237,18 @@ function InternalPacingCard() {
           </AppText>
         </View>
         <View style={styles.neutralBadge}>
-          <AppText variant="caption">Medium</AppText>
+          <AppText variant="caption">{formatOption(pressureRushing)}</AppText>
         </View>
       </View>
     </AppCard>
   );
 }
 
-function DurationContextCard() {
+function DurationContextCard({ log }: LogCardProps) {
   return (
     <View style={styles.durationCard}>
       <IconLabel icon="◷" label="Session Duration" neutral />
-      <AppText variant="label">Prefer not to log</AppText>
+      <AppText variant="label">{formatDuration(log)}</AppText>
       <AppText variant="caption" tone="secondary">
         Duration is private context, not a score. Focus on awareness, not time.
       </AppText>
@@ -220,19 +256,67 @@ function DurationContextCard() {
   );
 }
 
-function CoachInsightCard() {
+function CoachInsightCard({ log }: LogCardProps) {
+  const insight =
+    log?.highestArousal !== undefined && log.highestArousal !== null
+      ? `You noticed your pause zone around ${log.highestArousal}/10. Recognizing this point is a useful step in learning your body’s response.`
+      : "Complete a practice to build a clearer picture of where the rise becomes easier to notice.";
+
   return (
     <AppCard style={styles.coachCard}>
       <View style={styles.coachAccent} />
       <View style={styles.coachCopy}>
         <IconLabel icon="✦" label="Coach Insight" neutral />
         <AppText tone="secondary">
-          You noticed your pause zone around 7/10. Recognizing this point is a useful step in
-          learning your body’s response.
+          {insight}
         </AppText>
       </View>
     </AppCard>
   );
+}
+
+function formatScore(value: number | null | undefined) {
+  return value !== undefined && value !== null ? `${value}/10` : "Not logged";
+}
+
+function formatCount(value: number | null | undefined) {
+  return value !== undefined && value !== null ? String(value) : "Not logged";
+}
+
+function getPauseDetail(value: number | null | undefined) {
+  if (value === undefined || value === null) {
+    return "not logged yet";
+  }
+
+  return value === 1 ? "pause this practice" : "pauses this practice";
+}
+
+function formatOption(value: string | null | undefined) {
+  if (value === undefined || value === null) {
+    return "Not logged";
+  }
+
+  const labels: Record<string, string> = {
+    low: "Low",
+    medium: "Medium",
+    high: "High",
+    veryHigh: "Very high"
+  };
+
+  return labels[value] ?? value;
+}
+
+function formatDuration(log: ArousalControlPracticeLog | null) {
+  if (log === null || log.durationPreference === "notLogged") {
+    return "Not logged";
+  }
+
+  if (log.durationSeconds !== undefined && log.durationSeconds !== null) {
+    const minutes = Math.max(1, Math.round(log.durationSeconds / 60));
+    return `About ${minutes} min`;
+  }
+
+  return "Not logged";
 }
 
 type IconLabelProps = {

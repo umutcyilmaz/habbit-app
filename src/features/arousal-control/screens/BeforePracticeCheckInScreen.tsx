@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
+import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppScreen } from "../../../shared/components/AppScreen";
@@ -45,9 +46,15 @@ const firmnessPlanOptions: readonly { value: FirmnessPlanOption; label: string }
 
 export function BeforePracticeCheckInScreen() {
   const router = useRouter();
+  const { updateArousalControlDraft } = useBloomLocalState();
   const [focus, setFocus] = useState<FocusOption>("noticeRising");
   const [adultContent, setAdultContent] = useState<AdultContentOption>("no");
   const [firmnessPlan, setFirmnessPlan] = useState<FirmnessPlanOption>("appSuggest");
+
+  const beginPractice = () => {
+    updateArousalControlDraft({});
+    router.push(routes.arousalControlPractice);
+  };
 
   return (
     <AppScreen contentStyle={styles.content}>
@@ -115,9 +122,7 @@ export function BeforePracticeCheckInScreen() {
           You can stop anytime. This is not a test.
         </AppText>
 
-        <AppButton onPress={() => router.push(routes.arousalControlPractice)}>
-          Begin Practice
-        </AppButton>
+        <AppButton onPress={beginPractice}>Begin Practice</AppButton>
       </View>
     </AppScreen>
   );

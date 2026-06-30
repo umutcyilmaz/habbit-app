@@ -1,30 +1,44 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { StyleSheet, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
 
+import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
+import {
+  createArousalControlPracticeLogFromDraft,
+  getLatestArousalControlLog,
+  type ArousalControlPracticeLog
+} from "../../../storage/bloomState";
 import { ArousalControlFlowHeader } from "../components/ArousalControlFlowHeader";
-
-const sessionSummary = {
-  pauses: "1",
-  highestArousal: "7/10",
-  controlFeeling: "6/10",
-  pleasureQuality: "7/10",
-  pressure: "Medium",
-  firmness: "Slightly decreased",
-  duration: "Prefer not to log"
-} as const;
 
 export function PracticeSavedScreen() {
   const router = useRouter();
+  const { state, completeArousalControlPractice } = useBloomLocalState();
   const [noteVisible, setNoteVisible] = useState(false);
   const [note, setNote] = useState("");
   const [noteMessage, setNoteMessage] = useState<string | undefined>();
+  const [justCompletedLog, setJustCompletedLog] = useState<ArousalControlPracticeLog | null>(null);
+  const latestLog = getLatestArousalControlLog(state.arousalControl.logs);
+  const displayLog = justCompletedLog ?? latestLog;
+  const sessionSummary = getSessionSummary(displayLog);
+  const insight = getGentleInsight(displayLog);
+
+  useEffect(() => {
+    const draft = state.arousalControl.draft;
+
+    if (draft === null) {
+      return;
+    }
+
+    const completedAt = new Date().toISOString();
+    setJustCompletedLog(createArousalControlPracticeLogFromDraft(draft, completedAt));
+    completeArousalControlPractice(completedAt);
+  }, [completeArousalControlPractice, state.arousalControl.draft]);
 
   const saveNote = () => {
     setNoteMessage(
@@ -115,12 +129,11 @@ export function PracticeSavedScreen() {
           <View style={styles.insightCopy}>
             <AppText variant="title">Gentle insight</AppText>
             <AppText tone="secondary">
-              You noticed your pause zone around 7/10. A pause can still be useful when the session
-              ends differently than expected.
+              {insight.body}
             </AppText>
             <View style={styles.insightFooter}>
               <AppText variant="bodySmall" tone="secondary">
-                Next time, the practice can be noticing the rise a little earlier.
+                {insight.footer}
               </AppText>
             </View>
           </View>
@@ -176,6 +189,80 @@ export function PracticeSavedScreen() {
       </View>
     </AppScreen>
   );
+}
+
+function getSessionSummary(log: ArousalControlPracticeLog | null) {
+  return {
+    pauses: formatCount(log?.pauseCount),
+    highestArousal: formatScore(log?.highestArousal),
+    controlFeeling: formatScore(log?.controlFeeling),
+    pleasureQuality: formatText(log?.pleasureQuality),
+    pressure: formatOption(log?.pressureRushing),
+    firmness: formatText(log?.firmnessChange),
+    duration: formatDuration(log)
+  };
+}
+
+function getGentleInsight(log: ArousalControlPracticeLog | null) {
+  if (log?.highestArousal !== undefined && log.highestArousal !== null) {
+    return {
+      body: `You noticed your pause zone around ${log.highestArousal}/10. A pause can still be useful when the session ends differently than expected.`,
+      footer: "Next time, the practice can be noticing the rise a little earlier."
+    };
+  }
+
+  return {
+    body: "This practice still saved useful context about noticing your body’s response.",
+    footer: "Next time, one small detail is enough to build the pattern."
+  };
+}
+
+function formatScore(value: number | null | undefined) {
+  return value !== undefined && value !== null ? `${value}/10` : "Not logged";
+}
+
+function formatCount(value: number | null | undefined) {
+  return value !== undefined && value !== null ? String(value) : "Not logged";
+}
+
+function formatText(value: string | null | undefined) {
+  return value !== undefined && value !== null && value.trim().length > 0 ? value : "Not logged";
+}
+
+function formatOption(value: string | null | undefined) {
+  if (value === undefined || value === null) {
+    return "Not logged";
+  }
+
+  const labels: Record<string, string> = {
+    low: "Low",
+    medium: "Medium",
+    high: "High",
+    veryHigh: "Very high",
+    calm: "Calm",
+    satisfied: "Satisfied",
+    neutral: "Neutral",
+    empty: "Empty",
+    uneasy: "Uneasy",
+    anxious: "Anxious",
+    frustrated: "Frustrated",
+    notSure: "Not sure"
+  };
+
+  return labels[value] ?? value;
+}
+
+function formatDuration(log: ArousalControlPracticeLog | null) {
+  if (log === null || log.durationPreference === "notLogged") {
+    return "Not logged";
+  }
+
+  if (log.durationSeconds !== undefined && log.durationSeconds !== null) {
+    const minutes = Math.max(1, Math.round(log.durationSeconds / 60));
+    return `About ${minutes} min`;
+  }
+
+  return "Not logged";
 }
 
 type SummaryMetricProps = {

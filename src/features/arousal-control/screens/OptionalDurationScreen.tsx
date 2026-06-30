@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
 
+import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
@@ -29,8 +30,18 @@ const durationOptions: readonly { value: DurationOption; label: string }[] = [
   { value: "preferNot", label: "Prefer not to log" }
 ];
 
+const durationEstimatesInSeconds: Record<Exclude<DurationOption, "preferNot">, number> = {
+  lessThanOne: 30,
+  oneToThree: 120,
+  threeToFive: 240,
+  fiveToTen: 450,
+  tenToFifteen: 750,
+  fifteenPlus: 900
+};
+
 export function OptionalDurationScreen() {
   const router = useRouter();
+  const { completeArousalControlPractice } = useBloomLocalState();
   const [duration, setDuration] = useState<DurationOption>("preferNot");
   const [exactTimeVisible, setExactTimeVisible] = useState(false);
   const [minutes, setMinutes] = useState("");
@@ -52,7 +63,26 @@ export function OptionalDurationScreen() {
     setSeconds(value.replace(/\D/g, "").slice(0, 2));
   };
 
-  const savePractice = () => {
+  const savePractice = (skipDuration = false) => {
+    const exactDurationSeconds = Number(minutes || "0") * 60 + Number(seconds || "0");
+
+    if (skipDuration || duration === "preferNot") {
+      completeArousalControlPractice(undefined, {
+        durationPreference: "notLogged",
+        durationSeconds: null
+      });
+    } else if (exactTimeVisible && exactDurationSeconds > 0) {
+      completeArousalControlPractice(undefined, {
+        durationPreference: "exact",
+        durationSeconds: exactDurationSeconds
+      });
+    } else {
+      completeArousalControlPractice(undefined, {
+        durationPreference: "estimated",
+        durationSeconds: durationEstimatesInSeconds[duration]
+      });
+    }
+
     router.push(routes.arousalControlSaved);
   };
 
@@ -159,8 +189,8 @@ export function OptionalDurationScreen() {
         </View>
 
         <View style={styles.actions}>
-          <AppButton onPress={savePractice}>Save Practice</AppButton>
-          <AppButton variant="ghost" onPress={savePractice}>
+          <AppButton onPress={() => savePractice()}>Save Practice</AppButton>
+          <AppButton variant="ghost" onPress={() => savePractice(true)}>
             Skip duration
           </AppButton>
         </View>

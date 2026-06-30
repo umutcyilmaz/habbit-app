@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import { Platform, StyleSheet, View } from "react-native";
 
+import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
@@ -8,6 +9,7 @@ import { AppIconButton } from "../../../shared/components/AppIconButton";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
+import { getCompletedResetDayCount } from "../../../storage/bloomState";
 
 const summaryItems = [
   "Porn avoided today",
@@ -18,13 +20,15 @@ const summaryItems = [
 
 export function TenDayResetSavedScreen() {
   const router = useRouter();
+  const { state, resetDay } = useBloomLocalState();
+  const completedDayCount = getCompletedResetDayCount(state.tenDayReset);
 
   return (
     <AppScreen contentStyle={styles.content}>
-      <SavedHeader onClosePress={() => router.replace(routes.home)} />
+      <SavedHeader day={resetDay} onClosePress={() => router.replace(routes.home)} />
 
       <View style={styles.stack}>
-        <ProgressCard />
+        <ProgressCard day={resetDay} completedDayCount={completedDayCount} />
         <TomorrowCard />
         <AfterResetCard />
 
@@ -42,10 +46,11 @@ export function TenDayResetSavedScreen() {
 }
 
 type SavedHeaderProps = {
+  day: number;
   onClosePress: () => void;
 };
 
-function SavedHeader({ onClosePress }: SavedHeaderProps) {
+function SavedHeader({ day, onClosePress }: SavedHeaderProps) {
   return (
     <View style={styles.header}>
       <View style={styles.headerActions}>
@@ -65,7 +70,7 @@ function SavedHeader({ onClosePress }: SavedHeaderProps) {
 
       <View style={styles.titleBlock}>
         <AppText variant="heading" align="center" style={styles.title}>
-          Day 1 saved.
+          Day {day} saved.
         </AppText>
         <AppText tone="secondary" align="center" style={styles.subtitle}>
           You created a pause from the pattern today.
@@ -75,13 +80,18 @@ function SavedHeader({ onClosePress }: SavedHeaderProps) {
   );
 }
 
-function ProgressCard() {
+type ProgressCardProps = {
+  day: number;
+  completedDayCount: number;
+};
+
+function ProgressCard({ day, completedDayCount }: ProgressCardProps) {
   return (
     <AppCard style={styles.progressCard}>
       <View style={styles.cardStack}>
         <View style={styles.progressHeader}>
           <AppText variant="title" style={styles.sectionTitle}>
-            Day 1 of 10
+            Day {day} of 10
           </AppText>
           <View style={styles.savedPill}>
             <AppText variant="caption" tone="secondary">
@@ -90,7 +100,7 @@ function ProgressCard() {
           </View>
         </View>
 
-        <ResetProgressSegments />
+        <ResetProgressSegments completedDayCount={completedDayCount} />
 
         <View style={styles.summaryStack}>
           {summaryItems.map((item) => (
@@ -102,15 +112,26 @@ function ProgressCard() {
   );
 }
 
-function ResetProgressSegments() {
+type ResetProgressSegmentsProps = {
+  completedDayCount: number;
+};
+
+function ResetProgressSegments({ completedDayCount }: ResetProgressSegmentsProps) {
   return (
     <View style={styles.progressRow} accessibilityRole="image">
-      {Array.from({ length: 10 }, (_, index) => (
-        <View
-          key={index}
-          style={[styles.progressSegment, index === 0 ? styles.progressSegmentActive : undefined]}
-        />
-      ))}
+      {Array.from({ length: 10 }, (_, index) => {
+        const day = index + 1;
+
+        return (
+          <View
+            key={day}
+            style={[
+              styles.progressSegment,
+              day <= completedDayCount ? styles.progressSegmentActive : undefined
+            ]}
+          />
+        );
+      })}
     </View>
   );
 }

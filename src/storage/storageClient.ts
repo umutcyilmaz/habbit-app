@@ -7,17 +7,64 @@ export interface StorageClient {
   clearUserData(): Promise<void>;
 }
 
+const memoryStorage = new Map<string, string>();
+
 export const storageClient: StorageClient = {
-  async getItem() {
-    return null;
+  async getItem<TValue>(key: StorageKey) {
+    const rawValue = getRawValue(key);
+
+    if (rawValue === null) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(rawValue) as TValue;
+    } catch {
+      return null;
+    }
   },
-  async setItem() {
-    return undefined;
+  async setItem<TValue>(key: StorageKey, value: TValue) {
+    const rawValue = JSON.stringify(value);
+
+    if (canUseLocalStorage()) {
+      localStorage.setItem(key, rawValue);
+      return;
+    }
+
+    memoryStorage.set(key, rawValue);
   },
-  async removeItem() {
-    return undefined;
+  async removeItem(key: StorageKey) {
+    if (canUseLocalStorage()) {
+      localStorage.removeItem(key);
+      return;
+    }
+
+    memoryStorage.delete(key);
   },
   async clearUserData() {
-    return undefined;
+    if (canUseLocalStorage()) {
+      Object.keys(localStorage)
+        .filter((key) => key.startsWith("bloom."))
+        .forEach((key) => localStorage.removeItem(key));
+      return;
+    }
+
+    memoryStorage.clear();
   }
 };
+
+function getRawValue(key: StorageKey) {
+  if (canUseLocalStorage()) {
+    return localStorage.getItem(key);
+  }
+
+  return memoryStorage.get(key) ?? null;
+}
+
+function canUseLocalStorage() {
+  try {
+    return typeof localStorage !== "undefined";
+  } catch {
+    return false;
+  }
+}

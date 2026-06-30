@@ -5,11 +5,9 @@ import {
   useDemoAppDispatch,
   useDemoAppState
 } from "../../../app/providers/DemoAppStateProvider";
+import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
-import {
-  selectProtectionState,
-  selectSuggestedSensitiveWindow
-} from "../../../domain/demo/demoSelectors";
+import { selectSuggestedSensitiveWindow } from "../../../domain/demo/demoSelectors";
 import type { DemoProtectionStatus } from "../../../domain/demo/demoTypes";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
@@ -49,21 +47,28 @@ function getStatusCopy(status: DemoProtectionStatus) {
   }
 }
 
-function formatLevel(level: string) {
-  return `${level.charAt(0).toUpperCase()}${level.slice(1)}`;
-}
-
 export function ProtectScreen() {
   const router = useRouter();
-  const state = useDemoAppState();
+  const demoState = useDemoAppState();
   const dispatch = useDemoAppDispatch();
-  const protection = selectProtectionState(state);
-  const window = selectSuggestedSensitiveWindow(state);
-  const statusCopy = getStatusCopy(protection.status);
-  const activeHours = `${window.startTime}-${window.endTime}`;
-  const isActive = protection.status === "active";
-  const statusVariant =
-    protection.status === "active" ? "active" : protection.status === "paused" ? "paused" : "off";
+  const { state, disableProtection } = useBloomLocalState();
+  const protection = state.protection;
+  const window = selectSuggestedSensitiveWindow(demoState);
+  const statusCopy = protection.isEnabled
+    ? {
+        statusLabel: "Ready",
+        title: "Protection is ready.",
+        body: "Bloom will help create a pause before automatic moments.",
+        primaryAction: "View active protection"
+      }
+    : getStatusCopy("off");
+  const activeHours =
+    protection.preferredWindow === "night"
+      ? "22:00–08:00"
+      : protection.preferredWindow === "custom"
+        ? "Selected hours"
+        : `${window.startTime}–${window.endTime}`;
+  const statusVariant = protection.isEnabled ? "active" : "off";
 
   return (
     <AppScreen>
@@ -82,22 +87,27 @@ export function ProtectScreen() {
         />
 
         <View style={styles.actions}>
-          <AppButton onPress={() => router.push(routes.protectSetup)}>
+          <AppButton
+            onPress={() =>
+              router.push(protection.isEnabled ? routes.protectActive : routes.protectSetup)
+            }
+          >
             {statusCopy.primaryAction}
           </AppButton>
           <AppButton variant="secondary" onPress={() => router.push(routes.protectIntercept)}>
             Start temporary support
           </AppButton>
-          {isActive ? (
+          {protection.isEnabled ? (
             <>
               <AppButton
                 variant="ghost"
-                onPress={() =>
+                onPress={() => {
+                  disableProtection();
                   dispatch({
                     type: "SET_PROTECTION_STATUS",
                     payload: "paused"
-                  })
-                }
+                  });
+                }}
               >
                 Pause protection
               </AppButton>
@@ -126,17 +136,17 @@ export function ProtectScreen() {
                 onPress={() => router.push(routes.protectSetup)}
               />
               <ProtectionActionRow
-                title="Protection level"
-                description="How firmly support guides the pause"
-                value={formatLevel(protection.level)}
+                title="Adult-content pause"
+                description="Pause layer before automatic moments"
+                value={protection.adultContentPauseEnabled ? "On" : "Off"}
                 iconLabel="B"
                 accent="sage"
                 onPress={() => router.push(routes.protectSetup)}
               />
               <ProtectionActionRow
-                title="Night Protection"
-                description="A softer bedtime support plan"
-                value="Optional"
+                title="Window"
+                description="Preferred support window"
+                value={formatProtectionWindow(protection.preferredWindow)}
                 iconLabel="N"
                 accent="peach"
                 onPress={() => router.push(routes.protectNightSetup)}
@@ -157,6 +167,19 @@ export function ProtectScreen() {
       </View>
     </AppScreen>
   );
+}
+
+function formatProtectionWindow(window: string | null) {
+  switch (window) {
+    case "night":
+      return "Night";
+    case "custom":
+      return "Custom";
+    case "evening":
+      return "Evening";
+    default:
+      return "Not set";
+  }
 }
 
 const styles = StyleSheet.create({

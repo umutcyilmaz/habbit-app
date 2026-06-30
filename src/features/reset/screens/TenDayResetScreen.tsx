@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 
+import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
@@ -8,6 +9,7 @@ import { AppIconButton } from "../../../shared/components/AppIconButton";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
+import { getCompletedResetDayCount } from "../../../storage/bloomState";
 
 type AppRoute = (typeof routes)[keyof typeof routes];
 
@@ -54,6 +56,15 @@ const replacementActions = [
 
 export function TenDayResetScreen() {
   const router = useRouter();
+  const { state, resetDay, startTenDayReset } = useBloomLocalState();
+  const resetStarted = state.tenDayReset.startedAt !== null;
+  const displayDay = resetStarted ? resetDay : 1;
+  const completedDayCount = getCompletedResetDayCount(state.tenDayReset);
+
+  const startTodayReset = () => {
+    startTenDayReset();
+    router.push(routes.tenDayResetPractice);
+  };
 
   return (
     <AppScreen contentStyle={styles.content}>
@@ -66,7 +77,7 @@ export function TenDayResetScreen() {
       />
 
       <View style={styles.stack}>
-        <DayOverviewCard />
+        <DayOverviewCard day={displayDay} completedDayCount={completedDayCount} />
         <ResetRulesCard />
         <ReplacementActionsCard
           onRoutePress={(route) => {
@@ -75,9 +86,7 @@ export function TenDayResetScreen() {
         />
 
         <View style={styles.bottomActions}>
-          <AppButton onPress={() => router.push(routes.tenDayResetPractice)}>
-            Start today’s reset
-          </AppButton>
+          <AppButton onPress={startTodayReset}>Start today’s reset</AppButton>
           <AppButton variant="subtle" onPress={() => router.replace(routes.home)}>
             Back to Today
           </AppButton>
@@ -130,12 +139,17 @@ function ResetHeader({ label, title, subtitle, onBackPress, onClosePress }: Rese
   );
 }
 
-function DayOverviewCard() {
+type DayOverviewCardProps = {
+  day: number;
+  completedDayCount: number;
+};
+
+function DayOverviewCard({ day, completedDayCount }: DayOverviewCardProps) {
   return (
     <AppCard style={styles.heroCard}>
       <View style={styles.heroCopy}>
         <AppText variant="caption" tone="secondary" style={styles.eyebrow}>
-          DAY 1 OF 10
+          DAY {day} OF 10
         </AppText>
         <AppText variant="title" style={styles.heroTitle}>
           Create a clean pause from the pattern.
@@ -145,20 +159,30 @@ function DayOverviewCard() {
         </AppText>
       </View>
 
-      <ResetProgressSegments />
+      <ResetProgressSegments currentDay={day} completedDayCount={completedDayCount} />
     </AppCard>
   );
 }
 
-function ResetProgressSegments() {
+type ResetProgressSegmentsProps = {
+  currentDay: number;
+  completedDayCount: number;
+};
+
+function ResetProgressSegments({ currentDay, completedDayCount }: ResetProgressSegmentsProps) {
   return (
     <View style={styles.progressRow} accessibilityRole="image">
-      {Array.from({ length: 10 }, (_, index) => (
-        <View
-          key={index}
-          style={[styles.progressSegment, index === 0 ? styles.progressSegmentActive : undefined]}
-        />
-      ))}
+      {Array.from({ length: 10 }, (_, index) => {
+        const day = index + 1;
+        const isActive = day <= completedDayCount || day === currentDay;
+
+        return (
+          <View
+            key={day}
+            style={[styles.progressSegment, isActive ? styles.progressSegmentActive : undefined]}
+          />
+        );
+      })}
     </View>
   );
 }

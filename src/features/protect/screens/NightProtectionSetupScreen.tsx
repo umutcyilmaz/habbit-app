@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
 import { useDemoAppDispatch } from "../../../app/providers/DemoAppStateProvider";
+import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppScreen } from "../../../shared/components/AppScreen";
@@ -15,6 +16,7 @@ import { ProtectionSetupSection } from "../components/ProtectionSetupSection";
 export function NightProtectionSetupScreen() {
   const router = useRouter();
   const dispatch = useDemoAppDispatch();
+  const { enableProtection } = useBloomLocalState();
   const [putPhoneAwayEnabled, setPutPhoneAwayEnabled] = useState(true);
   const [dimScreenEnabled, setDimScreenEnabled] = useState(true);
 
@@ -23,6 +25,7 @@ export function NightProtectionSetupScreen() {
       type: "SET_PROTECTION_STATUS",
       payload: "active"
     });
+    enableProtection("night");
     router.replace(routes.protectActive);
   };
 
