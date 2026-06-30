@@ -32,40 +32,66 @@ const resetSteps = [
 
 const resetDurationSeconds = 120;
 
+type TimerStatus = "idle" | "running" | "paused" | "completed";
+
 export function TenDayResetPracticeScreen() {
   const router = useRouter();
-  const { startTenDayReset, completeTodayReset } = useBloomLocalState();
-  const [timerStarted, setTimerStarted] = useState(false);
-  const [secondsLeft, setSecondsLeft] = useState(resetDurationSeconds);
+  const { startTenDayReset, completeTodayReset, resetTodayCompleted } = useBloomLocalState();
+  const [timerStatus, setTimerStatus] = useState<TimerStatus>("idle");
+  const [secondsRemaining, setSecondsRemaining] = useState(resetDurationSeconds);
+  const [practiceAgainRequested, setPracticeAgainRequested] = useState(false);
+  const showSavedState = resetTodayCompleted && !practiceAgainRequested;
 
   useEffect(() => {
-    if (!timerStarted || secondsLeft <= 0) {
+    if (timerStatus !== "running") {
       return undefined;
     }
 
-    const timeout = setTimeout(() => {
-      setSecondsLeft((current) => Math.max(0, current - 1));
+    const interval = setInterval(() => {
+      setSecondsRemaining((current) => Math.max(0, current - 1));
     }, 1000);
 
     return () => {
-      clearTimeout(timeout);
+      clearInterval(interval);
     };
-  }, [secondsLeft, timerStarted]);
+  }, [timerStatus]);
 
-  const startTimer = () => {
-    startTenDayReset();
-    if (secondsLeft === 0) {
-      setSecondsLeft(resetDurationSeconds);
+  useEffect(() => {
+    if (timerStatus === "running" && secondsRemaining === 0) {
+      setTimerStatus("completed");
     }
-    setTimerStarted(true);
-  };
+  }, [secondsRemaining, timerStatus]);
 
   const saveToday = () => {
     completeTodayReset();
     router.replace(routes.tenDayResetSaved);
   };
 
-  const timerComplete = secondsLeft === 0;
+  const practiceAgain = () => {
+    setPracticeAgainRequested(true);
+    setTimerStatus("idle");
+    setSecondsRemaining(resetDurationSeconds);
+  };
+
+  const handleTimerPrimaryPress = () => {
+    if (showSavedState) {
+      router.replace(routes.tenDayResetSaved);
+      return;
+    }
+
+    if (timerStatus === "completed") {
+      saveToday();
+      return;
+    }
+
+    if (timerStatus === "running") {
+      setTimerStatus("paused");
+      return;
+    }
+
+    startTenDayReset();
+    setTimerStatus("running");
+  };
 
   return (
     <AppScreen contentStyle={styles.content}>
@@ -76,20 +102,23 @@ export function TenDayResetPracticeScreen() {
 
       <View style={styles.stack}>
         <PracticeTimerCard
-          secondsLeft={secondsLeft}
-          timerStarted={timerStarted}
-          timerComplete={timerComplete}
-          onStartPress={startTimer}
+          secondsRemaining={showSavedState ? 0 : secondsRemaining}
+          timerStatus={showSavedState ? "completed" : timerStatus}
+          savedToday={showSavedState}
+          onPrimaryPress={handleTimerPrimaryPress}
           onAlreadyDonePress={saveToday}
+          onPracticeAgainPress={practiceAgain}
         />
 
         <DuringResetCard />
 
-        <View style={styles.bottomActions}>
-          <AppButton onPress={saveToday}>
-            Finish today’s reset
-          </AppButton>
-        </View>
+        {showSavedState ? null : (
+          <View style={styles.bottomActions}>
+            <AppButton onPress={saveToday}>
+              Finish today’s reset
+            </AppButton>
+          </View>
+        )}
       </View>
     </AppScreen>
   );
@@ -136,28 +165,39 @@ function ResetPracticeHeader({ onBackPress, onClosePress }: ResetPracticeHeaderP
 }
 
 type PracticeTimerCardProps = {
-  secondsLeft: number;
-  timerStarted: boolean;
-  timerComplete: boolean;
-  onStartPress: () => void;
+  secondsRemaining: number;
+  timerStatus: TimerStatus;
+  savedToday: boolean;
+  onPrimaryPress: () => void;
   onAlreadyDonePress: () => void;
+  onPracticeAgainPress: () => void;
 };
 
 function PracticeTimerCard({
-  secondsLeft,
-  timerStarted,
-  timerComplete,
-  onStartPress,
-  onAlreadyDonePress
+  secondsRemaining,
+  timerStatus,
+  savedToday,
+  onPrimaryPress,
+  onAlreadyDonePress,
+  onPracticeAgainPress
 }: PracticeTimerCardProps) {
-  const buttonLabel = timerComplete ? "Restart timer" : timerStarted ? "Timer running" : "Start timer";
+  const buttonLabel = savedToday ? "View saved reset" : getTimerButtonLabel(timerStatus);
+  const statusCopy = savedToday ? "You completed your reset practice for today." : getTimerStatusCopy(timerStatus);
+  const title = savedToday ? "Today’s reset is already saved." : null;
 
   return (
     <AppCard style={styles.timerCard}>
+      {title ? (
+        <View style={styles.savedCopy}>
+          <AppText variant="title" align="center" style={styles.savedTitle}>
+            {title}
+          </AppText>
+        </View>
+      ) : null}
       <View style={styles.timerVisual}>
         <View style={styles.timerInner}>
           <AppText variant="heading" style={styles.timerText}>
-            {formatTime(secondsLeft)}
+            {formatTime(secondsRemaining)}
           </AppText>
           <AppText variant="caption" tone="secondary">
             reset
@@ -167,21 +207,52 @@ function PracticeTimerCard({
       <AppText tone="secondary" align="center" style={styles.timerCopy}>
         Put the phone down. Relax your belly and jaw. Breathe slowly.
       </AppText>
-      {timerComplete ? (
+      {statusCopy ? (
         <AppText variant="bodySmall" align="center">
-          The reset is complete. Save today when you are ready.
+          {statusCopy}
         </AppText>
       ) : null}
       <View style={styles.timerActions}>
-        <AppButton onPress={onStartPress}>{buttonLabel}</AppButton>
-        <Pressable accessibilityRole="button" onPress={onAlreadyDonePress} style={styles.textAction}>
+        <AppButton onPress={onPrimaryPress}>{buttonLabel}</AppButton>
+        <Pressable
+          accessibilityRole="button"
+          onPress={savedToday ? onPracticeAgainPress : onAlreadyDonePress}
+          style={styles.textAction}
+        >
           <AppText variant="label" tone="secondary" align="center">
-            I already did it
+            {savedToday ? "Practice again" : "I already did it"}
           </AppText>
         </Pressable>
       </View>
     </AppCard>
   );
+}
+
+function getTimerButtonLabel(timerStatus: TimerStatus) {
+  switch (timerStatus) {
+    case "running":
+      return "Pause";
+    case "paused":
+      return "Resume";
+    case "completed":
+      return "Save today’s reset";
+    case "idle":
+    default:
+      return "Start timer";
+  }
+}
+
+function getTimerStatusCopy(timerStatus: TimerStatus) {
+  switch (timerStatus) {
+    case "paused":
+      return "Paused. Resume when you are ready.";
+    case "completed":
+      return "Reset complete";
+    case "running":
+    case "idle":
+    default:
+      return null;
+  }
 }
 
 function formatTime(seconds: number) {
@@ -309,6 +380,17 @@ const styles = StyleSheet.create({
   },
   timerCopy: {
     maxWidth: 300
+  },
+  savedCopy: {
+    gap: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.sm
+  },
+  savedTitle: {
+    fontFamily: Platform.select({
+      ios: "Georgia",
+      android: "serif",
+      web: "Georgia, serif"
+    })
   },
   timerActions: {
     alignSelf: "stretch",
