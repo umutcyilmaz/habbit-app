@@ -26,6 +26,7 @@ export function BloomStateDebugScreen() {
     resetBloomLocalData,
     clearTenDayResetProgress,
     clearArousalControlLogs,
+    clearProtection,
     simulateNextDay,
     simulatePreviousDay
   } = useBloomLocalState();
@@ -90,7 +91,15 @@ export function BloomStateDebugScreen() {
                   latestArousalLog.durationSeconds !== null
                     ? String(latestArousalLog.durationSeconds)
                     : "none"
-                ]
+                ],
+                ["Protection enabled", state.protection.isEnabled ? "yes" : "no"],
+                ["Preferred window", state.protection.preferredWindow ?? "none"],
+                [
+                  "Adult content pause enabled",
+                  state.protection.adultContentPauseEnabled ? "yes" : "no"
+                ],
+                ["Setup completed at", state.protection.setupCompletedAt ?? "none"],
+                ["Last protection pause at", state.protection.lastProtectionPauseAt ?? "none"]
               ]}
             />
 
@@ -135,6 +144,20 @@ export function BloomStateDebugScreen() {
                 <View style={styles.actionStack}>
                   <AppButton variant="subtle" onPress={clearArousalControlLogs}>
                     Clear arousal control logs
+                  </AppButton>
+                </View>
+              </View>
+            </AppCard>
+
+            <AppCard style={styles.card}>
+              <View style={styles.cardStack}>
+                <AppText variant="title">Protection data</AppText>
+                <AppText tone="secondary">
+                  Reset local Protection setup when testing the MVP flow.
+                </AppText>
+                <View style={styles.actionStack}>
+                  <AppButton variant="subtle" onPress={clearProtection}>
+                    Clear protection state
                   </AppButton>
                 </View>
               </View>

@@ -54,11 +54,22 @@ export type ArousalControlState = {
   logs: ArousalControlPracticeLog[];
 };
 
+export type ProtectionWindow = "evening" | "night" | "custom";
+
+export type ProtectionState = {
+  isEnabled: boolean;
+  setupCompletedAt: string | null;
+  preferredWindow: ProtectionWindow | null;
+  adultContentPauseEnabled: boolean;
+  lastProtectionPauseAt: string | null;
+};
+
 export type BloomLocalState = {
   activePlan: ActivePlan;
   tenDayReset: TenDayResetState;
   debug: BloomDebugState;
   arousalControl: ArousalControlState;
+  protection: ProtectionState;
 };
 
 export const defaultBloomLocalState: BloomLocalState = {
@@ -78,6 +89,13 @@ export const defaultBloomLocalState: BloomLocalState = {
   arousalControl: {
     draft: null,
     logs: []
+  },
+  protection: {
+    isEnabled: false,
+    setupCompletedAt: null,
+    preferredWindow: null,
+    adultContentPauseEnabled: false,
+    lastProtectionPauseAt: null
   }
 };
 
@@ -254,6 +272,68 @@ export function getLatestArousalControlLog(
   return sortArousalControlLogs(logs)[0] ?? null;
 }
 
+export function enableProtectionState(
+  state: BloomLocalState,
+  options: {
+    preferredWindow?: ProtectionWindow;
+  } = {},
+  enabledAt = new Date().toISOString()
+): BloomLocalState {
+  return {
+    ...state,
+    protection: {
+      ...state.protection,
+      isEnabled: true,
+      setupCompletedAt: state.protection.setupCompletedAt ?? enabledAt,
+      preferredWindow: options.preferredWindow ?? state.protection.preferredWindow ?? "evening",
+      adultContentPauseEnabled: true
+    }
+  };
+}
+
+export function disableProtectionState(state: BloomLocalState): BloomLocalState {
+  return {
+    ...state,
+    protection: {
+      ...state.protection,
+      isEnabled: false
+    }
+  };
+}
+
+export function updateProtectionWindowState(
+  state: BloomLocalState,
+  preferredWindow: ProtectionWindow
+): BloomLocalState {
+  return {
+    ...state,
+    protection: {
+      ...state.protection,
+      preferredWindow
+    }
+  };
+}
+
+export function recordProtectionPauseState(
+  state: BloomLocalState,
+  pausedAt = new Date().toISOString()
+): BloomLocalState {
+  return {
+    ...state,
+    protection: {
+      ...state.protection,
+      lastProtectionPauseAt: pausedAt
+    }
+  };
+}
+
+export function clearProtectionState(state: BloomLocalState): BloomLocalState {
+  return {
+    ...state,
+    protection: defaultBloomLocalState.protection
+  };
+}
+
 export async function loadBloomLocalState() {
   try {
     const storedState = await storageClient.getItem<unknown>(bloomStateStorageKey);
@@ -273,13 +353,15 @@ export async function saveBloomLocalState(state: BloomLocalState) {
   await storageClient.setItem(bloomStateStorageKey, state);
 }
 
-type PersistedBloomLocalState = Omit<BloomLocalState, "debug" | "arousalControl"> & {
+type PersistedBloomLocalState = Omit<BloomLocalState, "debug" | "arousalControl" | "protection"> & {
   debug?: BloomDebugState;
   arousalControl?: ArousalControlState;
+  protection?: ProtectionState;
 };
 
 function mergeWithDefaultState(state: PersistedBloomLocalState): BloomLocalState {
   const arousalControl = state.arousalControl ?? defaultBloomLocalState.arousalControl;
+  const protection = state.protection ?? defaultBloomLocalState.protection;
 
   return {
     activePlan: {
@@ -298,6 +380,10 @@ function mergeWithDefaultState(state: PersistedBloomLocalState): BloomLocalState
     arousalControl: {
       draft: arousalControl.draft,
       logs: sortArousalControlLogs(dedupeArousalControlLogs(arousalControl.logs))
+    },
+    protection: {
+      ...defaultBloomLocalState.protection,
+      ...protection
     }
   };
 }
@@ -311,7 +397,8 @@ function isBloomLocalState(value: unknown): value is PersistedBloomLocalState {
     isActivePlan(value.activePlan) &&
     isTenDayResetState(value.tenDayReset) &&
     (value.debug === undefined || isBloomDebugState(value.debug)) &&
-    (value.arousalControl === undefined || isArousalControlState(value.arousalControl))
+    (value.arousalControl === undefined || isArousalControlState(value.arousalControl)) &&
+    (value.protection === undefined || isProtectionState(value.protection))
   );
 }
 
@@ -383,6 +470,24 @@ function isArousalControlPracticeLog(value: unknown): value is ArousalControlPra
     typeof value.completedAt === "string" &&
     typeof value.dateKey === "string"
   );
+}
+
+function isProtectionState(value: unknown): value is ProtectionState {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    typeof value.isEnabled === "boolean" &&
+    (typeof value.setupCompletedAt === "string" || value.setupCompletedAt === null) &&
+    (isProtectionWindow(value.preferredWindow) || value.preferredWindow === null) &&
+    typeof value.adultContentPauseEnabled === "boolean" &&
+    (typeof value.lastProtectionPauseAt === "string" || value.lastProtectionPauseAt === null)
+  );
+}
+
+function isProtectionWindow(value: unknown): value is ProtectionWindow {
+  return value === "evening" || value === "night" || value === "custom";
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

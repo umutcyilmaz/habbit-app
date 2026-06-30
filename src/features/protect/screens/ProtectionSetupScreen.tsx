@@ -6,6 +6,7 @@ import {
   useDemoAppDispatch,
   useDemoAppState
 } from "../../../app/providers/DemoAppStateProvider";
+import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
 import type { DemoSupportLevel } from "../../../domain/demo/demoTypes";
 import { AppButton } from "../../../shared/components/AppButton";
@@ -61,6 +62,7 @@ export function ProtectionSetupScreen() {
   const router = useRouter();
   const state = useDemoAppState();
   const dispatch = useDemoAppDispatch();
+  const { enableProtection } = useBloomLocalState();
   const [selectedLevel, setSelectedLevel] = useState<DemoSupportLevel>(state.protection.level);
   const [selectedSchedule, setSelectedSchedule] = useState<ProtectionSchedule>("night");
 
@@ -73,6 +75,7 @@ export function ProtectionSetupScreen() {
       type: "SET_PROTECTION_STATUS",
       payload: "active"
     });
+    enableProtection({ preferredWindow: "evening" });
     router.replace(routes.protectActive);
   };
 

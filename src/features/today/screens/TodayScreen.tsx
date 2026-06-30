@@ -37,10 +37,12 @@ export function TodayScreen() {
   const router = useRouter();
   const { state, resetDay, resetTodayCompleted, startTenDayReset } = useBloomLocalState();
   const resetStarted = state.tenDayReset.startedAt !== null;
+  const protectionEnabled = state.protection.isEnabled;
   const heroState = getTodayHeroState({
     resetStarted,
     resetTodayCompleted,
-    resetDay
+    resetDay,
+    protectionEnabled
   });
 
   return (
@@ -58,7 +60,7 @@ export function TodayScreen() {
           primaryAction={heroState.primaryAction}
           onPrimaryPress={() => {
             if (!resetStarted) {
-              router.push(routes.protectSetup);
+              router.push(protectionEnabled ? routes.tenDayReset : routes.protectSetup);
               return;
             }
 
@@ -87,10 +89,25 @@ type TodayHeroStateInput = {
   resetStarted: boolean;
   resetTodayCompleted: boolean;
   resetDay: number;
+  protectionEnabled: boolean;
 };
 
-function getTodayHeroState({ resetStarted, resetTodayCompleted, resetDay }: TodayHeroStateInput) {
+function getTodayHeroState({
+  resetStarted,
+  resetTodayCompleted,
+  resetDay,
+  protectionEnabled
+}: TodayHeroStateInput) {
   if (!resetStarted) {
+    if (protectionEnabled) {
+      return {
+        statusLabel: "Protection ready",
+        title: "Protection is ready.",
+        body: "You have a pause layer before automatic moments.",
+        primaryAction: "Start 10-Day Reset"
+      };
+    }
+
     return {
       statusLabel: null,
       title: "Create a pause before porn.",

@@ -1,6 +1,8 @@
+import { useEffect } from "react";
 import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
+import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
 import { AppCard } from "../../../shared/components/AppCard";
 import { AppScreen } from "../../../shared/components/AppScreen";
@@ -13,6 +15,11 @@ import { ProtectionVisual } from "../components/ProtectionVisual";
 
 export function ProtectionInterceptScreen() {
   const router = useRouter();
+  const { recordProtectionPause } = useBloomLocalState();
+
+  useEffect(() => {
+    recordProtectionPause();
+  }, [recordProtectionPause]);
 
   return (
     <AppScreen contentStyle={styles.focusedContent}>

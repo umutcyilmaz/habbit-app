@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 
+import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
@@ -82,6 +83,7 @@ const guidanceCards: readonly GuidanceCardConfig[] = [
 
 export function WhatShouldIUseScreen() {
   const router = useRouter();
+  const { state } = useBloomLocalState();
 
   return (
     <AppScreen contentStyle={styles.content}>
@@ -123,7 +125,7 @@ export function WhatShouldIUseScreen() {
             card={card}
             onPress={() => {
               if (card.status === "available") {
-                router.push(card.route);
+                router.push(getGuidanceRoute(card.route, state.protection.isEnabled));
               }
             }}
           />
@@ -137,6 +139,14 @@ export function WhatShouldIUseScreen() {
       </View>
     </AppScreen>
   );
+}
+
+function getGuidanceRoute(route: AppRoute, protectionEnabled: boolean): AppRoute {
+  if (route === routes.protectSetup && protectionEnabled) {
+    return routes.protectActive;
+  }
+
+  return route;
 }
 
 type GuidanceCardProps = {

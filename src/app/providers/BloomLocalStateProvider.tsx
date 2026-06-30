@@ -10,20 +10,26 @@ import {
 
 import {
   clearArousalControlLogsState,
+  clearProtectionState,
   completeArousalControlPracticeState,
   completeTodayResetState,
   defaultBloomLocalState,
+  disableProtectionState,
+  enableProtectionState,
   getTodayKey,
   getResetDay,
   incrementArousalControlPauseCountState,
   isTodayCompleted,
   loadBloomLocalState,
+  recordProtectionPauseState,
   saveBloomLocalState,
   startArousalControlDraftState,
   startTenDayResetState,
+  updateProtectionWindowState,
   updateArousalControlDraftState,
   type ArousalControlDraft,
-  type BloomLocalState
+  type BloomLocalState,
+  type ProtectionWindow
 } from "../../storage/bloomState";
 
 type BloomLocalStateContextValue = {
@@ -34,12 +40,17 @@ type BloomLocalStateContextValue = {
   resetBloomLocalData: () => void;
   clearTenDayResetProgress: () => void;
   clearArousalControlLogs: () => void;
+  clearProtection: () => void;
   simulateNextDay: () => void;
   simulatePreviousDay: () => void;
   startArousalControlDraft: (initial?: Partial<ArousalControlDraft>) => void;
   updateArousalControlDraft: (patch: Partial<ArousalControlDraft>) => void;
   incrementArousalControlPauseCount: () => void;
   completeArousalControlPractice: (completedAt?: string) => void;
+  enableProtection: (options?: { preferredWindow?: ProtectionWindow }) => void;
+  disableProtection: () => void;
+  updateProtectionWindow: (preferredWindow: ProtectionWindow) => void;
+  recordProtectionPause: () => void;
   resetTodayCompleted: boolean;
   resetDay: number;
   todayKey: string;
@@ -108,6 +119,22 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
     setState((currentState) => completeArousalControlPracticeState(currentState, completedAt));
   }, []);
 
+  const enableProtection = useCallback((options: { preferredWindow?: ProtectionWindow } = {}) => {
+    setState((currentState) => enableProtectionState(currentState, options));
+  }, []);
+
+  const disableProtection = useCallback(() => {
+    setState((currentState) => disableProtectionState(currentState));
+  }, []);
+
+  const updateProtectionWindow = useCallback((preferredWindow: ProtectionWindow) => {
+    setState((currentState) => updateProtectionWindowState(currentState, preferredWindow));
+  }, []);
+
+  const recordProtectionPause = useCallback(() => {
+    setState((currentState) => recordProtectionPauseState(currentState));
+  }, []);
+
   const resetBloomLocalData = useCallback(() => {
     setState(defaultBloomLocalState);
   }, []);
@@ -121,6 +148,10 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
 
   const clearArousalControlLogs = useCallback(() => {
     setState((currentState) => clearArousalControlLogsState(currentState));
+  }, []);
+
+  const clearProtection = useCallback(() => {
+    setState((currentState) => clearProtectionState(currentState));
   }, []);
 
   const simulateNextDay = useCallback(() => {
@@ -153,9 +184,14 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
       updateArousalControlDraft,
       incrementArousalControlPauseCount,
       completeArousalControlPractice,
+      enableProtection,
+      disableProtection,
+      updateProtectionWindow,
+      recordProtectionPause,
       resetBloomLocalData,
       clearTenDayResetProgress,
       clearArousalControlLogs,
+      clearProtection,
       simulateNextDay,
       simulatePreviousDay,
       resetTodayCompleted,
@@ -164,11 +200,15 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
     }),
     [
       clearArousalControlLogs,
+      clearProtection,
       clearTenDayResetProgress,
       completeArousalControlPractice,
       completeTodayReset,
+      disableProtection,
+      enableProtection,
       incrementArousalControlPauseCount,
       isLoading,
+      recordProtectionPause,
       resetDay,
       resetBloomLocalData,
       resetTodayCompleted,
@@ -178,6 +218,7 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
       startTenDayReset,
       state,
       todayKey,
+      updateProtectionWindow,
       updateArousalControlDraft
     ]
   );
