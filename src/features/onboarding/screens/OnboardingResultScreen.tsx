@@ -10,12 +10,57 @@ import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
 import type { RecommendedFirstAction } from "../../../storage/bloomState";
-import { defaultQuizResult } from "../quiz";
 
 export function OnboardingResultScreen() {
   const router = useRouter();
   const { state } = useBloomLocalState();
-  const quizResult = state.onboarding.quizResult ?? defaultQuizResult;
+  const quizResult = state.onboarding.quizResult;
+
+  if (quizResult === null) {
+    return (
+      <AppScreen contentStyle={styles.content}>
+        <StartingPlanHeader
+          onBackPress={() => router.replace(routes.home)}
+          onClosePress={() => router.replace(routes.home)}
+        />
+
+        <View style={styles.stack}>
+          <AppCard style={styles.heroCard}>
+            <View style={styles.heroStack}>
+              <View style={styles.heroCopy}>
+                <AppText variant="title" style={styles.resultTitle}>
+                  Starting plan
+                </AppText>
+                <AppText tone="secondary">
+                  Complete onboarding to personalize your first step.
+                </AppText>
+              </View>
+            </View>
+          </AppCard>
+
+          <AppCard style={styles.todayCard}>
+            <View style={styles.cardStack}>
+              <AppText variant="title" style={styles.cardTitle}>
+                Finish onboarding
+              </AppText>
+              <AppText tone="secondary">
+                Answer a few private questions so Bloom can suggest a simple first path.
+              </AppText>
+              <View style={styles.miniActions}>
+                <AppButton onPress={() => router.replace(routes.onboarding)}>
+                  Start onboarding
+                </AppButton>
+                <AppButton variant="subtle" onPress={() => router.replace(routes.home)}>
+                  Go to Today
+                </AppButton>
+              </View>
+            </View>
+          </AppCard>
+        </View>
+      </AppScreen>
+    );
+  }
+
   const firstStep = getFirstStepContent(quizResult.recommendedFirstAction);
 
   return (

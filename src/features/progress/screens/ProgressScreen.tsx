@@ -624,7 +624,7 @@ function PracticeSummaryCard({ latestLog, logCount, onPress }: PracticeSummaryCa
         </View>
 
         <AppText variant="bodySmall" tone="secondary">
-          These are personal context points, not performance scores.
+          These are personal context points, not a judgment.
         </AppText>
 
         <AppButton variant="secondary" onPress={() => onPress(routes.arousalControlProgressPreview)}>
