@@ -1,6 +1,7 @@
 import { Platform, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 
+import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
@@ -8,37 +9,14 @@ import { AppIconButton } from "../../../shared/components/AppIconButton";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
-
-const mockStartingPlan = {
-  primaryPattern: "Porn Loop",
-  secondaryPattern: "Pressure Pattern",
-  flags: ["Firmness concern", "Evening window"] as const
-};
-
-const patternChips = [
-  "Porn loop",
-  "Pressure pattern",
-  "Evening window",
-  "Firmness concern"
-] as const;
-
-const planSteps = [
-  {
-    title: "Pause before porn",
-    body: "Create friction before opening adult content."
-  },
-  {
-    title: "Step away from pressure",
-    body: "Avoid forced masturbation and checking for now."
-  },
-  {
-    title: "Rebuild with practice",
-    body: "Use guided practice when real desire is present."
-  }
-] as const;
+import type { RecommendedFirstAction } from "../../../storage/bloomState";
+import { defaultQuizResult } from "../quiz";
 
 export function OnboardingResultScreen() {
   const router = useRouter();
+  const { state } = useBloomLocalState();
+  const quizResult = state.onboarding.quizResult ?? defaultQuizResult;
+  const firstStep = getFirstStepContent(quizResult.recommendedFirstAction);
 
   return (
     <AppScreen contentStyle={styles.content}>
@@ -52,16 +30,15 @@ export function OnboardingResultScreen() {
           <View style={styles.heroStack}>
             <View style={styles.heroCopy}>
               <AppText variant="title" style={styles.resultTitle}>
-                Porn loop + pressure pattern
+                {quizResult.resultTitle}
               </AppText>
               <AppText tone="secondary">
-                Porn may be starting the loop before real desire is present, and masturbation may
-                sometimes happen with pressure or rushing.
+                {quizResult.resultBody}
               </AppText>
             </View>
 
             <View style={styles.chipWrap}>
-              {patternChips.map((chip) => (
+              {quizResult.chips.map((chip) => (
                 <PatternChip key={chip} label={chip} />
               ))}
             </View>
@@ -72,13 +49,13 @@ export function OnboardingResultScreen() {
           <View style={styles.cardStack}>
             <AppText variant="title" style={styles.cardTitle}>Your first plan</AppText>
             <View style={styles.stepStack}>
-              {planSteps.map((step, index) => (
+              {quizResult.firstPlanSteps.map((step, index) => (
                 <PlanStep
                   key={step.title}
                   number={index + 1}
                   title={step.title}
-                  body={step.body}
-                  isLast={index === planSteps.length - 1}
+                  body={step.description}
+                  isLast={index === quizResult.firstPlanSteps.length - 1}
                 />
               ))}
             </View>
@@ -91,11 +68,10 @@ export function OnboardingResultScreen() {
               <AppText variant="title" style={styles.cardTitle}>Today’s first step</AppText>
             </View>
             <AppText tone="secondary">
-              Start by setting up Protection. This gives you a pause before the automatic loop
-              starts.
+              {firstStep.body}
             </AppText>
             <View style={styles.miniActions}>
-              <AppButton onPress={() => router.push(routes.protectSetup)}>Set up Protection</AppButton>
+              <AppButton onPress={() => router.push(firstStep.route)}>{firstStep.primary}</AppButton>
               <AppButton variant="subtle" onPress={() => router.replace(routes.home)}>
                 Go to Today
               </AppButton>
@@ -105,6 +81,30 @@ export function OnboardingResultScreen() {
       </View>
     </AppScreen>
   );
+}
+
+function getFirstStepContent(action: RecommendedFirstAction) {
+  switch (action) {
+    case "startReset":
+      return {
+        body: "Start with Day 1 of your reset and keep the first goal simple.",
+        primary: "Start 10-Day Reset",
+        route: routes.tenDayReset
+      };
+    case "startArousalPractice":
+      return {
+        body: "Start with a guided practice to notice arousal earlier.",
+        primary: "Start Arousal Control Practice",
+        route: routes.arousalControl
+      };
+    case "setupProtection":
+    default:
+      return {
+        body: "Start by setting up Protection. This gives you a pause before the automatic loop starts.",
+        primary: "Set up Protection",
+        route: routes.protectSetup
+      };
+  }
 }
 
 type StartingPlanHeaderProps = {

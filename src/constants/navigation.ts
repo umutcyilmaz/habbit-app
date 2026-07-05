@@ -27,6 +27,8 @@ export const routes = {
   exercises: "/(tabs)/exercises",
   debugBloomState: "/debug/bloom-state",
   whatShouldIUse: "/guidance/what-should-i-use",
+  onboarding: "/onboarding",
+  onboardingQuiz: "/onboarding/quiz",
   onboardingResult: "/onboarding/result",
   arousalControl: "/exercises/arousal-control",
   arousalControlMode: "/exercises/arousal-control/mode",

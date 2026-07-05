@@ -9,12 +9,10 @@ import { AppIconButton } from "../../../shared/components/AppIconButton";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
+import type { ActivePlan } from "../../../storage/bloomState";
 
 const activePlan = {
   label: "YOUR PLAN",
-  name: "Porn loop reset",
-  primaryPattern: "Porn Loop",
-  secondaryPattern: "Pressure Pattern",
   secondaryAction: "Quick Check-In",
   sensitiveWindow: "Evening window"
 } as const;
@@ -42,13 +40,17 @@ export function TodayScreen() {
     resetStarted,
     resetTodayCompleted,
     resetDay,
-    protectionEnabled: state.protection.isEnabled
+    protectionEnabled: state.protection.isEnabled,
+    activePlan: state.activePlan
   });
 
   return (
     <AppScreen contentStyle={styles.content}>
       <View style={styles.stack}>
-        <PlanHeader onSettingsPress={() => router.push(routes.settings)} />
+        <PlanHeader
+          planName={state.activePlan.planName}
+          onSettingsPress={() => router.push(routes.settings)}
+        />
 
         <TodayHeroCard
           statusLabel={heroState.statusLabel}
@@ -56,18 +58,10 @@ export function TodayScreen() {
           body={heroState.body}
           primaryAction={heroState.primaryAction}
           onPrimaryPress={() => {
-            if (!resetStarted) {
-              router.push(state.protection.isEnabled ? routes.tenDayReset : routes.protectSetup);
-              return;
+            if (heroState.primaryRoute === routes.tenDayResetPractice) {
+              startTenDayReset();
             }
-
-            if (resetTodayCompleted) {
-              router.push(routes.tenDayResetSaved);
-              return;
-            }
-
-            startTenDayReset();
-            router.push(routes.tenDayResetPractice);
+            router.push(heroState.primaryRoute);
           }}
           onSecondaryPress={() => router.push(routes.pauseCheckIn)}
         />
@@ -87,20 +81,23 @@ type TodayHeroStateInput = {
   resetTodayCompleted: boolean;
   resetDay: number;
   protectionEnabled: boolean;
+  activePlan: ActivePlan;
 };
 
 function getTodayHeroState({
   resetStarted,
   resetTodayCompleted,
   resetDay,
-  protectionEnabled
+  protectionEnabled,
+  activePlan
 }: TodayHeroStateInput) {
   if (resetStarted && resetTodayCompleted) {
     return {
       statusLabel: "Today’s reset completed",
       title: "Today’s reset completed.",
       body: "Come back tomorrow and repeat the same reset.",
-      primaryAction: "View saved reset"
+      primaryAction: "View saved reset",
+      primaryRoute: routes.tenDayResetSaved
     };
   }
 
@@ -109,7 +106,28 @@ function getTodayHeroState({
       statusLabel: `10-Day Reset · Day ${resetDay} of 10`,
       title: "Start today’s reset.",
       body: "Keep today simple: no porn, no masturbation, no checking.",
-      primaryAction: "Start today’s reset"
+      primaryAction: "Start today’s reset",
+      primaryRoute: routes.tenDayResetPractice
+    };
+  }
+
+  if (activePlan.recommendedFirstAction === "startReset") {
+    return {
+      statusLabel: activePlan.resultTitle,
+      title: "Start your reset.",
+      body: "Keep today simple: no porn, no masturbation, no checking.",
+      primaryAction: "Start 10-Day Reset",
+      primaryRoute: routes.tenDayReset
+    };
+  }
+
+  if (activePlan.recommendedFirstAction === "startArousalPractice") {
+    return {
+      statusLabel: activePlan.resultTitle,
+      title: "Practice noticing the rise earlier.",
+      body: "Use guided practice to notice arousal before it feels too late.",
+      primaryAction: "Start Arousal Control Practice",
+      primaryRoute: routes.arousalControl
     };
   }
 
@@ -118,7 +136,8 @@ function getTodayHeroState({
       statusLabel: "Protection ready",
       title: "Protection is ready.",
       body: "You have a pause layer before automatic moments.",
-      primaryAction: "Start 10-Day Reset"
+      primaryAction: "Start 10-Day Reset",
+      primaryRoute: routes.tenDayReset
     };
   }
 
@@ -126,15 +145,17 @@ function getTodayHeroState({
     statusLabel: null,
     title: "Create a pause before porn.",
     body: "Your first goal is to notice the automatic loop before it starts.",
-    primaryAction: "Set up Protection"
+    primaryAction: "Set up Protection",
+    primaryRoute: routes.protectSetup
   };
 }
 
 type PlanHeaderProps = {
+  planName: string;
   onSettingsPress: () => void;
 };
 
-function PlanHeader({ onSettingsPress }: PlanHeaderProps) {
+function PlanHeader({ planName, onSettingsPress }: PlanHeaderProps) {
   return (
     <View style={styles.planHeader}>
       <View style={styles.planIdentity}>
@@ -146,7 +167,7 @@ function PlanHeader({ onSettingsPress }: PlanHeaderProps) {
             {activePlan.label}
           </AppText>
           <AppText variant="title" style={styles.planName}>
-            {activePlan.name}
+            {planName}
           </AppText>
         </View>
       </View>

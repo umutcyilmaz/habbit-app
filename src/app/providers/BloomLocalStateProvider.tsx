@@ -9,6 +9,7 @@ import {
 } from "react";
 
 import {
+  clearOnboardingResultState,
   completeArousalControlPracticeState,
   completeTodayResetState,
   defaultBloomLocalState,
@@ -19,12 +20,15 @@ import {
   isTodayCompleted,
   loadBloomLocalState,
   recordProtectionPauseState,
+  saveOnboardingResultForFreshJourneyState,
+  saveOnboardingResultState,
   saveBloomLocalState,
   startTenDayResetState,
   updateArousalControlDraftState,
   type ArousalControlDraft,
   type BloomLocalState,
-  type ProtectionWindow
+  type ProtectionWindow,
+  type QuizResult
 } from "../../storage/bloomState";
 
 type BloomLocalStateContextValue = {
@@ -34,6 +38,15 @@ type BloomLocalStateContextValue = {
   resetDay: number;
   resetTodayCompleted: boolean;
   resetBloomLocalData: () => void;
+  saveOnboardingResult: (
+    quizAnswers: Record<string, unknown>,
+    quizResult: QuizResult
+  ) => void;
+  saveOnboardingResultForFreshJourney: (
+    quizAnswers: Record<string, unknown>,
+    quizResult: QuizResult
+  ) => void;
+  clearOnboardingResult: () => void;
   startTenDayReset: () => void;
   completeTodayReset: () => void;
   simulateNextDay: () => void;
@@ -89,6 +102,26 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
 
   const resetBloomLocalData = useCallback(() => {
     setState(defaultBloomLocalState);
+  }, []);
+
+  const saveOnboardingResult = useCallback(
+    (quizAnswers: Record<string, unknown>, quizResult: QuizResult) => {
+      setState((currentState) => saveOnboardingResultState(currentState, quizAnswers, quizResult));
+    },
+    []
+  );
+
+  const saveOnboardingResultForFreshJourney = useCallback(
+    (quizAnswers: Record<string, unknown>, quizResult: QuizResult) => {
+      setState((currentState) =>
+        saveOnboardingResultForFreshJourneyState(currentState, quizAnswers, quizResult)
+      );
+    },
+    []
+  );
+
+  const clearOnboardingResult = useCallback(() => {
+    setState((currentState) => clearOnboardingResultState(currentState));
   }, []);
 
   const startTenDayReset = useCallback(() => {
@@ -157,6 +190,9 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
       resetDay,
       resetTodayCompleted,
       resetBloomLocalData,
+      saveOnboardingResult,
+      saveOnboardingResultForFreshJourney,
+      clearOnboardingResult,
       startTenDayReset,
       completeTodayReset,
       simulateNextDay,
@@ -169,6 +205,7 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
     }),
     [
       completeArousalControlPractice,
+      clearOnboardingResult,
       completeTodayReset,
       disableProtection,
       enableProtection,
@@ -177,6 +214,8 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
       resetBloomLocalData,
       resetDay,
       resetTodayCompleted,
+      saveOnboardingResultForFreshJourney,
+      saveOnboardingResult,
       simulateNextDay,
       simulatePreviousDay,
       startTenDayReset,

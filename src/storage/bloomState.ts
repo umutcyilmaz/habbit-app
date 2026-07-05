@@ -2,10 +2,58 @@ import { storageClient } from "./storageClient";
 
 const bloomStateStorageKey = "bloom.localState.v1";
 
+export type PatternId = "pornLoop" | "pressurePattern" | "controlTiming";
+
+export type RecommendedFirstAction =
+  | "setupProtection"
+  | "startReset"
+  | "startArousalPractice";
+
+export type QuizScores = {
+  PL: number;
+  PP: number;
+  CT: number;
+  FC: number;
+};
+
+export type NormalizedScores = QuizScores;
+
+export type QuizFlags = {
+  eveningWindow: boolean;
+  emptyMoments: boolean;
+  boredom: boolean;
+  aloneTime: boolean;
+  stressTrigger: boolean;
+  phoneLoop: boolean;
+  firmnessConcern: boolean;
+};
+
+export type QuizPlanStep = {
+  title: string;
+  description: string;
+};
+
+export type QuizResult = {
+  scores: QuizScores;
+  normalizedScores: NormalizedScores;
+  primaryPattern: PatternId;
+  secondaryPattern: PatternId | null;
+  flags: QuizFlags;
+  resultTitle: string;
+  resultBody: string;
+  planName: string;
+  recommendedFirstAction: RecommendedFirstAction;
+  firstPlanSteps: QuizPlanStep[];
+  chips: string[];
+  completedAt: string;
+};
+
 export type ActivePlan = {
-  primaryPattern: "pornLoop";
-  secondaryPattern: "pressurePattern";
-  planName: "Porn loop reset";
+  primaryPattern: PatternId;
+  secondaryPattern: PatternId | null;
+  planName: string;
+  resultTitle: string;
+  recommendedFirstAction: RecommendedFirstAction;
 };
 
 export type TenDayResetState = {
@@ -55,8 +103,16 @@ export type ArousalControlState = {
   logs: ArousalControlPracticeLog[];
 };
 
+export type OnboardingState = {
+  completed: boolean;
+  quizAnswers: Record<string, unknown>;
+  quizResult: QuizResult | null;
+  completedAt: string | null;
+};
+
 export type BloomLocalState = {
   activePlan: ActivePlan;
+  onboarding: OnboardingState;
   tenDayReset: TenDayResetState;
   debug: BloomDebugState;
   protection: ProtectionState;
@@ -67,7 +123,15 @@ export const defaultBloomLocalState: BloomLocalState = {
   activePlan: {
     primaryPattern: "pornLoop",
     secondaryPattern: "pressurePattern",
-    planName: "Porn loop reset"
+    planName: "Porn loop reset",
+    resultTitle: "Porn loop + pressure pattern",
+    recommendedFirstAction: "setupProtection"
+  },
+  onboarding: {
+    completed: false,
+    quizAnswers: {},
+    quizResult: null,
+    completedAt: null
   },
   tenDayReset: {
     startedAt: null,
@@ -154,6 +218,49 @@ export function completeTodayResetState(
       completedDates: Array.from(completedDateSet).sort(),
       lastCompletedAt: completedAt
     }
+  };
+}
+
+export function saveOnboardingResultState(
+  state: BloomLocalState,
+  quizAnswers: Record<string, unknown>,
+  quizResult: QuizResult
+): BloomLocalState {
+  return {
+    ...state,
+    activePlan: activePlanFromQuizResult(quizResult),
+    onboarding: {
+      completed: true,
+      quizAnswers,
+      quizResult,
+      completedAt: quizResult.completedAt
+    }
+  };
+}
+
+export function saveOnboardingResultForFreshJourneyState(
+  state: BloomLocalState,
+  quizAnswers: Record<string, unknown>,
+  quizResult: QuizResult
+): BloomLocalState {
+  const onboardingState = saveOnboardingResultState(state, quizAnswers, quizResult);
+
+  return {
+    ...onboardingState,
+    tenDayReset: defaultBloomLocalState.tenDayReset,
+    protection: defaultBloomLocalState.protection,
+    arousalControl: {
+      ...onboardingState.arousalControl,
+      draft: null
+    }
+  };
+}
+
+export function clearOnboardingResultState(state: BloomLocalState): BloomLocalState {
+  return {
+    ...state,
+    activePlan: defaultBloomLocalState.activePlan,
+    onboarding: defaultBloomLocalState.onboarding
   };
 }
 
@@ -283,11 +390,18 @@ export async function saveBloomLocalState(state: BloomLocalState) {
 function mergeWithDefaultState(state: Partial<BloomLocalState>): BloomLocalState {
   const tenDayReset = state.tenDayReset ?? defaultBloomLocalState.tenDayReset;
   const arousalControl = state.arousalControl ?? defaultBloomLocalState.arousalControl;
+  const onboarding = state.onboarding ?? defaultBloomLocalState.onboarding;
 
   return {
     activePlan: {
       ...defaultBloomLocalState.activePlan,
       ...state.activePlan
+    },
+    onboarding: {
+      ...defaultBloomLocalState.onboarding,
+      ...onboarding,
+      quizAnswers: onboarding.quizAnswers ?? {},
+      quizResult: normalizeQuizResult(onboarding.quizResult ?? null)
     },
     tenDayReset: {
       ...defaultBloomLocalState.tenDayReset,
@@ -305,6 +419,56 @@ function mergeWithDefaultState(state: Partial<BloomLocalState>): BloomLocalState
     arousalControl: {
       draft: arousalControl.draft ?? null,
       logs: sortArousalLogs(arousalControl.logs ?? [])
+    }
+  };
+}
+
+function activePlanFromQuizResult(quizResult: QuizResult): ActivePlan {
+  return {
+    primaryPattern: quizResult.primaryPattern,
+    secondaryPattern: quizResult.secondaryPattern,
+    planName: quizResult.planName,
+    resultTitle: quizResult.resultTitle,
+    recommendedFirstAction: quizResult.recommendedFirstAction
+  };
+}
+
+function normalizeQuizResult(quizResult: QuizResult | null): QuizResult | null {
+  if (quizResult === null) {
+    return null;
+  }
+
+  const legacyScores = quizResult.scores as QuizScores & {
+    pornLoop?: number;
+    pressurePattern?: number;
+    controlTiming?: number;
+    firmnessConcern?: number;
+  };
+  const scores: QuizScores = {
+    PL: legacyScores.PL ?? legacyScores.pornLoop ?? 0,
+    PP: legacyScores.PP ?? legacyScores.pressurePattern ?? 0,
+    CT: legacyScores.CT ?? legacyScores.controlTiming ?? 0,
+    FC: legacyScores.FC ?? legacyScores.firmnessConcern ?? 0
+  };
+  const normalizedScores = quizResult.normalizedScores ?? {
+    PL: 0,
+    PP: 0,
+    CT: 0,
+    FC: 0
+  };
+
+  return {
+    ...quizResult,
+    scores,
+    normalizedScores,
+    flags: {
+      eveningWindow: quizResult.flags.eveningWindow,
+      emptyMoments: quizResult.flags.emptyMoments,
+      boredom: quizResult.flags.boredom,
+      aloneTime: quizResult.flags.aloneTime,
+      stressTrigger: quizResult.flags.stressTrigger ?? false,
+      phoneLoop: quizResult.flags.phoneLoop ?? false,
+      firmnessConcern: quizResult.flags.firmnessConcern
     }
   };
 }
