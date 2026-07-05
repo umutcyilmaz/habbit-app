@@ -135,7 +135,7 @@ function getTodayHeroState({
     return {
       statusLabel: "Protection ready",
       title: "Protection is ready.",
-      body: "You have a pause layer before automatic moments.",
+      body: "Your pause layer is set. The next step is a short reset from pressure and checking.",
       primaryAction: "Start 10-Day Reset",
       primaryRoute: routes.tenDayReset
     };
@@ -144,7 +144,7 @@ function getTodayHeroState({
   return {
     statusLabel: null,
     title: "Create a pause before porn.",
-    body: "Your first goal is to notice the automatic loop before it starts.",
+    body: "Start by setting up Protection so there is a short pause before the automatic loop begins.",
     primaryAction: "Set up Protection",
     primaryRoute: routes.protectSetup
   };

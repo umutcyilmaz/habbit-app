@@ -76,7 +76,7 @@ export function ProtectionSetupScreen() {
       payload: "active"
     });
     enableProtection(getPreferredWindow(selectedSchedule));
-    router.replace(routes.protectActive);
+    router.replace(routes.home);
   };
 
   return (
