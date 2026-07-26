@@ -187,6 +187,11 @@ function getRoadmapSteps({
   const steps = ensureThreeSteps(sourceSteps);
 
   switch (quizResult.recommendedFirstAction) {
+    case "startQuickCheckIn":
+      return steps.map((step, index) => ({
+        ...step,
+        status: index === 0 ? "current" : "next"
+      }));
     case "startReset":
       return [
         {
@@ -316,6 +321,16 @@ function getPlanAction(
   action: RecommendedFirstAction,
   protectionEnabled: boolean
 ): CurrentAction {
+  if (action === "startQuickCheckIn") {
+    return {
+      eyebrow: "CURRENT ACTION",
+      title: "Start with a quick check-in.",
+      body: "Notice what is happening without needing to label it yet.",
+      cta: "Start a Quick Check-In",
+      route: routes.pauseCheckIn
+    };
+  }
+
   if (action === "startReset") {
     return {
       eyebrow: "CURRENT ACTION",

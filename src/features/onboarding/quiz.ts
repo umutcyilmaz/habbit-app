@@ -3,7 +3,8 @@ import type {
   PatternId,
   QuizFlags,
   QuizResult,
-  QuizScores
+  QuizScores,
+  ScoredPatternId
 } from "../../storage/bloomState";
 
 type ScoreArea = keyof QuizScores;
@@ -53,8 +54,11 @@ export type QuizQuestionContribution = {
 };
 
 export type QuizScoringPreview = {
-  result: QuizResult;
+  result: QuizResult | null;
+  scores: QuizScores;
+  normalizedScores: NormalizedScores;
   isComplete: boolean;
+  answeredFrequencyCount: number;
   answeredStepCount: number;
   totalSteps: number;
   activeFlags: Array<keyof QuizFlags>;
@@ -64,7 +68,8 @@ export type DebugProfileId =
   | "pornLoop"
   | "mixedPornPressure"
   | "pressurePattern"
-  | "controlTiming";
+  | "controlTiming"
+  | "generalStartingPoint";
 
 export type FrequencyQuestion = {
   id: FrequencyQuestionId;
@@ -82,6 +87,13 @@ export type TriggerQuestion = {
 };
 
 export type QuizQuestion = FrequencyQuestion | TriggerQuestion;
+
+export type CompleteQuizAnswerFixture = Record<
+  FrequencyQuestionId,
+  FrequencyAnswerValue
+> & {
+  loop_triggers: TriggerOptionId[];
+};
 
 export const frequencyAnswers: readonly {
   label: string;
@@ -204,235 +216,113 @@ export const defaultQuizResult: QuizResult = {
     CT: 0,
     FC: 0
   },
-  primaryPattern: "pornLoop",
-  secondaryPattern: "pressurePattern",
+  primaryPattern: "generalStartingPoint",
+  secondaryPattern: null,
   flags: {
-    eveningWindow: true,
-    emptyMoments: true,
+    eveningWindow: false,
+    emptyMoments: false,
     boredom: false,
     aloneTime: false,
     stressTrigger: false,
     phoneLoop: false,
-    firmnessConcern: true
+    firmnessConcern: false
   },
-  resultTitle: "Porn loop + pressure pattern",
+  resultTitle: "A simple starting point",
   resultBody:
-    "Porn may be starting the loop before real desire is present, and masturbation may sometimes happen with pressure or rushing.",
-  planName: "Porn loop reset",
-  recommendedFirstAction: "setupProtection",
+    "Your answers do not point strongly to one pattern yet. Bloom can start with a simple check-in and adjust as you use the app.",
+  planName: "Starting plan",
+  recommendedFirstAction: "startQuickCheckIn",
   firstPlanSteps: [
     {
-      title: "Pause before porn",
-      description: "Create friction before opening adult content."
+      title: "Notice the moment",
+      description: "Use a quick check-in when something feels automatic or unclear."
     },
     {
-      title: "Step away from pressure",
-      description: "Avoid forced masturbation and checking for now."
+      title: "Try a short pause",
+      description: "Use the 90-Second Pause when you want space before acting."
     },
     {
-      title: "Rebuild with practice",
-      description: "Use guided practice when real desire is present."
+      title: "Let the plan adjust",
+      description: "Bloom can personalize your next step as you add a few entries."
     }
   ],
-  chips: ["Porn loop", "Pressure pattern", "Evening window", "Firmness concern"],
+  chips: ["General starting point"],
   completedAt: new Date(0).toISOString()
 };
+
+const allNeverFrequencyAnswers: Record<FrequencyQuestionId, FrequencyAnswerValue> = {
+  porn_empty_moments: 0,
+  porn_without_desire: 0,
+  porn_to_masturbation: 0,
+  automatic_phone_loop: 0,
+  pressure_speed_friction: 0,
+  force_arousal: 0,
+  mechanical_get_it_done: 0,
+  specific_pressure_dependency: 0,
+  arousal_rises_fast: 0,
+  notice_too_late: 0,
+  too_late_to_slow: 0,
+  checking_firmness: 0
+};
+
+export const debugQuizAnswerFixtures = {
+  pornLoop: {
+    ...allNeverFrequencyAnswers,
+    porn_empty_moments: 3,
+    porn_without_desire: 3,
+    porn_to_masturbation: 3,
+    automatic_phone_loop: 3,
+    loop_triggers: ["beforeSleep", "bored", "scrolling"]
+  },
+  mixedPornPressure: {
+    ...allNeverFrequencyAnswers,
+    porn_empty_moments: 3,
+    porn_without_desire: 3,
+    porn_to_masturbation: 3,
+    automatic_phone_loop: 3,
+    pressure_speed_friction: 3,
+    force_arousal: 3,
+    mechanical_get_it_done: 3,
+    specific_pressure_dependency: 3,
+    checking_firmness: 3,
+    loop_triggers: ["bathroom", "beforeSleep", "bored", "stressed", "alone", "scrolling"]
+  },
+  pressurePattern: {
+    ...allNeverFrequencyAnswers,
+    pressure_speed_friction: 3,
+    force_arousal: 3,
+    mechanical_get_it_done: 3,
+    specific_pressure_dependency: 3,
+    checking_firmness: 3,
+    loop_triggers: ["stressed"]
+  },
+  controlTiming: {
+    ...allNeverFrequencyAnswers,
+    arousal_rises_fast: 3,
+    notice_too_late: 3,
+    too_late_to_slow: 3,
+    loop_triggers: ["notSure"]
+  },
+  generalStartingPoint: {
+    ...allNeverFrequencyAnswers,
+    loop_triggers: ["notSure"]
+  }
+} satisfies Record<DebugProfileId, CompleteQuizAnswerFixture>;
+
+export function getDebugQuizAnswers(profileId: DebugProfileId): CompleteQuizAnswerFixture {
+  const fixture = debugQuizAnswerFixtures[profileId];
+
+  return {
+    ...fixture,
+    loop_triggers: [...fixture.loop_triggers]
+  };
+}
 
 export function createDebugQuizResult(
   profileId: DebugProfileId,
   completedAt = new Date().toISOString()
 ): QuizResult {
-  switch (profileId) {
-    case "mixedPornPressure":
-      return {
-        scores: {
-          PL: 10,
-          PP: 9,
-          CT: 2,
-          FC: 4
-        },
-        normalizedScores: {
-          PL: 0.85,
-          PP: 0.75,
-          CT: 0.25,
-          FC: 0.55
-        },
-        primaryPattern: "pornLoop",
-        secondaryPattern: "pressurePattern",
-        flags: {
-          eveningWindow: true,
-          emptyMoments: true,
-          boredom: true,
-          aloneTime: true,
-          stressTrigger: false,
-          phoneLoop: true,
-          firmnessConcern: true
-        },
-        resultTitle: "Porn loop + pressure pattern",
-        resultBody:
-          "Porn may be starting the loop before real desire is present, and masturbation may sometimes happen with pressure or rushing.",
-        planName: "Porn loop reset",
-        recommendedFirstAction: "setupProtection",
-        firstPlanSteps: [
-          {
-            title: "Pause before porn",
-            description: "Create friction before opening adult content."
-          },
-          {
-            title: "Step away from pressure",
-            description: "Avoid forced masturbation and checking for now."
-          },
-          {
-            title: "Rebuild with practice",
-            description: "Use guided practice when real desire is present."
-          }
-        ],
-        chips: ["Porn loop", "Pressure pattern", "Evening window", "Phone loop", "Firmness concern"],
-        completedAt
-      };
-    case "pressurePattern":
-      return {
-        scores: {
-          PL: 2,
-          PP: 10,
-          CT: 3,
-          FC: 4
-        },
-        normalizedScores: {
-          PL: 0.2,
-          PP: 0.85,
-          CT: 0.35,
-          FC: 0.55
-        },
-        primaryPattern: "pressurePattern",
-        secondaryPattern: null,
-        flags: {
-          eveningWindow: false,
-          emptyMoments: false,
-          boredom: false,
-          aloneTime: false,
-          stressTrigger: true,
-          phoneLoop: false,
-          firmnessConcern: true
-        },
-        resultTitle: "Pressure pattern",
-        resultBody:
-          "Masturbation may sometimes happen with pressure, rushing, or checking. Bloom can help you take a short reset and rebuild with more awareness.",
-        planName: "10-Day Reset",
-        recommendedFirstAction: "startReset",
-        firstPlanSteps: [
-          {
-            title: "Take a short reset",
-            description: "Step away from porn, masturbation, and checking."
-          },
-          {
-            title: "Reduce pressure",
-            description: "Give the pressure pattern a short break."
-          },
-          {
-            title: "Rebuild with practice",
-            description: "Use guided practice when real desire is present."
-          }
-        ],
-        chips: ["Pressure pattern", "Firmness concern"],
-        completedAt
-      };
-    case "controlTiming":
-      return {
-        scores: {
-          PL: 1,
-          PP: 3,
-          CT: 9,
-          FC: 1
-        },
-        normalizedScores: {
-          PL: 0.1,
-          PP: 0.3,
-          CT: 0.9,
-          FC: 0.2
-        },
-        primaryPattern: "controlTiming",
-        secondaryPattern: null,
-        flags: {
-          eveningWindow: false,
-          emptyMoments: false,
-          boredom: false,
-          aloneTime: false,
-          stressTrigger: false,
-          phoneLoop: false,
-          firmnessConcern: false
-        },
-        resultTitle: "Control and timing practice",
-        resultBody:
-          "Arousal may rise quickly or become harder to slow down later. Bloom can help you notice the rise earlier.",
-        planName: "Arousal control practice",
-        recommendedFirstAction: "startArousalPractice",
-        firstPlanSteps: [
-          {
-            title: "Notice the rise earlier",
-            description: "Use arousal levels to understand where you are."
-          },
-          {
-            title: "Pause before it feels too late",
-            description: "Practice pausing around your pause zone."
-          },
-          {
-            title: "Reflect after practice",
-            description: "Save what changed without judging the outcome."
-          }
-        ],
-        chips: ["Control and timing"],
-        completedAt
-      };
-    case "pornLoop":
-    default:
-      return {
-        scores: {
-          PL: 10,
-          PP: 3,
-          CT: 1,
-          FC: 1
-        },
-        normalizedScores: {
-          PL: 0.85,
-          PP: 0.25,
-          CT: 0.15,
-          FC: 0.2
-        },
-        primaryPattern: "pornLoop",
-        secondaryPattern: null,
-        flags: {
-          eveningWindow: true,
-          emptyMoments: true,
-          boredom: true,
-          aloneTime: false,
-          stressTrigger: false,
-          phoneLoop: true,
-          firmnessConcern: false
-        },
-        resultTitle: "Porn loop pattern",
-        resultBody:
-          "Porn may be starting the loop before real desire is present. Bloom can help you create a pause first.",
-        planName: "Porn loop reset",
-        recommendedFirstAction: "setupProtection",
-        firstPlanSteps: [
-          {
-            title: "Pause before porn",
-            description: "Create friction before opening adult content."
-          },
-          {
-            title: "Notice the trigger",
-            description: "Check in when the loop feels automatic."
-          },
-          {
-            title: "Rebuild with practice",
-            description: "Use guided practice when real desire is present."
-          }
-        ],
-        chips: ["Porn loop", "Empty moments", "Evening window", "Phone loop"],
-        completedAt
-      };
-  }
+  return scoreOnboardingQuiz(getDebugQuizAnswers(profileId), completedAt);
 }
 
 
@@ -441,6 +331,20 @@ const triggerMaxBonuses: QuizScores = {
   PP: 0.5,
   CT: 0,
   FC: 0
+};
+
+export const MINIMUM_PROFILE_SIGNAL = 0.35;
+export const SECONDARY_STRONG_SIGNAL = 0.5;
+export const SECONDARY_CLOSE_GAP = 0.12;
+export const MIXED_PATTERN_SIGNAL = 0.5;
+export const PARTIAL_PREVIEW_FREQUENCY_THRESHOLD = 4;
+
+const scoreTieEpsilon = 0.0001;
+// Exact or near-exact ties favor the lighter starting path: PL, then CT, then PP.
+const patternTiePriority: Record<ScoredPatternId, number> = {
+  pornLoop: 0,
+  controlTiming: 1,
+  pressurePattern: 2
 };
 
 export function scoreOnboardingQuiz(
@@ -471,14 +375,42 @@ export function scoreOnboardingQuiz(
   const rankedPatterns = rankPatterns(normalizedScores);
   const primaryCandidate = rankedPatterns[0] ?? { id: "pornLoop", score: 0 };
   const secondaryCandidate = rankedPatterns[1] ?? { id: "pressurePattern", score: 0 };
+  const primaryNormalized = primaryCandidate.score;
+
+  if (primaryNormalized < MINIMUM_PROFILE_SIGNAL) {
+    return buildGeneralStartingResult({
+      scores,
+      normalizedScores,
+      flags,
+      completedAt
+    });
+  }
+
+  const mixedPornPressure = isStrongPornPressurePair(normalizedScores);
+
+  if (mixedPornPressure) {
+    const pornLoopRanksFirst =
+      normalizedScores.PL > normalizedScores.PP ||
+      areScoresTied(normalizedScores.PL, normalizedScores.PP);
+
+    return buildQuizResult({
+      scores,
+      normalizedScores,
+      flags,
+      primaryPattern: pornLoopRanksFirst ? "pornLoop" : "pressurePattern",
+      secondaryPattern: pornLoopRanksFirst ? "pressurePattern" : "pornLoop",
+      mixedPornPressure: true,
+      completedAt
+    });
+  }
+
   const secondaryPattern =
-    secondaryCandidate.score >= 0.5 || primaryCandidate.score - secondaryCandidate.score <= 0.18
+    secondaryCandidate.score >= SECONDARY_STRONG_SIGNAL ||
+    (secondaryCandidate.score >= MINIMUM_PROFILE_SIGNAL &&
+      primaryCandidate.score - secondaryCandidate.score <=
+        SECONDARY_CLOSE_GAP + scoreTieEpsilon)
       ? secondaryCandidate.id
       : null;
-  const mixedPornPressure =
-    normalizedScores.PL >= 0.5 &&
-    normalizedScores.PP >= 0.5 &&
-    isPornPressurePair(primaryCandidate.id, secondaryPattern);
 
   return buildQuizResult({
     scores,
@@ -486,25 +418,33 @@ export function scoreOnboardingQuiz(
     flags,
     primaryPattern: primaryCandidate.id,
     secondaryPattern,
-    mixedPornPressure,
+    mixedPornPressure: false,
     completedAt
   });
 }
 
-export function calculateQuizResultPreview(answers: QuizAnswerMap): QuizScoringPreview {
-  const result = scoreOnboardingQuiz(answers);
+export function calculateQuizResultPreview(
+  answers: QuizAnswerMap,
+  completedAt = new Date().toISOString()
+): QuizScoringPreview {
+  const scoredResult = scoreOnboardingQuiz(answers, completedAt);
   const answeredFrequencyCount = frequencyQuestions.filter(
     (question) => getSelectedFrequencyAnswer(answers[question.id]) !== null
   ).length;
   const triggerAnswered = Array.isArray(answers.loop_triggers);
   const answeredStepCount = answeredFrequencyCount + (triggerAnswered ? 1 : 0);
+  const hasEnoughFrequencyAnswers =
+    answeredFrequencyCount >= PARTIAL_PREVIEW_FREQUENCY_THRESHOLD;
 
   return {
-    result,
+    result: hasEnoughFrequencyAnswers ? scoredResult : null,
+    scores: scoredResult.scores,
+    normalizedScores: scoredResult.normalizedScores,
     isComplete: answeredStepCount === quizQuestions.length,
+    answeredFrequencyCount,
     answeredStepCount,
     totalSteps: quizQuestions.length,
-    activeFlags: getActiveFlags(result.flags)
+    activeFlags: getActiveFlags(scoredResult.flags)
   };
 }
 
@@ -578,6 +518,50 @@ function applyTriggerScores(
   }
 }
 
+function buildGeneralStartingResult({
+  scores,
+  normalizedScores,
+  flags,
+  completedAt
+}: {
+  scores: QuizScores;
+  normalizedScores: NormalizedScores;
+  flags: QuizFlags;
+  completedAt: string;
+}): QuizResult {
+  return addComputedFields({
+    scores,
+    normalizedScores,
+    flags,
+    primaryPattern: "generalStartingPoint",
+    secondaryPattern: null,
+    resultTitle: "A simple starting point",
+    resultBody:
+      "Your answers do not point strongly to one pattern yet. Bloom can start with a simple check-in and adjust as you use the app.",
+    planName: "Starting plan",
+    recommendedFirstAction: "startQuickCheckIn",
+    firstPlanSteps: [
+      {
+        title: "Notice the moment",
+        description: "Use a quick check-in when something feels automatic or unclear."
+      },
+      {
+        title: "Try a short pause",
+        description: "Use the 90-Second Pause when you want space before acting."
+      },
+      {
+        title: "Let the plan adjust",
+        description: "Bloom can personalize your next step as you add a few entries."
+      }
+    ],
+    chips: [
+      "General starting point",
+      ...(flags.firmnessConcern ? ["Firmness concern"] : [])
+    ],
+    completedAt
+  });
+}
+
 function buildQuizResult({
   scores,
   normalizedScores,
@@ -590,8 +574,8 @@ function buildQuizResult({
   scores: QuizScores;
   normalizedScores: NormalizedScores;
   flags: QuizFlags;
-  primaryPattern: PatternId;
-  secondaryPattern: PatternId | null;
+  primaryPattern: ScoredPatternId;
+  secondaryPattern: ScoredPatternId | null;
   mixedPornPressure: boolean;
   completedAt: string;
 }): QuizResult {
@@ -780,8 +764,19 @@ function rankPatterns(scores: NormalizedScores) {
     { id: "pornLoop", score: scores.PL },
     { id: "pressurePattern", score: scores.PP },
     { id: "controlTiming", score: scores.CT }
-  ].sort((first, second) => second.score - first.score) as Array<{
-    id: PatternId;
+  ].sort((first, second) => {
+    const scoreDifference = second.score - first.score;
+
+    if (!areScoresTied(first.score, second.score)) {
+      return scoreDifference;
+    }
+
+    return (
+      patternTiePriority[first.id as ScoredPatternId] -
+      patternTiePriority[second.id as ScoredPatternId]
+    );
+  }) as Array<{
+    id: ScoredPatternId;
     score: number;
   }>;
 }
@@ -821,6 +816,8 @@ function getTriggerAnswers(value: unknown): TriggerOptionId[] {
 
 export function getPatternLabel(pattern: PatternId) {
   switch (pattern) {
+    case "generalStartingPoint":
+      return "General starting point";
     case "pressurePattern":
       return "Pressure pattern";
     case "controlTiming":
@@ -833,6 +830,8 @@ export function getPatternLabel(pattern: PatternId) {
 
 export function getRecommendedFirstActionLabel(action: QuizResult["recommendedFirstAction"]) {
   switch (action) {
+    case "startQuickCheckIn":
+      return "Start a Quick Check-In";
     case "startReset":
       return "Start 10-Day Reset";
     case "startArousalPractice":
@@ -930,11 +929,18 @@ function getTriggerLabel(value: TriggerOptionId) {
   return triggerOptions.find((option) => option.id === value)?.label ?? value;
 }
 
-function isPornPressurePair(primaryPattern: PatternId, secondaryPattern: PatternId | null) {
+function isStrongPornPressurePair(scores: NormalizedScores) {
+  // When all three axes tie, PL + PP is the intentional v1 simplification.
   return (
-    (primaryPattern === "pornLoop" && secondaryPattern === "pressurePattern") ||
-    (primaryPattern === "pressurePattern" && secondaryPattern === "pornLoop")
+    scores.PL >= MIXED_PATTERN_SIGNAL &&
+    scores.PP >= MIXED_PATTERN_SIGNAL &&
+    scores.PL + scoreTieEpsilon >= scores.CT &&
+    scores.PP + scoreTieEpsilon >= scores.CT
   );
+}
+
+function areScoresTied(first: number, second: number) {
+  return Math.abs(first - second) <= scoreTieEpsilon;
 }
 
 const scoreAreas: readonly ScoreArea[] = ["PL", "PP", "CT", "FC"];

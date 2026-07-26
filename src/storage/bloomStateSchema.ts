@@ -60,11 +60,13 @@ export type BloomStateValidationResult =
       error: string;
     };
 
-const patternIds = ["pornLoop", "pressurePattern", "controlTiming"] as const;
+const scoredPatternIds = ["pornLoop", "pressurePattern", "controlTiming"] as const;
+const patternIds = [...scoredPatternIds, "generalStartingPoint"] as const;
 const recommendedActions = [
   "setupProtection",
   "startReset",
-  "startArousalPractice"
+  "startArousalPractice",
+  "startQuickCheckIn"
 ] as const;
 const protectionWindows = ["evening", "night", "custom"] as const;
 const durationPreferences = ["notLogged", "estimated", "exact"] as const;
@@ -265,7 +267,7 @@ function normalizeNullableQuizResult(value: unknown): QuizResult | null {
   );
   const secondaryPattern = optionalNullableEnum(
     record.secondaryPattern,
-    patternIds,
+    scoredPatternIds,
     null,
     "state.onboarding.quizResult.secondaryPattern"
   );
@@ -389,7 +391,7 @@ function normalizeActivePlan(value: unknown, defaults: ActivePlan): ActivePlan {
     ),
     secondaryPattern: optionalNullableEnum(
       record.secondaryPattern,
-      patternIds,
+      scoredPatternIds,
       defaults.secondaryPattern,
       "state.activePlan.secondaryPattern"
     ),
@@ -616,6 +618,8 @@ function normalizePracticeOptionalFields(
 
 function actionFromPattern(pattern: PatternId): RecommendedFirstAction {
   switch (pattern) {
+    case "generalStartingPoint":
+      return "startQuickCheckIn";
     case "pressurePattern":
       return "startReset";
     case "controlTiming":

@@ -130,6 +130,12 @@ export function OnboardingResultScreen() {
 
 function getFirstStepContent(action: RecommendedFirstAction) {
   switch (action) {
+    case "startQuickCheckIn":
+      return {
+        body: "Start with a simple check-in and notice what is present without needing to label it yet.",
+        primary: "Start a Quick Check-In",
+        route: routes.pauseCheckIn
+      };
     case "startReset":
       return {
         body: "Start with Day 1 of your reset and keep the first goal simple.",

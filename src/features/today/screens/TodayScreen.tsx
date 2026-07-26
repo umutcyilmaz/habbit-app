@@ -63,7 +63,9 @@ export function TodayScreen() {
             }
             router.push(heroState.primaryRoute);
           }}
-          onSecondaryPress={() => router.push(routes.pauseCheckIn)}
+          {...(heroState.primaryRoute !== routes.pauseCheckIn
+            ? { onSecondaryPress: () => router.push(routes.pauseCheckIn) }
+            : {})}
         />
 
         <TodayPathTimeline />
@@ -131,6 +133,16 @@ function getTodayHeroState({
     };
   }
 
+  if (activePlan.recommendedFirstAction === "startQuickCheckIn") {
+    return {
+      statusLabel: activePlan.resultTitle,
+      title: "Start with a quick check-in.",
+      body: "Notice what is happening without needing to label it yet.",
+      primaryAction: "Start a Quick Check-In",
+      primaryRoute: routes.pauseCheckIn
+    };
+  }
+
   if (protectionEnabled) {
     return {
       statusLabel: "Protection ready",
@@ -187,7 +199,7 @@ type TodayHeroCardProps = {
   body: string;
   primaryAction: string;
   onPrimaryPress: () => void;
-  onSecondaryPress: () => void;
+  onSecondaryPress?: () => void;
 };
 
 function TodayHeroCard({
@@ -220,9 +232,11 @@ function TodayHeroCard({
       </View>
       <View style={styles.heroActions}>
         <AppButton onPress={onPrimaryPress}>{primaryAction}</AppButton>
-        <AppButton variant="subtle" onPress={onSecondaryPress}>
-          {activePlan.secondaryAction}
-        </AppButton>
+        {onSecondaryPress ? (
+          <AppButton variant="subtle" onPress={onSecondaryPress}>
+            {activePlan.secondaryAction}
+          </AppButton>
+        ) : null}
       </View>
     </AppCard>
   );

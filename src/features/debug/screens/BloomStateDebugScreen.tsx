@@ -7,6 +7,8 @@ import { useLocalDataLifecycle } from "../../../app/providers/LocalDataLifecycle
 import { routes } from "../../../constants/navigation";
 import {
   createDebugQuizResult,
+  getDebugQuizAnswers,
+  getPatternLabel,
   getRecommendedFirstActionLabel,
   type DebugProfileId
 } from "../../onboarding/quiz";
@@ -57,20 +59,16 @@ export function BloomStateDebugScreen() {
   }, [clearDeletionStatus]);
 
   const setDebugProfile = (profileId: DebugProfileId) => {
+    const quizAnswers = getDebugQuizAnswers(profileId);
     const quizResult = createDebugQuizResult(profileId);
 
-    saveOnboardingResult(
-      { debugProfileId: profileId },
-      quizResult
-    );
+    saveOnboardingResult(quizAnswers, quizResult);
   };
   const startAsDebugProfile = (profileId: DebugProfileId) => {
+    const quizAnswers = getDebugQuizAnswers(profileId);
     const quizResult = createDebugQuizResult(profileId);
 
-    saveOnboardingResultForFreshJourney(
-      { debugProfileId: profileId, startedFreshJourney: true },
-      quizResult
-    );
+    saveOnboardingResultForFreshJourney(quizAnswers, quizResult);
     router.push(routes.onboardingResult);
   };
   const openRecommendedFirstStep = () => {
@@ -114,7 +112,10 @@ export function BloomStateDebugScreen() {
                 ["Onboarding completed", state.onboarding.completed ? "yes" : "no"],
                 ["Result title", state.onboarding.quizResult?.resultTitle ?? "none"],
                 ["Active plan", state.activePlan.planName],
-                ["Recommended first action", state.activePlan.recommendedFirstAction],
+                [
+                  "Recommended first action",
+                  getRecommendedFirstActionLabel(state.activePlan.recommendedFirstAction)
+                ],
                 ["Score PL", formatScore(state.onboarding.quizResult?.scores.PL)],
                 ["Score PP", formatScore(state.onboarding.quizResult?.scores.PP)],
                 ["Score CT", formatScore(state.onboarding.quizResult?.scores.CT)],
@@ -197,14 +198,16 @@ export function BloomStateDebugScreen() {
                   </AppText>
                 </View>
                 <View style={styles.profileList}>
-                  {debugProfiles.map((profile) => (
-                    <View key={profile.id} style={styles.profileOption}>
-                      <AppText variant="label">{profile.title}</AppText>
+                  {debugProfileIds.map((profileId) => (
+                    <View key={profileId} style={styles.profileOption}>
+                      <AppText variant="label">
+                        {createDebugQuizResult(profileId).resultTitle}
+                      </AppText>
                       <View style={styles.profileActions}>
-                        <AppButton onPress={() => startAsDebugProfile(profile.id)}>
+                        <AppButton onPress={() => startAsDebugProfile(profileId)}>
                           Start as this profile
                         </AppButton>
-                        <AppButton variant="subtle" onPress={() => setDebugProfile(profile.id)}>
+                        <AppButton variant="subtle" onPress={() => setDebugProfile(profileId)}>
                           Set only
                         </AppButton>
                       </View>
@@ -227,11 +230,15 @@ export function BloomStateDebugScreen() {
                       />
                       <ProfileSummaryRow
                         label="Primary pattern"
-                        value={currentQuizResult.primaryPattern}
+                        value={getPatternLabel(currentQuizResult.primaryPattern)}
                       />
                       <ProfileSummaryRow
                         label="Secondary pattern"
-                        value={currentQuizResult.secondaryPattern ?? "None"}
+                        value={
+                          currentQuizResult.secondaryPattern
+                            ? getPatternLabel(currentQuizResult.secondaryPattern)
+                            : "None"
+                        }
                       />
                       <ProfileSummaryRow
                         label="Chips"
@@ -335,15 +342,18 @@ export function BloomStateDebugScreen() {
   );
 }
 
-const debugProfiles: Array<{ id: DebugProfileId; title: string }> = [
-  { id: "pornLoop", title: "Porn loop pattern" },
-  { id: "mixedPornPressure", title: "Porn loop + pressure pattern" },
-  { id: "pressurePattern", title: "Pressure pattern" },
-  { id: "controlTiming", title: "Control and timing practice" }
-];
+const debugProfileIds = [
+  "pornLoop",
+  "mixedPornPressure",
+  "pressurePattern",
+  "controlTiming",
+  "generalStartingPoint"
+] as const satisfies readonly DebugProfileId[];
 
 function getRecommendedFirstActionRoute(action: RecommendedFirstAction) {
   switch (action) {
+    case "startQuickCheckIn":
+      return routes.pauseCheckIn;
     case "startReset":
       return routes.tenDayReset;
     case "startArousalPractice":

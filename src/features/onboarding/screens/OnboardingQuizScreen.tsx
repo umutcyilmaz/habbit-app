@@ -355,6 +355,7 @@ function TestScoringPreviewPanel({
   const preview = calculateQuizResultPreview(answers);
   const contribution = getQuizQuestionContribution(question, answers);
   const result = preview.result;
+  const isEarlyPreview = result !== null && !preview.isComplete;
 
   return (
     <AppCard style={styles.debugCard}>
@@ -366,7 +367,7 @@ function TestScoringPreviewPanel({
               Visible during testing only.
             </AppText>
           </View>
-          {!preview.isComplete ? (
+          {isEarlyPreview ? (
             <View style={styles.debugPill}>
               <AppText variant="caption" tone="secondary">
                 Early preview
@@ -398,7 +399,7 @@ function TestScoringPreviewPanel({
           <ScoreRows
             scores={previewScoreAreas.map((area) => ({
               label: area,
-              value: formatScore(result.scores[area])
+              value: formatScore(preview.scores[area])
             }))}
           />
         </DebugSection>
@@ -407,30 +408,56 @@ function TestScoringPreviewPanel({
           <ScoreRows
             scores={previewScoreAreas.map((area) => ({
               label: area,
-              value: formatPercent(result.normalizedScores[area])
+              value: formatPercent(preview.normalizedScores[area])
             }))}
           />
         </DebugSection>
 
         <DebugSection title="Current predicted result">
           <View style={styles.debugMiniStack}>
-            {!preview.isComplete ? (
-              <AppText variant="bodySmall" tone="secondary">
-                Early preview - may change as you answer more questions.
-              </AppText>
-            ) : null}
-            <DebugInfoRow label="Predicted profile" value={result.resultTitle} />
-            <DebugInfoRow label="Primary" value={getPatternLabel(result.primaryPattern)} />
-            <DebugInfoRow
-              label="Secondary"
-              value={result.secondaryPattern ? getPatternLabel(result.secondaryPattern) : "None"}
-            />
-            <DebugInfoRow
-              label="Recommended first action"
-              value={getRecommendedFirstActionLabel(result.recommendedFirstAction)}
-            />
+            {result === null ? (
+              <>
+                <AppText variant="label">Not enough answers yet</AppText>
+                <AppText variant="bodySmall" tone="secondary">
+                  Answer a few more questions to see an early preview.
+                </AppText>
+              </>
+            ) : (
+              <>
+                {isEarlyPreview ? (
+                  <AppText variant="bodySmall" tone="secondary">
+                    Early preview - may change as you answer more questions.
+                  </AppText>
+                ) : null}
+                <DebugInfoRow
+                  label="Predicted profile"
+                  value={
+                    isEarlyPreview && result.primaryPattern === "generalStartingPoint"
+                      ? "General starting point - early preview"
+                      : result.resultTitle
+                  }
+                />
+                <DebugInfoRow
+                  label="Primary"
+                  value={getPatternLabel(result.primaryPattern)}
+                />
+                <DebugInfoRow
+                  label="Secondary"
+                  value={
+                    result.secondaryPattern
+                      ? getPatternLabel(result.secondaryPattern)
+                      : "None"
+                  }
+                />
+                <DebugInfoRow
+                  label="Recommended first action"
+                  value={getRecommendedFirstActionLabel(result.recommendedFirstAction)}
+                />
+              </>
+            )}
             <AppText variant="caption" tone="secondary">
-              Answered {preview.answeredStepCount} of {preview.totalSteps}
+              Answered {preview.answeredStepCount} of {preview.totalSteps} steps ·{" "}
+              {preview.answeredFrequencyCount} frequency answers
             </AppText>
           </View>
         </DebugSection>

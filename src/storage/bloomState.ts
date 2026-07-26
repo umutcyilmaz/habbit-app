@@ -1,9 +1,12 @@
-export type PatternId = "pornLoop" | "pressurePattern" | "controlTiming";
+export type ScoredPatternId = "pornLoop" | "pressurePattern" | "controlTiming";
+
+export type PatternId = ScoredPatternId | "generalStartingPoint";
 
 export type RecommendedFirstAction =
   | "setupProtection"
   | "startReset"
-  | "startArousalPractice";
+  | "startArousalPractice"
+  | "startQuickCheckIn";
 
 export type QuizScores = {
   PL: number;
@@ -33,7 +36,7 @@ export type QuizResult = {
   scores: QuizScores;
   normalizedScores: NormalizedScores;
   primaryPattern: PatternId;
-  secondaryPattern: PatternId | null;
+  secondaryPattern: ScoredPatternId | null;
   flags: QuizFlags;
   resultTitle: string;
   resultBody: string;
@@ -46,7 +49,7 @@ export type QuizResult = {
 
 export type ActivePlan = {
   primaryPattern: PatternId;
-  secondaryPattern: PatternId | null;
+  secondaryPattern: ScoredPatternId | null;
   planName: string;
   resultTitle: string;
   recommendedFirstAction: RecommendedFirstAction;
