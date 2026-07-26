@@ -54,9 +54,40 @@ The quarantine record contains the source key, detection time, non-sensitive rea
 
 ## Hydration and Writes
 
-The provider exposes `loading`, `ready`, and `error` hydration states while retaining the existing `isLoading` API. Mutations requested during loading are queued and applied to the validated state after hydration. Mutations are ignored after a hydration error. Initial defaults are not autosaved, and canonical loaded state is not rewritten unless normalization or a real mutation requires it.
+The provider exposes `loading`, `ready`, and `error` hydration states while retaining the existing `isLoading` API. `AppProviders` keeps the Expo Router tree behind one application-level hydration boundary, so direct routes and their mount effects do not run against default state. Loading shows a minimal Bloom surface. An error shows recovery actions without mounting normal routes or redirecting to onboarding.
+
+`retryHydration()` reuses an in-flight request instead of starting an overlapping load. Each load has an attempt identifier, so stale completions after an unmount or reset are ignored. Retry reads storage again; it does not clear storage or save defaults.
+
+Mutations requested during loading are queued and applied to the validated state after hydration. Mutations are ignored after a hydration error. Initial defaults are not autosaved, and canonical loaded state is not rewritten unless normalization or a real mutation requires it.
 
 Bloom writes use a serialized queue. A slow earlier write must finish before a later write starts, so the latest mutation remains the final stored envelope. Save failures are surfaced only through non-sensitive status text/warnings.
+
+## Full Local Deletion
+
+All user-facing full resets call one awaited lifecycle operation. The persistence coordinator increments its write generation before deletion, rejects new writes during deletion, waits for any write already inside the storage adapter, and skips older queued generations. A stale write therefore cannot recreate the envelope after deletion.
+
+Deletion enumerates only Bloom-owned keys and removes:
+
+```text
+bloom.localState.v2
+bloom.localState.v1
+bloom.localState.corrupt.*
+```
+
+Unrelated storage keys are preserved; global `AsyncStorage.clear()` is not used. Quarantine and legacy keys are removed before the active current key so a mid-operation failure preserves active data where possible. After durable deletion succeeds, the provider installs a genuine default Bloom state without immediately autosaving it. Bloom mutations stay blocked until the router confirms `/onboarding`, preventing an old deep-link screen’s mount effect from recreating state during the reset transition. The first real onboarding mutation may create a new envelope.
+
+The app-level lifecycle then resets transient `DemoAppStateProvider` data, including Log entries, Pause entries, and Protection state, and replaces navigation with `/onboarding`. If storage deletion fails, current in-memory state is retained, the app does not claim success, and a non-sensitive error explains that data may still remain.
+
+The same operation is used by Debug, Settings/Data Controls, and hydration-error recovery. The recovery `Try again` action only retries hydration; its reset action requires confirmation.
+
+## Focused Verification
+
+The repository verification script covers current and legacy loading, normalization, corrupt/future payload preservation, failed migration, serialized writes, scoped deletion, unrelated-key preservation, concurrent deletion, failed deletion, and write/delete races:
+
+```sh
+./node_modules/.bin/tsc scripts/verify-bloom-persistence.ts --outDir /tmp/bloom-persistence-check --module commonjs --moduleResolution node --target ES2020 --esModuleInterop --skipLibCheck --strict --noUncheckedIndexedAccess --exactOptionalPropertyTypes
+node /tmp/bloom-persistence-check/scripts/verify-bloom-persistence.js
+```
 
 ## Adding a Future Version
 

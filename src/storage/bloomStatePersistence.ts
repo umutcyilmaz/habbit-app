@@ -80,16 +80,85 @@ export function createBloomStateWriteQueue(
   client: StorageClient,
   now: Clock = () => new Date()
 ) {
-  let queueTail: Promise<void> = Promise.resolve();
+  return createBloomStatePersistenceCoordinator(client, now).enqueueWrite;
+}
 
-  return (state: BloomLocalState): Promise<void> => {
+export function createBloomStatePersistenceCoordinator(
+  client: StorageClient,
+  now: Clock = () => new Date()
+) {
+  let queueTail: Promise<void> = Promise.resolve();
+  let writeGeneration = 0;
+  let deletionPromise: Promise<void> | null = null;
+
+  const enqueueWrite = (state: BloomLocalState): Promise<void> => {
+    if (deletionPromise !== null) {
+      return Promise.reject(new Error("Bloom persistence is being reset."));
+    }
+
+    const queuedGeneration = writeGeneration;
     const queuedWrite = queueTail
       .catch(() => undefined)
-      .then(() => persistBloomLocalState(state, client, now));
+      .then(async () => {
+        if (queuedGeneration !== writeGeneration) {
+          return;
+        }
+
+        await persistBloomLocalState(state, client, now);
+      });
 
     queueTail = queuedWrite.catch(() => undefined);
     return queuedWrite;
   };
+
+  const deleteAll = (): Promise<void> => {
+    if (deletionPromise !== null) {
+      return deletionPromise;
+    }
+
+    writeGeneration += 1;
+    const queuedDeletion = queueTail
+      .catch(() => undefined)
+      .then(() => clearAllBloomStorage(client));
+    const trackedDeletion = queuedDeletion.finally(() => {
+      if (deletionPromise === trackedDeletion) {
+        deletionPromise = null;
+      }
+    });
+
+    deletionPromise = trackedDeletion;
+    queueTail = trackedDeletion.catch(() => undefined);
+    return trackedDeletion;
+  };
+
+  return {
+    enqueueWrite,
+    deleteAll
+  };
+}
+
+export async function clearAllBloomStorage(client: StorageClient): Promise<void> {
+  const allKeys = await client.getAllKeys();
+  const existingKeys = new Set(allKeys);
+  const corruptBackupKeys = allKeys
+    .filter((key) => key.startsWith(BLOOM_CORRUPT_BACKUP_PREFIX))
+    .sort();
+  const legacyKeys = BLOOM_LEGACY_STATE_STORAGE_KEYS.filter((key) =>
+    existingKeys.has(key)
+  );
+  const keysToRemove = Array.from(
+    new Set([
+      ...corruptBackupKeys,
+      ...legacyKeys,
+      ...(existingKeys.has(BLOOM_STATE_STORAGE_KEY)
+        ? [BLOOM_STATE_STORAGE_KEY]
+        : [])
+    ])
+  );
+
+  for (const key of keysToRemove) {
+    await client.removeItem(key);
+  }
 }
 
 async function loadStoredPayload(

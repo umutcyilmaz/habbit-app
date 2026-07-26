@@ -30,6 +30,7 @@ import {
   type QuizResult
 } from "../../storage/bloomState";
 import {
+  deleteAllPersistedBloomData,
   loadBloomLocalState,
   saveBloomLocalState,
   type BloomStateLoadResult
@@ -54,7 +55,9 @@ type BloomLocalStateContextValue = {
   todayKey: string;
   resetDay: number;
   resetTodayCompleted: boolean;
-  resetBloomLocalData: () => void;
+  retryHydration: () => Promise<void>;
+  deleteAllBloomLocalData: () => Promise<void>;
+  finishBloomLocalDataReset: () => void;
   saveOnboardingResult: (
     quizAnswers: Record<string, unknown>,
     quizResult: QuizResult
@@ -90,18 +93,36 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
   const hydrationStatusRef = useRef<BloomHydrationStatus>("loading");
   const pendingMutationsRef = useRef<BloomStateMutation[]>([]);
   const skipAutosaveForStateRef = useRef<BloomLocalState | null>(null);
+  const isMountedRef = useRef(false);
+  const hydrationAttemptRef = useRef(0);
+  const hydrationPromiseRef = useRef<Promise<void> | null>(null);
+  const deletionPromiseRef = useRef<Promise<void> | null>(null);
+  const writesBlockedRef = useRef(false);
+  const awaitingResetNavigationRef = useRef(false);
   const isLoading = hydrationStatus === "loading";
   const hasHydrated = hydrationStatus === "ready";
   const todayKey = getTodayKey(state.debug.dateOffsetDays);
   const resetDay = getResetDay(state.tenDayReset, todayKey);
   const resetTodayCompleted = isTodayCompleted(state.tenDayReset, todayKey);
 
-  useEffect(() => {
-    let isMounted = true;
+  const runHydration = useCallback((): Promise<void> => {
+    if (hydrationPromiseRef.current !== null) {
+      return hydrationPromiseRef.current;
+    }
 
-    loadBloomLocalState()
+    const attemptId = hydrationAttemptRef.current + 1;
+    hydrationAttemptRef.current = attemptId;
+    hydrationStatusRef.current = "loading";
+    setHydrationStatus("loading");
+    setHydrationError(null);
+
+    const hydrationPromise = loadBloomLocalState()
       .then((loadResult) => {
-        if (!isMounted) {
+        if (
+          !isMountedRef.current ||
+          attemptId !== hydrationAttemptRef.current ||
+          writesBlockedRef.current
+        ) {
           return;
         }
 
@@ -127,6 +148,7 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
 
         pendingMutationsRef.current = [];
         hydrationStatusRef.current = "error";
+        setPersistenceError(null);
         setHydrationError(toHydrationError(loadResult));
         setHydrationStatus("error");
 
@@ -135,12 +157,17 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
         }
       })
       .catch(() => {
-        if (!isMounted) {
+        if (
+          !isMountedRef.current ||
+          attemptId !== hydrationAttemptRef.current ||
+          writesBlockedRef.current
+        ) {
           return;
         }
 
         pendingMutationsRef.current = [];
         hydrationStatusRef.current = "error";
+        setPersistenceError(null);
         setHydrationError({
           code: "storage-unavailable",
           message: "Bloom local data is temporarily unavailable."
@@ -150,15 +177,30 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
         if (__DEV__) {
           console.warn("Bloom local state storage is unavailable.");
         }
+      })
+      .finally(() => {
+        if (attemptId === hydrationAttemptRef.current) {
+          hydrationPromiseRef.current = null;
+        }
       });
 
-    return () => {
-      isMounted = false;
-    };
+    hydrationPromiseRef.current = hydrationPromise;
+    return hydrationPromise;
   }, []);
 
   useEffect(() => {
-    if (hydrationStatus !== "ready") {
+    isMountedRef.current = true;
+    void runHydration();
+
+    return () => {
+      isMountedRef.current = false;
+      hydrationAttemptRef.current += 1;
+      hydrationPromiseRef.current = null;
+    };
+  }, [runHydration]);
+
+  useEffect(() => {
+    if (hydrationStatus !== "ready" || writesBlockedRef.current) {
       return;
     }
 
@@ -191,6 +233,10 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
   }, [hydrationStatus, state]);
 
   const applyStateMutation = useCallback((mutation: BloomStateMutation) => {
+    if (writesBlockedRef.current) {
+      return;
+    }
+
     if (hydrationStatusRef.current === "loading") {
       pendingMutationsRef.current.push(mutation);
       return;
@@ -201,9 +247,67 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
     }
   }, []);
 
-  const resetBloomLocalData = useCallback(() => {
-    applyStateMutation(() => createDefaultBloomState());
-  }, [applyStateMutation]);
+  const deleteAllBloomLocalData = useCallback((): Promise<void> => {
+    if (deletionPromiseRef.current !== null) {
+      return deletionPromiseRef.current;
+    }
+
+    writesBlockedRef.current = true;
+    awaitingResetNavigationRef.current = false;
+    pendingMutationsRef.current = [];
+    hydrationAttemptRef.current += 1;
+    hydrationPromiseRef.current = null;
+
+    const deletionPromise = deleteAllPersistedBloomData()
+      .then(() => {
+        if (!isMountedRef.current) {
+          return;
+        }
+
+        const freshState = createDefaultBloomState();
+        skipAutosaveForStateRef.current = freshState;
+        hydrationStatusRef.current = "ready";
+        setState(freshState);
+        setPersistenceError(null);
+        setHydrationError(null);
+        setHydrationStatus("ready");
+        awaitingResetNavigationRef.current = true;
+      })
+      .catch(() => {
+        awaitingResetNavigationRef.current = false;
+
+        if (isMountedRef.current) {
+          setPersistenceError("Bloom local data could not be deleted.");
+        }
+
+        if (__DEV__) {
+          console.warn("Failed to delete Bloom local data.");
+        }
+
+        throw new Error("Bloom local data could not be deleted.");
+      })
+      .finally(() => {
+        if (!awaitingResetNavigationRef.current) {
+          writesBlockedRef.current = false;
+        }
+
+        if (deletionPromiseRef.current === deletionPromise) {
+          deletionPromiseRef.current = null;
+        }
+      });
+
+    deletionPromiseRef.current = deletionPromise;
+    return deletionPromise;
+  }, []);
+
+  const finishBloomLocalDataReset = useCallback(() => {
+    if (!awaitingResetNavigationRef.current) {
+      return;
+    }
+
+    awaitingResetNavigationRef.current = false;
+    writesBlockedRef.current = false;
+  }, []);
 
   const saveOnboardingResult = useCallback(
     (quizAnswers: Record<string, unknown>, quizResult: QuizResult) => {
@@ -300,7 +404,9 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
       todayKey,
       resetDay,
       resetTodayCompleted,
-      resetBloomLocalData,
+      retryHydration: runHydration,
+      deleteAllBloomLocalData,
+      finishBloomLocalDataReset,
       saveOnboardingResult,
       saveOnboardingResultForFreshJourney,
       clearOnboardingResult,
@@ -318,17 +424,19 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
       completeArousalControlPractice,
       clearOnboardingResult,
       completeTodayReset,
+      deleteAllBloomLocalData,
       disableProtection,
       enableProtection,
+      finishBloomLocalDataReset,
       hasHydrated,
       hydrationError,
       hydrationStatus,
       isLoading,
       persistenceError,
       recordProtectionPause,
-      resetBloomLocalData,
       resetDay,
       resetTodayCompleted,
+      runHydration,
       saveOnboardingResultForFreshJourney,
       saveOnboardingResult,
       simulateNextDay,

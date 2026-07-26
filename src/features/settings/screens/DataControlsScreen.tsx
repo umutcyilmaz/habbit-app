@@ -1,10 +1,12 @@
 import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 import {
   useDemoAppDispatch,
   useDemoAppState
 } from "../../../app/providers/DemoAppStateProvider";
+import { useLocalDataLifecycle } from "../../../app/providers/LocalDataLifecycleProvider";
 import { routes } from "../../../constants/navigation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
@@ -17,13 +19,25 @@ export function DataControlsScreen() {
   const router = useRouter();
   const state = useDemoAppState();
   const dispatch = useDemoAppDispatch();
+  const {
+    deletionStatus,
+    deletionError,
+    deleteAllLocalData,
+    clearDeletionStatus
+  } = useLocalDataLifecycle();
+  const [confirmingDeletion, setConfirmingDeletion] = useState(false);
+  const isDeleting = deletionStatus === "deleting";
+
+  useEffect(() => {
+    clearDeletionStatus();
+  }, [clearDeletionStatus]);
 
   return (
     <AppScreen>
       <AppHeader
         eyebrow="Settings"
         title="Data Controls"
-        subtitle="Review, export, or delete your app history."
+        subtitle="Review and manage data stored on this device."
       />
 
       <View style={styles.stack}>
@@ -58,16 +72,53 @@ export function DataControlsScreen() {
 
         <AppCard style={styles.cautionCard}>
           <View style={styles.cardStack}>
-            <AppText variant="title">Delete history preview</AppText>
+            <AppText variant="title">Delete local data</AppText>
             <AppText tone="secondary">
-              Deletion controls are planned for a future version. Nothing is removed from this
-              screen yet.
+              This removes your onboarding result, plans, Reset progress,
+              practice records, and other Bloom data stored on this device.
             </AppText>
-            <AppButton variant="secondary" onPress={() => router.push(routes.settings)}>
-              Back to Settings
-            </AppButton>
+            {confirmingDeletion ? (
+              <View style={styles.confirmation}>
+                <View style={styles.confirmationCopy}>
+                  <AppText variant="label">Delete local data?</AppText>
+                  <AppText tone="secondary">This cannot be undone.</AppText>
+                </View>
+                <View style={styles.actions}>
+                  <AppButton
+                    variant="subtle"
+                    disabled={isDeleting}
+                    onPress={() => setConfirmingDeletion(false)}
+                  >
+                    Cancel
+                  </AppButton>
+                  <AppButton
+                    loading={isDeleting}
+                    onPress={() => {
+                      void deleteAllLocalData().catch(() => undefined);
+                    }}
+                  >
+                    Delete
+                  </AppButton>
+                </View>
+              </View>
+            ) : (
+              <AppButton
+                variant="secondary"
+                disabled={isDeleting}
+                onPress={() => setConfirmingDeletion(true)}
+              >
+                Delete local data
+              </AppButton>
+            )}
+            {deletionError !== null ? (
+              <AppText tone="danger">{deletionError}</AppText>
+            ) : null}
           </View>
         </AppCard>
+
+        <AppButton variant="ghost" onPress={() => router.push(routes.settings)}>
+          Back to Settings
+        </AppButton>
       </View>
     </AppScreen>
   );
@@ -83,5 +134,17 @@ const styles = StyleSheet.create({
   cautionCard: {
     backgroundColor: theme.colors.peachMuted,
     borderColor: theme.colors.peach
+  },
+  confirmation: {
+    gap: theme.spacing.md,
+    paddingTop: theme.spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border
+  },
+  confirmationCopy: {
+    gap: theme.spacing.xs
+  },
+  actions: {
+    gap: theme.spacing.sm
   }
 });

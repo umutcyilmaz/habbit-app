@@ -1,7 +1,9 @@
 import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
+import { useLocalDataLifecycle } from "../../../app/providers/LocalDataLifecycleProvider";
 import { routes } from "../../../constants/navigation";
 import {
   createDebugQuizResult,
@@ -33,15 +35,27 @@ export function BloomStateDebugScreen() {
     todayKey,
     resetDay,
     resetTodayCompleted,
-    resetBloomLocalData,
     saveOnboardingResult,
     saveOnboardingResultForFreshJourney,
     clearOnboardingResult,
     simulateNextDay,
     simulatePreviousDay
   } = useBloomLocalState();
+  const {
+    deletionStatus,
+    deletionError,
+    deleteAllLocalData,
+    clearDeletionStatus
+  } = useLocalDataLifecycle();
+  const [confirmingReset, setConfirmingReset] = useState(false);
+  const isDeleting = deletionStatus === "deleting";
   const latestArousalLog = getLatestArousalControlLog(state.arousalControl.logs);
   const currentQuizResult = state.onboarding.quizResult;
+
+  useEffect(() => {
+    clearDeletionStatus();
+  }, [clearDeletionStatus]);
+
   const setDebugProfile = (profileId: DebugProfileId) => {
     const quizResult = createDebugQuizResult(profileId);
 
@@ -266,11 +280,45 @@ export function BloomStateDebugScreen() {
               <View style={styles.cardStack}>
                 <AppText variant="title">Reset local data</AppText>
                 <AppText tone="secondary">
-                  Clears reset, protection, arousal logs, and debug date offset.
+                  Clears Bloom state plus transient Log and Pause activity stored
+                  in this app.
                 </AppText>
-                <AppButton variant="secondary" onPress={resetBloomLocalData}>
-                  Reset Bloom local data
-                </AppButton>
+                {confirmingReset ? (
+                  <View style={styles.confirmation}>
+                    <View style={styles.cardStackSmall}>
+                      <AppText variant="label">Reset local data?</AppText>
+                      <AppText tone="secondary">This cannot be undone.</AppText>
+                    </View>
+                    <View style={styles.actionStack}>
+                      <AppButton
+                        variant="subtle"
+                        disabled={isDeleting}
+                        onPress={() => setConfirmingReset(false)}
+                      >
+                        Cancel
+                      </AppButton>
+                      <AppButton
+                        loading={isDeleting}
+                        onPress={() => {
+                          void deleteAllLocalData().catch(() => undefined);
+                        }}
+                      >
+                        Reset Bloom local data
+                      </AppButton>
+                    </View>
+                  </View>
+                ) : (
+                  <AppButton
+                    variant="secondary"
+                    disabled={isDeleting}
+                    onPress={() => setConfirmingReset(true)}
+                  >
+                    Reset Bloom local data
+                  </AppButton>
+                )}
+                {deletionError !== null ? (
+                  <AppText tone="danger">{deletionError}</AppText>
+                ) : null}
               </View>
             </AppCard>
 
@@ -430,6 +478,12 @@ const styles = StyleSheet.create({
   },
   actionStack: {
     gap: theme.spacing.sm
+  },
+  confirmation: {
+    gap: theme.spacing.md,
+    paddingTop: theme.spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border
   },
   footerActions: {
     gap: theme.spacing.md,

@@ -7,12 +7,15 @@ export interface StorageClient {
   getItem(key: StorageKey): Promise<string | null>;
   setItem(key: StorageKey, value: string): Promise<void>;
   removeItem(key: StorageKey): Promise<void>;
+  getAllKeys(): Promise<readonly string[]>;
 }
 
 type WebStorage = {
+  readonly length: number;
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
   removeItem(key: string): void;
+  key(index: number): string | null;
 };
 
 export function createMemoryStorageClient(): StorageClient {
@@ -27,6 +30,9 @@ export function createMemoryStorageClient(): StorageClient {
     },
     async removeItem(key) {
       values.delete(key);
+    },
+    async getAllKeys() {
+      return Array.from(values.keys());
     }
   };
 }
@@ -60,6 +66,25 @@ export function createWebStorageClient(
       }
 
       await unavailableEnvironmentFallback.removeItem(key);
+    },
+    async getAllKeys() {
+      const webStorage = getWebStorage();
+
+      if (!webStorage) {
+        return unavailableEnvironmentFallback.getAllKeys();
+      }
+
+      const keys: string[] = [];
+
+      for (let index = 0; index < webStorage.length; index += 1) {
+        const key = webStorage.key(index);
+
+        if (key !== null) {
+          keys.push(key);
+        }
+      }
+
+      return keys;
     }
   };
 }
@@ -74,6 +99,9 @@ export function createNativeStorageClient(): StorageClient {
     },
     removeItem(key) {
       return AsyncStorage.removeItem(key);
+    },
+    getAllKeys() {
+      return AsyncStorage.getAllKeys();
     }
   };
 }

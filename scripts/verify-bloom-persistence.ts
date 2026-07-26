@@ -7,6 +7,7 @@ import {
   BLOOM_CORRUPT_BACKUP_PREFIX,
   BLOOM_LEGACY_STATE_STORAGE_KEYS,
   BLOOM_STATE_STORAGE_KEY,
+  createBloomStatePersistenceCoordinator,
   createBloomStateWriteQueue,
   loadBloomLocalState,
   persistBloomLocalState
@@ -27,6 +28,11 @@ async function verifyBloomPersistence() {
   await verifyUnsupportedVersionPreservation();
   await verifyFailedMigrationKeepsLegacyPayload();
   await verifyWriteOrdering();
+  await verifyScopedDeletion();
+  await verifyWriteDeleteRace();
+  await verifyConcurrentDeletionDeduplication();
+  await verifyFailedDeletionPreservesActiveState();
+  await verifyEarlyDeletionFailureKeepsCurrentEnvelope();
 
   console.log("Bloom persistence verification passed.");
 }
@@ -315,6 +321,164 @@ async function verifyWriteOrdering() {
   );
 }
 
+async function verifyScopedDeletion() {
+  const client = new TestStorageClient();
+  const legacyKey = BLOOM_LEGACY_STATE_STORAGE_KEYS[0];
+  const firstCorruptKey = `${BLOOM_CORRUPT_BACKUP_PREFIX}first`;
+  const secondCorruptKey = `${BLOOM_CORRUPT_BACKUP_PREFIX}second`;
+  const unrelatedKey = "another-library.state";
+
+  await client.setItem(BLOOM_STATE_STORAGE_KEY, "current");
+  await client.setItem(legacyKey, "legacy");
+  await client.setItem(firstCorruptKey, "corrupt-one");
+  await client.setItem(secondCorruptKey, "corrupt-two");
+  await client.setItem(unrelatedKey, "keep-me");
+
+  const coordinator = createBloomStatePersistenceCoordinator(client, fixedNow);
+  await coordinator.deleteAll();
+
+  assert(
+    (await client.getItem(BLOOM_STATE_STORAGE_KEY)) === null,
+    "Full deletion should remove the current Bloom envelope."
+  );
+  assert(
+    (await client.getItem(legacyKey)) === null,
+    "Full deletion should remove known legacy Bloom state."
+  );
+  assert(
+    (await client.getItem(firstCorruptKey)) === null &&
+      (await client.getItem(secondCorruptKey)) === null,
+    "Full deletion should remove Bloom quarantine backups."
+  );
+  assert(
+    (await client.getItem(unrelatedKey)) === "keep-me",
+    "Full deletion must preserve unrelated storage keys."
+  );
+}
+
+async function verifyWriteDeleteRace() {
+  const client = new TestStorageClient();
+  client.writeDelays.push(30);
+  const coordinator = createBloomStatePersistenceCoordinator(client, fixedNow);
+  const inFlightWrite = coordinator.enqueueWrite(stateWithDateOffset(1));
+
+  await client.waitForCurrentWriteStart();
+
+  const queuedWrite = coordinator.enqueueWrite(stateWithDateOffset(2));
+  const deletion = coordinator.deleteAll();
+
+  await Promise.all([inFlightWrite, queuedWrite, deletion]);
+
+  assert(
+    (await client.getItem(BLOOM_STATE_STORAGE_KEY)) === null,
+    "Deletion should run after an in-flight write and leave no current envelope."
+  );
+  assert(
+    client.completedWrites.length === 1,
+    "Deletion should drain the in-flight write and invalidate the stale queued write."
+  );
+
+  await coordinator.enqueueWrite(stateWithDateOffset(3));
+  const postDeletePayload = await client.getItem(BLOOM_STATE_STORAGE_KEY);
+  assert(
+    postDeletePayload !== null,
+    "A real mutation after deletion should be allowed to create a new envelope."
+  );
+  const parsed = JSON.parse(postDeletePayload) as {
+    state?: { debug?: { dateOffsetDays?: number } };
+  };
+  assert(
+    parsed.state?.debug?.dateOffsetDays === 3,
+    "Post-delete writes should use the new persistence generation."
+  );
+}
+
+async function verifyConcurrentDeletionDeduplication() {
+  const client = new TestStorageClient();
+  await client.setItem(BLOOM_STATE_STORAGE_KEY, "current");
+  const coordinator = createBloomStatePersistenceCoordinator(client, fixedNow);
+  const firstDeletion = coordinator.deleteAll();
+  const secondDeletion = coordinator.deleteAll();
+
+  assert(
+    firstDeletion === secondDeletion,
+    "Concurrent deletion requests should share one operation."
+  );
+
+  await Promise.all([firstDeletion, secondDeletion]);
+
+  assert(
+    client.removeAttempts.filter((key) => key === BLOOM_STATE_STORAGE_KEY)
+      .length === 1,
+    "Concurrent deletion should remove the current key only once."
+  );
+}
+
+async function verifyFailedDeletionPreservesActiveState() {
+  const client = new TestStorageClient();
+  const unrelatedKey = "another-library.state";
+  await client.setItem(BLOOM_STATE_STORAGE_KEY, "current");
+  await client.setItem(unrelatedKey, "keep-me");
+  client.failRemovalsFor.add(BLOOM_STATE_STORAGE_KEY);
+  const coordinator = createBloomStatePersistenceCoordinator(client, fixedNow);
+  let deletionFailed = false;
+
+  try {
+    await coordinator.deleteAll();
+  } catch {
+    deletionFailed = true;
+  }
+
+  assert(deletionFailed, "A storage removal failure should reject deletion.");
+  assert(
+    (await client.getItem(BLOOM_STATE_STORAGE_KEY)) === "current",
+    "A failed current-key removal should preserve active data."
+  );
+  assert(
+    (await client.getItem(unrelatedKey)) === "keep-me",
+    "A failed deletion must not touch unrelated data."
+  );
+
+  client.failRemovalsFor.clear();
+  await coordinator.enqueueWrite(stateWithDateOffset(4));
+
+  const finalPayload = await client.getItem(BLOOM_STATE_STORAGE_KEY);
+  assert(finalPayload !== null, "Writes should recover after a failed deletion.");
+  const parsed = JSON.parse(finalPayload) as {
+    state?: { debug?: { dateOffsetDays?: number } };
+  };
+  assert(
+    parsed.state?.debug?.dateOffsetDays === 4,
+    "A post-failure write should use the current persistence generation."
+  );
+}
+
+async function verifyEarlyDeletionFailureKeepsCurrentEnvelope() {
+  const client = new TestStorageClient();
+  const corruptKey = `${BLOOM_CORRUPT_BACKUP_PREFIX}cannot-remove`;
+  await client.setItem(BLOOM_STATE_STORAGE_KEY, "current");
+  await client.setItem(corruptKey, "corrupt");
+  client.failRemovalsFor.add(corruptKey);
+  const coordinator = createBloomStatePersistenceCoordinator(client, fixedNow);
+  let deletionFailed = false;
+
+  try {
+    await coordinator.deleteAll();
+  } catch {
+    deletionFailed = true;
+  }
+
+  assert(deletionFailed, "A quarantine removal failure should reject deletion.");
+  assert(
+    (await client.getItem(BLOOM_STATE_STORAGE_KEY)) === "current",
+    "The active envelope should remain when an earlier scoped removal fails."
+  );
+  assert(
+    !client.removeAttempts.includes(BLOOM_STATE_STORAGE_KEY),
+    "The active envelope should be removed last."
+  );
+}
+
 function createControlTimingQuizResult(): QuizResult {
   return {
     scores: { PL: 0, PP: 1, CT: 9, FC: 0 },
@@ -355,8 +519,12 @@ function assert(condition: boolean, message: string): asserts condition {
 class TestStorageClient implements StorageClient {
   readonly values = new Map<string, string>();
   readonly failWritesFor = new Set<string>();
+  readonly failRemovalsFor = new Set<string>();
   readonly writeDelays: number[] = [];
+  readonly startedWrites: string[] = [];
   readonly completedWrites: string[] = [];
+  readonly removeAttempts: string[] = [];
+  private readonly writeStartWaiters: Array<() => void> = [];
 
   async getItem(key: string): Promise<string | null> {
     return this.values.get(key) ?? null;
@@ -364,6 +532,15 @@ class TestStorageClient implements StorageClient {
 
   async setItem(key: string, value: string): Promise<void> {
     const delay = this.writeDelays.shift() ?? 0;
+
+    if (key === BLOOM_STATE_STORAGE_KEY) {
+      this.startedWrites.push(value);
+      const waiters = this.writeStartWaiters.splice(0);
+
+      for (const resolve of waiters) {
+        resolve();
+      }
+    }
 
     if (delay > 0) {
       await new Promise<void>((resolve) => {
@@ -383,7 +560,27 @@ class TestStorageClient implements StorageClient {
   }
 
   async removeItem(key: string): Promise<void> {
+    this.removeAttempts.push(key);
+
+    if (this.failRemovalsFor.has(key)) {
+      throw new Error("Synthetic storage removal failure.");
+    }
+
     this.values.delete(key);
+  }
+
+  async getAllKeys(): Promise<readonly string[]> {
+    return Array.from(this.values.keys());
+  }
+
+  waitForCurrentWriteStart(): Promise<void> {
+    if (this.startedWrites.length > 0) {
+      return Promise.resolve();
+    }
+
+    return new Promise<void>((resolve) => {
+      this.writeStartWaiters.push(resolve);
+    });
   }
 }
 

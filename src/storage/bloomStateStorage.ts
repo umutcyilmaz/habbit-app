@@ -1,18 +1,22 @@
 import type { BloomLocalState } from "./bloomState";
 import {
-  createBloomStateWriteQueue,
+  createBloomStatePersistenceCoordinator,
   loadBloomLocalState as loadBloomLocalStateWithClient
 } from "./bloomStatePersistence";
 import { storageClient } from "./storageClient";
 
 export type { BloomStateLoadResult } from "./bloomStatePersistence";
 
-const enqueueBloomStateWrite = createBloomStateWriteQueue(storageClient);
+const persistenceCoordinator = createBloomStatePersistenceCoordinator(storageClient);
 
 export function loadBloomLocalState() {
   return loadBloomLocalStateWithClient(storageClient);
 }
 
 export function saveBloomLocalState(state: BloomLocalState): Promise<void> {
-  return enqueueBloomStateWrite(state);
+  return persistenceCoordinator.enqueueWrite(state);
+}
+
+export function deleteAllPersistedBloomData(): Promise<void> {
+  return persistenceCoordinator.deleteAll();
 }

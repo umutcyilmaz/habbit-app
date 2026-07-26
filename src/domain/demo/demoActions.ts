@@ -5,6 +5,7 @@ import type {
   DemoProtectionStatus,
   DemoSupportLevel
 } from "./demoTypes";
+import { createDemoInitialState } from "./demoInitialState";
 
 export type DemoAppAction =
   | {
@@ -29,6 +30,9 @@ export type DemoAppAction =
   | {
       type: "TOGGLE_NOTIFICATION_PREFERENCE";
       payload: "notificationsPaused" | "useDiscreetNotifications";
+    }
+  | {
+      type: "RESET_DEMO_STATE";
     };
 
 export function demoAppStateReducer(state: DemoAppState, action: DemoAppAction): DemoAppState {
@@ -75,6 +79,8 @@ export function demoAppStateReducer(state: DemoAppState, action: DemoAppAction):
           [action.payload]: !state.settings[action.payload]
         }
       };
+    case "RESET_DEMO_STATE":
+      return createDemoInitialState();
     default:
       return state;
   }
