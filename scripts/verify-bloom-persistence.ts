@@ -12,11 +12,33 @@ import {
   loadBloomLocalState,
   persistBloomLocalState
 } from "../src/storage/bloomStatePersistence";
-import type { StorageClient } from "../src/storage/storageClient";
+import {
+  isValidBloomDateKey,
+  isValidBloomIsoTimestamp,
+  readPersistedEnvelope,
+  validateAndNormalizeBloomState
+} from "../src/storage/bloomStateSchema";
+import {
+  createMemoryStorageClient,
+  createWebStorageClient,
+  isStorageUnavailableError,
+  resolveWebStorageEnvironment,
+  type StorageClient,
+  type WebStorage,
+  type WebStorageWindow
+} from "../src/storage/storageAdapters";
 
 const fixedNow = () => new Date("2026-07-22T10:00:00.000Z");
 
 async function verifyBloomPersistence() {
+  await verifyAvailableWebStorage();
+  await verifyUnavailableWebStorage();
+  await verifyWebStorageMethodFailure();
+  await verifyExplicitMemoryStorage();
+  await verifyNonBrowserMemoryFallback();
+  verifyStrictDateKeys();
+  verifyStrictIsoTimestamps();
+  verifyDateValidationIntegration();
   await verifyEmptyState();
   await verifyCurrentEnvelope();
   await verifyPartialCurrentNormalization();
@@ -33,8 +55,228 @@ async function verifyBloomPersistence() {
   await verifyConcurrentDeletionDeduplication();
   await verifyFailedDeletionPreservesActiveState();
   await verifyEarlyDeletionFailureKeepsCurrentEnvelope();
+}
 
-  console.log("Bloom persistence verification passed.");
+async function verifyAvailableWebStorage() {
+  const webStorage = new TestWebStorage();
+  const nonBrowserFallback = new TestStorageClient();
+  const client = createWebStorageClient({
+    resolveEnvironment: () => ({ status: "available", storage: webStorage }),
+    nonBrowserFallback
+  });
+  const state = stateWithDateOffset(7);
+
+  await persistBloomLocalState(state, client, fixedNow);
+  const result = await loadBloomLocalState(client, fixedNow);
+
+  assert(
+    result.status === "success" &&
+      result.source === "current" &&
+      result.state.debug.dateOffsetDays === 7,
+    "Available web storage should save and load the current envelope."
+  );
+  assert(
+    nonBrowserFallback.getAttempts.length === 0 &&
+      nonBrowserFallback.values.size === 0,
+    "Available localStorage must not use the non-browser memory fallback."
+  );
+}
+
+async function verifyUnavailableWebStorage() {
+  const webStorage = new TestWebStorage();
+  webStorage.setItem(BLOOM_STATE_STORAGE_KEY, "existing-persisted-state");
+  const browserWindow: WebStorageWindow = {
+    get localStorage(): WebStorage {
+      throw new Error("Synthetic localStorage access failure.");
+    }
+  };
+  const nonBrowserFallback = new TestStorageClient();
+  const client = createWebStorageClient({
+    resolveEnvironment: () => resolveWebStorageEnvironment(browserWindow),
+    nonBrowserFallback
+  });
+  let loadWasClassifiedAsEmpty = false;
+  let caughtError: unknown;
+
+  try {
+    const result = await loadBloomLocalState(client, fixedNow);
+    loadWasClassifiedAsEmpty =
+      result.status === "success" && result.source === "empty";
+  } catch (error) {
+    caughtError = error;
+  }
+
+  assert(
+    isStorageUnavailableError(caughtError),
+    "A browser localStorage access failure should throw storage-unavailable."
+  );
+  assert(
+    !loadWasClassifiedAsEmpty,
+    "Unavailable browser storage must not be classified as empty."
+  );
+  assert(
+    nonBrowserFallback.getAttempts.length === 0 &&
+      nonBrowserFallback.values.size === 0,
+    "Unavailable browser storage must not read or write the memory fallback."
+  );
+  assert(
+    webStorage.getItem(BLOOM_STATE_STORAGE_KEY) === "existing-persisted-state",
+    "Unavailable browser storage must not overwrite the inaccessible active value."
+  );
+}
+
+async function verifyExplicitMemoryStorage() {
+  const client = createMemoryStorageClient();
+
+  await client.setItem("test-key", "test-value");
+
+  assert(
+    (await client.getItem("test-key")) === "test-value",
+    "The explicit memory adapter should remain available for safe tests."
+  );
+}
+
+async function verifyWebStorageMethodFailure() {
+  const webStorage = new TestWebStorage();
+  webStorage.throwOnGet = true;
+  const nonBrowserFallback = new TestStorageClient();
+  const client = createWebStorageClient({
+    resolveEnvironment: () => ({ status: "available", storage: webStorage }),
+    nonBrowserFallback
+  });
+  let caughtError: unknown;
+
+  try {
+    await loadBloomLocalState(client, fixedNow);
+  } catch (error) {
+    caughtError = error;
+  }
+
+  assert(
+    isStorageUnavailableError(caughtError),
+    "A localStorage method failure should throw storage-unavailable."
+  );
+  assert(
+    nonBrowserFallback.getAttempts.length === 0,
+    "A localStorage method failure must not switch to memory."
+  );
+}
+
+async function verifyNonBrowserMemoryFallback() {
+  const nonBrowserFallback = createMemoryStorageClient();
+  const client = createWebStorageClient({
+    resolveEnvironment: () => ({ status: "non-browser" }),
+    nonBrowserFallback
+  });
+
+  await client.setItem("non-browser-key", "non-browser-value");
+
+  assert(
+    (await client.getItem("non-browser-key")) === "non-browser-value",
+    "A genuine non-browser environment may use its explicit memory fallback."
+  );
+}
+
+function verifyStrictDateKeys() {
+  const validDateKeys = ["2026-07-26", "2028-02-29"] as const;
+  const invalidDateKeys = [
+    "2026-02-30",
+    "2027-02-29",
+    "2026-13-01",
+    "2026-00-10",
+    "2026-04-31",
+    "26-07-2026",
+    "2026-07-26T00:00:00.000Z"
+  ] as const;
+
+  for (const dateKey of validDateKeys) {
+    assert(
+      isValidBloomDateKey(dateKey),
+      `${dateKey} should be accepted as a valid Bloom date key.`
+    );
+  }
+
+  for (const dateKey of invalidDateKeys) {
+    assert(
+      !isValidBloomDateKey(dateKey),
+      `${dateKey} should be rejected as a Bloom date key.`
+    );
+  }
+}
+
+function verifyStrictIsoTimestamps() {
+  const validTimestamp = new Date(
+    "2026-07-26T12:34:56.789Z"
+  ).toISOString();
+  const invalidTimestamps = [
+    "2026-02-30T12:34:56.789Z",
+    "2026-07-26T12:34:56.789",
+    "2026-07-26T12:34:56.789+00:00",
+    "2026-07-26T12:34:56Z",
+    "2026-07-26T12:34:56.78Z",
+    "2026-07-26T12:34:56.7890Z",
+    "2026-07-26",
+    "July 26, 2026 12:34:56 UTC"
+  ] as const;
+
+  assert(
+    isValidBloomIsoTimestamp(validTimestamp),
+    "A canonical toISOString timestamp should be accepted."
+  );
+  assert(
+    readPersistedEnvelope({
+      version: 2,
+      savedAt: validTimestamp,
+      state: createDefaultBloomState()
+    }).status === "current",
+    "A canonical savedAt timestamp should produce a current envelope."
+  );
+
+  for (const timestamp of invalidTimestamps) {
+    assert(
+      !isValidBloomIsoTimestamp(timestamp),
+      `${timestamp} should be rejected as a Bloom timestamp.`
+    );
+    assert(
+      readPersistedEnvelope({
+        version: 2,
+        savedAt: timestamp,
+        state: createDefaultBloomState()
+      }).status === "invalid",
+      `${timestamp} should invalidate a version 2 envelope.`
+    );
+  }
+}
+
+function verifyDateValidationIntegration() {
+  const canonicalTimestamp = "2026-07-26T12:34:56.789Z";
+  const validState = createDefaultBloomState();
+  validState.tenDayReset = {
+    startedAt: canonicalTimestamp,
+    completedDates: ["2028-02-29"],
+    lastCompletedAt: canonicalTimestamp
+  };
+  const validResult = validateAndNormalizeBloomState(validState);
+
+  assert(
+    validResult.success,
+    "Canonical timestamps and a real leap-day key should validate in persisted state."
+  );
+
+  const invalidDateState = createDefaultBloomState();
+  invalidDateState.tenDayReset.completedDates = ["2026-02-30"];
+  assert(
+    !validateAndNormalizeBloomState(invalidDateState).success,
+    "An impossible persisted date key should invalidate state."
+  );
+
+  const invalidTimestampState = createDefaultBloomState();
+  invalidTimestampState.protection.setupCompletedAt =
+    "2026-07-26T12:34:56+00:00";
+  assert(
+    !validateAndNormalizeBloomState(invalidTimestampState).success,
+    "A non-canonical persisted timestamp should invalidate state."
+  );
 }
 
 async function verifyEmptyState() {
@@ -518,6 +760,7 @@ function assert(condition: boolean, message: string): asserts condition {
 
 class TestStorageClient implements StorageClient {
   readonly values = new Map<string, string>();
+  readonly getAttempts: string[] = [];
   readonly failWritesFor = new Set<string>();
   readonly failRemovalsFor = new Set<string>();
   readonly writeDelays: number[] = [];
@@ -527,6 +770,7 @@ class TestStorageClient implements StorageClient {
   private readonly writeStartWaiters: Array<() => void> = [];
 
   async getItem(key: string): Promise<string | null> {
+    this.getAttempts.push(key);
     return this.values.get(key) ?? null;
   }
 
@@ -584,4 +828,42 @@ class TestStorageClient implements StorageClient {
   }
 }
 
-void verifyBloomPersistence();
+class TestWebStorage implements WebStorage {
+  readonly values = new Map<string, string>();
+  throwOnGet = false;
+
+  get length(): number {
+    return this.values.size;
+  }
+
+  getItem(key: string): string | null {
+    if (this.throwOnGet) {
+      throw new Error("Synthetic localStorage method failure.");
+    }
+
+    return this.values.get(key) ?? null;
+  }
+
+  setItem(key: string, value: string): void {
+    this.values.set(key, value);
+  }
+
+  removeItem(key: string): void {
+    this.values.delete(key);
+  }
+
+  key(index: number): string | null {
+    return Array.from(this.values.keys())[index] ?? null;
+  }
+}
+
+void verifyBloomPersistence()
+  .then(() => {
+    console.log("Bloom persistence verification passed.");
+  })
+  .catch((error: unknown) => {
+    const message =
+      error instanceof Error ? error.message : "Unknown verification failure.";
+    console.error(`Bloom persistence verification failed: ${message}`);
+    process.exitCode = 1;
+  });

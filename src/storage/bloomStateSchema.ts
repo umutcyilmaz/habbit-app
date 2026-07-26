@@ -135,7 +135,7 @@ export function readPersistedEnvelope(value: unknown): PersistedEnvelopeReadResu
     };
   }
 
-  if (!isDateLikeString(value.savedAt) || !("state" in value)) {
+  if (!isValidBloomIsoTimestamp(value.savedAt) || !("state" in value)) {
     return {
       status: "invalid",
       error: "Persisted Bloom data has an invalid version 2 envelope."
@@ -201,7 +201,7 @@ function normalizeOnboarding(value: unknown, defaults: OnboardingState): Onboard
         : optionalBoolean(record.completed, defaults.completed),
     quizAnswers: normalizeQuizAnswers(record.quizAnswers),
     quizResult,
-    completedAt: optionalNullableDateString(
+    completedAt: optionalNullableIsoTimestamp(
       record.completedAt,
       quizResult?.completedAt ?? defaults.completedAt,
       "state.onboarding.completedAt"
@@ -294,7 +294,7 @@ function normalizeNullableQuizResult(value: unknown): QuizResult | null {
     ),
     firstPlanSteps: normalizePlanSteps(record.firstPlanSteps),
     chips: normalizeStringArray(record.chips, "state.onboarding.quizResult.chips"),
-    completedAt: requiredDateString(
+    completedAt: requiredIsoTimestamp(
       record.completedAt,
       "state.onboarding.quizResult.completedAt"
     )
@@ -421,13 +421,13 @@ function normalizeTenDayReset(value: unknown, defaults: TenDayResetState): TenDa
       : normalizeDateKeyArray(record.completedDates, "state.tenDayReset.completedDates");
 
   return {
-    startedAt: optionalNullableDateString(
+    startedAt: optionalNullableIsoTimestamp(
       record.startedAt,
       defaults.startedAt,
       "state.tenDayReset.startedAt"
     ),
     completedDates: Array.from(new Set(completedDates)).sort(),
-    lastCompletedAt: optionalNullableDateString(
+    lastCompletedAt: optionalNullableIsoTimestamp(
       record.lastCompletedAt,
       defaults.lastCompletedAt,
       "state.tenDayReset.lastCompletedAt"
@@ -460,7 +460,7 @@ function normalizeProtection(value: unknown, defaults: ProtectionState): Protect
 
   return {
     isEnabled: optionalBoolean(record.isEnabled, defaults.isEnabled),
-    setupCompletedAt: optionalNullableDateString(
+    setupCompletedAt: optionalNullableIsoTimestamp(
       record.setupCompletedAt,
       defaults.setupCompletedAt,
       "state.protection.setupCompletedAt"
@@ -475,7 +475,7 @@ function normalizeProtection(value: unknown, defaults: ProtectionState): Protect
       record.adultContentPauseEnabled,
       defaults.adultContentPauseEnabled
     ),
-    lastProtectionPauseAt: optionalNullableDateString(
+    lastProtectionPauseAt: optionalNullableIsoTimestamp(
       record.lastProtectionPauseAt,
       defaults.lastProtectionPauseAt,
       "state.protection.lastProtectionPauseAt"
@@ -516,10 +516,13 @@ function normalizeArousalDraft(value: unknown): ArousalControlDraft {
     ...(record.id !== undefined
       ? { id: requiredString(record.id, "state.arousalControl.draft.id") }
       : {}),
-    startedAt: requiredDateString(record.startedAt, "state.arousalControl.draft.startedAt"),
+    startedAt: requiredIsoTimestamp(
+      record.startedAt,
+      "state.arousalControl.draft.startedAt"
+    ),
     ...(record.completedAt !== undefined
       ? {
-          completedAt: requiredDateString(
+          completedAt: requiredIsoTimestamp(
             record.completedAt,
             "state.arousalControl.draft.completedAt"
           )
@@ -542,17 +545,21 @@ function normalizeArousalLogs(value: unknown): ArousalControlPracticeLog[] {
     const log: ArousalControlPracticeLog = {
       ...normalizePracticeOptionalFields(record, path),
       id: requiredString(record.id, `${path}.id`),
-      startedAt: requiredDateString(record.startedAt, `${path}.startedAt`),
-      completedAt: requiredDateString(record.completedAt, `${path}.completedAt`),
+      startedAt: requiredIsoTimestamp(record.startedAt, `${path}.startedAt`),
+      completedAt: requiredIsoTimestamp(record.completedAt, `${path}.completedAt`),
       dateKey: requiredDateKey(record.dateKey, `${path}.dateKey`)
     };
 
     logsById.set(log.id, log);
   });
 
-  return Array.from(logsById.values()).sort(
-    (first, second) => Date.parse(second.completedAt) - Date.parse(first.completedAt)
-  );
+  return Array.from(logsById.values()).sort((first, second) => {
+    if (first.completedAt === second.completedAt) {
+      return 0;
+    }
+
+    return first.completedAt < second.completedAt ? 1 : -1;
+  });
 }
 
 function normalizePracticeOptionalFields(
@@ -667,15 +674,17 @@ function optionalText(value: unknown, fallback: string, path: string): string {
   return value;
 }
 
-function requiredDateString(value: unknown, path: string): string {
-  if (!isDateLikeString(value)) {
-    throw new BloomStateValidationError(`${path} must be a valid date string.`);
+function requiredIsoTimestamp(value: unknown, path: string): string {
+  if (!isValidBloomIsoTimestamp(value)) {
+    throw new BloomStateValidationError(
+      `${path} must be a canonical ISO timestamp.`
+    );
   }
 
   return value;
 }
 
-function optionalNullableDateString(
+function optionalNullableIsoTimestamp(
   value: unknown,
   fallback: string | null,
   path: string
@@ -684,11 +693,11 @@ function optionalNullableDateString(
     return fallback;
   }
 
-  return value === null ? null : requiredDateString(value, path);
+  return value === null ? null : requiredIsoTimestamp(value, path);
 }
 
 function requiredDateKey(value: unknown, path: string): string {
-  if (typeof value !== "string" || !isValidDateKey(value)) {
+  if (!isValidBloomDateKey(value)) {
     throw new BloomStateValidationError(`${path} must be a valid YYYY-MM-DD date.`);
   }
 
@@ -843,14 +852,11 @@ function isSafeString(value: unknown): value is string {
   return typeof value === "string" && value.length > 0 && value.length <= 1000;
 }
 
-function isDateLikeString(value: unknown): value is string {
-  return (
-    typeof value === "string" &&
-    (isValidDateKey(value) || Number.isFinite(Date.parse(value)))
-  );
-}
+export function isValidBloomDateKey(value: unknown): value is string {
+  if (typeof value !== "string") {
+    return false;
+  }
 
-function isValidDateKey(value: string): boolean {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
 
   if (match === null) {
@@ -861,12 +867,35 @@ function isValidDateKey(value: string): boolean {
   const year = Number(yearValue);
   const month = Number(monthValue);
   const day = Number(dayValue);
-  const date = new Date(Date.UTC(year, month - 1, day));
+
+  if (year < 1) {
+    return false;
+  }
+
+  const date = new Date(0);
+  date.setUTCHours(0, 0, 0, 0);
+  date.setUTCFullYear(year, month - 1, day);
 
   return (
     date.getUTCFullYear() === year &&
     date.getUTCMonth() === month - 1 &&
     date.getUTCDate() === day
+  );
+}
+
+export function isValidBloomIsoTimestamp(value: unknown): value is string {
+  if (
+    typeof value !== "string" ||
+    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value)
+  ) {
+    return false;
+  }
+
+  const parsedDate = new Date(value);
+
+  return (
+    Number.isFinite(parsedDate.getTime()) &&
+    parsedDate.toISOString() === value
   );
 }
 

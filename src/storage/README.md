@@ -6,7 +6,8 @@ Bloom persists its current local state through a small asynchronous `StorageClie
 
 - React Native uses `@react-native-async-storage/async-storage`.
 - Web uses guarded `window.localStorage` access.
-- An explicitly named memory adapter is available only for tests and web environments where `window.localStorage` is unavailable. It is not the React Native persistence path.
+- If a browser exists but its `localStorage` property or methods throw, the adapter throws a structured `storage-unavailable` error. It does not fall back to memory, classify the state as empty, or save defaults.
+- Memory storage is available only when explicitly constructed for tests or selected as the fallback for a genuine non-browser environment. It is not the React Native persistence path or a browser-error fallback.
 
 AsyncStorage is durable local storage. It does not provide application-level encryption, and Bloom does not claim that this state is encrypted.
 
@@ -29,6 +30,14 @@ type PersistedBloomEnvelopeV2 = {
 ```
 
 Payloads are parsed as `unknown`, validated section by section, and normalized into `BloomLocalState`. Unknown object fields are ignored. Missing supported fields receive current defaults. Important enum, date, array, record, Boolean, and finite-number fields are validated before use.
+
+Bloom date keys must be real Gregorian dates in exact `YYYY-MM-DD` form. Persisted timestamps, including envelope `savedAt`, must exactly match the canonical form produced by `Date.prototype.toISOString()`:
+
+```text
+YYYY-MM-DDTHH:mm:ss.sssZ
+```
+
+Timezone offsets, date-only timestamp values, malformed milliseconds, and normalized impossible dates are rejected.
 
 When a valid quiz result exists, `activePlan` is derived from that result during hydration so separately persisted plan data cannot conflict with the result.
 
@@ -82,11 +91,10 @@ The same operation is used by Debug, Settings/Data Controls, and hydration-error
 
 ## Focused Verification
 
-The repository verification script covers current and legacy loading, normalization, corrupt/future payload preservation, failed migration, serialized writes, scoped deletion, unrelated-key preservation, concurrent deletion, failed deletion, and write/delete races:
+The repository verification script uses only fake web storage and explicit memory adapters. It covers web availability/failure behavior, strict dates and timestamps, current and legacy loading, normalization, corrupt/future payload preservation, failed migration, serialized writes, scoped deletion, unrelated-key preservation, concurrent deletion, failed deletion, and write/delete races:
 
 ```sh
-./node_modules/.bin/tsc scripts/verify-bloom-persistence.ts --outDir /tmp/bloom-persistence-check --module commonjs --moduleResolution node --target ES2020 --esModuleInterop --skipLibCheck --strict --noUncheckedIndexedAccess --exactOptionalPropertyTypes
-node /tmp/bloom-persistence-check/scripts/verify-bloom-persistence.js
+npm run verify:persistence
 ```
 
 ## Adding a Future Version

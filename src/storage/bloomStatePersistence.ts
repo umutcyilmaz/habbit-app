@@ -6,7 +6,7 @@ import {
   validateAndNormalizeBloomState,
   type PersistedBloomEnvelopeV2
 } from "./bloomStateSchema";
-import type { StorageClient } from "./storageClient";
+import type { StorageClient } from "./storageAdapters";
 
 export const BLOOM_STATE_STORAGE_KEY = "bloom.localState.v2";
 export const BLOOM_LEGACY_STATE_STORAGE_KEYS = ["bloom.localState.v1"] as const;
