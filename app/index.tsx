@@ -7,14 +7,19 @@ import { AppText } from "../src/shared/components/AppText";
 import { theme } from "../src/shared/design-system/theme";
 
 export default function IndexRoute() {
-  const { state, isLoading } = useBloomLocalState();
+  const { state, hydrationStatus, hydrationError } = useBloomLocalState();
 
-  if (isLoading) {
+  if (hydrationStatus !== "ready") {
     return (
       <View style={styles.loadingScreen}>
         <AppText variant="label" tone="secondary">
           Bloom
         </AppText>
+        {hydrationStatus === "error" && hydrationError !== null ? (
+          <AppText tone="secondary" align="center">
+            {hydrationError.message}
+          </AppText>
+        ) : null}
       </View>
     );
   }
@@ -31,6 +36,8 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    gap: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.xl,
     backgroundColor: theme.colors.background
   }
 });

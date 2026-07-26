@@ -1,70 +1,96 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native";
+
 export type StorageKey = string;
 
 export interface StorageClient {
-  getItem<TValue>(key: StorageKey): Promise<TValue | null>;
-  setItem<TValue>(key: StorageKey, value: TValue): Promise<void>;
+  getItem(key: StorageKey): Promise<string | null>;
+  setItem(key: StorageKey, value: string): Promise<void>;
   removeItem(key: StorageKey): Promise<void>;
-  clearUserData(): Promise<void>;
 }
 
-const memoryStorage = new Map<string, string>();
-
-export const storageClient: StorageClient = {
-  async getItem<TValue>(key: StorageKey) {
-    const rawValue = getRawValue(key);
-
-    if (rawValue === null) {
-      return null;
-    }
-
-    try {
-      return JSON.parse(rawValue) as TValue;
-    } catch {
-      return null;
-    }
-  },
-  async setItem<TValue>(key: StorageKey, value: TValue) {
-    const rawValue = JSON.stringify(value);
-
-    if (canUseLocalStorage()) {
-      localStorage.setItem(key, rawValue);
-      return;
-    }
-
-    memoryStorage.set(key, rawValue);
-  },
-  async removeItem(key: StorageKey) {
-    if (canUseLocalStorage()) {
-      localStorage.removeItem(key);
-      return;
-    }
-
-    memoryStorage.delete(key);
-  },
-  async clearUserData() {
-    if (canUseLocalStorage()) {
-      Object.keys(localStorage)
-        .filter((key) => key.startsWith("bloom."))
-        .forEach((key) => localStorage.removeItem(key));
-      return;
-    }
-
-    memoryStorage.clear();
-  }
+type WebStorage = {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+  removeItem(key: string): void;
 };
 
-function getRawValue(key: StorageKey) {
-  if (canUseLocalStorage()) {
-    return localStorage.getItem(key);
-  }
+export function createMemoryStorageClient(): StorageClient {
+  const values = new Map<string, string>();
 
-  return memoryStorage.get(key) ?? null;
+  return {
+    async getItem(key) {
+      return values.get(key) ?? null;
+    },
+    async setItem(key, value) {
+      values.set(key, value);
+    },
+    async removeItem(key) {
+      values.delete(key);
+    }
+  };
 }
 
-function canUseLocalStorage() {
+export function createWebStorageClient(
+  unavailableEnvironmentFallback = createMemoryStorageClient()
+): StorageClient {
+  return {
+    async getItem(key) {
+      const webStorage = getWebStorage();
+      return webStorage
+        ? webStorage.getItem(key)
+        : unavailableEnvironmentFallback.getItem(key);
+    },
+    async setItem(key, value) {
+      const webStorage = getWebStorage();
+
+      if (webStorage) {
+        webStorage.setItem(key, value);
+        return;
+      }
+
+      await unavailableEnvironmentFallback.setItem(key, value);
+    },
+    async removeItem(key) {
+      const webStorage = getWebStorage();
+
+      if (webStorage) {
+        webStorage.removeItem(key);
+        return;
+      }
+
+      await unavailableEnvironmentFallback.removeItem(key);
+    }
+  };
+}
+
+export function createNativeStorageClient(): StorageClient {
+  return {
+    getItem(key) {
+      return AsyncStorage.getItem(key);
+    },
+    setItem(key, value) {
+      return AsyncStorage.setItem(key, value);
+    },
+    removeItem(key) {
+      return AsyncStorage.removeItem(key);
+    }
+  };
+}
+
+export const storageClient: StorageClient =
+  Platform.OS === "web"
+    ? createWebStorageClient()
+    : createNativeStorageClient();
+
+function getWebStorage(): WebStorage | null {
   try {
-    return typeof localStorage !== "undefined";
+    if (typeof window === "undefined") {
+      return null;
+    }
+
+    return window.localStorage;
   } catch {
-    return false;
+    return null;
   }
 }

@@ -1,7 +1,3 @@
-import { storageClient } from "./storageClient";
-
-const bloomStateStorageKey = "bloom.localState.v1";
-
 export type PatternId = "pornLoop" | "pressurePattern" | "controlTiming";
 
 export type RecommendedFirstAction =
@@ -119,40 +115,44 @@ export type BloomLocalState = {
   arousalControl: ArousalControlState;
 };
 
-export const defaultBloomLocalState: BloomLocalState = {
-  activePlan: {
-    primaryPattern: "pornLoop",
-    secondaryPattern: "pressurePattern",
-    planName: "Porn loop reset",
-    resultTitle: "Porn loop + pressure pattern",
-    recommendedFirstAction: "setupProtection"
-  },
-  onboarding: {
-    completed: false,
-    quizAnswers: {},
-    quizResult: null,
-    completedAt: null
-  },
-  tenDayReset: {
-    startedAt: null,
-    completedDates: [],
-    lastCompletedAt: null
-  },
-  debug: {
-    dateOffsetDays: 0
-  },
-  protection: {
-    isEnabled: false,
-    setupCompletedAt: null,
-    preferredWindow: null,
-    adultContentPauseEnabled: false,
-    lastProtectionPauseAt: null
-  },
-  arousalControl: {
-    draft: null,
-    logs: []
-  }
-};
+export function createDefaultBloomState(): BloomLocalState {
+  return {
+    activePlan: {
+      primaryPattern: "pornLoop",
+      secondaryPattern: "pressurePattern",
+      planName: "Porn loop reset",
+      resultTitle: "Porn loop + pressure pattern",
+      recommendedFirstAction: "setupProtection"
+    },
+    onboarding: {
+      completed: false,
+      quizAnswers: {},
+      quizResult: null,
+      completedAt: null
+    },
+    tenDayReset: {
+      startedAt: null,
+      completedDates: [],
+      lastCompletedAt: null
+    },
+    debug: {
+      dateOffsetDays: 0
+    },
+    protection: {
+      isEnabled: false,
+      setupCompletedAt: null,
+      preferredWindow: null,
+      adultContentPauseEnabled: false,
+      lastProtectionPauseAt: null
+    },
+    arousalControl: {
+      draft: null,
+      logs: []
+    }
+  };
+}
+
+export const defaultBloomLocalState: BloomLocalState = createDefaultBloomState();
 
 export function getTodayKey(dateOffsetDays = 0, date = new Date()) {
   const simulatedDate = new Date(date);
@@ -373,103 +373,13 @@ export function getLatestArousalControlLog(logs: readonly ArousalControlPractice
   return sortArousalLogs(logs)[0] ?? null;
 }
 
-export async function loadBloomLocalState() {
-  const storedState = await storageClient.getItem<Partial<BloomLocalState>>(bloomStateStorageKey);
-
-  if (!isRecord(storedState)) {
-    return defaultBloomLocalState;
-  }
-
-  return mergeWithDefaultState(storedState);
-}
-
-export async function saveBloomLocalState(state: BloomLocalState) {
-  await storageClient.setItem(bloomStateStorageKey, state);
-}
-
-function mergeWithDefaultState(state: Partial<BloomLocalState>): BloomLocalState {
-  const tenDayReset = state.tenDayReset ?? defaultBloomLocalState.tenDayReset;
-  const arousalControl = state.arousalControl ?? defaultBloomLocalState.arousalControl;
-  const onboarding = state.onboarding ?? defaultBloomLocalState.onboarding;
-
-  return {
-    activePlan: {
-      ...defaultBloomLocalState.activePlan,
-      ...state.activePlan
-    },
-    onboarding: {
-      ...defaultBloomLocalState.onboarding,
-      ...onboarding,
-      quizAnswers: onboarding.quizAnswers ?? {},
-      quizResult: normalizeQuizResult(onboarding.quizResult ?? null)
-    },
-    tenDayReset: {
-      ...defaultBloomLocalState.tenDayReset,
-      ...tenDayReset,
-      completedDates: Array.from(new Set(tenDayReset.completedDates ?? [])).sort()
-    },
-    debug: {
-      ...defaultBloomLocalState.debug,
-      ...state.debug
-    },
-    protection: {
-      ...defaultBloomLocalState.protection,
-      ...state.protection
-    },
-    arousalControl: {
-      draft: arousalControl.draft ?? null,
-      logs: sortArousalLogs(arousalControl.logs ?? [])
-    }
-  };
-}
-
-function activePlanFromQuizResult(quizResult: QuizResult): ActivePlan {
+export function activePlanFromQuizResult(quizResult: QuizResult): ActivePlan {
   return {
     primaryPattern: quizResult.primaryPattern,
     secondaryPattern: quizResult.secondaryPattern,
     planName: quizResult.planName,
     resultTitle: quizResult.resultTitle,
     recommendedFirstAction: quizResult.recommendedFirstAction
-  };
-}
-
-function normalizeQuizResult(quizResult: QuizResult | null): QuizResult | null {
-  if (quizResult === null) {
-    return null;
-  }
-
-  const legacyScores = quizResult.scores as QuizScores & {
-    pornLoop?: number;
-    pressurePattern?: number;
-    controlTiming?: number;
-    firmnessConcern?: number;
-  };
-  const scores: QuizScores = {
-    PL: legacyScores.PL ?? legacyScores.pornLoop ?? 0,
-    PP: legacyScores.PP ?? legacyScores.pressurePattern ?? 0,
-    CT: legacyScores.CT ?? legacyScores.controlTiming ?? 0,
-    FC: legacyScores.FC ?? legacyScores.firmnessConcern ?? 0
-  };
-  const normalizedScores = quizResult.normalizedScores ?? {
-    PL: 0,
-    PP: 0,
-    CT: 0,
-    FC: 0
-  };
-
-  return {
-    ...quizResult,
-    scores,
-    normalizedScores,
-    flags: {
-      eveningWindow: quizResult.flags.eveningWindow,
-      emptyMoments: quizResult.flags.emptyMoments,
-      boredom: quizResult.flags.boredom,
-      aloneTime: quizResult.flags.aloneTime,
-      stressTrigger: quizResult.flags.stressTrigger ?? false,
-      phoneLoop: quizResult.flags.phoneLoop ?? false,
-      firmnessConcern: quizResult.flags.firmnessConcern
-    }
   };
 }
 
@@ -489,8 +399,4 @@ function dateFromKey(dateKey: string) {
 
 function getDateKey(value: string) {
   return value.includes("T") ? value.slice(0, 10) : value;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
 }

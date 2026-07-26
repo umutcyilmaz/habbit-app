@@ -27,6 +27,9 @@ export function BloomStateDebugScreen() {
   const {
     state,
     isLoading,
+    hydrationStatus,
+    hydrationError,
+    persistenceError,
     todayKey,
     resetDay,
     resetTodayCompleted,
@@ -77,6 +80,15 @@ export function BloomStateDebugScreen() {
           <AppCard style={styles.card}>
             <AppText tone="secondary">Loading local state…</AppText>
           </AppCard>
+        ) : hydrationStatus === "error" ? (
+          <AppCard style={styles.card}>
+            <View style={styles.cardStackSmall}>
+              <AppText variant="title">Local state unavailable</AppText>
+              <AppText tone="secondary">
+                {hydrationError?.message ?? "Bloom local data could not be loaded safely."}
+              </AppText>
+            </View>
+          </AppCard>
         ) : (
           <>
             <SummaryCard
@@ -84,6 +96,7 @@ export function BloomStateDebugScreen() {
                 ["Real date", getTodayKey()],
                 ["Simulated today", todayKey],
                 ["Date offset days", String(state.debug.dateOffsetDays)],
+                ["Persistence status", persistenceError ?? "ready"],
                 ["Onboarding completed", state.onboarding.completed ? "yes" : "no"],
                 ["Result title", state.onboarding.quizResult?.resultTitle ?? "none"],
                 ["Active plan", state.activePlan.planName],
