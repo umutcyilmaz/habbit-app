@@ -61,3 +61,5 @@ export const routes = {
   settingsAppLock: "/settings/app-lock",
   settingsSubscription: "/settings/subscription"
 } as const;
+
+export type AppRoute = (typeof routes)[keyof typeof routes];

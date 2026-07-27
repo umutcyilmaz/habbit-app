@@ -3,13 +3,17 @@ import { Platform, StyleSheet, View } from "react-native";
 
 import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
+import {
+  getNextBloomAction,
+  type NextBloomAction
+} from "../../../domain/journey/getNextBloomAction";
+import { getNextBloomActionLabel } from "../../../domain/journey/nextBloomActionPresentation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
 import { AppIconButton } from "../../../shared/components/AppIconButton";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
-import type { ActivePlan } from "../../../storage/bloomState";
 
 const activePlan = {
   label: "YOUR PLAN",
@@ -34,14 +38,12 @@ const todayPathSteps = [
 
 export function TodayScreen() {
   const router = useRouter();
-  const { state, resetDay, resetTodayCompleted, startTenDayReset } = useBloomLocalState();
-  const resetStarted = state.tenDayReset.startedAt !== null;
+  const { state, todayKey, resetDay } = useBloomLocalState();
+  const nextAction = getNextBloomAction(state, todayKey);
   const heroState = getTodayHeroState({
-    resetStarted,
-    resetTodayCompleted,
-    resetDay,
-    protectionEnabled: state.protection.isEnabled,
-    activePlan: state.activePlan
+    action: nextAction,
+    resultTitle: state.activePlan.resultTitle,
+    resetDay
   });
 
   return (
@@ -57,13 +59,8 @@ export function TodayScreen() {
           title={heroState.title}
           body={heroState.body}
           primaryAction={heroState.primaryAction}
-          onPrimaryPress={() => {
-            if (heroState.primaryRoute === routes.tenDayResetPractice) {
-              startTenDayReset();
-            }
-            router.push(heroState.primaryRoute);
-          }}
-          {...(heroState.primaryRoute !== routes.pauseCheckIn
+          onPrimaryPress={() => router.push(heroState.primaryRoute)}
+          {...(nextAction.id !== "startQuickCheckIn"
             ? { onSecondaryPress: () => router.push(routes.pauseCheckIn) }
             : {})}
         />
@@ -79,87 +76,92 @@ export function TodayScreen() {
 }
 
 type TodayHeroStateInput = {
-  resetStarted: boolean;
-  resetTodayCompleted: boolean;
+  action: NextBloomAction;
+  resultTitle: string;
   resetDay: number;
-  protectionEnabled: boolean;
-  activePlan: ActivePlan;
 };
 
 function getTodayHeroState({
-  resetStarted,
-  resetTodayCompleted,
-  resetDay,
-  protectionEnabled,
-  activePlan
+  action,
+  resultTitle,
+  resetDay
 }: TodayHeroStateInput) {
-  if (resetStarted && resetTodayCompleted) {
-    return {
-      statusLabel: "Today’s reset completed",
-      title: "Today’s reset completed.",
-      body: "Come back tomorrow and repeat the same reset.",
-      primaryAction: "View saved reset",
-      primaryRoute: routes.tenDayResetSaved
-    };
-  }
+  const primaryAction = getNextBloomActionLabel(action);
 
-  if (resetStarted) {
-    return {
-      statusLabel: `10-Day Reset · Day ${resetDay} of 10`,
-      title: "Start today’s reset.",
-      body: "Keep today simple: no porn, no masturbation, no checking.",
-      primaryAction: "Start today’s reset",
-      primaryRoute: routes.tenDayResetPractice
-    };
+  switch (action.id) {
+    case "completeOnboarding":
+      return {
+        statusLabel: null,
+        title: "Complete your starting point.",
+        body: "Answer a few private questions so Bloom can suggest a simple first path.",
+        primaryAction,
+        primaryRoute: action.route
+      };
+    case "startQuickCheckIn":
+      return {
+        statusLabel: resultTitle,
+        title: "Start with a quick check-in.",
+        body: "Notice what is happening without needing to label it yet.",
+        primaryAction,
+        primaryRoute: action.route
+      };
+    case "setupProtection":
+      return {
+        statusLabel: resultTitle,
+        title: "Create a pause before porn.",
+        body: "Start by setting up Protection so there is a short pause before the automatic loop begins.",
+        primaryAction,
+        primaryRoute: action.route
+      };
+    case "startReset":
+      return action.reason === "protectionReady"
+        ? {
+            statusLabel: "Protection ready",
+            title: "Protection is ready.",
+            body: "Your pause layer is set. The next step is a short reset from pressure and checking.",
+            primaryAction,
+            primaryRoute: action.route
+          }
+        : {
+            statusLabel: resultTitle,
+            title: "Start your reset.",
+            body: "Keep today simple: no porn, no masturbation, no checking.",
+            primaryAction,
+            primaryRoute: action.route
+          };
+    case "completeTodayReset":
+      return {
+        statusLabel: `10-Day Reset · Day ${resetDay} of 10`,
+        title: "Continue today’s reset.",
+        body: "Keep today simple: no porn, no masturbation, no checking.",
+        primaryAction,
+        primaryRoute: action.route
+      };
+    case "viewTodayReset":
+      return {
+        statusLabel: "Today’s reset saved",
+        title: "Today’s reset is saved.",
+        body: "You can review today’s saved reset or keep the day simple.",
+        primaryAction,
+        primaryRoute: action.route
+      };
+    case "startArousalPractice":
+      return {
+        statusLabel: action.reason === "resetProgramComplete" ? "10-Day Reset complete" : resultTitle,
+        title: "Practice noticing the rise earlier.",
+        body: "Use guided practice to notice arousal before it feels too late.",
+        primaryAction,
+        primaryRoute: action.route
+      };
+    case "viewPracticeProgress":
+      return {
+        statusLabel: "Practice saved",
+        title: "Review your latest practice.",
+        body: "Your saved practice is ready to review as personal context.",
+        primaryAction,
+        primaryRoute: action.route
+      };
   }
-
-  if (activePlan.recommendedFirstAction === "startReset") {
-    return {
-      statusLabel: activePlan.resultTitle,
-      title: "Start your reset.",
-      body: "Keep today simple: no porn, no masturbation, no checking.",
-      primaryAction: "Start 10-Day Reset",
-      primaryRoute: routes.tenDayReset
-    };
-  }
-
-  if (activePlan.recommendedFirstAction === "startArousalPractice") {
-    return {
-      statusLabel: activePlan.resultTitle,
-      title: "Practice noticing the rise earlier.",
-      body: "Use guided practice to notice arousal before it feels too late.",
-      primaryAction: "Start Arousal Control Practice",
-      primaryRoute: routes.arousalControl
-    };
-  }
-
-  if (activePlan.recommendedFirstAction === "startQuickCheckIn") {
-    return {
-      statusLabel: activePlan.resultTitle,
-      title: "Start with a quick check-in.",
-      body: "Notice what is happening without needing to label it yet.",
-      primaryAction: "Start a Quick Check-In",
-      primaryRoute: routes.pauseCheckIn
-    };
-  }
-
-  if (protectionEnabled) {
-    return {
-      statusLabel: "Protection ready",
-      title: "Protection is ready.",
-      body: "Your pause layer is set. The next step is a short reset from pressure and checking.",
-      primaryAction: "Start 10-Day Reset",
-      primaryRoute: routes.tenDayReset
-    };
-  }
-
-  return {
-    statusLabel: null,
-    title: "Create a pause before porn.",
-    body: "Start by setting up Protection so there is a short pause before the automatic loop begins.",
-    primaryAction: "Set up Protection",
-    primaryRoute: routes.protectSetup
-  };
 }
 
 type PlanHeaderProps = {

@@ -3,18 +3,23 @@ import { useRouter } from "expo-router";
 
 import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
+import {
+  getNextBloomAction,
+  type NextBloomAction
+} from "../../../domain/journey/getNextBloomAction";
+import { getNextBloomActionLabel } from "../../../domain/journey/nextBloomActionPresentation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
 import { AppIconButton } from "../../../shared/components/AppIconButton";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
-import type { RecommendedFirstAction } from "../../../storage/bloomState";
 
 export function OnboardingResultScreen() {
   const router = useRouter();
-  const { state } = useBloomLocalState();
+  const { state, todayKey } = useBloomLocalState();
   const quizResult = state.onboarding.quizResult;
+  const firstStep = getFirstStepContent(getNextBloomAction(state, todayKey));
 
   if (quizResult === null) {
     return (
@@ -41,14 +46,14 @@ export function OnboardingResultScreen() {
           <AppCard style={styles.todayCard}>
             <View style={styles.cardStack}>
               <AppText variant="title" style={styles.cardTitle}>
-                Finish onboarding
+                {firstStep.primary}
               </AppText>
               <AppText tone="secondary">
-                Answer a few private questions so Bloom can suggest a simple first path.
+                {firstStep.body}
               </AppText>
               <View style={styles.miniActions}>
-                <AppButton onPress={() => router.replace(routes.onboarding)}>
-                  Start onboarding
+                <AppButton onPress={() => router.replace(firstStep.route)}>
+                  {firstStep.primary}
                 </AppButton>
                 <AppButton variant="subtle" onPress={() => router.replace(routes.home)}>
                   Go to Today
@@ -60,8 +65,6 @@ export function OnboardingResultScreen() {
       </AppScreen>
     );
   }
-
-  const firstStep = getFirstStepContent(quizResult.recommendedFirstAction);
 
   return (
     <AppScreen contentStyle={styles.content}>
@@ -128,32 +131,63 @@ export function OnboardingResultScreen() {
   );
 }
 
-function getFirstStepContent(action: RecommendedFirstAction) {
-  switch (action) {
+function getFirstStepContent(action: NextBloomAction) {
+  const primary = getNextBloomActionLabel(action);
+
+  switch (action.id) {
+    case "completeOnboarding":
+      return {
+        body: "Continue onboarding so Bloom can suggest a simple first path.",
+        primary,
+        route: action.route
+      };
     case "startQuickCheckIn":
       return {
         body: "Start with a simple check-in and notice what is present without needing to label it yet.",
-        primary: "Start a Quick Check-In",
-        route: routes.pauseCheckIn
+        primary,
+        route: action.route
+      };
+    case "setupProtection":
+      return {
+        body: "Start by setting up Protection. This gives you a pause before the automatic loop starts.",
+        primary,
+        route: action.route
       };
     case "startReset":
       return {
-        body: "Start with Day 1 of your reset and keep the first goal simple.",
-        primary: "Start 10-Day Reset",
-        route: routes.tenDayReset
+        body:
+          action.reason === "protectionReady"
+            ? "Protection is ready. The next step is to begin your 10-Day Reset."
+            : "Start with Day 1 of your reset and keep the first goal simple.",
+        primary,
+        route: action.route
+      };
+    case "completeTodayReset":
+      return {
+        body: "Continue with today’s two-minute reset when you are ready.",
+        primary,
+        route: action.route
+      };
+    case "viewTodayReset":
+      return {
+        body: "Today’s reset is saved and ready to review.",
+        primary,
+        route: action.route
       };
     case "startArousalPractice":
       return {
-        body: "Start with a guided practice to notice arousal earlier.",
-        primary: "Start Arousal Control Practice",
-        route: routes.arousalControl
+        body:
+          action.reason === "resetProgramComplete"
+            ? "Your Reset is complete. Continue with guided practice when you are ready."
+            : "Start with a guided practice to notice arousal earlier.",
+        primary,
+        route: action.route
       };
-    case "setupProtection":
-    default:
+    case "viewPracticeProgress":
       return {
-        body: "Start by setting up Protection. This gives you a pause before the automatic loop starts.",
-        primary: "Set up Protection",
-        route: routes.protectSetup
+        body: "Your latest guided practice is saved and ready to review.",
+        primary,
+        route: action.route
       };
   }
 }

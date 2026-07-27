@@ -2,7 +2,14 @@ import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
 import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
-import { routes } from "../../../constants/navigation";
+import { routes, type AppRoute } from "../../../constants/navigation";
+import {
+  getNextBloomAction,
+  getValidCompletedResetDates,
+  getValidCompletedResetDayCount,
+  type NextBloomAction
+} from "../../../domain/journey/getNextBloomAction";
+import { getNextBloomActionLabel } from "../../../domain/journey/nextBloomActionPresentation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
 import { AppHeader } from "../../../shared/components/AppHeader";
@@ -10,17 +17,14 @@ import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
 import {
-  getCompletedResetDayCount,
   getLatestArousalControlLog,
   type ArousalControlPracticeLog,
-  type BloomLocalState,
-  type RecommendedFirstAction
+  type QuizResult
 } from "../../../storage/bloomState";
 
 const resetDayMarkers = Array.from({ length: 10 }, (_, index) => index + 1);
 const isDevelopment = typeof __DEV__ !== "undefined" && __DEV__;
 
-type AppRoute = (typeof routes)[keyof typeof routes];
 type RoadmapStatus = "done" | "current" | "next";
 
 type RoadmapStep = {
@@ -39,23 +43,16 @@ type CurrentAction = {
 
 export function ProgressScreen() {
   const router = useRouter();
-  const { state, resetDay, resetTodayCompleted } = useBloomLocalState();
+  const { state, todayKey, resetDay } = useBloomLocalState();
   const quizResult = state.onboarding.quizResult;
-  const completedResetDays = getCompletedResetDayCount(state.tenDayReset);
+  const nextAction = getNextBloomAction(state, todayKey);
+  const completedResetDates = getValidCompletedResetDates(state.tenDayReset);
+  const completedResetDays = getValidCompletedResetDayCount(state.tenDayReset);
+  const resetTodayCompleted = completedResetDates.includes(todayKey);
   const latestArousalLog = getLatestArousalControlLog(state.arousalControl.logs);
   const resetStarted = state.tenDayReset.startedAt !== null;
-  const resetComplete = completedResetDays >= 10;
-  const roadmapSteps = getRoadmapSteps({
-    state,
-    resetComplete,
-    resetStarted,
-    latestArousalLog
-  });
-  const currentAction = getCurrentAction({
-    state,
-    resetStarted,
-    resetTodayCompleted
-  });
+  const roadmapSteps = getRoadmapSteps(quizResult, nextAction);
+  const currentAction = getCurrentAction(nextAction);
   const showResetProgress =
     resetStarted ||
     completedResetDays > 0 ||
@@ -73,34 +70,26 @@ export function ProgressScreen() {
 
       <View style={styles.stack}>
         <CurrentPlanCard
-          title={quizResult?.resultTitle ?? "Starting plan"}
+          title={
+            quizResult?.resultTitle ??
+            (state.onboarding.completed ? state.activePlan.resultTitle : "Starting plan")
+          }
           body={
             quizResult?.resultBody ??
-            "Complete onboarding to personalize your plan."
+            (state.onboarding.completed
+              ? "Bloom can start with a simple check-in and adjust as you use the app."
+              : "Complete onboarding to personalize your plan.")
           }
           chips={quizResult?.chips ?? []}
           {...(quizResult !== null ? { planName: quizResult.planName } : {})}
-          {...(quizResult === null
+          {...(!state.onboarding.completed
             ? { onStartOnboarding: () => router.push(routes.onboarding) }
             : {})}
         />
 
         <RoadmapCard steps={roadmapSteps} />
 
-        <CurrentActionCard
-          action={
-            quizResult === null
-              ? {
-                  eyebrow: "NEXT STEP",
-                  title: "Complete onboarding.",
-                  body: "Answer a few private questions so Bloom can suggest your first path.",
-                  cta: "Start onboarding",
-                  route: routes.onboarding
-                }
-              : currentAction
-          }
-          onPress={(route) => router.push(route)}
-        />
+        <CurrentActionCard action={currentAction} onPress={(route) => router.push(route)} />
 
         {showResetProgress ? (
           <ResetProgressCard
@@ -109,6 +98,7 @@ export function ProgressScreen() {
             completedResetDays={completedResetDays}
             resetTodayCompleted={resetTodayCompleted}
             startedAt={state.tenDayReset.startedAt}
+            nextAction={nextAction}
             onPress={(route) => router.push(route)}
           />
         ) : null}
@@ -142,20 +132,10 @@ export function ProgressScreen() {
   );
 }
 
-type RoadmapInput = {
-  state: BloomLocalState;
-  resetComplete: boolean;
-  resetStarted: boolean;
-  latestArousalLog: ArousalControlPracticeLog | null;
-};
-
-function getRoadmapSteps({
-  state,
-  resetComplete,
-  resetStarted,
-  latestArousalLog
-}: RoadmapInput): RoadmapStep[] {
-  const quizResult = state.onboarding.quizResult;
+function getRoadmapSteps(
+  quizResult: QuizResult | null,
+  nextAction: NextBloomAction
+): RoadmapStep[] {
   const sourceSteps = quizResult?.firstPlanSteps ?? [
     {
       title: "Complete onboarding",
@@ -171,74 +151,18 @@ function getRoadmapSteps({
     }
   ];
 
-  if (quizResult === null) {
-    return sourceSteps.map((step, index) => ({
-      title: step.title,
-      description: step.description,
-      status: index === 0 ? "current" : "next"
-    }));
-  }
-
-  const hasPracticeLog = latestArousalLog !== null;
-  const hasReflectedPractice =
-    latestArousalLog?.afterwardFeeling !== undefined ||
-    latestArousalLog?.firmnessChange !== undefined ||
-    latestArousalLog?.durationPreference !== undefined;
   const steps = ensureThreeSteps(sourceSteps);
+  const currentStepIndex = getRoadmapCurrentStepIndex(nextAction);
 
-  switch (quizResult.recommendedFirstAction) {
-    case "startQuickCheckIn":
-      return steps.map((step, index) => ({
-        ...step,
-        status: index === 0 ? "current" : "next"
-      }));
-    case "startReset":
-      return [
-        {
-          ...steps[0],
-          status: resetComplete ? "done" : "current"
-        },
-        {
-          ...steps[1],
-          status: resetComplete ? "done" : resetStarted ? "current" : "next"
-        },
-        {
-          ...steps[2],
-          status: getPracticeAfterResetStatus(resetComplete, hasPracticeLog)
-        }
-      ];
-    case "startArousalPractice":
-      return [
-        {
-          ...steps[0],
-          status: hasPracticeLog ? "done" : "current"
-        },
-        {
-          ...steps[1],
-          status: hasPracticeLog ? "current" : "next"
-        },
-        {
-          ...steps[2],
-          status: hasReflectedPractice ? "done" : hasPracticeLog ? "current" : "next"
-        }
-      ];
-    case "setupProtection":
-    default:
-      return [
-        {
-          ...steps[0],
-          status: state.protection.isEnabled ? "done" : "current"
-        },
-        {
-          ...steps[1],
-          status: resetComplete ? "done" : state.protection.isEnabled ? "current" : "next"
-        },
-        {
-          ...steps[2],
-          status: getPracticeAfterResetStatus(resetComplete, hasPracticeLog)
-        }
-      ];
-  }
+  return steps.map((step, index) => ({
+    ...step,
+    status:
+      index < currentStepIndex
+        ? "done"
+        : index === currentStepIndex
+          ? "current"
+          : "next"
+  }));
 }
 
 type PlanStepContent = {
@@ -271,103 +195,87 @@ function ensureThreeSteps(
   ];
 }
 
-function getPracticeAfterResetStatus(resetComplete: boolean, hasPracticeLog: boolean): RoadmapStatus {
-  if (resetComplete && hasPracticeLog) {
-    return "done";
+function getRoadmapCurrentStepIndex(action: NextBloomAction): 0 | 1 | 2 {
+  switch (action.id) {
+    case "startReset":
+      return action.reason === "protectionReady" ? 1 : 0;
+    case "completeTodayReset":
+    case "viewTodayReset":
+      return 1;
+    case "startArousalPractice":
+      return action.reason === "resetProgramComplete" ? 2 : 0;
+    case "viewPracticeProgress":
+      return 2;
+    case "completeOnboarding":
+    case "startQuickCheckIn":
+    case "setupProtection":
+      return 0;
   }
-
-  if (resetComplete) {
-    return "current";
-  }
-
-  return "next";
 }
 
-type CurrentActionInput = {
-  state: BloomLocalState;
-  resetStarted: boolean;
-  resetTodayCompleted: boolean;
-};
-
-function getCurrentAction({
-  state,
-  resetStarted,
-  resetTodayCompleted
-}: CurrentActionInput): CurrentAction {
-  if (resetStarted && resetTodayCompleted) {
-    return {
-      eyebrow: "CURRENT ACTION",
-      title: "Today’s reset is saved.",
-      body: "You can review today’s saved reset or keep the day simple.",
-      cta: "View saved reset",
-      route: routes.tenDayResetSaved
-    };
-  }
-
-  if (resetStarted) {
-    return {
-      eyebrow: "CURRENT ACTION",
-      title: "Continue today’s reset.",
-      body: "A two-minute reset is available for today.",
-      cta: "Start today’s reset",
-      route: routes.tenDayResetPractice
-    };
-  }
-
-  return getPlanAction(state.activePlan.recommendedFirstAction, state.protection.isEnabled);
-}
-
-function getPlanAction(
-  action: RecommendedFirstAction,
-  protectionEnabled: boolean
-): CurrentAction {
-  if (action === "startQuickCheckIn") {
-    return {
-      eyebrow: "CURRENT ACTION",
-      title: "Start with a quick check-in.",
-      body: "Notice what is happening without needing to label it yet.",
-      cta: "Start a Quick Check-In",
-      route: routes.pauseCheckIn
-    };
-  }
-
-  if (action === "startReset") {
-    return {
-      eyebrow: "CURRENT ACTION",
-      title: "Start your reset.",
-      body: "Begin the 10-day plan with one simple day.",
-      cta: "Start 10-Day Reset",
-      route: routes.tenDayReset
-    };
-  }
-
-  if (action === "startArousalPractice") {
-    return {
-      eyebrow: "CURRENT ACTION",
-      title: "Start guided practice.",
-      body: "Use guided practice to notice arousal before it feels too late.",
-      cta: "Start Arousal Control Practice",
-      route: routes.arousalControl
-    };
-  }
-
-  if (protectionEnabled) {
-    return {
-      eyebrow: "CURRENT ACTION",
-      title: "Your pause layer is ready.",
-      body: "The next step is to start the 10-Day Reset.",
-      cta: "Start 10-Day Reset",
-      route: routes.tenDayReset
-    };
-  }
-
-  return {
-    eyebrow: "CURRENT ACTION",
-    title: "Set up your pause layer.",
-    body: "Create a short pause before the automatic loop begins.",
-    cta: "Set up Protection",
-    route: routes.protectSetup
+function getCurrentAction(action: NextBloomAction): CurrentAction {
+  const shared = {
+    eyebrow: action.id === "completeOnboarding" ? "NEXT STEP" : "CURRENT ACTION",
+    cta: getNextBloomActionLabel(action),
+    route: action.route
   };
+
+  switch (action.id) {
+    case "completeOnboarding":
+      return {
+        ...shared,
+        title: "Complete onboarding.",
+        body: "Answer a few private questions so Bloom can suggest your first path."
+      };
+    case "startQuickCheckIn":
+      return {
+        ...shared,
+        title: "Start with a quick check-in.",
+        body: "Notice what is happening without needing to label it yet."
+      };
+    case "setupProtection":
+      return {
+        ...shared,
+        title: "Set up your pause layer.",
+        body: "Create a short pause before the automatic loop begins."
+      };
+    case "startReset":
+      return {
+        ...shared,
+        title: action.reason === "protectionReady" ? "Protection is ready." : "Start your reset.",
+        body:
+          action.reason === "protectionReady"
+            ? "The next step is to start the 10-Day Reset."
+            : "Begin the 10-day plan with one simple day."
+      };
+    case "completeTodayReset":
+      return {
+        ...shared,
+        title: "Continue today’s reset.",
+        body: "A two-minute reset is available for today."
+      };
+    case "viewTodayReset":
+      return {
+        ...shared,
+        title: "Today’s reset is saved.",
+        body: "You can review today’s saved reset or keep the day simple."
+      };
+    case "startArousalPractice":
+      return {
+        ...shared,
+        title: "Practice noticing the rise earlier.",
+        body:
+          action.reason === "resetProgramComplete"
+            ? "Your Reset is complete. Continue with guided practice when you are ready."
+            : "Use guided practice to notice arousal before it feels too late."
+      };
+    case "viewPracticeProgress":
+      return {
+        ...shared,
+        title: "Review your latest practice.",
+        body: "Your saved practice is ready to review as personal context."
+      };
+  }
 }
 
 type CurrentPlanCardProps = {
@@ -504,6 +412,7 @@ type ResetProgressCardProps = {
   completedResetDays: number;
   resetTodayCompleted: boolean;
   startedAt: string | null;
+  nextAction: NextBloomAction;
   onPress: (route: AppRoute) => void;
 };
 
@@ -513,9 +422,16 @@ function ResetProgressCard({
   completedResetDays,
   resetTodayCompleted,
   startedAt,
+  nextAction,
   onPress
 }: ResetProgressCardProps) {
-  const action = getResetAction(resetStarted, resetTodayCompleted);
+  const resetTerminal = completedResetDays >= 10;
+  const action = resetTerminal
+    ? {
+        cta: getNextBloomActionLabel(nextAction),
+        route: nextAction.route
+      }
+    : getResetDetailAction(resetStarted, resetTodayCompleted);
 
   return (
     <AppCard style={styles.card}>
@@ -541,7 +457,9 @@ function ResetProgressCard({
               style={[
                 styles.segment,
                 day <= completedResetDays ? styles.segmentComplete : undefined,
-                resetStarted && day === resetDay ? styles.segmentCurrent : undefined
+                resetStarted && !resetTerminal && day === resetDay
+                  ? styles.segmentCurrent
+                  : undefined
               ]}
             />
           ))}
@@ -561,7 +479,7 @@ function ResetProgressCard({
   );
 }
 
-function getResetAction(resetStarted: boolean, resetTodayCompleted: boolean) {
+function getResetDetailAction(resetStarted: boolean, resetTodayCompleted: boolean) {
   if (!resetStarted) {
     return {
       cta: "Start 10-Day Reset",

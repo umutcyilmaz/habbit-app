@@ -2,14 +2,19 @@ import { useRouter } from "expo-router";
 import { Platform, StyleSheet, View } from "react-native";
 
 import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
-import { routes } from "../../../constants/navigation";
+import { routes, type AppRoute } from "../../../constants/navigation";
+import {
+  getNextBloomAction,
+  getValidCompletedResetDayCount,
+  type NextBloomAction
+} from "../../../domain/journey/getNextBloomAction";
+import { getNextBloomActionLabel } from "../../../domain/journey/nextBloomActionPresentation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
 import { AppIconButton } from "../../../shared/components/AppIconButton";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
-import { getCompletedResetDayCount } from "../../../storage/bloomState";
 
 const summaryItems = [
   "Porn avoided today",
@@ -20,8 +25,11 @@ const summaryItems = [
 
 export function TenDayResetSavedScreen() {
   const router = useRouter();
-  const { state, resetDay } = useBloomLocalState();
-  const completedDayCount = getCompletedResetDayCount(state.tenDayReset);
+  const { state, todayKey, resetDay } = useBloomLocalState();
+  const nextAction = getNextBloomAction(state, todayKey);
+  const completedDayCount = getValidCompletedResetDayCount(state.tenDayReset);
+  const resetTerminal = completedDayCount >= 10;
+  const primaryAction = getSavedScreenPrimaryAction(nextAction);
 
   return (
     <AppScreen contentStyle={styles.content}>
@@ -29,20 +37,55 @@ export function TenDayResetSavedScreen() {
 
       <View style={styles.stack}>
         <ProgressCard day={resetDay} completedDayCount={completedDayCount} />
-        <TomorrowCard />
+        {!resetTerminal ? <TomorrowCard /> : null}
         <AfterResetCard />
 
         <View style={styles.bottomActions}>
-          <AppButton onPress={() => router.push(routes.arousalControl)}>
-            View Arousal Control Practice
+          <AppButton
+            onPress={() => {
+              if (primaryAction.replace) {
+                router.replace(primaryAction.route);
+                return;
+              }
+
+              router.push(primaryAction.route);
+            }}
+          >
+            {primaryAction.label}
           </AppButton>
-          <AppButton variant="subtle" onPress={() => router.replace(routes.home)}>
-            Back to Today
-          </AppButton>
+          {primaryAction.route !== routes.home ? (
+            <AppButton variant="subtle" onPress={() => router.replace(routes.home)}>
+              Back to Today
+            </AppButton>
+          ) : null}
         </View>
       </View>
     </AppScreen>
   );
+}
+
+type SavedScreenPrimaryAction = {
+  label: string;
+  route: AppRoute;
+  replace: boolean;
+};
+
+function getSavedScreenPrimaryAction(
+  nextAction: NextBloomAction
+): SavedScreenPrimaryAction {
+  if (nextAction.id === "viewTodayReset") {
+    return {
+      label: "Back to Today",
+      route: routes.home,
+      replace: true
+    };
+  }
+
+  return {
+    label: getNextBloomActionLabel(nextAction),
+    route: nextAction.route,
+    replace: false
+  };
 }
 
 type SavedHeaderProps = {

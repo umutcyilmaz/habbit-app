@@ -6,10 +6,14 @@ import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvid
 import { useLocalDataLifecycle } from "../../../app/providers/LocalDataLifecycleProvider";
 import { routes } from "../../../constants/navigation";
 import {
+  getNextBloomAction,
+  getValidCompletedResetDayCount
+} from "../../../domain/journey/getNextBloomAction";
+import { getNextBloomActionLabel } from "../../../domain/journey/nextBloomActionPresentation";
+import {
   createDebugQuizResult,
   getDebugQuizAnswers,
   getPatternLabel,
-  getRecommendedFirstActionLabel,
   type DebugProfileId
 } from "../../onboarding/quiz";
 import { AppButton } from "../../../shared/components/AppButton";
@@ -19,10 +23,8 @@ import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
 import {
-  getCompletedResetDayCount,
   getLatestArousalControlLog,
   getTodayKey,
-  type RecommendedFirstAction,
   type QuizFlags
 } from "../../../storage/bloomState";
 
@@ -53,6 +55,7 @@ export function BloomStateDebugScreen() {
   const isDeleting = deletionStatus === "deleting";
   const latestArousalLog = getLatestArousalControlLog(state.arousalControl.logs);
   const currentQuizResult = state.onboarding.quizResult;
+  const nextAction = getNextBloomAction(state, todayKey);
 
   useEffect(() => {
     clearDeletionStatus();
@@ -71,13 +74,7 @@ export function BloomStateDebugScreen() {
     saveOnboardingResultForFreshJourney(quizAnswers, quizResult);
     router.push(routes.onboardingResult);
   };
-  const openRecommendedFirstStep = () => {
-    if (currentQuizResult === null) {
-      return;
-    }
-
-    router.push(getRecommendedFirstActionRoute(currentQuizResult.recommendedFirstAction));
-  };
+  const openNextAction = () => router.push(nextAction.route);
 
   return (
     <AppScreen contentStyle={styles.content}>
@@ -112,10 +109,11 @@ export function BloomStateDebugScreen() {
                 ["Onboarding completed", state.onboarding.completed ? "yes" : "no"],
                 ["Result title", state.onboarding.quizResult?.resultTitle ?? "none"],
                 ["Active plan", state.activePlan.planName],
-                [
-                  "Recommended first action",
-                  getRecommendedFirstActionLabel(state.activePlan.recommendedFirstAction)
-                ],
+                ["Next action", nextAction.id],
+                ["Next action label", getNextBloomActionLabel(nextAction)],
+                ["Next phase", nextAction.phase],
+                ["Next route", nextAction.route],
+                ["Next reason", nextAction.reason],
                 ["Score PL", formatScore(state.onboarding.quizResult?.scores.PL)],
                 ["Score PP", formatScore(state.onboarding.quizResult?.scores.PP)],
                 ["Score CT", formatScore(state.onboarding.quizResult?.scores.CT)],
@@ -146,7 +144,10 @@ export function BloomStateDebugScreen() {
                 ["Reset started at", state.tenDayReset.startedAt ?? "not started"],
                 ["Reset day", `Day ${resetDay} of 10`],
                 ["Today completed", resetTodayCompleted ? "yes" : "no"],
-                ["Completed reset days", String(getCompletedResetDayCount(state.tenDayReset))],
+                [
+                  "Completed reset days",
+                  String(getValidCompletedResetDayCount(state.tenDayReset))
+                ],
                 ["Completed dates", state.tenDayReset.completedDates.join(", ") || "none"],
                 ["Protection enabled", state.protection.isEnabled ? "yes" : "no"],
                 ["Preferred window", state.protection.preferredWindow ?? "none"],
@@ -225,10 +226,6 @@ export function BloomStateDebugScreen() {
                     <View style={styles.profileSummaryStack}>
                       <ProfileSummaryRow label="Plan" value={currentQuizResult.planName} />
                       <ProfileSummaryRow
-                        label="Recommended first action"
-                        value={getRecommendedFirstActionLabel(currentQuizResult.recommendedFirstAction)}
-                      />
-                      <ProfileSummaryRow
                         label="Primary pattern"
                         value={getPatternLabel(currentQuizResult.primaryPattern)}
                       />
@@ -249,8 +246,8 @@ export function BloomStateDebugScreen() {
                       <AppButton onPress={() => router.push(routes.onboardingResult)}>
                         Open onboarding result
                       </AppButton>
-                      <AppButton variant="subtle" onPress={openRecommendedFirstStep}>
-                        Open recommended first step
+                      <AppButton variant="subtle" onPress={openNextAction}>
+                        Open next action
                       </AppButton>
                       <AppButton variant="ghost" onPress={() => router.push(routes.home)}>
                         Open Today
@@ -349,20 +346,6 @@ const debugProfileIds = [
   "controlTiming",
   "generalStartingPoint"
 ] as const satisfies readonly DebugProfileId[];
-
-function getRecommendedFirstActionRoute(action: RecommendedFirstAction) {
-  switch (action) {
-    case "startQuickCheckIn":
-      return routes.pauseCheckIn;
-    case "startReset":
-      return routes.tenDayReset;
-    case "startArousalPractice":
-      return routes.arousalControl;
-    case "setupProtection":
-    default:
-      return routes.protectSetup;
-  }
-}
 
 function formatFlags(flags: QuizFlags) {
   const activeFlags = Object.entries(flags)
