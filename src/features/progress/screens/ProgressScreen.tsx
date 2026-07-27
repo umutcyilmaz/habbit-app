@@ -18,6 +18,8 @@ import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
 import {
   getLatestArousalControlLog,
+  isResetProgramComplete,
+  isResetStarted,
   type ArousalControlPracticeLog,
   type QuizResult
 } from "../../../storage/bloomState";
@@ -50,15 +52,17 @@ export function ProgressScreen() {
   const completedResetDays = getValidCompletedResetDayCount(state.tenDayReset);
   const resetTodayCompleted = completedResetDates.includes(todayKey);
   const latestArousalLog = getLatestArousalControlLog(state.arousalControl.logs);
-  const resetStarted = state.tenDayReset.startedAt !== null;
+  const resetStarted = isResetStarted(state.tenDayReset);
+  const resetProgramComplete = isResetProgramComplete(state.tenDayReset);
   const roadmapSteps = getRoadmapSteps(quizResult, nextAction);
   const currentAction = getCurrentAction(nextAction);
   const showResetProgress =
     resetStarted ||
     completedResetDays > 0 ||
     (quizResult !== null &&
-      (state.activePlan.recommendedFirstAction === "setupProtection" ||
-        state.activePlan.recommendedFirstAction === "startReset"));
+      (state.activePlan.recommendedFirstAction === "startReset" ||
+        (state.activePlan.recommendedFirstAction === "setupProtection" &&
+          state.protection.status === "active")));
 
   return (
     <AppScreen contentStyle={styles.content}>
@@ -97,6 +101,7 @@ export function ProgressScreen() {
             resetDay={resetDay}
             completedResetDays={completedResetDays}
             resetTodayCompleted={resetTodayCompleted}
+            resetProgramComplete={resetProgramComplete}
             startedAt={state.tenDayReset.startedAt}
             nextAction={nextAction}
             onPress={(route) => router.push(route)}
@@ -209,6 +214,7 @@ function getRoadmapCurrentStepIndex(action: NextBloomAction): 0 | 1 | 2 {
     case "completeOnboarding":
     case "startQuickCheckIn":
     case "setupProtection":
+    case "resumeProtection":
       return 0;
   }
 }
@@ -238,6 +244,12 @@ function getCurrentAction(action: NextBloomAction): CurrentAction {
         ...shared,
         title: "Set up your pause layer.",
         body: "Create a short pause before the automatic loop begins."
+      };
+    case "resumeProtection":
+      return {
+        ...shared,
+        title: "Resume your pause plan.",
+        body: "Your saved Protection settings are still available inside Bloom."
       };
     case "startReset":
       return {
@@ -411,6 +423,7 @@ type ResetProgressCardProps = {
   resetDay: number;
   completedResetDays: number;
   resetTodayCompleted: boolean;
+  resetProgramComplete: boolean;
   startedAt: string | null;
   nextAction: NextBloomAction;
   onPress: (route: AppRoute) => void;
@@ -421,12 +434,12 @@ function ResetProgressCard({
   resetDay,
   completedResetDays,
   resetTodayCompleted,
+  resetProgramComplete,
   startedAt,
   nextAction,
   onPress
 }: ResetProgressCardProps) {
-  const resetTerminal = completedResetDays >= 10;
-  const action = resetTerminal
+  const action = resetProgramComplete
     ? {
         cta: getNextBloomActionLabel(nextAction),
         route: nextAction.route
@@ -442,7 +455,11 @@ function ResetProgressCard({
               10-DAY RESET
             </AppText>
             <AppText variant="title">
-              {resetStarted ? `Day ${resetDay} of 10` : "Reset not started"}
+              {resetProgramComplete
+                ? "Reset complete"
+                : resetStarted
+                  ? `Day ${resetDay} of 10`
+                  : "Reset not started"}
             </AppText>
           </View>
           <View style={styles.countBadge}>
@@ -457,7 +474,7 @@ function ResetProgressCard({
               style={[
                 styles.segment,
                 day <= completedResetDays ? styles.segmentComplete : undefined,
-                resetStarted && !resetTerminal && day === resetDay
+                resetStarted && !resetProgramComplete && day === resetDay
                   ? styles.segmentCurrent
                   : undefined
               ]}

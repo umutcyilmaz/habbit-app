@@ -9,6 +9,7 @@ import { AppIconButton } from "../../../shared/components/AppIconButton";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
+import type { ProtectionStatus } from "../../../storage/bloomState";
 
 type AppRoute = (typeof routes)[keyof typeof routes];
 
@@ -125,7 +126,7 @@ export function WhatShouldIUseScreen() {
             card={card}
             onPress={() => {
               if (card.status === "available") {
-                router.push(getGuidanceRoute(card.route, state.protection.isEnabled));
+                router.push(getGuidanceRoute(card.route, state.protection.status));
               }
             }}
           />
@@ -141,8 +142,11 @@ export function WhatShouldIUseScreen() {
   );
 }
 
-function getGuidanceRoute(route: AppRoute, protectionEnabled: boolean): AppRoute {
-  if (route === routes.protectSetup && protectionEnabled) {
+function getGuidanceRoute(
+  route: AppRoute,
+  protectionStatus: ProtectionStatus
+): AppRoute {
+  if (route === routes.protectSetup && protectionStatus !== "off") {
     return routes.protectActive;
   }
 

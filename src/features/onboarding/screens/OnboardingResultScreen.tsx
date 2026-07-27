@@ -153,6 +153,12 @@ function getFirstStepContent(action: NextBloomAction) {
         primary,
         route: action.route
       };
+    case "resumeProtection":
+      return {
+        body: "Your Protection settings are saved. Resume the in-app pause plan when it feels useful.",
+        primary,
+        route: action.route
+      };
     case "startReset":
       return {
         body:

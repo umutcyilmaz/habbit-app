@@ -56,11 +56,11 @@ export function ProtectionInterceptScreen() {
             onPress={() => router.replace(routes.home)}
           />
           <ProtectionActionRow
-            title="Message support"
-            description="Talk with someone who gets it."
-            iconLabel="M"
+            title="Quick Check-In"
+            description="Notice what is present before choosing."
+            iconLabel="✓"
             accent="lavender"
-            onPress={() => router.replace(routes.home)}
+            onPress={() => router.push(routes.pauseCheckIn)}
           />
           <ProtectionActionRow
             title="Continue anyway"

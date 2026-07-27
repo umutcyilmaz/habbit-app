@@ -27,6 +27,7 @@ function verifyBloomJourney() {
   verifyGeneralStartingPoint();
   verifyPornLoopProtectionOff();
   verifyPornLoopProtectionEnabled();
+  verifyPornLoopProtectionPaused();
   verifyMixedProfileProtectionOff();
   verifyPressureProfile();
   verifyControlProfileWithoutLogs();
@@ -88,7 +89,7 @@ function verifyPornLoopProtectionOff() {
 
 function verifyPornLoopProtectionEnabled() {
   const state = completedState("setupProtection");
-  state.protection.isEnabled = true;
+  state.protection.status = "active";
   const action = select(state);
 
   expectAction(
@@ -97,6 +98,20 @@ function verifyPornLoopProtectionEnabled() {
     routes.tenDayReset,
     "protectionReady",
     "Porn Loop with Protection enabled should advance to Reset."
+  );
+}
+
+function verifyPornLoopProtectionPaused() {
+  const state = completedState("setupProtection");
+  state.protection.status = "paused";
+  const action = select(state);
+
+  expectAction(
+    action,
+    "resumeProtection",
+    routes.protectActive,
+    "protectionPaused",
+    "Porn Loop with paused Protection should lead to resume."
   );
 }
 
@@ -260,7 +275,7 @@ function verifyInvalidResetDates() {
 
 function verifyProtectionDoesNotOverrideActiveReset() {
   const state = activeResetState("setupProtection");
-  state.protection.isEnabled = true;
+  state.protection.status = "active";
   const action = select(state);
 
   expectAction(
@@ -345,7 +360,7 @@ function verifyCentralizedRoutes() {
 
 function verifyCrossScreenPresentationContract() {
   const state = completedState("setupProtection");
-  state.protection.isEnabled = true;
+  state.protection.status = "active";
   const action = getNextBloomAction(state, todayKey);
   const consumers = ["Today", "Progress", "Result", "Debug"].map((consumer) => ({
     consumer,
@@ -462,6 +477,7 @@ const expectedPhases: Record<
   completeOnboarding: "onboarding",
   startQuickCheckIn: "observation",
   setupProtection: "protection",
+  resumeProtection: "protection",
   startReset: "reset",
   completeTodayReset: "reset",
   viewTodayReset: "reset",

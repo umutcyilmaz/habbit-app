@@ -41,6 +41,16 @@ Timezone offsets, date-only timestamp values, malformed milliseconds, and normal
 
 When a valid quiz result exists, `activePlan` is derived from that result during hydration so separately persisted plan data cannot conflict with the result.
 
+Protection uses one canonical persisted status: `off`, `active`, or `paused`.
+Legacy `isEnabled: true` normalizes to `active`; `false` normalizes to `off`.
+Valid setup timestamps, windows, in-app pause preferences, and supported night
+times are preserved. The legacy Boolean is not retained as a second authority.
+
+Reset `startedAt` is canonicalized to a valid date key, including older valid
+ISO timestamps. Reset completion dates are filtered to real date keys,
+deduplicated, sorted, and capped at ten. A program is terminal only when its
+start is valid and ten valid unique dates remain.
+
 ## Legacy Migration
 
 The loader checks `bloom.localState.v2` first, followed by the legacy key:
@@ -85,7 +95,11 @@ bloom.localState.corrupt.*
 
 Unrelated storage keys are preserved; global `AsyncStorage.clear()` is not used. Quarantine and legacy keys are removed before the active current key so a mid-operation failure preserves active data where possible. After durable deletion succeeds, the provider installs a genuine default Bloom state without immediately autosaving it. Bloom mutations stay blocked until the router confirms `/onboarding`, preventing an old deep-link screen’s mount effect from recreating state during the reset transition. The first real onboarding mutation may create a new envelope.
 
-The app-level lifecycle then resets transient `DemoAppStateProvider` data, including Log entries, Pause entries, and Protection state, and replaces navigation with `/onboarding`. If storage deletion fails, current in-memory state is retained, the app does not claim success, and a non-sensitive error explains that data may still remain.
+The app-level lifecycle then resets transient `DemoAppStateProvider` Log and
+Pause data and replaces navigation with `/onboarding`. Persisted Protection is
+already removed with the canonical Bloom envelope. If storage deletion fails,
+current in-memory state is retained, the app does not claim success, and a
+non-sensitive error explains that data may still remain.
 
 The same operation is used by Debug, Settings/Data Controls, and hydration-error recovery. The recovery `Try again` action only retries hydration; its reset action requires confirmation.
 
@@ -95,6 +109,14 @@ The repository verification script uses only fake web storage and explicit memor
 
 ```sh
 npm run verify:persistence
+```
+
+Protection transitions, legacy Protection conversion, Reset idempotency and
+terminal capping, Saved-route eligibility, and cross-feature journey
+consistency are covered separately:
+
+```sh
+npm run verify:protection-reset
 ```
 
 ## Adding a Future Version

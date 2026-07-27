@@ -13,7 +13,7 @@ route, and reason. The decision order is:
 3. active Reset with the supplied date incomplete;
 4. active Reset with the supplied date complete;
 5. general observation;
-6. Protection setup, or Reset once Protection is enabled;
+6. Protection setup, resume when paused, or Reset once Protection is active;
 7. pressure-plan Reset;
 8. Arousal Control practice or review.
 

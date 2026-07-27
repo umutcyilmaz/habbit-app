@@ -1,9 +1,7 @@
 import type {
   DemoAppState,
   DemoCheckIn,
-  DemoPauseSession,
-  DemoProtectionStatus,
-  DemoSupportLevel
+  DemoPauseSession
 } from "./demoTypes";
 import { createDemoInitialState } from "./demoInitialState";
 
@@ -15,14 +13,6 @@ export type DemoAppAction =
   | {
       type: "ADD_PAUSE_SESSION";
       payload: DemoPauseSession;
-    }
-  | {
-      type: "SET_PROTECTION_STATUS";
-      payload: DemoProtectionStatus;
-    }
-  | {
-      type: "SET_PROTECTION_LEVEL";
-      payload: DemoSupportLevel;
     }
   | {
       type: "TOGGLE_PERSONALIZATION";
@@ -46,22 +36,6 @@ export function demoAppStateReducer(state: DemoAppState, action: DemoAppAction):
       return {
         ...state,
         pauseSessions: [action.payload, ...state.pauseSessions]
-      };
-    case "SET_PROTECTION_STATUS":
-      return {
-        ...state,
-        protection: {
-          ...state.protection,
-          status: action.payload
-        }
-      };
-    case "SET_PROTECTION_LEVEL":
-      return {
-        ...state,
-        protection: {
-          ...state.protection,
-          level: action.payload
-        }
       };
     case "TOGGLE_PERSONALIZATION":
       return {

@@ -1,5 +1,5 @@
 import type { ProtectionWindow } from "../../domain/models";
-import type { DemoSupportLevel } from "../../domain/demo/demoTypes";
+import type { ProtectionLevel } from "../../storage/bloomState";
 
 export interface ProtectionWindowDraft {
   label: ProtectionWindow["label"];
@@ -12,7 +12,7 @@ export interface ProtectionWindowDraft {
 export type ProtectionSchedule = "night" | "custom" | "alwaysOn";
 
 export type ProtectionLevelOption = {
-  id: DemoSupportLevel;
+  id: ProtectionLevel;
   title: string;
   description: string;
 };

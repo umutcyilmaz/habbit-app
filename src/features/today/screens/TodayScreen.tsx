@@ -113,6 +113,14 @@ function getTodayHeroState({
         primaryAction,
         primaryRoute: action.route
       };
+    case "resumeProtection":
+      return {
+        statusLabel: "Protection paused",
+        title: "Resume your pause plan.",
+        body: "Your saved Protection settings are still available inside Bloom.",
+        primaryAction,
+        primaryRoute: action.route
+      };
     case "startReset":
       return action.reason === "protectionReady"
         ? {

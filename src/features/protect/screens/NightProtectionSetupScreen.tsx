@@ -1,8 +1,6 @@
-import { useState } from "react";
 import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
-import { useDemoAppDispatch } from "../../../app/providers/DemoAppStateProvider";
 import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
 import { AppButton } from "../../../shared/components/AppButton";
@@ -15,17 +13,19 @@ import { ProtectionSetupSection } from "../components/ProtectionSetupSection";
 
 export function NightProtectionSetupScreen() {
   const router = useRouter();
-  const dispatch = useDemoAppDispatch();
-  const { enableProtection } = useBloomLocalState();
-  const [putPhoneAwayEnabled, setPutPhoneAwayEnabled] = useState(true);
-  const [dimScreenEnabled, setDimScreenEnabled] = useState(true);
+  const { state, configureProtection } = useBloomLocalState();
+  const protection = state.protection;
+  const nightStartTime = protection.nightStartTime ?? "22:00";
+  const nightEndTime = protection.nightEndTime ?? "08:00";
 
   const startNightProtection = () => {
-    dispatch({
-      type: "SET_PROTECTION_STATUS",
-      payload: "active"
+    configureProtection({
+      preferredWindow: "night",
+      level: protection.level ?? "balanced",
+      adultContentPauseEnabled: true,
+      nightStartTime,
+      nightEndTime
     });
-    enableProtection("night");
     router.replace(routes.protectActive);
   };
 
@@ -33,33 +33,31 @@ export function NightProtectionSetupScreen() {
     <AppScreen contentStyle={styles.focusedContent}>
       <ProtectionFlowHeader
         title="Night Protection Setup"
-        subtitle="A softer support plan for bedtime and nighttime urges."
+        subtitle="Save an in-app pause plan for your preferred night window."
         onBackPress={() => router.replace(routes.protect)}
       />
 
       <View style={styles.stack}>
         <ProtectionSetupSection title="Bedtime support">
           <View style={styles.optionStack}>
-            <ProtectionModeCard title="Start before bed" value="30 min" iconLabel="B" />
+            <ProtectionModeCard title="Starts at" value={nightStartTime} iconLabel="B" />
             <ProtectionModeCard
-              title="Put phone away"
-              value={putPhoneAwayEnabled ? "Enabled" : "Off"}
+              title="Put-phone-away reminder"
+              value="Coming soon"
               iconLabel="P"
-              enabled={putPhoneAwayEnabled}
-              onPress={() => setPutPhoneAwayEnabled((isEnabled) => !isEnabled)}
+              enabled={false}
             />
             <ProtectionModeCard
-              title="Dim the screen"
-              value={dimScreenEnabled ? "Enabled" : "Off"}
+              title="Dim-screen reminder"
+              value="Coming soon"
               iconLabel="D"
-              enabled={dimScreenEnabled}
-              onPress={() => setDimScreenEnabled((isEnabled) => !isEnabled)}
+              enabled={false}
             />
-            <ProtectionModeCard title="Protect until" value="7:00 AM" iconLabel="7" />
+            <ProtectionModeCard title="Ends at" value={nightEndTime} iconLabel="7" />
           </View>
         </ProtectionSetupSection>
 
-        <AppButton onPress={startNightProtection}>Start Night Protection</AppButton>
+        <AppButton onPress={startNightProtection}>Save night pause plan</AppButton>
         <AppText variant="bodySmall" tone="secondary" align="center">
           You can adjust these settings anytime.
         </AppText>

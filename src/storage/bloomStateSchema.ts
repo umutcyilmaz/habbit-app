@@ -7,10 +7,13 @@ import {
   type ArousalControlState,
   type BloomDebugState,
   type BloomLocalState,
+  MAX_RESET_DAYS,
   type NormalizedScores,
   type OnboardingState,
   type PatternId,
+  type ProtectionLevel,
   type ProtectionState,
+  type ProtectionStatus,
   type QuizFlags,
   type QuizPlanStep,
   type QuizResult,
@@ -18,6 +21,17 @@ import {
   type RecommendedFirstAction,
   type TenDayResetState
 } from "./bloomState";
+import {
+  isValidBloomDateKey,
+  isValidBloomIsoTimestamp,
+  isValidBloomTime
+} from "./bloomValueValidation";
+
+export {
+  isValidBloomDateKey,
+  isValidBloomIsoTimestamp,
+  isValidBloomTime
+} from "./bloomValueValidation";
 
 export const BLOOM_PERSISTENCE_VERSION = 2 as const;
 
@@ -68,7 +82,22 @@ const recommendedActions = [
   "startArousalPractice",
   "startQuickCheckIn"
 ] as const;
-const protectionWindows = ["evening", "night", "custom"] as const;
+const protectionStatuses = [
+  "off",
+  "active",
+  "paused"
+] as const satisfies readonly ProtectionStatus[];
+const protectionLevels = [
+  "gentle",
+  "balanced",
+  "strong"
+] as const satisfies readonly ProtectionLevel[];
+const protectionWindows = [
+  "evening",
+  "night",
+  "custom",
+  "alwaysOn"
+] as const;
 const durationPreferences = ["notLogged", "estimated", "exact"] as const;
 const pressureRushingValues = ["low", "medium", "high", "veryHigh"] as const;
 const afterwardFeelingValues = [
@@ -420,15 +449,20 @@ function normalizeTenDayReset(value: unknown, defaults: TenDayResetState): TenDa
   const completedDates =
     record.completedDates === undefined
       ? defaults.completedDates
-      : normalizeDateKeyArray(record.completedDates, "state.tenDayReset.completedDates");
+      : normalizeResetDateKeyArray(
+          record.completedDates,
+          "state.tenDayReset.completedDates"
+        );
 
   return {
-    startedAt: optionalNullableIsoTimestamp(
+    startedAt: optionalNullableResetStartDate(
       record.startedAt,
       defaults.startedAt,
       "state.tenDayReset.startedAt"
     ),
-    completedDates: Array.from(new Set(completedDates)).sort(),
+    completedDates: Array.from(new Set(completedDates))
+      .sort()
+      .slice(0, MAX_RESET_DAYS),
     lastCompletedAt: optionalNullableIsoTimestamp(
       record.lastCompletedAt,
       defaults.lastCompletedAt,
@@ -460,22 +494,56 @@ function normalizeProtection(value: unknown, defaults: ProtectionState): Protect
     return defaults;
   }
 
+  const status =
+    record.status !== undefined
+      ? requiredEnum(
+          record.status,
+          protectionStatuses,
+          "state.protection.status"
+        )
+      : record.isEnabled === undefined
+        ? defaults.status
+        : optionalBoolean(record.isEnabled, false)
+          ? "active"
+          : "off";
+  const preferredWindow = optionalNullableEnum(
+    record.preferredWindow,
+    protectionWindows,
+    defaults.preferredWindow,
+    "state.protection.preferredWindow"
+  );
+  const defaultNightStartTime =
+    preferredWindow === "night" ? "22:00" : defaults.nightStartTime;
+  const defaultNightEndTime =
+    preferredWindow === "night" ? "08:00" : defaults.nightEndTime;
+
   return {
-    isEnabled: optionalBoolean(record.isEnabled, defaults.isEnabled),
+    status,
     setupCompletedAt: optionalNullableIsoTimestamp(
       record.setupCompletedAt,
       defaults.setupCompletedAt,
       "state.protection.setupCompletedAt"
     ),
-    preferredWindow: optionalNullableEnum(
-      record.preferredWindow,
-      protectionWindows,
-      defaults.preferredWindow,
-      "state.protection.preferredWindow"
+    preferredWindow,
+    level: optionalNullableEnum(
+      record.level,
+      protectionLevels,
+      defaults.level,
+      "state.protection.level"
     ),
     adultContentPauseEnabled: optionalBoolean(
       record.adultContentPauseEnabled,
       defaults.adultContentPauseEnabled
+    ),
+    nightStartTime: optionalNullableTime(
+      record.nightStartTime,
+      defaultNightStartTime,
+      "state.protection.nightStartTime"
+    ),
+    nightEndTime: optionalNullableTime(
+      record.nightEndTime,
+      defaultNightEndTime,
+      "state.protection.nightEndTime"
     ),
     lastProtectionPauseAt: optionalNullableIsoTimestamp(
       record.lastProtectionPauseAt,
@@ -700,6 +768,54 @@ function optionalNullableIsoTimestamp(
   return value === null ? null : requiredIsoTimestamp(value, path);
 }
 
+function optionalNullableResetStartDate(
+  value: unknown,
+  fallback: string | null,
+  path: string
+): string | null {
+  if (value === undefined) {
+    return fallback;
+  }
+
+  if (value === null) {
+    return null;
+  }
+
+  if (isValidBloomDateKey(value)) {
+    return value;
+  }
+
+  if (isValidBloomIsoTimestamp(value)) {
+    return value.slice(0, 10);
+  }
+
+  throw new BloomStateValidationError(
+    `${path} must be a valid YYYY-MM-DD date or canonical ISO timestamp.`
+  );
+}
+
+function optionalNullableTime(
+  value: unknown,
+  fallback: string | null,
+  path: string
+): string | null {
+  if (value === undefined) {
+    return fallback;
+  }
+
+  if (value === null) {
+    return null;
+  }
+
+  if (!isValidBloomTime(value)) {
+    throw new BloomStateValidationError(
+      `${path} must use 24-hour HH:mm format.`
+    );
+  }
+
+  return value;
+}
+
 function requiredDateKey(value: unknown, path: string): string {
   if (!isValidBloomDateKey(value)) {
     throw new BloomStateValidationError(`${path} must be a valid YYYY-MM-DD date.`);
@@ -708,12 +824,12 @@ function requiredDateKey(value: unknown, path: string): string {
   return value;
 }
 
-function normalizeDateKeyArray(value: unknown, path: string): string[] {
+function normalizeResetDateKeyArray(value: unknown, path: string): string[] {
   if (!Array.isArray(value)) {
     throw new BloomStateValidationError(`${path} must be an array.`);
   }
 
-  return value.map((dateKey, index) => requiredDateKey(dateKey, `${path}[${index}]`));
+  return value.filter(isValidBloomDateKey);
 }
 
 function normalizeStringArray(value: unknown, path: string): string[] {
@@ -854,53 +970,6 @@ function isFiniteNumber(value: unknown): value is number {
 
 function isSafeString(value: unknown): value is string {
   return typeof value === "string" && value.length > 0 && value.length <= 1000;
-}
-
-export function isValidBloomDateKey(value: unknown): value is string {
-  if (typeof value !== "string") {
-    return false;
-  }
-
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-
-  if (match === null) {
-    return false;
-  }
-
-  const [, yearValue = "", monthValue = "", dayValue = ""] = match;
-  const year = Number(yearValue);
-  const month = Number(monthValue);
-  const day = Number(dayValue);
-
-  if (year < 1) {
-    return false;
-  }
-
-  const date = new Date(0);
-  date.setUTCHours(0, 0, 0, 0);
-  date.setUTCFullYear(year, month - 1, day);
-
-  return (
-    date.getUTCFullYear() === year &&
-    date.getUTCMonth() === month - 1 &&
-    date.getUTCDate() === day
-  );
-}
-
-export function isValidBloomIsoTimestamp(value: unknown): value is string {
-  if (
-    typeof value !== "string" ||
-    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value)
-  ) {
-    return false;
-  }
-
-  const parsedDate = new Date(value);
-
-  return (
-    Number.isFinite(parsedDate.getTime()) &&
-    parsedDate.toISOString() === value
-  );
 }
 
 function isEnumValue<const TValues extends readonly string[]>(

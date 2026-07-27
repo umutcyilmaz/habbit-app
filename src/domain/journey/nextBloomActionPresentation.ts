@@ -15,6 +15,8 @@ export function getNextBloomActionLabel(
       return "Start a Quick Check-In";
     case "setupProtection":
       return "Set up Protection";
+    case "resumeProtection":
+      return "Resume Protection";
     case "startReset":
       return "Start 10-Day Reset";
     case "completeTodayReset":

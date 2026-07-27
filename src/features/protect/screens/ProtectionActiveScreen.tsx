@@ -1,7 +1,6 @@
 import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
-import { useDemoAppDispatch } from "../../../app/providers/DemoAppStateProvider";
 import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
 import { AppButton } from "../../../shared/components/AppButton";
@@ -15,25 +14,30 @@ import { ProtectionVisual } from "../components/ProtectionVisual";
 
 export function ProtectionActiveScreen() {
   const router = useRouter();
-  const dispatch = useDemoAppDispatch();
-  const { state, disableProtection } = useBloomLocalState();
+  const {
+    state,
+    pauseProtection,
+    resumeProtection,
+    turnOffProtection
+  } = useBloomLocalState();
   const protection = state.protection;
 
-  const pauseProtection = () => {
-    disableProtection();
-    dispatch({
-      type: "SET_PROTECTION_STATUS",
-      payload: "paused"
-    });
-    router.replace(routes.protect);
-  };
+  if (protection.status === "off") {
+    const hasSavedConfiguration = protection.setupCompletedAt !== null;
 
-  if (!protection.isEnabled) {
     return (
       <AppScreen contentStyle={styles.focusedContent}>
         <ProtectionFlowHeader
-          title="Protection is not set up yet"
-          subtitle="Set up a pause layer before automatic moments."
+          title={
+            hasSavedConfiguration
+              ? "Protection is off"
+              : "Protection is not set up yet"
+          }
+          subtitle={
+            hasSavedConfiguration
+              ? "Your saved in-app pause preferences are still available."
+              : "Set up an optional pause plan for sensitive moments."
+          }
           onBackPress={() => router.replace(routes.protect)}
         />
 
@@ -42,16 +46,77 @@ export function ProtectionActiveScreen() {
             <ProtectionVisual label="Setup" symbol="P" size="large" />
             <View style={styles.heroCopy}>
               <AppText variant="title" align="center">
-                Set up Protection first
+                {hasSavedConfiguration
+                  ? "Review your saved settings"
+                  : "Set up Protection first"}
               </AppText>
               <AppText tone="secondary" align="center">
-                Bloom can remember your local support settings after setup.
+                {hasSavedConfiguration
+                  ? "Saving again will make the pause plan ready inside Bloom."
+                  : "Bloom can remember your local pause-plan settings after setup."}
               </AppText>
             </View>
           </View>
 
           <AppButton onPress={() => router.replace(routes.protectSetup)}>
-            Set up Protection
+            {hasSavedConfiguration ? "Review settings" : "Set up Protection"}
+          </AppButton>
+        </View>
+      </AppScreen>
+    );
+  }
+
+  if (protection.status === "paused") {
+    return (
+      <AppScreen contentStyle={styles.focusedContent}>
+        <ProtectionFlowHeader
+          title="Protection is paused"
+          subtitle="Your in-app pause plan and preferences are still saved."
+          onBackPress={() => router.replace(routes.protect)}
+        />
+
+        <View style={styles.stack}>
+          <View style={styles.heroPanel}>
+            <ProtectionVisual label="Paused" symbol="P" size="large" />
+            <View style={styles.heroCopy}>
+              <AppText variant="title" align="center">
+                Resume when it feels useful
+              </AppText>
+              <AppText tone="secondary" align="center">
+                Resuming makes your saved pause plan ready inside Bloom again.
+              </AppText>
+            </View>
+          </View>
+
+          <View style={styles.actionStack}>
+            <ProtectionActionRow
+              title="Resume Protection"
+              description="Make the saved in-app pause plan ready again."
+              iconLabel="R"
+              accent="sage"
+              onPress={resumeProtection}
+            />
+            <ProtectionActionRow
+              title="Edit settings"
+              description="Adjust the saved window and reminder style."
+              iconLabel="E"
+              accent="lavender"
+              onPress={() => router.push(routes.protectSetup)}
+            />
+            <ProtectionActionRow
+              title="Turn off Protection"
+              description="Keep the configuration but mark Protection as off."
+              iconLabel="O"
+              accent="peach"
+              onPress={() => {
+                turnOffProtection();
+                router.replace(routes.protect);
+              }}
+            />
+          </View>
+
+          <AppButton onPress={() => router.replace(routes.protect)}>
+            Back to Protect
           </AppButton>
         </View>
       </AppScreen>
@@ -61,8 +126,8 @@ export function ProtectionActiveScreen() {
   return (
     <AppScreen contentStyle={styles.focusedContent}>
       <ProtectionFlowHeader
-        title="Protection is active"
-        subtitle="Your support plan is running quietly during selected hours."
+        title="Protection is ready"
+        subtitle="Your saved in-app pause plan is available when you choose it."
         onBackPress={() => router.replace(routes.protect)}
       />
 
@@ -74,7 +139,8 @@ export function ProtectionActiveScreen() {
               Protection is ready
             </AppText>
             <AppText tone="secondary" align="center">
-              Adult-content pause is on during your {formatProtectionWindow(protection.preferredWindow).toLowerCase()}.
+              Bloom’s in-app pause is saved for your{" "}
+              {formatProtectionWindow(protection.preferredWindow).toLowerCase()}.
             </AppText>
           </View>
         </View>
@@ -85,20 +151,33 @@ export function ProtectionActiveScreen() {
             description="Take a break from the current support plan."
             iconLabel="P"
             accent="peach"
-            onPress={pauseProtection}
+            onPress={() => {
+              pauseProtection();
+              router.replace(routes.protect);
+            }}
           />
           <ProtectionActionRow
             title="Edit schedule"
-            description="Adjust selected hours and support level."
+            description="Adjust the saved window and reminder style."
             iconLabel="E"
             accent="lavender"
             onPress={() => router.push(routes.protectSetup)}
+          />
+          <ProtectionActionRow
+            title="Turn off Protection"
+            description="Keep the configuration but mark Protection as off."
+            iconLabel="O"
+            accent="peach"
+            onPress={() => {
+              turnOffProtection();
+              router.replace(routes.protect);
+            }}
           />
         </View>
 
         <ProtectionRoutineCard
           title={formatProtectionWindow(protection.preferredWindow)}
-          body="Bloom will help create a pause before automatic moments. This support is optional and reversible."
+          body="Bloom keeps this pause plan inside the app. It is optional, reversible, and available when you choose it."
         />
 
         <AppButton onPress={() => router.replace(routes.protect)}>Back to Protect</AppButton>
@@ -113,6 +192,8 @@ function formatProtectionWindow(window: string | null) {
       return "Night window";
     case "custom":
       return "Custom window";
+    case "alwaysOn":
+      return "Any-time preference";
     case "evening":
       return "Evening window";
     default:

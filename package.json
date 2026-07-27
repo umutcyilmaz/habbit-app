@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "verify:persistence": "node scripts/run-bloom-persistence-verification.cjs",
     "verify:quiz": "node scripts/run-bloom-quiz-verification.cjs",
-    "verify:journey": "node scripts/run-bloom-journey-verification.cjs"
+    "verify:journey": "node scripts/run-bloom-journey-verification.cjs",
+    "verify:protection-reset": "node scripts/run-bloom-protection-reset-verification.cjs"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",

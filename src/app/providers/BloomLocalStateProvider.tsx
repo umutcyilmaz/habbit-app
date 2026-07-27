@@ -13,20 +13,22 @@ import {
   clearOnboardingResultState,
   completeArousalControlPracticeState,
   completeTodayResetState,
+  configureProtectionState,
   createDefaultBloomState,
-  disableProtectionState,
-  enableProtectionState,
   getResetDay,
   getTodayKey,
   isTodayCompleted,
+  pauseProtectionState,
   recordProtectionPauseState,
+  resumeProtectionState,
   saveOnboardingResultForFreshJourneyState,
   saveOnboardingResultState,
   startTenDayResetState,
+  turnOffProtectionState,
   updateArousalControlDraftState,
   type ArousalControlDraft,
   type BloomLocalState,
-  type ProtectionWindow,
+  type ProtectionConfiguration,
   type QuizResult
 } from "../../storage/bloomState";
 import {
@@ -71,8 +73,10 @@ type BloomLocalStateContextValue = {
   completeTodayReset: () => void;
   simulateNextDay: () => void;
   simulatePreviousDay: () => void;
-  enableProtection: (preferredWindow?: ProtectionWindow) => void;
-  disableProtection: () => void;
+  configureProtection: (configuration: ProtectionConfiguration) => void;
+  pauseProtection: () => void;
+  resumeProtection: () => void;
+  turnOffProtection: () => void;
   recordProtectionPause: () => void;
   updateArousalControlDraft: (patch: Partial<ArousalControlDraft>) => void;
   completeArousalControlPractice: (
@@ -359,14 +363,22 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
     }));
   }, [applyStateMutation]);
 
-  const enableProtection = useCallback((preferredWindow: ProtectionWindow = "evening") => {
+  const configureProtection = useCallback((configuration: ProtectionConfiguration) => {
     applyStateMutation((currentState) =>
-      enableProtectionState(currentState, preferredWindow)
+      configureProtectionState(currentState, configuration)
     );
   }, [applyStateMutation]);
 
-  const disableProtection = useCallback(() => {
-    applyStateMutation((currentState) => disableProtectionState(currentState));
+  const pauseProtection = useCallback(() => {
+    applyStateMutation((currentState) => pauseProtectionState(currentState));
+  }, [applyStateMutation]);
+
+  const resumeProtection = useCallback(() => {
+    applyStateMutation((currentState) => resumeProtectionState(currentState));
+  }, [applyStateMutation]);
+
+  const turnOffProtection = useCallback(() => {
+    applyStateMutation((currentState) => turnOffProtectionState(currentState));
   }, [applyStateMutation]);
 
   const recordProtectionPause = useCallback(() => {
@@ -414,8 +426,10 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
       completeTodayReset,
       simulateNextDay,
       simulatePreviousDay,
-      enableProtection,
-      disableProtection,
+      configureProtection,
+      pauseProtection,
+      resumeProtection,
+      turnOffProtection,
       recordProtectionPause,
       updateArousalControlDraft,
       completeArousalControlPractice
@@ -424,16 +438,17 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
       completeArousalControlPractice,
       clearOnboardingResult,
       completeTodayReset,
+      configureProtection,
       deleteAllBloomLocalData,
-      disableProtection,
-      enableProtection,
       finishBloomLocalDataReset,
       hasHydrated,
       hydrationError,
       hydrationStatus,
       isLoading,
       persistenceError,
+      pauseProtection,
       recordProtectionPause,
+      resumeProtection,
       resetDay,
       resetTodayCompleted,
       runHydration,
@@ -444,6 +459,7 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
       startTenDayReset,
       state,
       todayKey,
+      turnOffProtection,
       updateArousalControlDraft
     ]
   );

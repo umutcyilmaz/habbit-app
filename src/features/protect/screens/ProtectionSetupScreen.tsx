@@ -2,16 +2,15 @@ import { useState } from "react";
 import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
-import {
-  useDemoAppDispatch,
-  useDemoAppState
-} from "../../../app/providers/DemoAppStateProvider";
 import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
-import type { DemoSupportLevel } from "../../../domain/demo/demoTypes";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { theme } from "../../../shared/design-system/theme";
+import type {
+  ProtectionLevel,
+  ProtectionWindow
+} from "../../../storage/bloomState";
 import { ProtectionFlowHeader } from "../components/ProtectionFlowHeader";
 import { ProtectionLevelCard } from "../components/ProtectionLevelCard";
 import { ProtectionScheduleRow } from "../components/ProtectionScheduleRow";
@@ -26,17 +25,17 @@ const protectionLevels: readonly ProtectionLevelOption[] = [
   {
     id: "gentle",
     title: "Gentle",
-    description: "Adds a short pause before access."
+    description: "Save a brief in-app pause preference."
   },
   {
     id: "balanced",
     title: "Balanced",
-    description: "Encourages pause + reflection."
+    description: "Pair the in-app pause with a short reflection."
   },
   {
     id: "strong",
     title: "Strong",
-    description: "Adds a longer delay and extra confirmation."
+    description: "Save a more direct reminder preference."
   }
 ] as const;
 
@@ -49,33 +48,36 @@ const scheduleOptions: readonly ProtectionScheduleOption[] = [
   {
     id: "custom",
     title: "Custom hours",
-    description: "Choose selected hours later."
+    description: "Save a custom-window preference. Exact times are coming soon."
   },
   {
     id: "alwaysOn",
     title: "Always on",
-    description: "Keep gentle support available throughout the day."
+    description: "Keep the in-app pause plan easy to reach throughout the day."
   }
 ] as const;
 
 export function ProtectionSetupScreen() {
   const router = useRouter();
-  const state = useDemoAppState();
-  const dispatch = useDemoAppDispatch();
-  const { enableProtection } = useBloomLocalState();
-  const [selectedLevel, setSelectedLevel] = useState<DemoSupportLevel>(state.protection.level);
-  const [selectedSchedule, setSelectedSchedule] = useState<ProtectionSchedule>("night");
+  const { state, configureProtection } = useBloomLocalState();
+  const protection = state.protection;
+  const [selectedLevel, setSelectedLevel] = useState<ProtectionLevel>(
+    protection.level ?? "balanced"
+  );
+  const [selectedSchedule, setSelectedSchedule] = useState<ProtectionSchedule>(
+    getProtectionSchedule(protection.preferredWindow)
+  );
 
   const activateProtection = () => {
-    dispatch({
-      type: "SET_PROTECTION_LEVEL",
-      payload: selectedLevel
+    configureProtection({
+      preferredWindow: selectedSchedule,
+      level: selectedLevel,
+      adultContentPauseEnabled: true,
+      nightStartTime:
+        protection.nightStartTime ?? (selectedSchedule === "night" ? "22:00" : null),
+      nightEndTime:
+        protection.nightEndTime ?? (selectedSchedule === "night" ? "08:00" : null)
     });
-    dispatch({
-      type: "SET_PROTECTION_STATUS",
-      payload: "active"
-    });
-    enableProtection(getPreferredWindow(selectedSchedule));
     router.replace(routes.home);
   };
 
@@ -90,7 +92,7 @@ export function ProtectionSetupScreen() {
       <View style={styles.stack}>
         <ProtectionSetupSection
           title="Protection Level"
-          body="Choose how firmly you want to be guided away from automatic loops."
+          body="Choose the reminder style Bloom should save for this pause plan."
         >
           <View style={styles.optionStack}>
             {protectionLevels.map((level) => (
@@ -108,7 +110,7 @@ export function ProtectionSetupScreen() {
 
         <ProtectionSetupSection
           title="Schedule"
-          body="Set when these support layers are active."
+          body="Save when you would like this in-app pause plan to be easiest to reach."
         >
           <View style={styles.optionStack}>
             {scheduleOptions.map((schedule) => (
@@ -125,21 +127,22 @@ export function ProtectionSetupScreen() {
           </View>
         </ProtectionSetupSection>
 
-        <AppButton onPress={activateProtection}>Activate</AppButton>
+        <AppButton onPress={activateProtection}>
+          {protection.status === "off" ? "Save and activate" : "Save settings"}
+        </AppButton>
       </View>
     </AppScreen>
   );
 }
 
-function getPreferredWindow(schedule: ProtectionSchedule) {
-  switch (schedule) {
-    case "night":
-      return "night";
-    case "custom":
-    case "alwaysOn":
-    default:
-      return "custom";
+function getProtectionSchedule(
+  window: ProtectionWindow | null
+): ProtectionSchedule {
+  if (window === null) {
+    return "night";
   }
+
+  return window === "night" || window === "alwaysOn" ? window : "custom";
 }
 
 const styles = StyleSheet.create({

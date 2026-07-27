@@ -21,7 +21,7 @@ export function TodayProtectionPreviewCard({ active, onPress }: TodayProtectionP
           </AppText>
         </View>
         <View style={styles.copy}>
-          <AppText variant="title">{active ? "Protection is active" : "Protection is off"}</AppText>
+          <AppText variant="title">{active ? "Protection is ready" : "Protection is off"}</AppText>
           <AppText tone="secondary">
             {active
               ? "Support is ready during selected hours."

@@ -265,9 +265,11 @@ function verifyDateValidationIntegration() {
 
   const invalidDateState = createDefaultBloomState();
   invalidDateState.tenDayReset.completedDates = ["2026-02-30"];
+  const invalidDateResult = validateAndNormalizeBloomState(invalidDateState);
   assert(
-    !validateAndNormalizeBloomState(invalidDateState).success,
-    "An impossible persisted date key should invalidate state."
+    invalidDateResult.success &&
+      invalidDateResult.state.tenDayReset.completedDates.length === 0,
+    "Impossible legacy Reset date keys should be discarded during normalization."
   );
 
   const invalidTimestampState = createDefaultBloomState();
@@ -439,7 +441,10 @@ async function verifyFeatureStatePreservation() {
   const result = await loadBloomLocalState(client, fixedNow);
 
   assert(result.status === "success", "Valid feature state should migrate.");
-  assert(result.state.protection.isEnabled, "Protection enabled state should survive.");
+  assert(
+    result.state.protection.status === "active",
+    "Protection active state should survive."
+  );
   assert(
     result.state.protection.preferredWindow === "night",
     "Protection window should survive."

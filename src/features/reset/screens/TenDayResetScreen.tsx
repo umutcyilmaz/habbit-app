@@ -2,16 +2,20 @@ import { useRouter } from "expo-router";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 
 import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
-import { routes } from "../../../constants/navigation";
+import { routes, type AppRoute } from "../../../constants/navigation";
+import { getNextBloomAction } from "../../../domain/journey/getNextBloomAction";
+import { getNextBloomActionLabel } from "../../../domain/journey/nextBloomActionPresentation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
 import { AppIconButton } from "../../../shared/components/AppIconButton";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
-import { getCompletedResetDayCount } from "../../../storage/bloomState";
-
-type AppRoute = (typeof routes)[keyof typeof routes];
+import {
+  getCompletedResetDayCount,
+  isResetProgramComplete,
+  isResetStarted
+} from "../../../storage/bloomState";
 
 const resetRules = [
   {
@@ -56,15 +60,49 @@ const replacementActions = [
 
 export function TenDayResetScreen() {
   const router = useRouter();
-  const { state, resetDay, startTenDayReset } = useBloomLocalState();
-  const resetStarted = state.tenDayReset.startedAt !== null;
+  const {
+    state,
+    todayKey,
+    resetDay,
+    startTenDayReset
+  } = useBloomLocalState();
+  const resetStarted = isResetStarted(state.tenDayReset);
+  const resetComplete = isResetProgramComplete(state.tenDayReset);
   const displayDay = resetStarted ? resetDay : 1;
   const completedDayCount = getCompletedResetDayCount(state.tenDayReset);
+  const nextAction = getNextBloomAction(state, todayKey);
 
   const startTodayReset = () => {
     startTenDayReset();
     router.push(routes.tenDayResetPractice);
   };
+
+  if (resetComplete) {
+    return (
+      <AppScreen contentStyle={styles.content}>
+        <ResetHeader
+          label="RESET COMPLETE"
+          title="Your 10-Day Reset is complete."
+          subtitle="You completed ten Reset days. Your next step is guided practice with more body awareness."
+          onBackPress={() => router.back()}
+          onClosePress={() => router.replace(routes.home)}
+        />
+
+        <View style={styles.stack}>
+          <ResetCompleteCard completedDayCount={completedDayCount} />
+
+          <View style={styles.bottomActions}>
+            <AppButton onPress={() => router.push(nextAction.route)}>
+              {getNextBloomActionLabel(nextAction)}
+            </AppButton>
+            <AppButton variant="subtle" onPress={() => router.replace(routes.home)}>
+              Back to Today
+            </AppButton>
+          </View>
+        </View>
+      </AppScreen>
+    );
+  }
 
   return (
     <AppScreen contentStyle={styles.content}>
@@ -86,13 +124,46 @@ export function TenDayResetScreen() {
         />
 
         <View style={styles.bottomActions}>
-          <AppButton onPress={startTodayReset}>Start today’s reset</AppButton>
+          {resetStarted ? (
+            <AppButton onPress={() => router.push(nextAction.route)}>
+              {getNextBloomActionLabel(nextAction)}
+            </AppButton>
+          ) : (
+            <AppButton onPress={startTodayReset}>Start today’s reset</AppButton>
+          )}
           <AppButton variant="subtle" onPress={() => router.replace(routes.home)}>
             Back to Today
           </AppButton>
         </View>
       </View>
     </AppScreen>
+  );
+}
+
+type ResetCompleteCardProps = {
+  completedDayCount: number;
+};
+
+function ResetCompleteCard({ completedDayCount }: ResetCompleteCardProps) {
+  return (
+    <AppCard style={styles.heroCard}>
+      <View style={styles.heroCopy}>
+        <AppText variant="caption" tone="secondary" style={styles.eyebrow}>
+          {completedDayCount} OF 10 DAYS SAVED
+        </AppText>
+        <AppText variant="title" style={styles.heroTitle}>
+          Continue with guided practice.
+        </AppText>
+        <AppText tone="secondary">
+          Guided Arousal Control Practice is available whenever you feel ready.
+        </AppText>
+      </View>
+
+      <ResetProgressSegments
+        currentDay={10}
+        completedDayCount={completedDayCount}
+      />
+    </AppCard>
   );
 }
 

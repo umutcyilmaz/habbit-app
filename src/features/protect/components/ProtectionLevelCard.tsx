@@ -1,15 +1,15 @@
 import { Pressable, StyleSheet, View } from "react-native";
 
-import type { DemoSupportLevel } from "../../../domain/demo/demoTypes";
+import type { ProtectionLevel } from "../../../storage/bloomState";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
 
 type ProtectionLevelCardProps = {
-  id: DemoSupportLevel;
+  id: ProtectionLevel;
   title: string;
   description: string;
   selected: boolean;
-  onSelect: (id: DemoSupportLevel) => void;
+  onSelect: (id: ProtectionLevel) => void;
 };
 
 export function ProtectionLevelCard({

@@ -1,5 +1,3 @@
-export type DemoProtectionStatus = "suggested" | "setup" | "active" | "paused" | "off";
-export type DemoSupportLevel = "gentle" | "balanced" | "strong";
 export type DemoMood = "calm" | "bored" | "stressed" | "tired" | "restless" | "neutral";
 export type DemoMoment = "boredom" | "evening" | "alone" | "stress" | "scrolling";
 
@@ -31,11 +29,7 @@ export interface DemoAppState {
   };
   checkIns: readonly DemoCheckIn[];
   pauseSessions: readonly DemoPauseSession[];
-  protection: {
-    status: DemoProtectionStatus;
-    level: DemoSupportLevel;
-    sensitiveWindow: DemoSensitiveWindow;
-  };
+  suggestedSensitiveWindow: DemoSensitiveWindow;
   settings: {
     personalizationEnabled: boolean;
     notificationsPaused: boolean;

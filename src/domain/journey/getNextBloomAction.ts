@@ -6,14 +6,20 @@ import type {
   TenDayResetState
 } from "../../storage/bloomState";
 import {
+  getCompletedResetDates,
+  isResetProgramComplete,
+  isResetStarted
+} from "../../storage/bloomState";
+import {
   isValidBloomDateKey,
   isValidBloomIsoTimestamp
-} from "../../storage/bloomStateSchema";
+} from "../../storage/bloomValueValidation";
 
 export type NextBloomActionId =
   | "completeOnboarding"
   | "startQuickCheckIn"
   | "setupProtection"
+  | "resumeProtection"
   | "startReset"
   | "completeTodayReset"
   | "viewTodayReset"
@@ -32,6 +38,7 @@ export type NextBloomActionReason =
   | "onboardingIncomplete"
   | "generalStartingPoint"
   | "protectionRequired"
+  | "protectionPaused"
   | "protectionReady"
   | "resetRecommended"
   | "resetTodayIncomplete"
@@ -58,6 +65,12 @@ export type NextBloomAction =
       phase: "protection";
       route: typeof routes.protectSetup;
       reason: "protectionRequired";
+    }
+  | {
+      id: "resumeProtection";
+      phase: "protection";
+      route: typeof routes.protectActive;
+      reason: "protectionPaused";
     }
   | {
       id: "startReset";
@@ -113,7 +126,12 @@ export function getNextBloomAction(
     state.arousalControl?.logs
   );
 
-  if (completedResetDates.length >= 10) {
+  const resetState = {
+    startedAt: state.tenDayReset?.startedAt ?? null,
+    completedDates: completedResetDates
+  };
+
+  if (isResetProgramComplete(resetState)) {
     if (hasCompletedPractice) {
       return {
         id: "viewPracticeProgress",
@@ -131,7 +149,7 @@ export function getNextBloomAction(
     };
   }
 
-  if (isResetStarted(state.tenDayReset?.startedAt)) {
+  if (isResetStarted(resetState)) {
     if (isValidBloomDateKey(todayKey) && completedResetDates.includes(todayKey)) {
       return {
         id: "viewTodayReset",
@@ -160,12 +178,21 @@ export function getNextBloomAction(
         reason: "generalStartingPoint"
       };
     case "setupProtection":
-      if (state.protection?.isEnabled === true) {
+      if (state.protection?.status === "active") {
         return {
           id: "startReset",
           phase: "reset",
           route: routes.tenDayReset,
           reason: "protectionReady"
+        };
+      }
+
+      if (state.protection?.status === "paused") {
+        return {
+          id: "resumeProtection",
+          phase: "protection",
+          route: routes.protectActive,
+          reason: "protectionPaused"
         };
       }
 
@@ -210,11 +237,9 @@ export function getValidCompletedResetDates(
     return [];
   }
 
-  return Array.from(
-    new Set(resetState.completedDates.filter(isValidBloomDateKey))
-  )
-    .sort()
-    .slice(0, 10);
+  return getCompletedResetDates({
+    completedDates: resetState.completedDates
+  });
 }
 
 export function getValidCompletedResetDayCount(
@@ -244,10 +269,6 @@ export function isValidCompletedArousalControlLog(
   );
 }
 
-function isResetStarted(value: unknown) {
-  return isValidBloomDateKey(value) || isValidBloomIsoTimestamp(value);
-}
-
 function getSafeFallbackAction(): NextBloomAction {
   return {
     id: "startQuickCheckIn",
@@ -269,6 +290,7 @@ const nextBloomActionRoutes = new Set<AppRoute>([
   routes.onboarding,
   routes.pauseCheckIn,
   routes.protectSetup,
+  routes.protectActive,
   routes.tenDayReset,
   routes.tenDayResetPractice,
   routes.tenDayResetSaved,

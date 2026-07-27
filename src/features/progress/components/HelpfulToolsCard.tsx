@@ -1,18 +1,18 @@
 import { StyleSheet, View } from "react-native";
 
-import type { DemoProtectionStatus } from "../../../domain/demo/demoTypes";
 import { AppCard } from "../../../shared/components/AppCard";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
+import type { ProtectionStatus } from "../../../storage/bloomState";
 
 type HelpfulToolsCardProps = {
   pauseCount: number;
   checkInCount: number;
-  protectionStatus: DemoProtectionStatus;
+  protectionStatus: ProtectionStatus;
 };
 
-function getProtectionDetail(status: DemoProtectionStatus) {
-  return status === "active" ? "Active during selected hours" : "Not active yet";
+function getProtectionDetail(status: ProtectionStatus) {
+  return status === "active" ? "In-app pause plan ready" : "Not ready yet";
 }
 
 function getUsedLabel(count: number) {

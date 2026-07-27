@@ -4,12 +4,17 @@ import { Platform, Pressable, StyleSheet, View } from "react-native";
 
 import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
+import { getNextBloomAction } from "../../../domain/journey/getNextBloomAction";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
 import { AppIconButton } from "../../../shared/components/AppIconButton";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
+import {
+  isResetProgramComplete,
+  isResetStarted
+} from "../../../storage/bloomState";
 
 const resetSteps = [
   {
@@ -36,15 +41,36 @@ type TimerStatus = "idle" | "running" | "paused" | "completed";
 
 export function TenDayResetPracticeScreen() {
   const router = useRouter();
-  const { startTenDayReset, completeTodayReset, resetTodayCompleted } = useBloomLocalState();
+  const {
+    state,
+    todayKey,
+    startTenDayReset,
+    completeTodayReset,
+    resetTodayCompleted
+  } = useBloomLocalState();
+  const resetComplete = isResetProgramComplete(state.tenDayReset);
+  const nextAction = getNextBloomAction(state, todayKey);
   const [timerStatus, setTimerStatus] = useState<TimerStatus>("idle");
   const [secondsLeft, setSecondsLeft] = useState(resetDurationSeconds);
   const [practiceAgain, setPracticeAgain] = useState(false);
   const showAlreadyCompleted = resetTodayCompleted && !practiceAgain;
 
   useEffect(() => {
-    startTenDayReset();
-  }, [startTenDayReset]);
+    if (resetComplete) {
+      router.replace(nextAction.route);
+      return;
+    }
+
+    if (!isResetStarted(state.tenDayReset)) {
+      startTenDayReset();
+    }
+  }, [
+    nextAction.route,
+    resetComplete,
+    router,
+    startTenDayReset,
+    state.tenDayReset
+  ]);
 
   useEffect(() => {
     if (timerStatus !== "running" || secondsLeft <= 0) {
@@ -84,6 +110,10 @@ export function TenDayResetPracticeScreen() {
   const viewSavedReset = () => {
     router.replace(routes.tenDayResetSaved);
   };
+
+  if (resetComplete) {
+    return null;
+  }
 
   return (
     <AppScreen contentStyle={styles.content}>

@@ -15,11 +15,7 @@ export function createDemoInitialState(): DemoAppState {
     },
     checkIns: [],
     pauseSessions: [],
-    protection: {
-      status: "suggested",
-      level: "balanced",
-      sensitiveWindow
-    },
+    suggestedSensitiveWindow: sensitiveWindow,
     settings: {
       personalizationEnabled: true,
       notificationsPaused: false,

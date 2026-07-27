@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useRouter } from "expo-router";
 import { Platform, StyleSheet, View } from "react-native";
 
@@ -5,7 +6,6 @@ import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvid
 import { routes, type AppRoute } from "../../../constants/navigation";
 import {
   getNextBloomAction,
-  getValidCompletedResetDayCount,
   type NextBloomAction
 } from "../../../domain/journey/getNextBloomAction";
 import { getNextBloomActionLabel } from "../../../domain/journey/nextBloomActionPresentation";
@@ -15,28 +15,48 @@ import { AppIconButton } from "../../../shared/components/AppIconButton";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
-
-const summaryItems = [
-  "Porn avoided today",
-  "Masturbation avoided today",
-  "Checking avoided today",
-  "2-minute reset completed"
-] as const;
+import {
+  getCompletedResetDates,
+  isResetProgramComplete
+} from "../../../storage/bloomState";
 
 export function TenDayResetSavedScreen() {
   const router = useRouter();
-  const { state, todayKey, resetDay } = useBloomLocalState();
+  const { state, todayKey } = useBloomLocalState();
   const nextAction = getNextBloomAction(state, todayKey);
-  const completedDayCount = getValidCompletedResetDayCount(state.tenDayReset);
-  const resetTerminal = completedDayCount >= 10;
+  const completedDates = getCompletedResetDates(state.tenDayReset);
+  const completedDayCount = completedDates.length;
+  const hasSavedToday = completedDates.includes(todayKey);
+  const resetTerminal = isResetProgramComplete(state.tenDayReset);
   const primaryAction = getSavedScreenPrimaryAction(nextAction);
+
+  useEffect(() => {
+    if (!hasSavedToday) {
+      router.replace(
+        nextAction.route === routes.tenDayResetSaved
+          ? routes.tenDayReset
+          : nextAction.route
+      );
+    }
+  }, [hasSavedToday, nextAction.route, router]);
+
+  if (!hasSavedToday) {
+    return null;
+  }
 
   return (
     <AppScreen contentStyle={styles.content}>
-      <SavedHeader day={resetDay} onClosePress={() => router.replace(routes.home)} />
+      <SavedHeader
+        resetTerminal={resetTerminal}
+        onClosePress={() => router.replace(routes.home)}
+      />
 
       <View style={styles.stack}>
-        <ProgressCard day={resetDay} completedDayCount={completedDayCount} />
+        <ProgressCard
+          completedDate={todayKey}
+          completedDayCount={completedDayCount}
+          resetTerminal={resetTerminal}
+        />
         {!resetTerminal ? <TomorrowCard /> : null}
         <AfterResetCard />
 
@@ -89,18 +109,18 @@ function getSavedScreenPrimaryAction(
 }
 
 type SavedHeaderProps = {
-  day: number;
+  resetTerminal: boolean;
   onClosePress: () => void;
 };
 
-function SavedHeader({ day, onClosePress }: SavedHeaderProps) {
+function SavedHeader({ resetTerminal, onClosePress }: SavedHeaderProps) {
   return (
     <View style={styles.header}>
       <View style={styles.headerActions}>
         <View style={styles.headerSpacer} />
         <View style={styles.headerLabelWrap}>
           <AppText variant="caption" tone="secondary" align="center" style={styles.eyebrow}>
-            RESET SAVED
+            {resetTerminal ? "RESET COMPLETE" : "RESET SAVED"}
           </AppText>
         </View>
         <AppIconButton
@@ -113,10 +133,14 @@ function SavedHeader({ day, onClosePress }: SavedHeaderProps) {
 
       <View style={styles.titleBlock}>
         <AppText variant="heading" align="center" style={styles.title}>
-          Day {day} saved.
+          {resetTerminal
+            ? "Your 10-Day Reset is complete."
+            : "Today’s Reset is saved."}
         </AppText>
         <AppText tone="secondary" align="center" style={styles.subtitle}>
-          You created a pause from the pattern today.
+          {resetTerminal
+            ? "You completed ten Reset days. The next step is guided Arousal Control Practice."
+            : "You marked today’s two-minute Reset as complete."}
         </AppText>
       </View>
     </View>
@@ -124,31 +148,41 @@ function SavedHeader({ day, onClosePress }: SavedHeaderProps) {
 }
 
 type ProgressCardProps = {
-  day: number;
+  completedDate: string;
   completedDayCount: number;
+  resetTerminal: boolean;
 };
 
-function ProgressCard({ day, completedDayCount }: ProgressCardProps) {
+function ProgressCard({
+  completedDate,
+  completedDayCount,
+  resetTerminal
+}: ProgressCardProps) {
   return (
     <AppCard style={styles.progressCard}>
       <View style={styles.cardStack}>
         <View style={styles.progressHeader}>
           <AppText variant="title" style={styles.sectionTitle}>
-            Day {day} of 10
+            {resetTerminal ? "10 days saved" : "Today’s saved Reset"}
           </AppText>
           <View style={styles.savedPill}>
             <AppText variant="caption" tone="secondary">
-              Saved
+              Recorded
             </AppText>
           </View>
         </View>
 
         <ResetProgressSegments completedDayCount={completedDayCount} />
 
-        <View style={styles.summaryStack}>
-          {summaryItems.map((item) => (
-            <ResetSummaryItem key={item} text={item} />
-          ))}
+        <View style={styles.factStack}>
+          <ResetFactRow label="Completed date" value={completedDate} />
+          <ResetFactRow
+            label="Reset days saved"
+            value={`${completedDayCount}/10`}
+          />
+          {resetTerminal ? (
+            <ResetFactRow label="Program status" value="Complete" />
+          ) : null}
         </View>
       </View>
     </AppCard>
@@ -179,19 +213,18 @@ function ResetProgressSegments({ completedDayCount }: ResetProgressSegmentsProps
   );
 }
 
-type ResetSummaryItemProps = {
-  text: string;
+type ResetFactRowProps = {
+  label: string;
+  value: string;
 };
 
-function ResetSummaryItem({ text }: ResetSummaryItemProps) {
+function ResetFactRow({ label, value }: ResetFactRowProps) {
   return (
-    <View style={styles.summaryItem}>
-      <View style={styles.checkCircle}>
-        <AppText variant="caption">✓</AppText>
-      </View>
-      <AppText variant="bodySmall" style={styles.summaryText}>
-        {text}
+    <View style={styles.factRow}>
+      <AppText variant="bodySmall" tone="secondary">
+        {label}
       </AppText>
+      <AppText variant="label">{value}</AppText>
     </View>
   );
 }
@@ -204,8 +237,8 @@ function TomorrowCard() {
           Tomorrow’s focus
         </AppText>
         <AppText tone="secondary">
-          Return tomorrow and repeat the same reset. Keep the goal simple: no porn, no
-          masturbation, no checking.
+          Return tomorrow for the next two-minute Reset. Keep the day simple and
+          notice what helps create space.
         </AppText>
       </View>
     </AppCard>
@@ -328,31 +361,19 @@ const styles = StyleSheet.create({
   progressSegmentActive: {
     backgroundColor: theme.colors.sage
   },
-  summaryStack: {
+  factStack: {
     gap: theme.spacing.sm
   },
-  summaryItem: {
+  factRow: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     gap: theme.spacing.md,
     borderRadius: theme.radius.xl,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.surfaceMuted,
     borderColor: theme.colors.border,
     borderWidth: 1,
     padding: theme.spacing.md
-  },
-  checkCircle: {
-    width: 28,
-    height: 28,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 14,
-    backgroundColor: theme.colors.surface,
-    borderColor: theme.colors.sage,
-    borderWidth: 1
-  },
-  summaryText: {
-    flex: 1
   },
   bottomActions: {
     gap: theme.spacing.md,

@@ -5,11 +5,7 @@ export function selectUserDisplayName(state: DemoAppState) {
 }
 
 export function selectSuggestedSensitiveWindow(state: DemoAppState): DemoSensitiveWindow {
-  return state.protection.sensitiveWindow;
-}
-
-export function selectProtectionState(state: DemoAppState) {
-  return state.protection;
+  return state.suggestedSensitiveWindow;
 }
 
 export function selectTodayDashboardData(state: DemoAppState): TodayDashboardData {
@@ -17,7 +13,7 @@ export function selectTodayDashboardData(state: DemoAppState): TodayDashboardDat
   const pauseCount = state.pauseSessions.length;
   const checkInLabel = checkInCount === 1 ? "check-in" : "check-ins";
   const pauseLabel = pauseCount === 1 ? "pause" : "pauses";
-  const window = state.protection.sensitiveWindow;
+  const window = state.suggestedSensitiveWindow;
 
   return {
     userName: selectUserDisplayName(state),
@@ -43,7 +39,7 @@ export function selectProgressSummary(state: DemoAppState): readonly ProgressMet
     },
     {
       label: "Support window",
-      value: `${state.protection.sensitiveWindow.startTime}-${state.protection.sensitiveWindow.endTime}`,
+      value: `${state.suggestedSensitiveWindow.startTime}-${state.suggestedSensitiveWindow.endTime}`,
       detail: "A suggested evening support window is available."
     }
   ];

@@ -1,3 +1,9 @@
+import {
+  isValidBloomDateKey,
+  isValidBloomIsoTimestamp,
+  isValidBloomTime
+} from "./bloomValueValidation";
+
 export type ScoredPatternId = "pornLoop" | "pressurePattern" | "controlTiming";
 
 export type PatternId = ScoredPatternId | "generalStartingPoint";
@@ -61,18 +67,35 @@ export type TenDayResetState = {
   lastCompletedAt: string | null;
 };
 
+export const MAX_RESET_DAYS = 10;
+
 export type BloomDebugState = {
   dateOffsetDays: number;
 };
 
-export type ProtectionWindow = "evening" | "night" | "custom";
+export type ProtectionStatus = "off" | "active" | "paused";
+
+export type ProtectionLevel = "gentle" | "balanced" | "strong";
+
+export type ProtectionWindow = "evening" | "night" | "custom" | "alwaysOn";
 
 export type ProtectionState = {
-  isEnabled: boolean;
+  status: ProtectionStatus;
   setupCompletedAt: string | null;
   preferredWindow: ProtectionWindow | null;
+  level: ProtectionLevel | null;
   adultContentPauseEnabled: boolean;
+  nightStartTime: string | null;
+  nightEndTime: string | null;
   lastProtectionPauseAt: string | null;
+};
+
+export type ProtectionConfiguration = {
+  preferredWindow: ProtectionWindow;
+  level: ProtectionLevel;
+  adultContentPauseEnabled: boolean;
+  nightStartTime: string | null;
+  nightEndTime: string | null;
 };
 
 export type ArousalControlPracticeLog = {
@@ -142,10 +165,13 @@ export function createDefaultBloomState(): BloomLocalState {
       dateOffsetDays: 0
     },
     protection: {
-      isEnabled: false,
+      status: "off",
       setupCompletedAt: null,
       preferredWindow: null,
+      level: null,
       adultContentPauseEnabled: false,
+      nightStartTime: null,
+      nightEndTime: null,
       lastProtectionPauseAt: null
     },
     arousalControl: {
@@ -169,30 +195,91 @@ export function getTodayKey(dateOffsetDays = 0, date = new Date()) {
 }
 
 export function getResetDay(resetState: TenDayResetState, todayKey = getTodayKey()) {
-  if (resetState.startedAt === null) {
+  if (!isResetStarted(resetState)) {
     return 1;
   }
 
-  const startDate = dateFromKey(getDateKey(resetState.startedAt));
-  const todayDate = dateFromKey(todayKey);
-  const elapsedDays = Math.floor((todayDate.getTime() - startDate.getTime()) / 86400000);
+  const completedDates = getCompletedResetDates(resetState);
 
-  return Math.min(Math.max(elapsedDays + 1, 1), 10);
+  if (completedDates.length >= MAX_RESET_DAYS) {
+    return MAX_RESET_DAYS;
+  }
+
+  if (isValidBloomDateKey(todayKey) && completedDates.includes(todayKey)) {
+    return Math.max(1, completedDates.length);
+  }
+
+  return Math.min(completedDates.length + 1, MAX_RESET_DAYS);
 }
 
 export function getCompletedResetDayCount(resetState: TenDayResetState) {
-  return Math.min(new Set(resetState.completedDates).size, 10);
+  return getCompletedResetDates(resetState).length;
 }
 
 export function isTodayCompleted(resetState: TenDayResetState, todayKey = getTodayKey()) {
-  return resetState.completedDates.includes(todayKey);
+  return (
+    isValidBloomDateKey(todayKey) &&
+    getCompletedResetDates(resetState).includes(todayKey)
+  );
+}
+
+export function getCompletedResetDates(
+  resetState: Pick<TenDayResetState, "completedDates">
+): string[] {
+  if (!Array.isArray(resetState.completedDates)) {
+    return [];
+  }
+
+  return Array.from(
+    new Set(resetState.completedDates.filter(isValidBloomDateKey))
+  )
+    .sort()
+    .slice(0, MAX_RESET_DAYS);
+}
+
+export function getResetStartedDateKey(
+  resetState: Pick<TenDayResetState, "startedAt">
+): string | null {
+  const { startedAt } = resetState;
+
+  if (typeof startedAt !== "string") {
+    return null;
+  }
+
+  if (isValidBloomDateKey(String(startedAt))) {
+    return startedAt;
+  }
+
+  if (isValidBloomIsoTimestamp(String(startedAt))) {
+    return startedAt.slice(0, 10);
+  }
+
+  return null;
+}
+
+export function isResetStarted(
+  resetState: Pick<TenDayResetState, "startedAt">
+): boolean {
+  return getResetStartedDateKey(resetState) !== null;
+}
+
+export function isResetProgramComplete(
+  resetState: Pick<TenDayResetState, "startedAt" | "completedDates">
+): boolean {
+  return (
+    isResetStarted(resetState) &&
+    getCompletedResetDates(resetState).length === MAX_RESET_DAYS
+  );
 }
 
 export function startTenDayResetState(
   state: BloomLocalState,
   todayKey = getTodayKey(state.debug.dateOffsetDays)
 ): BloomLocalState {
-  if (state.tenDayReset.startedAt !== null) {
+  if (
+    isResetStarted(state.tenDayReset) ||
+    !isValidBloomDateKey(todayKey)
+  ) {
     return state;
   }
 
@@ -210,15 +297,33 @@ export function completeTodayResetState(
   todayKey = getTodayKey(state.debug.dateOffsetDays),
   completedAt = new Date().toISOString()
 ): BloomLocalState {
+  if (
+    !isValidBloomDateKey(todayKey) ||
+    !isValidBloomIsoTimestamp(completedAt)
+  ) {
+    return state;
+  }
+
   const resetStartedState = startTenDayResetState(state, todayKey);
-  const completedDateSet = new Set(resetStartedState.tenDayReset.completedDates);
-  completedDateSet.add(todayKey);
+  const completedDates = getCompletedResetDates(
+    resetStartedState.tenDayReset
+  );
+
+  if (
+    !isResetStarted(resetStartedState.tenDayReset) ||
+    completedDates.length >= MAX_RESET_DAYS ||
+    completedDates.includes(todayKey)
+  ) {
+    return state;
+  }
+
+  const nextCompletedDates = [...completedDates, todayKey].sort();
 
   return {
     ...resetStartedState,
     tenDayReset: {
       ...resetStartedState.tenDayReset,
-      completedDates: Array.from(completedDateSet).sort(),
+      completedDates: nextCompletedDates,
       lastCompletedAt: completedAt
     }
   };
@@ -267,29 +372,78 @@ export function clearOnboardingResultState(state: BloomLocalState): BloomLocalSt
   };
 }
 
-export function enableProtectionState(
+export function configureProtectionState(
   state: BloomLocalState,
-  preferredWindow: ProtectionWindow = "evening",
-  enabledAt = new Date().toISOString()
+  configuration: ProtectionConfiguration,
+  configuredAt = new Date().toISOString()
 ): BloomLocalState {
+  if (
+    !isValidBloomIsoTimestamp(configuredAt) ||
+    !isProtectionWindow(configuration.preferredWindow) ||
+    !isProtectionLevel(configuration.level) ||
+    typeof configuration.adultContentPauseEnabled !== "boolean" ||
+    (configuration.nightStartTime !== null &&
+      !isValidBloomTime(configuration.nightStartTime)) ||
+    (configuration.nightEndTime !== null &&
+      !isValidBloomTime(configuration.nightEndTime)) ||
+    (configuration.preferredWindow === "night" &&
+      (configuration.nightStartTime === null ||
+        configuration.nightEndTime === null))
+  ) {
+    return state;
+  }
+
   return {
     ...state,
     protection: {
       ...state.protection,
-      isEnabled: true,
-      setupCompletedAt: state.protection.setupCompletedAt ?? enabledAt,
-      preferredWindow,
-      adultContentPauseEnabled: true
+      ...configuration,
+      status:
+        state.protection.status === "paused" ? "paused" : "active",
+      setupCompletedAt:
+        state.protection.setupCompletedAt ?? configuredAt
     }
   };
 }
 
-export function disableProtectionState(state: BloomLocalState): BloomLocalState {
+export function pauseProtectionState(state: BloomLocalState): BloomLocalState {
+  if (state.protection.status !== "active") {
+    return state;
+  }
+
   return {
     ...state,
     protection: {
       ...state.protection,
-      isEnabled: false
+      status: "paused"
+    }
+  };
+}
+
+export function resumeProtectionState(state: BloomLocalState): BloomLocalState {
+  if (state.protection.status !== "paused") {
+    return state;
+  }
+
+  return {
+    ...state,
+    protection: {
+      ...state.protection,
+      status: "active"
+    }
+  };
+}
+
+export function turnOffProtectionState(state: BloomLocalState): BloomLocalState {
+  if (state.protection.status === "off") {
+    return state;
+  }
+
+  return {
+    ...state,
+    protection: {
+      ...state.protection,
+      status: "off"
     }
   };
 }
@@ -298,6 +452,10 @@ export function recordProtectionPauseState(
   state: BloomLocalState,
   pausedAt = new Date().toISOString()
 ): BloomLocalState {
+  if (!isValidBloomIsoTimestamp(pausedAt)) {
+    return state;
+  }
+
   return {
     ...state,
     protection: {
@@ -394,12 +552,15 @@ function sortArousalLogs(logs: readonly ArousalControlPracticeLog[]) {
   return [...logs].sort((first, second) => Date.parse(second.completedAt) - Date.parse(first.completedAt));
 }
 
-function dateFromKey(dateKey: string) {
-  const [year = "0", month = "1", day = "1"] = dateKey.split("-");
-
-  return new Date(Number(year), Number(month) - 1, Number(day));
+function isProtectionWindow(value: unknown): value is ProtectionWindow {
+  return (
+    value === "evening" ||
+    value === "night" ||
+    value === "custom" ||
+    value === "alwaysOn"
+  );
 }
 
-function getDateKey(value: string) {
-  return value.includes("T") ? value.slice(0, 10) : value;
+function isProtectionLevel(value: unknown): value is ProtectionLevel {
+  return value === "gentle" || value === "balanced" || value === "strong";
 }

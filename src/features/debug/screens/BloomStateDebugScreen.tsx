@@ -6,8 +6,7 @@ import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvid
 import { useLocalDataLifecycle } from "../../../app/providers/LocalDataLifecycleProvider";
 import { routes } from "../../../constants/navigation";
 import {
-  getNextBloomAction,
-  getValidCompletedResetDayCount
+  getNextBloomAction
 } from "../../../domain/journey/getNextBloomAction";
 import { getNextBloomActionLabel } from "../../../domain/journey/nextBloomActionPresentation";
 import {
@@ -23,8 +22,10 @@ import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
 import {
+  getCompletedResetDates,
   getLatestArousalControlLog,
   getTodayKey,
+  isResetProgramComplete,
   type QuizFlags
 } from "../../../storage/bloomState";
 
@@ -56,6 +57,8 @@ export function BloomStateDebugScreen() {
   const latestArousalLog = getLatestArousalControlLog(state.arousalControl.logs);
   const currentQuizResult = state.onboarding.quizResult;
   const nextAction = getNextBloomAction(state, todayKey);
+  const completedResetDates = getCompletedResetDates(state.tenDayReset);
+  const resetProgramComplete = isResetProgramComplete(state.tenDayReset);
 
   useEffect(() => {
     clearDeletionStatus();
@@ -142,19 +145,20 @@ export function BloomStateDebugScreen() {
                 ],
                 ["Chips", state.onboarding.quizResult?.chips.join(", ") ?? "none"],
                 ["Reset started at", state.tenDayReset.startedAt ?? "not started"],
-                ["Reset day", `Day ${resetDay} of 10`],
+                ["Reset day", resetProgramComplete ? "Complete" : `Day ${resetDay} of 10`],
                 ["Today completed", resetTodayCompleted ? "yes" : "no"],
-                [
-                  "Completed reset days",
-                  String(getValidCompletedResetDayCount(state.tenDayReset))
-                ],
-                ["Completed dates", state.tenDayReset.completedDates.join(", ") || "none"],
-                ["Protection enabled", state.protection.isEnabled ? "yes" : "no"],
+                ["Completed reset days", String(completedResetDates.length)],
+                ["Reset terminal", resetProgramComplete ? "yes" : "no"],
+                ["Completed dates", completedResetDates.join(", ") || "none"],
+                ["Protection status", state.protection.status],
+                ["Protection level", state.protection.level ?? "none"],
                 ["Preferred window", state.protection.preferredWindow ?? "none"],
                 [
-                  "Adult content pause enabled",
+                  "In-app content pause enabled",
                   state.protection.adultContentPauseEnabled ? "yes" : "no"
                 ],
+                ["Night start time", state.protection.nightStartTime ?? "none"],
+                ["Night end time", state.protection.nightEndTime ?? "none"],
                 ["Setup completed at", state.protection.setupCompletedAt ?? "none"],
                 ["Last protection pause at", state.protection.lastProtectionPauseAt ?? "none"],
                 ["Arousal logs count", String(state.arousalControl.logs.length)],
