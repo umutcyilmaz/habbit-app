@@ -1,13 +1,19 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import { StyleSheet, TextInput, View } from "react-native";
 
+import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
+import { resolveBloomMutationFeedback } from "../../../shared/utils/bloomMutationFeedback";
+import {
+  MAX_BLOOM_NOTE_LENGTH,
+  prepareBloomNoteSubmission
+} from "../../../storage/bloomState";
 import { ArousalControlFlowHeader } from "../components/ArousalControlFlowHeader";
 import { ArousalLevelPicker } from "../components/ArousalLevelPicker";
 import { PauseZoneCard } from "../components/PauseZoneCard";
@@ -68,21 +74,94 @@ function getGuidance(level: number): Guidance {
 
 export function MainPracticeScreen() {
   const router = useRouter();
-  const [level, setLevel] = useState(5);
+  const { state, updateArousalSession, discardArousalSession } =
+    useBloomLocalState();
+  const draft = state.arousalControl.draft;
+  const [level, setLevel] = useState(
+    draft?.currentArousalLevel ?? draft?.startingArousalLevel ?? 5
+  );
   const [showNote, setShowNote] = useState(false);
-  const [note, setNote] = useState("");
+  const [note, setNote] = useState(draft?.note ?? "");
   const [noteMessage, setNoteMessage] = useState<string | undefined>();
   const guidance = getGuidance(level);
   const guidanceAction = guidance.action;
   const isFinishOriented = level >= 9;
 
+  useEffect(() => {
+    if (draft === null) {
+      router.replace(routes.arousalControl);
+    }
+  }, [draft, router]);
+
+  const updateCurrentLevel = (isPause: boolean) => {
+    if (draft === null) {
+      return;
+    }
+
+    updateArousalSession(draft.id, {
+      currentArousalLevel: level,
+      startingArousalLevel:
+        draft.startingArousalLevel ?? level,
+      highestArousal: Math.max(draft.highestArousal ?? level, level),
+      ...(isPause
+        ? {
+            pauseZoneLevel: level,
+            pauseCount: (draft.pauseCount ?? 0) + 1
+          }
+        : {})
+    });
+  };
+
   const startPause = () => {
+    updateCurrentLevel(true);
     router.push(routes.arousalControlPause);
   };
 
   const finishPractice = () => {
+    updateCurrentLevel(false);
     router.push(routes.arousalControlFinish);
   };
+
+  const saveNote = () => {
+    const noteResult = prepareBloomNoteSubmission(note);
+
+    if (!noteResult.ok) {
+      setNoteMessage("That note is too long to save.");
+      return;
+    }
+
+    if (draft === null || noteResult.note === null) {
+      setNoteMessage(
+        "Nothing added. You can keep practicing without a note."
+      );
+      return;
+    }
+
+    const result = updateArousalSession(draft.id, {
+      note: noteResult.note,
+      currentArousalLevel: level,
+      startingArousalLevel: draft.startingArousalLevel ?? level,
+      highestArousal: Math.max(draft.highestArousal ?? level, level)
+    });
+    const feedback = resolveBloomMutationFeedback(
+      result,
+      "Note saved for this practice.",
+      "This note could not be saved yet."
+    );
+    setNoteMessage(feedback.message);
+  };
+
+  const closePractice = () => {
+    if (draft !== null) {
+      discardArousalSession(draft.id);
+    }
+
+    router.replace(routes.exercises);
+  };
+
+  if (draft === null) {
+    return <AppScreen />;
+  }
 
   return (
     <AppScreen contentStyle={styles.content}>
@@ -92,7 +171,7 @@ export function MainPracticeScreen() {
         title="Notice where you are."
         subtitle="Choose the closest arousal level. The goal is noticing the rise earlier, not reaching a target."
         onBackPress={() => router.replace(routes.arousalControlCheckIn)}
-        onClosePress={() => router.replace(routes.exercises)}
+        onClosePress={closePractice}
       />
 
       <View style={styles.stack}>
@@ -138,6 +217,7 @@ export function MainPracticeScreen() {
                 placeholderTextColor={theme.colors.textSecondary}
                 style={styles.input}
                 textAlignVertical="top"
+                maxLength={MAX_BLOOM_NOTE_LENGTH}
               />
               {noteMessage ? (
                 <AppText variant="bodySmall" tone="secondary">
@@ -146,13 +226,7 @@ export function MainPracticeScreen() {
               ) : null}
               <AppButton
                 variant="subtle"
-                onPress={() =>
-                  setNoteMessage(
-                    note.trim().length > 0
-                      ? "Note saved for this practice."
-                      : "Nothing added. You can keep practicing without a note."
-                  )
-                }
+                onPress={saveNote}
               >
                 Save note
               </AppButton>

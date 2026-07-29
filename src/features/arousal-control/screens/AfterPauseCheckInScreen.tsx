@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
@@ -36,28 +36,42 @@ const nextStepOptions: readonly { value: NextStepOption; title: string }[] = [
   { value: "finishToday", title: "Finish today’s practice" }
 ];
 
-const firmnessLabels: Record<FirmnessChangeOption, string> = {
-  noChange: "No change",
-  slightlyDecreased: "Slightly decreased",
-  decreasedCouldContinue: "Decreased, but I could continue",
-  decreasedDifficult: "Decreased and continuing felt difficult",
-  notSure: "Not sure"
-};
-
 export function AfterPauseCheckInScreen() {
   const router = useRouter();
-  const { updateArousalControlDraft } = useBloomLocalState();
-  const [arousalNow, setArousalNow] = useState(5);
-  const [firmnessChange, setFirmnessChange] = useState<FirmnessChangeOption>("notSure");
-  const [anxiety, setAnxiety] = useState(3);
-  const [nextStep, setNextStep] = useState<NextStepOption>("continueGently");
+  const { state, updateArousalSession, discardArousalSession } =
+    useBloomLocalState();
+  const draft = state.arousalControl.draft;
+  const [arousalNow, setArousalNow] = useState(
+    draft?.afterPauseLevel ?? 5
+  );
+  const [firmnessChange, setFirmnessChange] =
+    useState<FirmnessChangeOption>(
+      draft?.firmnessChange ?? "notSure"
+    );
+  const [anxiety, setAnxiety] = useState(draft?.anxietyLevel ?? 3);
+  const [nextStep, setNextStep] = useState<NextStepOption>(
+    draft?.afterPauseNextStep ?? "continueGently"
+  );
   const showSupportNote = firmnessChange === "decreasedDifficult" || anxiety >= 7;
 
+  useEffect(() => {
+    if (draft === null) {
+      router.replace(routes.arousalControl);
+    }
+  }, [draft, router]);
+
   const continueFromSelection = () => {
-    updateArousalControlDraft({
-      firmnessChange: firmnessLabels[firmnessChange],
-      highestArousal: arousalNow,
-      anxietyLevel: anxiety
+    if (draft === null) {
+      return;
+    }
+
+    updateArousalSession(draft.id, {
+      firmnessChange,
+      afterPauseLevel: arousalNow,
+      afterPauseNextStep: nextStep,
+      highestArousal: Math.max(draft.highestArousal ?? arousalNow, arousalNow),
+      anxietyLevel: anxiety,
+      currentArousalLevel: arousalNow
     });
 
     if (nextStep === "continueGently") {
@@ -73,6 +87,18 @@ export function AfterPauseCheckInScreen() {
     router.push(routes.arousalControlFinish);
   };
 
+  const closePractice = () => {
+    if (draft !== null) {
+      discardArousalSession(draft.id);
+    }
+
+    router.replace(routes.exercises);
+  };
+
+  if (draft === null) {
+    return <AppScreen />;
+  }
+
   return (
     <AppScreen contentStyle={styles.content}>
       <ArousalControlFlowHeader
@@ -81,7 +107,7 @@ export function AfterPauseCheckInScreen() {
         title="What changed?"
         subtitle="Notice what is here now. There is no right answer."
         onBackPress={() => router.replace(routes.arousalControlPause)}
-        onClosePress={() => router.replace(routes.exercises)}
+        onClosePress={closePractice}
       />
 
       <View style={styles.stack}>

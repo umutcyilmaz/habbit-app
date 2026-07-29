@@ -4,15 +4,10 @@ import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
+import type { BloomCheckInEventType } from "../../../storage/bloomState";
 import { SelectableChipGroup, type SelectableChipOption } from "./SelectableChipGroup";
 
-export type LogEventType =
-  | "nothing"
-  | "urge"
-  | "paused"
-  | "adultContent"
-  | "masturbated"
-  | "both";
+export type LogEventType = BloomCheckInEventType;
 
 const eventTypeOptions: readonly SelectableChipOption<LogEventType>[] = [
   { value: "nothing", label: "Nothing happened" },

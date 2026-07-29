@@ -17,12 +17,14 @@ import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
 import {
-  getLatestArousalControlLog,
+  getLatestValidArousalLog,
+  isValidCompletedArousalLog,
   isResetProgramComplete,
   isResetStarted,
   type ArousalControlPracticeLog,
   type QuizResult
 } from "../../../storage/bloomState";
+import { formatArousalPauseCount } from "../../arousal-control/practiceSubmission";
 
 const resetDayMarkers = Array.from({ length: 10 }, (_, index) => index + 1);
 const isDevelopment = typeof __DEV__ !== "undefined" && __DEV__;
@@ -51,7 +53,10 @@ export function ProgressScreen() {
   const completedResetDates = getValidCompletedResetDates(state.tenDayReset);
   const completedResetDays = getValidCompletedResetDayCount(state.tenDayReset);
   const resetTodayCompleted = completedResetDates.includes(todayKey);
-  const latestArousalLog = getLatestArousalControlLog(state.arousalControl.logs);
+  const validArousalLogs = state.arousalControl.logs.filter(
+    isValidCompletedArousalLog
+  );
+  const latestArousalLog = getLatestValidArousalLog(validArousalLogs);
   const resetStarted = isResetStarted(state.tenDayReset);
   const resetProgramComplete = isResetProgramComplete(state.tenDayReset);
   const roadmapSteps = getRoadmapSteps(quizResult, nextAction);
@@ -110,7 +115,7 @@ export function ProgressScreen() {
 
         <PracticeSummaryCard
           latestLog={latestArousalLog}
-          logCount={state.arousalControl.logs.length}
+          logCount={validArousalLogs.length}
           onPress={(route) => router.push(route)}
         />
 
@@ -562,14 +567,20 @@ function PracticeSummaryCard({ latestLog, logCount, onPress }: PracticeSummaryCa
 
         <View style={styles.detailGrid}>
           <DetailCell label="Latest practice" value={latestLog.dateKey} />
-          <DetailCell label="Mode" value="Arousal control" />
+          <DetailCell label="Mode" value={formatPracticeMode(latestLog.mode)} />
           <DetailCell label="Duration" value={formatDuration(latestLog)} />
           <DetailCell label="Saved reflection" value={getReflectionStatus(latestLog)} />
         </View>
 
         <View style={styles.metricStrip}>
           <CompactMetric label="Peak" value={formatScore(latestLog.highestArousal)} />
-          <CompactMetric label="Pauses" value={formatCount(latestLog.pauseCount)} />
+          <CompactMetric
+            label="Pauses"
+            value={formatArousalPauseCount(
+              latestLog.pauseCount,
+              latestLog.pauseCountBucket
+            )}
+          />
           <CompactMetric label="Control" value={formatScore(latestLog.controlFeeling)} />
         </View>
 
@@ -659,10 +670,6 @@ function formatScore(value: number | null | undefined) {
   return value !== undefined && value !== null ? `${value}/10` : "Not logged";
 }
 
-function formatCount(value: number | null | undefined) {
-  return value !== undefined && value !== null ? String(value) : "Not logged";
-}
-
 function formatDuration(log: ArousalControlPracticeLog) {
   if (log.durationPreference === "notLogged") {
     return "Not logged";
@@ -677,11 +684,17 @@ function formatDuration(log: ArousalControlPracticeLog) {
 }
 
 function getReflectionStatus(log: ArousalControlPracticeLog) {
-  return log.afterwardFeeling !== undefined ||
-    log.firmnessChange !== undefined ||
-    log.pressureRushing !== undefined
-    ? "Saved"
-    : "Not logged";
+  return log.reflectionCompleted === true ? "Saved" : "Not logged";
+}
+
+function formatPracticeMode(mode: ArousalControlPracticeLog["mode"]) {
+  const labels = {
+    softAwareness: "Soft Awareness",
+    onePause: "One Pause Practice",
+    practicePlus: "Practice+"
+  } as const;
+
+  return mode !== undefined ? labels[mode] : "Not logged";
 }
 
 const statusChipStyles = StyleSheet.create({

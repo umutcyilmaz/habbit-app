@@ -1,13 +1,20 @@
 import { StyleSheet, View } from "react-native";
 
-import type { DemoMoment, DemoMood } from "../../../domain/demo/demoTypes";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
+import type {
+  BloomCheckInMoment,
+  BloomCheckInMood
+} from "../../../storage/bloomState";
+import {
+  getCheckInFeedbackPresentation,
+  type CheckInFeedback
+} from "../checkInFeedback";
 import { SelectableChipGroup, type SelectableChipOption } from "./SelectableChipGroup";
 
-const moodOptions: readonly SelectableChipOption<DemoMood>[] = [
+const moodOptions: readonly SelectableChipOption<BloomCheckInMood>[] = [
   { value: "neutral", label: "Neutral" },
   { value: "bored", label: "Bored" },
   { value: "restless", label: "Restless" },
@@ -15,7 +22,7 @@ const moodOptions: readonly SelectableChipOption<DemoMood>[] = [
   { value: "calm", label: "Calm" }
 ];
 
-const momentOptions: readonly SelectableChipOption<DemoMoment>[] = [
+const momentOptions: readonly SelectableChipOption<BloomCheckInMoment>[] = [
   { value: "evening", label: "Evening" },
   { value: "boredom", label: "Boredom" },
   { value: "alone", label: "Alone" },
@@ -24,14 +31,14 @@ const momentOptions: readonly SelectableChipOption<DemoMoment>[] = [
 ];
 
 type QuickCheckInCardProps = {
-  mood: DemoMood;
-  moment: DemoMoment;
-  onMoodChange: (mood: DemoMood) => void;
-  onMomentChange: (moment: DemoMoment) => void;
+  mood: BloomCheckInMood;
+  moment: BloomCheckInMoment;
+  onMoodChange: (mood: BloomCheckInMood) => void;
+  onMomentChange: (moment: BloomCheckInMoment) => void;
   onSave: () => void;
   onAddDetailPress: () => void;
   isContextVisible: boolean;
-  savedSummary?: string;
+  feedback?: CheckInFeedback;
 };
 
 export function QuickCheckInCard({
@@ -42,8 +49,13 @@ export function QuickCheckInCard({
   onSave,
   onAddDetailPress,
   isContextVisible,
-  savedSummary
+  feedback
 }: QuickCheckInCardProps) {
+  const feedbackPresentation =
+    feedback !== undefined
+      ? getCheckInFeedbackPresentation(feedback)
+      : null;
+
   return (
     <AppCard style={styles.card}>
       <View style={styles.stack}>
@@ -71,11 +83,20 @@ export function QuickCheckInCard({
           />
         </View>
 
-        {savedSummary ? (
-          <View style={styles.savedNote}>
-            <AppText variant="label">Check-in saved</AppText>
+        {feedbackPresentation !== null ? (
+          <View
+            style={[
+              styles.feedbackNote,
+              feedbackPresentation.status === "success"
+                ? styles.successFeedback
+                : styles.errorFeedback
+            ]}
+          >
+            <AppText variant="label">
+              {feedbackPresentation.heading}
+            </AppText>
             <AppText variant="bodySmall" tone="secondary">
-              {savedSummary}
+              {feedbackPresentation.message}
             </AppText>
           </View>
         ) : null}
@@ -120,13 +141,19 @@ const styles = StyleSheet.create({
   groups: {
     gap: theme.spacing.lg
   },
-  savedNote: {
+  feedbackNote: {
     gap: theme.spacing.xs,
     borderRadius: theme.radius.xl,
-    borderColor: theme.colors.sage,
     borderWidth: 1,
-    backgroundColor: theme.colors.sageMuted,
     padding: theme.spacing.md
+  },
+  successFeedback: {
+    borderColor: theme.colors.sage,
+    backgroundColor: theme.colors.sageMuted
+  },
+  errorFeedback: {
+    borderColor: theme.colors.peach,
+    backgroundColor: theme.colors.peachMuted
   },
   actions: {
     gap: theme.spacing.sm

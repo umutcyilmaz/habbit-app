@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
@@ -9,15 +10,26 @@ import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
 import {
-  getLatestArousalControlLog,
+  getLatestValidArousalLog,
   type ArousalControlPracticeLog
 } from "../../../storage/bloomState";
 import { ArousalControlFlowHeader } from "../components/ArousalControlFlowHeader";
+import { formatArousalPauseCount } from "../practiceSubmission";
 
 export function ProgressPreviewScreen() {
   const router = useRouter();
   const { state } = useBloomLocalState();
-  const latestLog = getLatestArousalControlLog(state.arousalControl.logs);
+  const latestLog = getLatestValidArousalLog(state.arousalControl.logs);
+
+  useEffect(() => {
+    if (latestLog === null) {
+      router.replace(routes.arousalControl);
+    }
+  }, [latestLog, router]);
+
+  if (latestLog === null) {
+    return <AppScreen />;
+  }
 
   return (
     <AppScreen contentStyle={styles.content}>
@@ -31,11 +43,15 @@ export function ProgressPreviewScreen() {
 
       <View style={styles.stack}>
         <ControlFeelingHeroCard log={latestLog} />
+        <PracticePathCard log={latestLog} />
 
         <PreviewMetricCard
           icon="Ⅱ"
           label="PAUSES TAKEN"
-          value={formatCount(latestLog?.pauseCount)}
+          value={formatArousalPauseCount(
+            latestLog.pauseCount,
+            latestLog.pauseCountBucket
+          )}
           valueDetail={getPauseDetail(latestLog?.pauseCount)}
           helper="A moment caught before continuing."
         />
@@ -184,7 +200,7 @@ function PreviewMetricCard({
 }
 
 type PhysicalResponseCardProps = {
-  firmnessChange: string | undefined;
+  firmnessChange: ArousalControlPracticeLog["firmnessChange"];
 };
 
 function PhysicalResponseCard({ firmnessChange }: PhysicalResponseCardProps) {
@@ -195,13 +211,15 @@ function PhysicalResponseCard({ firmnessChange }: PhysicalResponseCardProps) {
       <View style={styles.cardTopRow}>
         <IconLabel icon="○" label="PHYSICAL RESPONSE" />
         <View style={styles.sageBadge}>
-          <AppText variant="caption">{hasFirmnessChange ? "Normal response" : "Not logged"}</AppText>
+          <AppText variant="caption">{hasFirmnessChange ? "Recorded" : "Not logged"}</AppText>
         </View>
       </View>
 
       <View style={styles.infoCopy}>
         <AppText variant="label" style={styles.responseTitle}>
-          {hasFirmnessChange ? firmnessChange : "No body-response detail yet"}
+          {hasFirmnessChange
+            ? formatFirmness(firmnessChange)
+            : "No body-response detail yet"}
         </AppText>
         <View style={styles.responseLine}>
           <View
@@ -258,8 +276,8 @@ function DurationContextCard({ log }: LogCardProps) {
 
 function CoachInsightCard({ log }: LogCardProps) {
   const insight =
-    log?.highestArousal !== undefined && log.highestArousal !== null
-      ? `You noticed your pause zone around ${log.highestArousal}/10. Recognizing this point is a useful step in learning your body’s response.`
+    log?.pauseZoneLevel !== undefined && log.pauseZoneLevel !== null
+      ? `You chose to pause around ${log.pauseZoneLevel}/10. Recognizing this point is a useful step in learning your body’s response.`
       : "Complete a practice to build a clearer picture of where the rise becomes easier to notice.";
 
   return (
@@ -275,12 +293,50 @@ function CoachInsightCard({ log }: LogCardProps) {
   );
 }
 
-function formatScore(value: number | null | undefined) {
-  return value !== undefined && value !== null ? `${value}/10` : "Not logged";
+function PracticePathCard({ log }: LogCardProps) {
+  return (
+    <AppCard style={styles.infoCard}>
+      <IconLabel icon="○" label="PRACTICE PATH" />
+      <View style={styles.pathRows}>
+        <PathRow label="Mode" value={formatMode(log?.mode)} />
+        <PathRow
+          label="Starting arousal"
+          value={formatScore(log?.startingArousalLevel)}
+        />
+        <PathRow
+          label="Pause zone"
+          value={formatScore(log?.pauseZoneLevel)}
+        />
+        <PathRow
+          label="After pause"
+          value={formatScore(log?.afterPauseLevel)}
+        />
+        <PathRow label="Ending" value={formatEnding(log?.endingChoice)} />
+      </View>
+    </AppCard>
+  );
 }
 
-function formatCount(value: number | null | undefined) {
-  return value !== undefined && value !== null ? String(value) : "Not logged";
+type PathRowProps = {
+  label: string;
+  value: string;
+};
+
+function PathRow({ label, value }: PathRowProps) {
+  return (
+    <View style={styles.pathRow}>
+      <AppText variant="bodySmall" tone="secondary">
+        {label}
+      </AppText>
+      <AppText variant="label" style={styles.pathValue}>
+        {value}
+      </AppText>
+    </View>
+  );
+}
+
+function formatScore(value: number | null | undefined) {
+  return value !== undefined && value !== null ? `${value}/10` : "Not logged";
 }
 
 function getPauseDetail(value: number | null | undefined) {
@@ -304,6 +360,43 @@ function formatOption(value: string | null | undefined) {
   };
 
   return labels[value] ?? value;
+}
+
+function formatMode(value: ArousalControlPracticeLog["mode"]) {
+  const labels = {
+    softAwareness: "Soft Awareness",
+    onePause: "One Pause Practice",
+    practicePlus: "Practice+"
+  } as const;
+
+  return value !== undefined ? labels[value] : "Not logged";
+}
+
+function formatEnding(value: ArousalControlPracticeLog["endingChoice"]) {
+  const labels = {
+    finishedBeforeClimax: "Finished before climax",
+    climaxed: "Climaxed",
+    firmnessDecreased: "Stopped after firmness changed",
+    feltAnxious: "Stopped after feeling anxious",
+    stoppedByChoice: "Stopped by choice",
+    other: "Other"
+  } as const;
+
+  return value !== undefined ? labels[value] : "Not logged";
+}
+
+function formatFirmness(
+  value: NonNullable<ArousalControlPracticeLog["firmnessChange"]>
+) {
+  const labels = {
+    noChange: "No change",
+    slightlyDecreased: "Slightly decreased",
+    decreasedCouldContinue: "Decreased, but I could continue",
+    decreasedDifficult: "Decreased and continuing felt difficult",
+    notSure: "Not sure"
+  } as const;
+
+  return labels[value];
 }
 
 function formatDuration(log: ArousalControlPracticeLog | null) {
@@ -495,6 +588,23 @@ const styles = StyleSheet.create({
   infoCopy: {
     flex: 1,
     gap: theme.spacing.sm
+  },
+  pathRows: {
+    gap: theme.spacing.sm
+  },
+  pathRow: {
+    minHeight: 34,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: theme.spacing.md,
+    borderBottomColor: theme.colors.border,
+    borderBottomWidth: 1,
+    paddingBottom: theme.spacing.sm
+  },
+  pathValue: {
+    flex: 1,
+    textAlign: "right"
   },
   responseTitle: {
     fontSize: 18,

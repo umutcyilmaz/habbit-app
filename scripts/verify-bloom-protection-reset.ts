@@ -592,7 +592,15 @@ function validPracticeLog(): ArousalControlPracticeLog {
     id: "practice-1",
     startedAt: "2026-07-27T09:00:00.000Z",
     completedAt: "2026-07-27T09:10:00.000Z",
-    dateKey: todayKey
+    dateKey: todayKey,
+    completionStatus: "completed",
+    mode: "onePause",
+    focus: "noticeRising",
+    adultContent: "no",
+    firmnessPlan: "appSuggest",
+    endingChoice: "stoppedByChoice",
+    reflectionCompleted: true,
+    durationPreference: "notLogged"
   };
 }
 

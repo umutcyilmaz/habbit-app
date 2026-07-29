@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
+import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
@@ -12,53 +13,116 @@ import { NextStepOptionCard } from "../components/NextStepOptionCard";
 import { PauseFlowHeader } from "../components/PauseFlowHeader";
 import { TriggerChipGroup } from "../components/TriggerChipGroup";
 import { UrgeStrengthControl } from "../components/UrgeStrengthControl";
+import {
+  pauseHelpfulActionLabels,
+  pauseTriggerLabels
+} from "../pausePresentation";
+import type {
+  PauseHelpfulActionId,
+  PauseSessionPatch,
+  PauseTriggerId
+} from "../../../storage/bloomState";
 
-const triggers = [
-  "Boredom",
-  "Stress",
-  "Loneliness",
-  "Nighttime",
-  "Social media",
-  "Tiredness",
-  "Desire",
-  "Habit",
-  "Not sure"
+const triggers: readonly PauseTriggerId[] = [
+  "boredom",
+  "stress",
+  "loneliness",
+  "nighttime",
+  "socialMedia",
+  "tiredness",
+  "desire",
+  "habit",
+  "notSure"
 ] as const;
 
-const helpfulActions = [
+const helpfulActions: readonly {
+  value: PauseHelpfulActionId;
+  description: string;
+}[] = [
   {
-    value: "Pause for 90 seconds",
+    value: "pause90",
     description: "Create a short space before continuing."
   },
   {
-    value: "Breathe for 3 minutes",
+    value: "breathe3",
     description: "Stay with the breath a little longer."
   },
   {
-    value: "Log and close",
+    value: "logAndClose",
     description: "Record what is here and return to Today."
   },
   {
-    value: "Continue mindfully",
+    value: "continueMindfully",
     description: "Move forward with more awareness."
   }
 ] as const;
 
-type Trigger = (typeof triggers)[number];
-type HelpfulAction = (typeof helpfulActions)[number]["value"];
-
 export function PauseCheckInScreen() {
   const router = useRouter();
-  const [urgeStrength, setUrgeStrength] = useState(7);
-  const [selectedTriggers, setSelectedTriggers] = useState<Trigger[]>(["Nighttime"]);
-  const [selectedAction, setSelectedAction] = useState<HelpfulAction>("Pause for 90 seconds");
+  const {
+    state,
+    startPauseSession,
+    updatePauseSession,
+    completePauseSession,
+    discardPauseSession
+  } = useBloomLocalState();
+  const activeSession = state.pause.activeSession;
+  const [urgeStrength, setUrgeStrength] = useState(
+    activeSession?.intensityBefore ?? 7
+  );
+  const [selectedTriggers, setSelectedTriggers] = useState<PauseTriggerId[]>(
+    activeSession?.triggers.length
+      ? activeSession.triggers
+      : ["nighttime"]
+  );
+  const [selectedAction, setSelectedAction] =
+    useState<PauseHelpfulActionId>(
+      activeSession?.selectedAction ?? "pause90"
+    );
 
-  const toggleTrigger = (trigger: Trigger) => {
+  const toggleTrigger = (trigger: PauseTriggerId) => {
     setSelectedTriggers((currentTriggers) =>
       currentTriggers.includes(trigger)
         ? currentTriggers.filter((currentTrigger) => currentTrigger !== trigger)
         : [...currentTriggers, trigger]
     );
+  };
+
+  const getSessionPatch = (phase: "checkIn" | "timer"): PauseSessionPatch => ({
+    phase,
+    intensityBefore: urgeStrength,
+    triggers: selectedTriggers,
+    selectedAction
+  });
+
+  const getOrCreateSessionId = (phase: "checkIn" | "timer") => {
+    const sessionPatch = getSessionPatch(phase);
+
+    if (activeSession !== null) {
+      updatePauseSession(activeSession.id, sessionPatch);
+      return activeSession.id;
+    }
+
+    return startPauseSession(sessionPatch);
+  };
+
+  const startTimer = () => {
+    getOrCreateSessionId("timer");
+    router.push(routes.pauseTimer);
+  };
+
+  const saveAndClose = () => {
+    const sessionId = getOrCreateSessionId("checkIn");
+    completePauseSession(sessionId, { durationSeconds: 0 });
+    router.replace(routes.pauseSaved);
+  };
+
+  const closePause = () => {
+    if (activeSession !== null) {
+      discardPauseSession(activeSession.id);
+    }
+
+    router.replace(routes.home);
   };
 
   return (
@@ -67,7 +131,7 @@ export function PauseCheckInScreen() {
         title="How strong is the urge right now?"
         subtitle="Take a moment to reflect on what is present."
         onBackPress={() => router.back()}
-        onClosePress={() => router.replace(routes.home)}
+        onClosePress={closePause}
       />
 
       <View style={styles.stack}>
@@ -85,6 +149,7 @@ export function PauseCheckInScreen() {
               values={triggers}
               selectedValues={selectedTriggers}
               onToggle={toggleTrigger}
+              getLabel={(trigger) => pauseTriggerLabels[trigger]}
             />
           </View>
         </AppCard>
@@ -97,7 +162,7 @@ export function PauseCheckInScreen() {
                 <NextStepOptionCard
                   key={action.value}
                   value={action.value}
-                  title={action.value}
+                  title={pauseHelpfulActionLabels[action.value]}
                   description={action.description}
                   selected={selectedAction === action.value}
                   onSelect={setSelectedAction}
@@ -105,10 +170,10 @@ export function PauseCheckInScreen() {
               ))}
             </View>
             <View style={styles.actions}>
-              <AppButton onPress={() => router.push(routes.pauseTimer)}>
+              <AppButton onPress={startTimer}>
                 Start 90-Second Pause
               </AppButton>
-              <AppButton variant="ghost" onPress={() => router.replace(routes.pauseSaved)}>
+              <AppButton variant="ghost" onPress={saveAndClose}>
                 Save and close
               </AppButton>
             </View>

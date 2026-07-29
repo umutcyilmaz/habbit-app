@@ -51,6 +51,65 @@ ISO timestamps. Reset completion dates are filtered to real date keys,
 deduplicated, sorted, and capped at ten. A program is terminal only when its
 start is valid and ten valid unique dates remain.
 
+## Canonical Guided-Flow Records
+
+Bloom state is the persistent authority for three guided-flow record families:
+
+- `checkIns.records` stores a stable id, canonical creation timestamp, the
+  selected mood and moment ids, and optional event context/note.
+- `pause.activeSession` stores the current 90-Second Pause draft;
+  `pause.records` stores completed sessions with the actual elapsed duration
+  and only the check-in/after-pause choices the user made.
+- `arousalControl.draft` stores one active Arousal Control session;
+  `arousalControl.logs` stores completed sessions, including practice mode,
+  before/pause/after values, ending, reflection, optional note, and neutral
+  duration context.
+
+Record arrays are deduplicated by stable id and sorted newest first. During
+hydration, an invalid list item is rejected individually where possible, while
+other valid records in that section remain available. Genuine legacy Arousal
+completions receive an additive `legacyCompleted` status only when their former
+reflection and duration fields provide sufficient terminal evidence. Partial
+legacy records remain readable after safe normalization but do not become
+valid completed practices or unlock progress.
+
+Completed Pause and Arousal records are immutable. The only supported
+post-completion Arousal edit is the existing explicit private-note action,
+which targets the same completed log id.
+
+## Guided-Flow Lifecycles
+
+Pause uses explicit `start`, id-targeted `update`, `complete`, and `discard`
+operations. Starting from the Pause intro replaces an abandoned draft with a
+new id. Pause Again extends the current session without replacing its
+check-in selections, and timer-duration increments use the latest canonical
+state. The timer records elapsed seconds before the after-pause check-in.
+`/pause/saved` is read-only: an active draft returns to the timer, and no
+record returns to the Pause intro.
+
+For Pause timers, `timerDurationSeconds` is the configured total across the
+active session and `elapsedDurationSeconds` is actual accumulated elapsed time
+captured at a timer transition. The running screen keeps live remaining time;
+an Add 60 mutation increases both canonical configured duration and live
+remaining time by exactly 60 without restoring already elapsed seconds.
+
+Arousal Control starts a new session when the user confirms a practice mode.
+Every subsequent update and the single completion at Duration target that
+session id. Starting another mode explicitly replaces an abandoned draft, so
+old values cannot leak into a new session. A completed session must include
+the current mode, before-practice choices, ending, completed reflection, and
+duration preference before it is eligible for Saved, Progress Preview, or
+journey completion.
+
+All guided-flow private notes share `MAX_BLOOM_NOTE_LENGTH`. UI inputs enforce
+the limit, domain helpers reject oversized programmatic values, and callers
+show success only after a successful typed mutation result.
+
+`/exercises/arousal-control/saved` and
+`/exercises/arousal-control/progress-preview` only read a valid persisted
+completed log. They never create or complete one on mount, and invalid direct
+access replaces navigation with the Arousal Control overview.
+
 ## Legacy Migration
 
 The loader checks `bloom.localState.v2` first, followed by the legacy key:
@@ -95,11 +154,13 @@ bloom.localState.corrupt.*
 
 Unrelated storage keys are preserved; global `AsyncStorage.clear()` is not used. Quarantine and legacy keys are removed before the active current key so a mid-operation failure preserves active data where possible. After durable deletion succeeds, the provider installs a genuine default Bloom state without immediately autosaving it. Bloom mutations stay blocked until the router confirms `/onboarding`, preventing an old deep-link screen’s mount effect from recreating state during the reset transition. The first real onboarding mutation may create a new envelope.
 
-The app-level lifecycle then resets transient `DemoAppStateProvider` Log and
-Pause data and replaces navigation with `/onboarding`. Persisted Protection is
-already removed with the canonical Bloom envelope. If storage deletion fails,
-current in-memory state is retained, the app does not claim success, and a
-non-sensitive error explains that data may still remain.
+The app-level lifecycle also resets the remaining transient Settings toggles
+owned by `DemoAppStateProvider` and replaces navigation with `/onboarding`.
+Log, Pause, Protection, Reset, and Arousal Control data are already removed
+with the canonical Bloom envelope. `DemoAppStateProvider` has no runtime
+authority for those features. If storage deletion fails, current in-memory
+state is retained, the app does not claim success, and a non-sensitive error
+explains that data may still remain.
 
 The same operation is used by Debug, Settings/Data Controls, and hydration-error recovery. The recovery `Try again` action only retries hydration; its reset action requires confirmation.
 
@@ -117,6 +178,16 @@ consistency are covered separately:
 
 ```sh
 npm run verify:protection-reset
+```
+
+Canonical Check-In identity, Pause and Arousal session lifecycles, atomic
+timer increments, explicit duration modes, note boundaries, duplicate
+completion guards, terminal-route decisions, abandoned drafts, exact
+persistence round trips, conservative legacy completion migration, journey
+eligibility, full deletion, and Demo consumer scans are covered by:
+
+```sh
+npm run verify:guided-flows
 ```
 
 ## Adding a Future Version

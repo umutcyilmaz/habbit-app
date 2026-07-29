@@ -9,44 +9,59 @@ import { AppCard } from "../../../shared/components/AppCard";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
+import { resolveBloomMutationFeedback } from "../../../shared/utils/bloomMutationFeedback";
 import {
-  createArousalControlPracticeLogFromDraft,
-  getLatestArousalControlLog,
+  getLatestValidArousalLog,
+  MAX_BLOOM_NOTE_LENGTH,
+  prepareBloomNoteSubmission,
   type ArousalControlPracticeLog
 } from "../../../storage/bloomState";
 import { ArousalControlFlowHeader } from "../components/ArousalControlFlowHeader";
+import { formatArousalPauseCount } from "../practiceSubmission";
 
 export function PracticeSavedScreen() {
   const router = useRouter();
-  const { state, completeArousalControlPractice } = useBloomLocalState();
+  const { state, editCompletedArousalLog } = useBloomLocalState();
+  const displayLog = getLatestValidArousalLog(state.arousalControl.logs);
   const [noteVisible, setNoteVisible] = useState(false);
-  const [note, setNote] = useState("");
+  const [note, setNote] = useState(displayLog?.note ?? "");
   const [noteMessage, setNoteMessage] = useState<string | undefined>();
-  const [justCompletedLog, setJustCompletedLog] = useState<ArousalControlPracticeLog | null>(null);
-  const latestLog = getLatestArousalControlLog(state.arousalControl.logs);
-  const displayLog = justCompletedLog ?? latestLog;
   const sessionSummary = getSessionSummary(displayLog);
   const insight = getGentleInsight(displayLog);
 
   useEffect(() => {
-    const draft = state.arousalControl.draft;
+    if (state.arousalControl.draft !== null || displayLog === null) {
+      router.replace(routes.arousalControl);
+    }
+  }, [displayLog, router, state.arousalControl.draft]);
 
-    if (draft === null) {
+  const saveNote = () => {
+    const noteResult = prepareBloomNoteSubmission(note);
+
+    if (!noteResult.ok) {
+      setNoteMessage("That note is too long to save.");
       return;
     }
 
-    const completedAt = new Date().toISOString();
-    setJustCompletedLog(createArousalControlPracticeLogFromDraft(draft, completedAt));
-    completeArousalControlPractice(completedAt);
-  }, [completeArousalControlPractice, state.arousalControl.draft]);
+    if (displayLog === null || noteResult.note === null) {
+      setNoteMessage("No note added. This practice is still saved.");
+      return;
+    }
 
-  const saveNote = () => {
-    setNoteMessage(
-      note.trim().length > 0
-        ? "Private note saved for this practice."
-        : "No note added. This practice is still saved."
+    const result = editCompletedArousalLog(displayLog.id, {
+      note: noteResult.note
+    });
+    const feedback = resolveBloomMutationFeedback(
+      result,
+      "Private note saved for this practice.",
+      "This note could not be saved yet."
     );
+    setNoteMessage(feedback.message);
   };
+
+  if (state.arousalControl.draft !== null || displayLog === null) {
+    return <AppScreen />;
+  }
 
   return (
     <AppScreen contentStyle={styles.content}>
@@ -55,7 +70,7 @@ export function PracticeSavedScreen() {
         icon="✓"
         title="You practiced noticing the rise."
         subtitle="This session adds useful context to your awareness pattern."
-        onBackPress={() => router.replace(routes.arousalControlDuration)}
+        onBackPress={() => router.replace(routes.exercises)}
         onClosePress={() => router.replace(routes.exercises)}
       />
 
@@ -113,6 +128,22 @@ export function PracticeSavedScreen() {
             </View>
 
             <View style={styles.contextPanel}>
+              <ContextRow label="Practice mode" value={sessionSummary.mode} />
+              <View style={styles.contextDivider} />
+              <ContextRow label="Focus" value={sessionSummary.focus} />
+              <View style={styles.contextDivider} />
+              <ContextRow label="Ending" value={sessionSummary.ending} />
+            </View>
+
+            <View style={styles.contextPanel}>
+              <ContextRow label="Starting arousal" value={sessionSummary.startingArousal} />
+              <View style={styles.contextDivider} />
+              <ContextRow label="Pause zone" value={sessionSummary.pauseZone} />
+              <View style={styles.contextDivider} />
+              <ContextRow label="After pause" value={sessionSummary.afterPause} />
+            </View>
+
+            <View style={styles.contextPanel}>
               <ContextRow label="Firmness during pause" value={sessionSummary.firmness} />
               <View style={styles.contextDivider} />
               <ContextRow
@@ -156,6 +187,7 @@ export function PracticeSavedScreen() {
                 placeholderTextColor={theme.colors.textSecondary}
                 style={styles.input}
                 textAlignVertical="top"
+                maxLength={MAX_BLOOM_NOTE_LENGTH}
               />
               {noteMessage ? (
                 <AppText variant="bodySmall" tone="secondary">
@@ -193,21 +225,37 @@ export function PracticeSavedScreen() {
 
 function getSessionSummary(log: ArousalControlPracticeLog | null) {
   return {
-    pauses: formatCount(log?.pauseCount),
+    mode: formatMode(log?.mode),
+    focus: formatFocus(log?.focus),
+    ending: formatEnding(log?.endingChoice),
+    startingArousal: formatScore(log?.startingArousalLevel),
+    pauseZone: formatScore(log?.pauseZoneLevel),
+    afterPause: formatScore(log?.afterPauseLevel),
+    pauses: formatArousalPauseCount(
+      log?.pauseCount,
+      log?.pauseCountBucket
+    ),
     highestArousal: formatScore(log?.highestArousal),
     controlFeeling: formatScore(log?.controlFeeling),
-    pleasureQuality: formatText(log?.pleasureQuality),
+    pleasureQuality: formatScore(log?.pleasureQuality),
     pressure: formatOption(log?.pressureRushing),
-    firmness: formatText(log?.firmnessChange),
+    firmness: formatFirmness(log?.firmnessChange),
     duration: formatDuration(log)
   };
 }
 
 function getGentleInsight(log: ArousalControlPracticeLog | null) {
+  if (log?.pauseZoneLevel !== undefined && log.pauseZoneLevel !== null) {
+    return {
+      body: `You chose to pause around ${log.pauseZoneLevel}/10. A pause can still be useful when the session ends differently than expected.`,
+      footer: "Next time, the practice can be noticing the rise a little earlier."
+    };
+  }
+
   if (log?.highestArousal !== undefined && log.highestArousal !== null) {
     return {
-      body: `You noticed your pause zone around ${log.highestArousal}/10. A pause can still be useful when the session ends differently than expected.`,
-      footer: "Next time, the practice can be noticing the rise a little earlier."
+      body: `You noticed a high point around ${log.highestArousal}/10. That context can help make the rise easier to recognize next time.`,
+      footer: "One clearly noticed moment is enough for a useful practice."
     };
   }
 
@@ -219,14 +267,6 @@ function getGentleInsight(log: ArousalControlPracticeLog | null) {
 
 function formatScore(value: number | null | undefined) {
   return value !== undefined && value !== null ? `${value}/10` : "Not logged";
-}
-
-function formatCount(value: number | null | undefined) {
-  return value !== undefined && value !== null ? String(value) : "Not logged";
-}
-
-function formatText(value: string | null | undefined) {
-  return value !== undefined && value !== null && value.trim().length > 0 ? value : "Not logged";
 }
 
 function formatOption(value: string | null | undefined) {
@@ -250,6 +290,54 @@ function formatOption(value: string | null | undefined) {
   };
 
   return labels[value] ?? value;
+}
+
+function formatMode(value: ArousalControlPracticeLog["mode"]) {
+  const labels = {
+    softAwareness: "Soft Awareness",
+    onePause: "One Pause Practice",
+    practicePlus: "Practice+"
+  } as const;
+
+  return value !== undefined ? labels[value] : "Not logged";
+}
+
+function formatFocus(value: ArousalControlPracticeLog["focus"]) {
+  const labels = {
+    noticeRising: "Notice arousal rising",
+    onePause: "Try one pause",
+    reduceRushing: "Reduce rushing",
+    stayRelaxed: "Stay more relaxed",
+    withoutAdultContent: "Practice without adult content",
+    justObserve: "Just observe"
+  } as const;
+
+  return value !== undefined ? labels[value] : "Not logged";
+}
+
+function formatEnding(value: ArousalControlPracticeLog["endingChoice"]) {
+  const labels = {
+    finishedBeforeClimax: "Finished before climax",
+    climaxed: "Climaxed",
+    firmnessDecreased: "Stopped after firmness changed",
+    feltAnxious: "Stopped after feeling anxious",
+    stoppedByChoice: "Stopped by choice",
+    other: "Other"
+  } as const;
+
+  return value !== undefined ? labels[value] : "Not logged";
+}
+
+function formatFirmness(value: ArousalControlPracticeLog["firmnessChange"]) {
+  const labels = {
+    noChange: "No change",
+    slightlyDecreased: "Slightly decreased",
+    decreasedCouldContinue: "Decreased, but I could continue",
+    decreasedDifficult: "Decreased and continuing felt difficult",
+    notSure: "Not sure"
+  } as const;
+
+  return value !== undefined ? labels[value] : "Not logged";
 }
 
 function formatDuration(log: ArousalControlPracticeLog | null) {

@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
+import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppScreen } from "../../../shared/components/AppScreen";
@@ -30,7 +31,39 @@ const endingOptions: readonly { value: PracticeEndingOption; title: string }[] =
 
 export function FinishPracticeScreen() {
   const router = useRouter();
-  const [ending, setEnding] = useState<PracticeEndingOption>("stoppedByChoice");
+  const { state, updateArousalSession, discardArousalSession } =
+    useBloomLocalState();
+  const draft = state.arousalControl.draft;
+  const [ending, setEnding] = useState<PracticeEndingOption>(
+    draft?.endingChoice ?? "stoppedByChoice"
+  );
+
+  useEffect(() => {
+    if (draft === null) {
+      router.replace(routes.arousalControl);
+    }
+  }, [draft, router]);
+
+  const continueToReflection = () => {
+    if (draft === null) {
+      return;
+    }
+
+    updateArousalSession(draft.id, { endingChoice: ending });
+    router.push(routes.arousalControlReflection);
+  };
+
+  const closePractice = () => {
+    if (draft !== null) {
+      discardArousalSession(draft.id);
+    }
+
+    router.replace(routes.exercises);
+  };
+
+  if (draft === null) {
+    return <AppScreen />;
+  }
 
   return (
     <AppScreen contentStyle={styles.content}>
@@ -40,7 +73,7 @@ export function FinishPracticeScreen() {
         title="Any ending is okay."
         subtitle="This log is for learning your pattern, not judging it."
         onBackPress={() => router.back()}
-        onClosePress={() => router.replace(routes.exercises)}
+        onClosePress={closePractice}
       />
 
       <View style={styles.stack}>
@@ -70,7 +103,7 @@ export function FinishPracticeScreen() {
           </View>
         </View>
 
-        <AppButton onPress={() => router.push(routes.arousalControlReflection)}>Continue</AppButton>
+        <AppButton onPress={continueToReflection}>Continue</AppButton>
       </View>
     </AppScreen>
   );

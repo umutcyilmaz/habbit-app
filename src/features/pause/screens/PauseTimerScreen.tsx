@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
+import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
@@ -9,7 +10,19 @@ import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
 import { PauseCircleTimer } from "../components/PauseCircleTimer";
+import { PauseAfterCheckInForm } from "../components/PauseAfterCheckInForm";
 import { PauseFlowHeader } from "../components/PauseFlowHeader";
+import type { PauseSessionCompletionData } from "../../../storage/bloomState";
+import { resolvePauseAgainUpdate } from "../pauseSessionAdapters";
+import {
+  createPauseTimerSessionSnapshot,
+  extendPauseTimerRemainingSeconds,
+  extendPauseTimerSnapshot,
+  getPauseTimerElapsedSeconds,
+  getPauseTimerRemainingSeconds,
+  reconcilePauseTimerRemainingSeconds,
+  type PauseTimerSessionSnapshot
+} from "../pauseTimerState";
 
 function getBreathingPhase(remainingSeconds: number) {
   const phase = remainingSeconds % 12;
@@ -27,37 +40,206 @@ function getBreathingPhase(remainingSeconds: number) {
 
 export function PauseTimerScreen() {
   const router = useRouter();
-  const [remainingSeconds, setRemainingSeconds] = useState(90);
+  const {
+    state,
+    updatePauseSession,
+    addPauseSessionDuration,
+    completePauseSession,
+    discardPauseSession
+  } = useBloomLocalState();
+  const activeSession = state.pause.activeSession;
+  const initialTimerSnapshot =
+    activeSession !== null
+      ? createPauseTimerSessionSnapshot(activeSession)
+      : null;
+  const timerSnapshotRef =
+    useRef<PauseTimerSessionSnapshot | null>(initialTimerSnapshot);
+  const [remainingSeconds, setRemainingSeconds] = useState(() =>
+    initialTimerSnapshot === null
+      ? 90
+      : getPauseTimerRemainingSeconds(initialTimerSnapshot)
+  );
+  const remainingSecondsRef = useRef(remainingSeconds);
+  const [isCheckingIn, setIsCheckingIn] = useState(
+    activeSession?.phase === "afterPause"
+  );
   const hasRoutedRef = useRef(false);
 
-  const routeToSaved = useCallback(() => {
-    if (hasRoutedRef.current) {
+  const showAfterPauseCheckIn = useCallback(() => {
+    if (hasRoutedRef.current || activeSession === null) {
+      return;
+    }
+
+    const snapshot =
+      timerSnapshotRef.current ??
+      createPauseTimerSessionSnapshot(activeSession);
+    const elapsedDurationSeconds = getPauseTimerElapsedSeconds(
+      snapshot,
+      remainingSecondsRef.current
+    );
+    const result = updatePauseSession(activeSession.id, {
+      phase: "afterPause",
+      elapsedDurationSeconds
+    });
+
+    if (!result.ok) {
       return;
     }
 
     hasRoutedRef.current = true;
-    router.replace(routes.pauseSaved);
-  }, [router]);
+    timerSnapshotRef.current = {
+      ...snapshot,
+      elapsedDurationSeconds
+    };
+    setIsCheckingIn(true);
+  }, [activeSession, updatePauseSession]);
 
   useEffect(() => {
+    if (activeSession === null) {
+      timerSnapshotRef.current = null;
+      return;
+    }
+
+    const nextSnapshot = createPauseTimerSessionSnapshot(activeSession);
+    const previousSnapshot = timerSnapshotRef.current;
+
+    const nextRemainingSeconds = reconcilePauseTimerRemainingSeconds(
+      remainingSecondsRef.current,
+      previousSnapshot,
+      nextSnapshot
+    );
+    remainingSecondsRef.current = nextRemainingSeconds;
+    setRemainingSeconds(nextRemainingSeconds);
+    timerSnapshotRef.current = nextSnapshot;
+  }, [
+    activeSession?.elapsedDurationSeconds,
+    activeSession?.id,
+    activeSession?.timerDurationSeconds
+  ]);
+
+  useEffect(() => {
+    if (activeSession === null) {
+      router.replace(routes.pause);
+      return undefined;
+    }
+
+    if (activeSession.timerStartedAt === undefined) {
+      updatePauseSession(activeSession.id, {
+        timerStartedAt: new Date().toISOString()
+      });
+    }
+
+    return undefined;
+  }, [activeSession, router, updatePauseSession]);
+
+  useEffect(() => {
+    if (activeSession === null || isCheckingIn) {
+      return undefined;
+    }
+
     const interval = setInterval(() => {
-      setRemainingSeconds((currentSeconds) =>
-        currentSeconds > 0 ? currentSeconds - 1 : currentSeconds
-      );
+      const nextRemainingSeconds =
+        remainingSecondsRef.current > 0
+          ? remainingSecondsRef.current - 1
+          : remainingSecondsRef.current;
+      remainingSecondsRef.current = nextRemainingSeconds;
+      setRemainingSeconds(nextRemainingSeconds);
     }, 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [activeSession, isCheckingIn]);
 
   useEffect(() => {
     if (remainingSeconds === 0) {
-      routeToSaved();
+      showAfterPauseCheckIn();
     }
-  }, [remainingSeconds, routeToSaved]);
+  }, [remainingSeconds, showAfterPauseCheckIn]);
 
   const addTime = () => {
-    setRemainingSeconds((currentSeconds) => currentSeconds + 60);
+    if (activeSession === null) {
+      return;
+    }
+
+    const result = addPauseSessionDuration(activeSession.id, 60);
+
+    if (result.ok) {
+      const snapshot =
+        timerSnapshotRef.current ??
+        createPauseTimerSessionSnapshot(activeSession);
+      timerSnapshotRef.current = extendPauseTimerSnapshot(snapshot, 60);
+      const nextRemainingSeconds = extendPauseTimerRemainingSeconds(
+        remainingSecondsRef.current,
+        60
+      );
+      remainingSecondsRef.current = nextRemainingSeconds;
+      setRemainingSeconds(nextRemainingSeconds);
+    }
   };
+
+  const closePause = () => {
+    if (activeSession !== null) {
+      discardPauseSession(activeSession.id);
+    }
+
+    router.replace(routes.home);
+  };
+
+  const savePause = (completionData: PauseSessionCompletionData) => {
+    if (activeSession === null) {
+      return;
+    }
+
+    const result = completePauseSession(activeSession.id, completionData);
+
+    if (result.ok) {
+      router.replace(routes.pauseSaved);
+    }
+  };
+
+  const pauseAgain = () => {
+    if (activeSession === null) {
+      return;
+    }
+
+    const pauseAgainUpdate = resolvePauseAgainUpdate(activeSession);
+    const result = updatePauseSession(activeSession.id, pauseAgainUpdate);
+
+    if (!result.ok) {
+      return;
+    }
+
+    hasRoutedRef.current = false;
+    timerSnapshotRef.current = createPauseTimerSessionSnapshot({
+      ...activeSession,
+      ...pauseAgainUpdate
+    });
+    remainingSecondsRef.current = 90;
+    setRemainingSeconds(90);
+    setIsCheckingIn(false);
+  };
+
+  if (isCheckingIn) {
+    return (
+      <AppScreen>
+        <PauseFlowHeader
+          title="How is it now?"
+          subtitle="You created a pause. Notice what changed."
+          onBackPress={() => {
+            if (activeSession !== null) {
+              updatePauseSession(activeSession.id, { phase: "timer" });
+            }
+            hasRoutedRef.current = false;
+            setIsCheckingIn(false);
+          }}
+          onClosePress={closePause}
+        />
+        <PauseAfterCheckInForm
+          onSave={savePause}
+          onPauseAgain={pauseAgain}
+        />
+      </AppScreen>
+    );
+  }
 
   return (
     <AppScreen>
@@ -65,7 +247,7 @@ export function PauseTimerScreen() {
         title="90-Second Pause"
         subtitle="Breathe, notice, and let the moment settle before continuing."
         onBackPress={() => router.back()}
-        onClosePress={() => router.replace(routes.home)}
+        onClosePress={closePause}
       />
 
       <View style={styles.stack}>
@@ -82,8 +264,8 @@ export function PauseTimerScreen() {
               <AppButton variant="secondary" onPress={addTime}>
                 Add 60 seconds
               </AppButton>
-              <AppButton onPress={routeToSaved}>Finish early</AppButton>
-              <AppButton variant="ghost" onPress={routeToSaved}>
+              <AppButton onPress={showAfterPauseCheckIn}>Finish early</AppButton>
+              <AppButton variant="ghost" onPress={showAfterPauseCheckIn}>
                 I want to continue
               </AppButton>
             </View>

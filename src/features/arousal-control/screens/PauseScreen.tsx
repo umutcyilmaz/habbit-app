@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
+import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
@@ -16,7 +17,15 @@ const INITIAL_SECONDS = 30;
 
 export function PauseScreen() {
   const router = useRouter();
+  const { state, discardArousalSession } = useBloomLocalState();
+  const draft = state.arousalControl.draft;
   const [secondsLeft, setSecondsLeft] = useState(INITIAL_SECONDS);
+
+  useEffect(() => {
+    if (draft === null) {
+      router.replace(routes.arousalControl);
+    }
+  }, [draft, router]);
 
   useEffect(() => {
     if (secondsLeft <= 0) {
@@ -34,6 +43,18 @@ export function PauseScreen() {
     setSecondsLeft((current) => current + INITIAL_SECONDS);
   };
 
+  const closePractice = () => {
+    if (draft !== null) {
+      discardArousalSession(draft.id);
+    }
+
+    router.replace(routes.exercises);
+  };
+
+  if (draft === null) {
+    return <AppScreen />;
+  }
+
   return (
     <AppScreen contentStyle={styles.content}>
       <ArousalControlFlowHeader
@@ -42,7 +63,7 @@ export function PauseScreen() {
         title="Stop for a short moment."
         subtitle="Let your breathing slow down. Relax your jaw, belly, and pelvic floor."
         onBackPress={() => router.replace(routes.arousalControlPractice)}
-        onClosePress={() => router.replace(routes.exercises)}
+        onClosePress={closePractice}
       />
 
       <View style={styles.stack}>

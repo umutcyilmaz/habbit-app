@@ -10,24 +10,43 @@ import {
 } from "react";
 
 import {
+  addPauseSessionDurationState,
   clearOnboardingResultState,
-  completeArousalControlPracticeState,
+  completeArousalSessionState,
+  completePauseSessionState,
   completeTodayResetState,
   configureProtectionState,
+  createBloomRecordId,
   createDefaultBloomState,
+  discardArousalSessionState,
+  discardPauseSessionState,
+  editCompletedArousalLogState,
   getResetDay,
   getTodayKey,
+  isValidBloomCheckInRecord,
   isTodayCompleted,
   pauseProtectionState,
+  prepareBloomNoteSubmission,
   recordProtectionPauseState,
+  resumeArousalSessionState,
   resumeProtectionState,
   saveOnboardingResultForFreshJourneyState,
   saveOnboardingResultState,
+  saveBloomCheckInRecordState,
+  startArousalSessionState,
+  startPauseSessionState,
   startTenDayResetState,
   turnOffProtectionState,
-  updateArousalControlDraftState,
+  updateArousalSessionState,
+  updatePauseSessionState,
   type ArousalControlDraft,
+  type ArousalControlSessionValues,
+  type ArousalSessionPatch,
+  type BloomMutationResult,
   type BloomLocalState,
+  type BloomCheckInRecord,
+  type PauseSessionCompletionData,
+  type PauseSessionPatch,
   type ProtectionConfiguration,
   type QuizResult
 } from "../../storage/bloomState";
@@ -78,11 +97,37 @@ type BloomLocalStateContextValue = {
   resumeProtection: () => void;
   turnOffProtection: () => void;
   recordProtectionPause: () => void;
-  updateArousalControlDraft: (patch: Partial<ArousalControlDraft>) => void;
-  completeArousalControlPractice: (
-    completedAt?: string,
-    patch?: Partial<ArousalControlDraft>
-  ) => void;
+  saveCheckInRecord: (record: BloomCheckInRecord) => BloomMutationResult;
+  startPauseSession: (initialPatch?: PauseSessionPatch) => string;
+  updatePauseSession: (
+    id: string,
+    patch: PauseSessionPatch
+  ) => BloomMutationResult;
+  addPauseSessionDuration: (
+    id: string,
+    seconds: number
+  ) => BloomMutationResult;
+  completePauseSession: (
+    id: string,
+    completionData: PauseSessionCompletionData
+  ) => BloomMutationResult;
+  discardPauseSession: (id: string) => void;
+  startArousalSession: (initialData: ArousalSessionPatch) => string;
+  resumeArousalSession: (id: string) => void;
+  updateArousalSession: (
+    id: string,
+    patch: ArousalSessionPatch
+  ) => BloomMutationResult;
+  discardArousalSession: (id: string) => void;
+  completeArousalSession: (
+    id: string,
+    completionData: ArousalSessionPatch,
+    completedAt?: string
+  ) => BloomMutationResult;
+  editCompletedArousalLog: (
+    id: string,
+    patch: Pick<ArousalControlSessionValues, "note">
+  ) => BloomMutationResult;
 };
 
 const BloomLocalStateContext = createContext<BloomLocalStateContextValue | undefined>(undefined);
@@ -94,6 +139,7 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
   const [hydrationError, setHydrationError] =
     useState<BloomHydrationError | null>(null);
   const [persistenceError, setPersistenceError] = useState<string | null>(null);
+  const stateRef = useRef(state);
   const hydrationStatusRef = useRef<BloomHydrationStatus>("loading");
   const pendingMutationsRef = useRef<BloomStateMutation[]>([]);
   const skipAutosaveForStateRef = useRef<BloomLocalState | null>(null);
@@ -143,6 +189,7 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
               ? loadedState
               : null;
           hydrationStatusRef.current = "ready";
+          stateRef.current = loadedState;
           setState(loadedState);
           setPersistenceError(loadResult.persistenceError);
           setHydrationError(null);
@@ -236,20 +283,34 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
     };
   }, [hydrationStatus, state]);
 
-  const applyStateMutation = useCallback((mutation: BloomStateMutation) => {
-    if (writesBlockedRef.current) {
-      return;
-    }
+  const applyStateMutation = useCallback(
+    (mutation: BloomStateMutation): BloomMutationResult => {
+      if (writesBlockedRef.current) {
+        return { ok: false, reason: "stateUnavailable" };
+      }
 
-    if (hydrationStatusRef.current === "loading") {
-      pendingMutationsRef.current.push(mutation);
-      return;
-    }
+      if (hydrationStatusRef.current === "loading") {
+        pendingMutationsRef.current.push(mutation);
+        return { ok: true };
+      }
 
-    if (hydrationStatusRef.current === "ready") {
-      setState(mutation);
-    }
-  }, []);
+      if (hydrationStatusRef.current === "ready") {
+        const currentState = stateRef.current;
+        const nextState = mutation(currentState);
+
+        if (nextState === currentState) {
+          return { ok: false, reason: "invalidSession" };
+        }
+
+        stateRef.current = nextState;
+        setState(nextState);
+        return { ok: true };
+      }
+
+      return { ok: false, reason: "stateUnavailable" };
+    },
+    []
+  );
 
   const deleteAllBloomLocalData = useCallback((): Promise<void> => {
     if (deletionPromiseRef.current !== null) {
@@ -271,6 +332,7 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
         const freshState = createDefaultBloomState();
         skipAutosaveForStateRef.current = freshState;
         hydrationStatusRef.current = "ready";
+        stateRef.current = freshState;
         setState(freshState);
         setPersistenceError(null);
         setHydrationError(null);
@@ -385,22 +447,191 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
     applyStateMutation((currentState) => recordProtectionPauseState(currentState));
   }, [applyStateMutation]);
 
-  const updateArousalControlDraft = useCallback((patch: Partial<ArousalControlDraft>) => {
-    applyStateMutation((currentState) =>
-      updateArousalControlDraftState(currentState, patch)
+  const saveCheckInRecord = useCallback((record: BloomCheckInRecord) => {
+    if (!isValidBloomCheckInRecord(record)) {
+      return {
+        ok: false,
+        reason:
+          record.note !== undefined &&
+          !prepareBloomNoteSubmission(record.note).ok
+            ? "noteTooLong"
+            : "invalidRecord"
+      } satisfies BloomMutationResult;
+    }
+
+    return applyStateMutation((currentState) =>
+      saveBloomCheckInRecordState(currentState, record)
     );
   }, [applyStateMutation]);
 
-  const completeArousalControlPractice = useCallback(
-    (completedAt?: string, patch?: Partial<ArousalControlDraft>) => {
-      applyStateMutation((currentState) => {
-        const patchedState =
-          patch !== undefined
-            ? updateArousalControlDraftState(currentState, patch)
-            : currentState;
+  const startPauseSession = useCallback(
+    (initialPatch: PauseSessionPatch = {}) => {
+      const now = new Date();
+      const id = createBloomRecordId("pause", now);
+      const session = {
+        id,
+        startedAt: now.toISOString(),
+        phase: "checkIn" as const,
+        triggers: [],
+        timerDurationSeconds: 90,
+        elapsedDurationSeconds: 0,
+        ...initialPatch
+      };
 
-        return completeArousalControlPracticeState(patchedState, completedAt);
-      });
+      applyStateMutation((currentState) =>
+        startPauseSessionState(currentState, session)
+      );
+
+      return id;
+    },
+    [applyStateMutation]
+  );
+
+  const updatePauseSession = useCallback(
+    (id: string, patch: PauseSessionPatch) => {
+      return applyStateMutation((currentState) =>
+        updatePauseSessionState(currentState, id, patch)
+      );
+    },
+    [applyStateMutation]
+  );
+
+  const addPauseSessionDuration = useCallback(
+    (id: string, seconds: number) => {
+      if (!Number.isSafeInteger(seconds) || seconds <= 0) {
+        return {
+          ok: false,
+          reason: "invalidSession"
+        } satisfies BloomMutationResult;
+      }
+
+      return applyStateMutation((currentState) =>
+        addPauseSessionDurationState(currentState, id, seconds)
+      );
+    },
+    [applyStateMutation]
+  );
+
+  const completePauseSession = useCallback(
+    (id: string, completionData: PauseSessionCompletionData) => {
+      return applyStateMutation((currentState) =>
+        completePauseSessionState(currentState, id, completionData)
+      );
+    },
+    [applyStateMutation]
+  );
+
+  const discardPauseSession = useCallback(
+    (id: string) => {
+      applyStateMutation((currentState) =>
+        discardPauseSessionState(currentState, id)
+      );
+    },
+    [applyStateMutation]
+  );
+
+  const startArousalSession = useCallback(
+    (initialData: ArousalSessionPatch) => {
+      const now = new Date();
+      const id = createBloomRecordId("arousal", now);
+
+      applyStateMutation((currentState) =>
+        startArousalSessionState(currentState, {
+          id,
+          startedAt: now.toISOString(),
+          dateKey: getTodayKey(currentState.debug.dateOffsetDays, now),
+          ...initialData
+        } satisfies ArousalControlDraft)
+      );
+
+      return id;
+    },
+    [applyStateMutation]
+  );
+
+  const resumeArousalSession = useCallback(
+    (id: string) => {
+      applyStateMutation((currentState) =>
+        resumeArousalSessionState(currentState, id)
+      );
+    },
+    [applyStateMutation]
+  );
+
+  const updateArousalSession = useCallback(
+    (id: string, patch: ArousalSessionPatch) => {
+      if (
+        patch.note !== undefined &&
+        !prepareBloomNoteSubmission(patch.note).ok
+      ) {
+        return {
+          ok: false,
+          reason: "noteTooLong"
+        } satisfies BloomMutationResult;
+      }
+
+      return applyStateMutation((currentState) =>
+        updateArousalSessionState(currentState, id, patch)
+      );
+    },
+    [applyStateMutation]
+  );
+
+  const discardArousalSession = useCallback(
+    (id: string) => {
+      applyStateMutation((currentState) =>
+        discardArousalSessionState(currentState, id)
+      );
+    },
+    [applyStateMutation]
+  );
+
+  const completeArousalSession = useCallback(
+    (
+      id: string,
+      completionData: ArousalSessionPatch,
+      completedAt?: string
+    ) => {
+      if (
+        completionData.note !== undefined &&
+        !prepareBloomNoteSubmission(completionData.note).ok
+      ) {
+        return {
+          ok: false,
+          reason: "noteTooLong"
+        } satisfies BloomMutationResult;
+      }
+
+      return applyStateMutation((currentState) =>
+        completeArousalSessionState(
+          currentState,
+          id,
+          completionData,
+          completedAt
+        )
+      );
+    },
+    [applyStateMutation]
+  );
+
+  const editCompletedArousalLog = useCallback(
+    (
+      id: string,
+      patch: Pick<ArousalControlSessionValues, "note">
+    ) => {
+      if (
+        patch.note !== undefined &&
+        !prepareBloomNoteSubmission(patch.note).ok
+      ) {
+        return {
+          ok: false,
+          reason: "noteTooLong"
+        } satisfies BloomMutationResult;
+      }
+
+      return applyStateMutation((currentState) =>
+        editCompletedArousalLogState(currentState, id, patch)
+      );
     },
     [applyStateMutation]
   );
@@ -431,15 +662,30 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
       resumeProtection,
       turnOffProtection,
       recordProtectionPause,
-      updateArousalControlDraft,
-      completeArousalControlPractice
+      saveCheckInRecord,
+      startPauseSession,
+      updatePauseSession,
+      addPauseSessionDuration,
+      completePauseSession,
+      discardPauseSession,
+      startArousalSession,
+      resumeArousalSession,
+      updateArousalSession,
+      discardArousalSession,
+      completeArousalSession,
+      editCompletedArousalLog
     }),
     [
-      completeArousalControlPractice,
+      completeArousalSession,
+      completePauseSession,
+      addPauseSessionDuration,
       clearOnboardingResult,
       completeTodayReset,
       configureProtection,
       deleteAllBloomLocalData,
+      discardArousalSession,
+      discardPauseSession,
+      editCompletedArousalLog,
       finishBloomLocalDataReset,
       hasHydrated,
       hydrationError,
@@ -448,19 +694,24 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
       persistenceError,
       pauseProtection,
       recordProtectionPause,
+      resumeArousalSession,
       resumeProtection,
       resetDay,
       resetTodayCompleted,
       runHydration,
       saveOnboardingResultForFreshJourney,
       saveOnboardingResult,
+      saveCheckInRecord,
       simulateNextDay,
       simulatePreviousDay,
       startTenDayReset,
+      startArousalSession,
+      startPauseSession,
       state,
       todayKey,
       turnOffProtection,
-      updateArousalControlDraft
+      updateArousalSession,
+      updatePauseSession
     ]
   );
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
@@ -46,15 +46,49 @@ const firmnessPlanOptions: readonly { value: FirmnessPlanOption; label: string }
 
 export function BeforePracticeCheckInScreen() {
   const router = useRouter();
-  const { updateArousalControlDraft } = useBloomLocalState();
-  const [focus, setFocus] = useState<FocusOption>("noticeRising");
-  const [adultContent, setAdultContent] = useState<AdultContentOption>("no");
-  const [firmnessPlan, setFirmnessPlan] = useState<FirmnessPlanOption>("appSuggest");
+  const { state, updateArousalSession, discardArousalSession } =
+    useBloomLocalState();
+  const draft = state.arousalControl.draft;
+  const [focus, setFocus] = useState<FocusOption>(
+    draft?.focus ?? "noticeRising"
+  );
+  const [adultContent, setAdultContent] = useState<AdultContentOption>(
+    draft?.adultContent ?? "no"
+  );
+  const [firmnessPlan, setFirmnessPlan] = useState<FirmnessPlanOption>(
+    draft?.firmnessPlan ?? "appSuggest"
+  );
+
+  useEffect(() => {
+    if (draft === null) {
+      router.replace(routes.arousalControlMode);
+    }
+  }, [draft, router]);
 
   const beginPractice = () => {
-    updateArousalControlDraft({});
+    if (draft === null) {
+      return;
+    }
+
+    updateArousalSession(draft.id, {
+      focus,
+      adultContent,
+      firmnessPlan
+    });
     router.push(routes.arousalControlPractice);
   };
+
+  const closePractice = () => {
+    if (draft !== null) {
+      discardArousalSession(draft.id);
+    }
+
+    router.replace(routes.exercises);
+  };
+
+  if (draft === null) {
+    return <AppScreen />;
+  }
 
   return (
     <AppScreen contentStyle={styles.content}>
@@ -64,7 +98,7 @@ export function BeforePracticeCheckInScreen() {
         title="Set a gentle intention."
         subtitle="A short check-in can help you practice with less pressure and more awareness."
         onBackPress={() => router.replace(routes.arousalControlMode)}
-        onClosePress={() => router.replace(routes.exercises)}
+        onClosePress={closePractice}
       />
 
       <View style={styles.stack}>

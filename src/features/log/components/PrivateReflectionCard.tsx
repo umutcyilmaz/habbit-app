@@ -4,6 +4,7 @@ import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
+import { MAX_BLOOM_NOTE_LENGTH } from "../../../storage/bloomState";
 
 type PrivateReflectionCardProps = {
   note: string;
@@ -34,6 +35,7 @@ export function PrivateReflectionCard({
           placeholderTextColor={theme.colors.textSecondary}
           style={styles.input}
           textAlignVertical="top"
+          maxLength={MAX_BLOOM_NOTE_LENGTH}
         />
 
         {savedMessage ? (

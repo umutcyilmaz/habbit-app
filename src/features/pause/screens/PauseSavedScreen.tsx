@@ -1,168 +1,88 @@
-import { useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
-import {
-  useDemoAppDispatch,
-  useDemoAppState
-} from "../../../app/providers/DemoAppStateProvider";
+import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
-import { NextStepOptionCard } from "../components/NextStepOptionCard";
+import {
+  getLatestPauseRecord,
+  getPauseSavedRouteState,
+  type PauseRecord
+} from "../../../storage/bloomState";
 import { PauseFlowHeader } from "../components/PauseFlowHeader";
 import { PauseObservationCard } from "../components/PauseObservationCard";
 import { PauseSummaryMetricCard } from "../components/PauseSummaryMetricCard";
-
-const urgeAfterOptions = ["Lower", "About the same", "Higher"] as const;
-const truthOptions = [
-  "I feel calmer",
-  "I can wait longer",
-  "I still feel pulled",
-  "I want support",
-  "Not sure"
-] as const;
-const nextStepOptions = [
-  "Save this pause",
-  "3-min breathing",
-  "Leave the room",
-  "Put phone away",
-  "Message support",
-  "Continue mindfully"
-] as const;
-
-type UrgeAfterOption = (typeof urgeAfterOptions)[number];
-type TruthOption = (typeof truthOptions)[number];
-type NextStepOption = (typeof nextStepOptions)[number];
-
-function getUrgeAfterSummary(urgeAfter: UrgeAfterOption) {
-  switch (urgeAfter) {
-    case "Higher":
-      return {
-        value: "9 / 10",
-        detail: "Still present"
-      };
-    case "About the same":
-      return {
-        value: "8 / 10",
-        detail: "About the same"
-      };
-    case "Lower":
-    default:
-      return {
-        value: "5 / 10",
-        detail: "Reduced"
-      };
-  }
-}
+import {
+  formatPauseDuration,
+  pauseHelpfulActionLabels,
+  pauseIntensityAfterLabels,
+  pauseNextStepLabels,
+  pauseTriggerLabels,
+  pauseTruthLabels
+} from "../pausePresentation";
 
 export function PauseSavedScreen() {
   const router = useRouter();
-  const state = useDemoAppState();
-  const dispatch = useDemoAppDispatch();
-  const [isSaved, setIsSaved] = useState(false);
-  const [urgeAfter, setUrgeAfter] = useState<UrgeAfterOption>("Lower");
-  const [truth, setTruth] = useState<TruthOption>("I feel calmer");
-  const [nextStep, setNextStep] = useState<NextStepOption>("Save this pause");
-  const urgeAfterSummary = getUrgeAfterSummary(urgeAfter);
+  const { state } = useBloomLocalState();
+  const latestRecord = getLatestPauseRecord(state.pause.records);
+  const routeState = getPauseSavedRouteState(state.pause);
 
-  const savePause = () => {
-    const completedAt = new Date().toISOString();
+  useEffect(() => {
+    if (routeState === "collect-completion") {
+      router.replace(routes.pauseTimer);
+      return;
+    }
 
-    dispatch({
-      type: "ADD_PAUSE_SESSION",
-      payload: {
-        id: `pause-${completedAt}`,
-        completedAt,
-        durationSeconds: 90,
-        nextChoice: nextStep
-      }
-    });
+    if (routeState === "redirect") {
+      router.replace(routes.pause);
+    }
+  }, [routeState, router]);
 
-    setIsSaved(true);
-  };
-
-  if (!isSaved) {
-    return (
-      <AppScreen>
-        <PauseFlowHeader
-          title="How is it now?"
-          subtitle="You created a pause. Notice what changed."
-          onBackPress={() => router.back()}
-          onClosePress={() => router.replace(routes.home)}
-        />
-
-        <View style={styles.stack}>
-          <AppCard>
-            <View style={styles.cardStack}>
-              <AppText variant="title">How is the urge now?</AppText>
-              <View style={styles.optionStack}>
-                {urgeAfterOptions.map((option) => (
-                  <NextStepOptionCard
-                    key={option}
-                    value={option}
-                    title={option}
-                    selected={urgeAfter === option}
-                    onSelect={setUrgeAfter}
-                  />
-                ))}
-              </View>
-            </View>
-          </AppCard>
-
-          <AppCard>
-            <View style={styles.cardStack}>
-              <AppText variant="title">What feels true right now?</AppText>
-              <View style={styles.optionStack}>
-                {truthOptions.map((option) => (
-                  <NextStepOptionCard
-                    key={option}
-                    value={option}
-                    title={option}
-                    selected={truth === option}
-                    onSelect={setTruth}
-                  />
-                ))}
-              </View>
-            </View>
-          </AppCard>
-
-          <AppCard>
-            <View style={styles.cardStack}>
-              <AppText variant="title">What do you want to do next?</AppText>
-              <View style={styles.optionStack}>
-                {nextStepOptions.map((option) => (
-                  <NextStepOptionCard
-                    key={option}
-                    value={option}
-                    title={option}
-                    selected={nextStep === option}
-                    onSelect={setNextStep}
-                  />
-                ))}
-              </View>
-              <View style={styles.actions}>
-                <AppButton onPress={savePause}>Save Pause</AppButton>
-                <AppButton variant="ghost" onPress={() => router.replace(routes.pauseTimer)}>
-                  Pause Again
-                </AppButton>
-              </View>
-            </View>
-          </AppCard>
-        </View>
-      </AppScreen>
-    );
+  if (routeState !== "show-record") {
+    return <AppScreen />;
   }
 
+  if (latestRecord === null) {
+    return <AppScreen />;
+  }
+
+  return (
+    <PauseRecordSummary
+      record={latestRecord}
+      recordCount={state.pause.records.length}
+      onClose={() => router.replace(routes.home)}
+      onViewProgress={() => router.push(routes.progress)}
+      onOpenProtection={() => router.push(routes.protect)}
+    />
+  );
+}
+
+type PauseRecordSummaryProps = {
+  record: PauseRecord;
+  recordCount: number;
+  onClose: () => void;
+  onViewProgress: () => void;
+  onOpenProtection: () => void;
+};
+
+function PauseRecordSummary({
+  record,
+  recordCount,
+  onClose,
+  onViewProgress,
+  onOpenProtection
+}: PauseRecordSummaryProps) {
   return (
     <AppScreen>
       <PauseFlowHeader
         title="Pause saved"
-        subtitle="You noticed the loop and created a pause. That is useful progress."
-        onClosePress={() => router.replace(routes.home)}
+        subtitle="You noticed the moment and created space before continuing."
+        onClosePress={onClose}
       />
 
       <View style={styles.stack}>
@@ -173,45 +93,81 @@ export function PauseSavedScreen() {
             </View>
             <AppText variant="title">Pause saved</AppText>
             <AppText tone="secondary">
-              Pauses saved this week: {state.pauseSessions.length}.
+              Saved pauses: {recordCount}.
             </AppText>
           </View>
         </AppCard>
 
-        <View style={styles.metricGrid}>
-          <PauseSummaryMetricCard label="Urge before" value="8 / 10" detail="Before pause" />
-          <PauseSummaryMetricCard
-            label="Urge after"
-            value={urgeAfterSummary.value}
-            detail={urgeAfterSummary.detail}
-          />
-        </View>
-
-        <AppCard>
-          <View style={styles.cardStack}>
-            <AppText variant="title">Trigger Context</AppText>
-            <AppText tone="secondary">Nighttime</AppText>
+        {record.intensityBefore !== undefined ||
+        record.intensityAfterChange !== undefined ? (
+          <View style={styles.metricGrid}>
+            {record.intensityBefore !== undefined ? (
+              <PauseSummaryMetricCard
+                label="Urge before"
+                value={`${record.intensityBefore} / 10`}
+                detail="Before pause"
+              />
+            ) : null}
+            {record.intensityAfterChange !== undefined ? (
+              <PauseSummaryMetricCard
+                label="Urge after"
+                value={pauseIntensityAfterLabels[record.intensityAfterChange]}
+                detail="After pause"
+              />
+            ) : null}
           </View>
-        </AppCard>
+        ) : null}
 
         <AppCard>
-          <View style={styles.cardStack}>
-            <AppText variant="title">Tool Applied</AppText>
-            <AppText tone="secondary">90-Second Pause</AppText>
+          <View style={styles.summaryRows}>
+            <SummaryRow
+              label="Completed"
+              value={formatCompletedAt(record.completedAt)}
+            />
+            <SummaryRow
+              label="Duration"
+              value={formatPauseDuration(record.durationSeconds)}
+            />
+            {record.triggers.length > 0 ? (
+              <SummaryRow
+                label="Trigger context"
+                value={record.triggers
+                  .map((trigger) => pauseTriggerLabels[trigger])
+                  .join(", ")}
+              />
+            ) : null}
+            {record.selectedAction !== undefined ? (
+              <SummaryRow
+                label="Selected action"
+                value={pauseHelpfulActionLabels[record.selectedAction]}
+              />
+            ) : null}
+            {record.feltTruth !== undefined ? (
+              <SummaryRow
+                label="What felt true"
+                value={pauseTruthLabels[record.feltTruth]}
+              />
+            ) : null}
+            {record.nextStep !== undefined ? (
+              <SummaryRow
+                label="Next choice"
+                value={pauseNextStepLabels[record.nextStep]}
+              />
+            ) : null}
           </View>
         </AppCard>
 
         <PauseObservationCard
           title="Observation"
-          body="Evening seems to be a sensitive window. Night Protection may help later."
+          body="This saved pause is a record of what you noticed, not a score."
         />
 
         <View style={styles.actions}>
-          <AppButton onPress={() => router.replace(routes.home)}>Back to Today</AppButton>
-          <AppButton variant="secondary" onPress={() => router.push(routes.progress)}>
+          <AppButton onPress={onClose}>Back to Today</AppButton>
+          <AppButton variant="secondary" onPress={onViewProgress}>
             View Progress
           </AppButton>
-          <AppButton variant="ghost" onPress={() => router.push(routes.protect)}>
+          <AppButton variant="ghost" onPress={onOpenProtection}>
             Set Up Night Protection
           </AppButton>
         </View>
@@ -220,15 +176,39 @@ export function PauseSavedScreen() {
   );
 }
 
+type SummaryRowProps = {
+  label: string;
+  value: string;
+};
+
+function SummaryRow({ label, value }: SummaryRowProps) {
+  return (
+    <View style={styles.summaryRow}>
+      <AppText variant="bodySmall" tone="secondary">
+        {label}
+      </AppText>
+      <AppText variant="label" style={styles.summaryValue}>
+        {value}
+      </AppText>
+    </View>
+  );
+}
+
+function formatCompletedAt(completedAt: string) {
+  return new Date(completedAt).toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  });
+}
+
 const styles = StyleSheet.create({
   stack: {
     gap: theme.spacing.lg
   },
   cardStack: {
     gap: theme.spacing.lg
-  },
-  optionStack: {
-    gap: theme.spacing.sm
   },
   actions: {
     gap: theme.spacing.md
@@ -251,5 +231,18 @@ const styles = StyleSheet.create({
   savedCard: {
     backgroundColor: theme.colors.surface,
     borderColor: theme.colors.sage
+  },
+  summaryRows: {
+    gap: theme.spacing.md
+  },
+  summaryRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: theme.spacing.md
+  },
+  summaryValue: {
+    flex: 1,
+    textAlign: "right"
   }
 });

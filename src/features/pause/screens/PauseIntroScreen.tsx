@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
+import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
@@ -11,13 +12,32 @@ import { PauseFlowHeader } from "../components/PauseFlowHeader";
 
 export function PauseIntroScreen() {
   const router = useRouter();
+  const { state, discardPauseSession, startPauseSession } =
+    useBloomLocalState();
+
+  const beginPause = (route: typeof routes.pauseCheckIn | typeof routes.pauseTimer) => {
+    startPauseSession({
+      phase: route === routes.pauseTimer ? "timer" : "checkIn"
+    });
+    router.push(route);
+  };
+
+  const closePause = () => {
+    const activeSession = state.pause.activeSession;
+
+    if (activeSession !== null) {
+      discardPauseSession(activeSession.id);
+    }
+
+    router.replace(routes.home);
+  };
 
   return (
     <AppScreen contentContainerStyle={styles.screenContent}>
       <PauseFlowHeader
         title="You do not have to decide immediately."
         subtitle="Take a short moment to notice what is happening before reacting."
-        onClosePress={() => router.replace(routes.home)}
+        onClosePress={closePause}
       />
 
       <View style={styles.stack}>
@@ -35,8 +55,8 @@ export function PauseIntroScreen() {
               A quick reflection can make the next step feel less automatic.
             </AppText>
             <View style={styles.actions}>
-              <AppButton onPress={() => router.push(routes.pauseCheckIn)}>Start Check-In</AppButton>
-              <AppButton variant="ghost" onPress={() => router.push(routes.pauseTimer)}>
+              <AppButton onPress={() => beginPause(routes.pauseCheckIn)}>Start Check-In</AppButton>
+              <AppButton variant="ghost" onPress={() => beginPause(routes.pauseTimer)}>
                 Skip to 90-Second Pause
               </AppButton>
             </View>

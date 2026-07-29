@@ -1,19 +1,13 @@
 import { routes } from "../../constants/navigation";
 import type { AppRoute } from "../../constants/navigation";
-import type {
-  ArousalControlPracticeLog,
-  BloomLocalState,
-  TenDayResetState
-} from "../../storage/bloomState";
+import type { BloomLocalState, TenDayResetState } from "../../storage/bloomState";
 import {
   getCompletedResetDates,
+  isValidCompletedArousalLog,
   isResetProgramComplete,
   isResetStarted
 } from "../../storage/bloomState";
-import {
-  isValidBloomDateKey,
-  isValidBloomIsoTimestamp
-} from "../../storage/bloomValueValidation";
+import { isValidBloomDateKey } from "../../storage/bloomValueValidation";
 
 export type NextBloomActionId =
   | "completeOnboarding"
@@ -249,24 +243,13 @@ export function getValidCompletedResetDayCount(
 }
 
 export function hasValidCompletedArousalControlLog(logs: unknown): boolean {
-  return Array.isArray(logs) && logs.some(isValidCompletedArousalControlLog);
+  return Array.isArray(logs) && logs.some(isValidCompletedArousalLog);
 }
 
 export function isValidCompletedArousalControlLog(
   value: unknown
-): value is ArousalControlPracticeLog {
-  if (!isRecord(value)) {
-    return false;
-  }
-
-  return (
-    typeof value.id === "string" &&
-    value.id.length > 0 &&
-    value.id.length <= 1000 &&
-    isValidBloomIsoTimestamp(value.startedAt) &&
-    isValidBloomIsoTimestamp(value.completedAt) &&
-    isValidBloomDateKey(value.dateKey)
-  );
+) {
+  return isValidCompletedArousalLog(value);
 }
 
 function getSafeFallbackAction(): NextBloomAction {
@@ -276,10 +259,6 @@ function getSafeFallbackAction(): NextBloomAction {
     route: routes.pauseCheckIn,
     reason: "generalStartingPoint"
   };
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 export function isNextBloomActionRoute(route: AppRoute) {

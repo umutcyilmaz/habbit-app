@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
 
@@ -9,16 +9,16 @@ import { AppCard } from "../../../shared/components/AppCard";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
+import { isArousalSessionReadyForCompletion } from "../../../storage/bloomState";
 import { ArousalControlFlowHeader } from "../components/ArousalControlFlowHeader";
+import {
+  createInitialDurationInputState,
+  durationInputReducer,
+  resolveDurationSubmission,
+  type DurationRange
+} from "../practiceSubmission";
 
-type DurationOption =
-  | "lessThanOne"
-  | "oneToThree"
-  | "threeToFive"
-  | "fiveToTen"
-  | "tenToFifteen"
-  | "fifteenPlus"
-  | "preferNot";
+type DurationOption = DurationRange | "preferNot";
 
 const durationOptions: readonly { value: DurationOption; label: string }[] = [
   { value: "lessThanOne", label: "Less than 1 min" },
@@ -30,61 +30,110 @@ const durationOptions: readonly { value: DurationOption; label: string }[] = [
   { value: "preferNot", label: "Prefer not to log" }
 ];
 
-const durationEstimatesInSeconds: Record<Exclude<DurationOption, "preferNot">, number> = {
-  lessThanOne: 30,
-  oneToThree: 120,
-  threeToFive: 240,
-  fiveToTen: 450,
-  tenToFifteen: 750,
-  fifteenPlus: 900
-};
-
 export function OptionalDurationScreen() {
   const router = useRouter();
-  const { completeArousalControlPractice } = useBloomLocalState();
-  const [duration, setDuration] = useState<DurationOption>("preferNot");
-  const [exactTimeVisible, setExactTimeVisible] = useState(false);
-  const [minutes, setMinutes] = useState("");
-  const [seconds, setSeconds] = useState("");
+  const {
+    state,
+    completeArousalSession,
+    discardArousalSession
+  } = useBloomLocalState();
+  const draft = state.arousalControl.draft;
+  const [durationInput, dispatchDuration] = useReducer(
+    durationInputReducer,
+    undefined,
+    createInitialDurationInputState
+  );
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validationMessage, setValidationMessage] =
+    useState<string | undefined>();
+  const submitInFlightRef = useRef(false);
+
+  useEffect(() => {
+    if (
+      draft === null ||
+      !isArousalSessionReadyForCompletion(draft)
+    ) {
+      router.replace(routes.arousalControl);
+    }
+  }, [draft, router]);
 
   const selectDuration = (value: DurationOption) => {
-    setDuration(value);
+    setValidationMessage(undefined);
+    dispatchDuration(
+      value === "preferNot"
+        ? { type: "selectPreferNot" }
+        : { type: "selectRange", range: value }
+    );
   };
 
   const showExactTime = () => {
-    setExactTimeVisible(true);
+    setValidationMessage(undefined);
+    dispatchDuration({ type: "selectExact" });
   };
 
   const updateMinutes = (value: string) => {
-    setMinutes(value.replace(/\D/g, "").slice(0, 3));
+    dispatchDuration({ type: "setMinutes", value });
   };
 
   const updateSeconds = (value: string) => {
-    setSeconds(value.replace(/\D/g, "").slice(0, 2));
+    dispatchDuration({ type: "setSeconds", value });
   };
 
   const savePractice = (skipDuration = false) => {
-    const exactDurationSeconds = Number(minutes || "0") * 60 + Number(seconds || "0");
-
-    if (skipDuration || duration === "preferNot") {
-      completeArousalControlPractice(undefined, {
-        durationPreference: "notLogged",
-        durationSeconds: null
-      });
-    } else if (exactTimeVisible && exactDurationSeconds > 0) {
-      completeArousalControlPractice(undefined, {
-        durationPreference: "exact",
-        durationSeconds: exactDurationSeconds
-      });
-    } else {
-      completeArousalControlPractice(undefined, {
-        durationPreference: "estimated",
-        durationSeconds: durationEstimatesInSeconds[duration]
-      });
+    if (
+      draft === null ||
+      !isArousalSessionReadyForCompletion(draft) ||
+      submitInFlightRef.current
+    ) {
+      return;
     }
 
-    router.push(routes.arousalControlSaved);
+    const submission = resolveDurationSubmission(
+      skipDuration
+        ? createInitialDurationInputState()
+        : durationInput
+    );
+
+    if (!submission.ok) {
+      setValidationMessage(
+        submission.reason === "invalidExactDuration"
+          ? "Enter seconds from 0 to 59."
+          : "Enter a duration before saving."
+      );
+      return;
+    }
+
+    submitInFlightRef.current = true;
+    setIsSubmitting(true);
+    const result = completeArousalSession(
+      draft.id,
+      submission.patch
+    );
+
+    if (!result.ok) {
+      submitInFlightRef.current = false;
+      setIsSubmitting(false);
+      setValidationMessage("This practice could not be saved yet.");
+      return;
+    }
+
+    router.replace(routes.arousalControlSaved);
   };
+
+  const closePractice = () => {
+    if (draft !== null) {
+      discardArousalSession(draft.id);
+    }
+
+    router.replace(routes.exercises);
+  };
+
+  if (
+    draft === null ||
+    !isArousalSessionReadyForCompletion(draft)
+  ) {
+    return <AppScreen />;
+  }
 
   return (
     <AppScreen contentStyle={styles.content}>
@@ -94,7 +143,7 @@ export function OptionalDurationScreen() {
         title="Log duration only if useful."
         subtitle="Duration is saved only as a personal trend. It is not rated as good or bad."
         onBackPress={() => router.replace(routes.arousalControlReflection)}
-        onClosePress={() => router.replace(routes.exercises)}
+        onClosePress={closePractice}
       />
 
       <View style={styles.stack}>
@@ -112,12 +161,23 @@ export function OptionalDurationScreen() {
                 <Pressable
                   key={option.value}
                   accessibilityRole="button"
-                  accessibilityState={{ selected: duration === option.value }}
+                  accessibilityState={{
+                    selected:
+                      option.value === "preferNot"
+                        ? durationInput.mode === "preferNot"
+                        : durationInput.mode === "range" &&
+                          durationInput.selectedRange === option.value
+                  }}
                   onPress={() => selectDuration(option.value)}
                   style={({ pressed }) => [
                     styles.durationChip,
                     option.value === "preferNot" ? styles.fullWidthChip : undefined,
-                    duration === option.value ? styles.durationChipSelected : undefined,
+                    (option.value === "preferNot"
+                      ? durationInput.mode === "preferNot"
+                      : durationInput.mode === "range" &&
+                        durationInput.selectedRange === option.value)
+                      ? styles.durationChipSelected
+                      : undefined,
                     pressed ? styles.durationChipPressed : undefined
                   ]}
                 >
@@ -134,7 +194,7 @@ export function OptionalDurationScreen() {
           </View>
         </AppCard>
 
-        {exactTimeVisible ? (
+        {durationInput.mode === "exact" ? (
           <AppCard style={styles.exactCard}>
             <View style={styles.cardStack}>
               <View style={styles.copy}>
@@ -150,7 +210,7 @@ export function OptionalDurationScreen() {
                     Minutes
                   </AppText>
                   <TextInput
-                    value={minutes}
+                    value={durationInput.minutes}
                     onChangeText={updateMinutes}
                     keyboardType="number-pad"
                     placeholder="0"
@@ -164,7 +224,7 @@ export function OptionalDurationScreen() {
                     Seconds
                   </AppText>
                   <TextInput
-                    value={seconds}
+                    value={durationInput.seconds}
                     onChangeText={updateSeconds}
                     keyboardType="number-pad"
                     placeholder="0"
@@ -189,8 +249,22 @@ export function OptionalDurationScreen() {
         </View>
 
         <View style={styles.actions}>
-          <AppButton onPress={() => savePractice()}>Save Practice</AppButton>
-          <AppButton variant="ghost" onPress={() => savePractice(true)}>
+          {validationMessage ? (
+            <AppText variant="bodySmall" tone="secondary" align="center">
+              {validationMessage}
+            </AppText>
+          ) : null}
+          <AppButton
+            loading={isSubmitting}
+            onPress={() => savePractice()}
+          >
+            Save Practice
+          </AppButton>
+          <AppButton
+            variant="ghost"
+            disabled={isSubmitting}
+            onPress={() => savePractice(true)}
+          >
             Skip duration
           </AppButton>
         </View>

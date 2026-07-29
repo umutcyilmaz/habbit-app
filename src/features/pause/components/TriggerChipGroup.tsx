@@ -7,12 +7,14 @@ type TriggerChipGroupProps<TValue extends string> = {
   values: readonly TValue[];
   selectedValues: readonly TValue[];
   onToggle: (value: TValue) => void;
+  getLabel?: (value: TValue) => string;
 };
 
 export function TriggerChipGroup<TValue extends string>({
   values,
   selectedValues,
-  onToggle
+  onToggle,
+  getLabel = (value) => value
 }: TriggerChipGroupProps<TValue>) {
   return (
     <View style={styles.grid}>
@@ -32,7 +34,7 @@ export function TriggerChipGroup<TValue extends string>({
             ]}
           >
             <AppText variant="label" tone={isSelected ? "primary" : "secondary"}>
-              {value}
+              {getLabel(value)}
             </AppText>
           </Pressable>
         );

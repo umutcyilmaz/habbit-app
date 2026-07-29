@@ -23,8 +23,11 @@ import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
 import {
   getCompletedResetDates,
-  getLatestArousalControlLog,
+  getLatestBloomCheckInRecord,
+  getLatestPauseRecord,
+  getLatestValidArousalLog,
   getTodayKey,
+  isValidCompletedArousalLog,
   isResetProgramComplete,
   type QuizFlags
 } from "../../../storage/bloomState";
@@ -54,7 +57,12 @@ export function BloomStateDebugScreen() {
   } = useLocalDataLifecycle();
   const [confirmingReset, setConfirmingReset] = useState(false);
   const isDeleting = deletionStatus === "deleting";
-  const latestArousalLog = getLatestArousalControlLog(state.arousalControl.logs);
+  const latestCheckIn = getLatestBloomCheckInRecord(state.checkIns.records);
+  const latestPauseRecord = getLatestPauseRecord(state.pause.records);
+  const validArousalLogs = state.arousalControl.logs.filter(
+    isValidCompletedArousalLog
+  );
+  const latestArousalLog = getLatestValidArousalLog(validArousalLogs);
   const currentQuizResult = state.onboarding.quizResult;
   const nextAction = getNextBloomAction(state, todayKey);
   const completedResetDates = getCompletedResetDates(state.tenDayReset);
@@ -161,8 +169,42 @@ export function BloomStateDebugScreen() {
                 ["Night end time", state.protection.nightEndTime ?? "none"],
                 ["Setup completed at", state.protection.setupCompletedAt ?? "none"],
                 ["Last protection pause at", state.protection.lastProtectionPauseAt ?? "none"],
-                ["Arousal logs count", String(state.arousalControl.logs.length)],
+                ["Check-in record count", String(state.checkIns.records.length)],
+                ["Latest check-in at", latestCheckIn?.createdAt ?? "none"],
+                ["Latest check-in mood", latestCheckIn?.mood ?? "none"],
+                ["Latest check-in moment", latestCheckIn?.moment ?? "none"],
+                [
+                  "Pause active draft",
+                  state.pause.activeSession === null ? "no" : "yes"
+                ],
+                ["Pause record count", String(state.pause.records.length)],
+                [
+                  "Latest pause duration",
+                  latestPauseRecord !== null
+                    ? `${latestPauseRecord.durationSeconds} seconds`
+                    : "none"
+                ],
+                [
+                  "Latest pause before",
+                  latestPauseRecord?.intensityBefore !== undefined
+                    ? `${latestPauseRecord.intensityBefore}/10`
+                    : "none"
+                ],
+                [
+                  "Latest pause after",
+                  latestPauseRecord?.intensityAfterChange ?? "none"
+                ],
+                [
+                  "Arousal active session",
+                  state.arousalControl.draft?.id ?? "none"
+                ],
+                [
+                  "Arousal session status",
+                  state.arousalControl.draft === null ? "none" : "active"
+                ],
+                ["Arousal completed logs", String(validArousalLogs.length)],
                 ["Latest arousal log date", latestArousalLog?.dateKey ?? "none"],
+                ["Latest practice mode", latestArousalLog?.mode ?? "none"],
                 [
                   "Latest highest arousal",
                   latestArousalLog?.highestArousal !== undefined
@@ -190,6 +232,12 @@ export function BloomStateDebugScreen() {
                 [
                   "Latest duration preference",
                   latestArousalLog?.durationPreference ?? "none"
+                ],
+                [
+                  "Latest reflection",
+                  latestArousalLog?.reflectionCompleted === true
+                    ? "saved"
+                    : "none"
                 ]
               ]}
             />
@@ -288,8 +336,8 @@ export function BloomStateDebugScreen() {
               <View style={styles.cardStack}>
                 <AppText variant="title">Reset local data</AppText>
                 <AppText tone="secondary">
-                  Clears Bloom state plus transient Log and Pause activity stored
-                  in this app.
+                  Clears canonical Bloom state, including saved Log, Pause, and
+                  Arousal Control records.
                 </AppText>
                 {confirmingReset ? (
                   <View style={styles.confirmation}>

@@ -1,5 +1,3 @@
-import type { LogEntry } from "../../domain/models";
+import type { BloomCheckInRecord } from "../../storage/bloomState";
 
-export type LogDraft = Partial<LogEntry> & {
-  type: LogEntry["type"];
-};
+export type LogDraft = Omit<BloomCheckInRecord, "id" | "createdAt">;

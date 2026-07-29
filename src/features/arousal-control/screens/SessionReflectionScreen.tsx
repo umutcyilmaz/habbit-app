@@ -1,5 +1,5 @@
 import type { PropsWithChildren } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 
@@ -10,10 +10,11 @@ import { AppCard } from "../../../shared/components/AppCard";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
+import type { ArousalPauseCountBucket } from "../../../storage/bloomState";
 import { ArousalControlFlowHeader } from "../components/ArousalControlFlowHeader";
 import { ArousalLevelPicker } from "../components/ArousalLevelPicker";
+import { mapReflectionPauseCount } from "../practiceSubmission";
 
-type PauseCountOption = "none" | "one" | "two" | "threePlus";
 type PressureOption = "low" | "medium" | "high" | "veryHigh";
 type AfterFeelingOption =
   | "calm"
@@ -25,11 +26,14 @@ type AfterFeelingOption =
   | "frustrated"
   | "notSure";
 
-const pauseCountOptions: readonly { value: PauseCountOption; label: string }[] = [
-  { value: "none", label: "0" },
-  { value: "one", label: "1" },
-  { value: "two", label: "2" },
-  { value: "threePlus", label: "3+" }
+const pauseCountOptions: readonly {
+  value: ArousalPauseCountBucket;
+  label: string;
+}[] = [
+  { value: "0", label: "0" },
+  { value: "1", label: "1" },
+  { value: "2", label: "2" },
+  { value: "3plus", label: "3+" }
 ];
 
 const pressureOptions: readonly { value: PressureOption; label: string }[] = [
@@ -56,34 +60,64 @@ const controlFeelingGroups = [
   { label: "7–10", detail: "Strong" }
 ] as const;
 
-const pauseCountValues: Record<PauseCountOption, number> = {
-  none: 0,
-  one: 1,
-  two: 2,
-  threePlus: 3
-};
-
 export function SessionReflectionScreen() {
   const router = useRouter();
-  const { updateArousalControlDraft } = useBloomLocalState();
-  const [pauseCount, setPauseCount] = useState<PauseCountOption>("one");
-  const [highestArousal, setHighestArousal] = useState(7);
-  const [controlFeeling, setControlFeeling] = useState(6);
-  const [pleasureQuality, setPleasureQuality] = useState(7);
-  const [pressure, setPressure] = useState<PressureOption>("medium");
-  const [afterFeeling, setAfterFeeling] = useState<AfterFeelingOption>("neutral");
+  const { state, updateArousalSession, discardArousalSession } =
+    useBloomLocalState();
+  const draft = state.arousalControl.draft;
+  const [pauseCount, setPauseCount] = useState<ArousalPauseCountBucket>(
+    getPauseCountOption(draft?.pauseCount, draft?.pauseCountBucket)
+  );
+  const [highestArousal, setHighestArousal] = useState(
+    draft?.highestArousal ?? 7
+  );
+  const [controlFeeling, setControlFeeling] = useState(
+    draft?.controlFeeling ?? 6
+  );
+  const [pleasureQuality, setPleasureQuality] = useState(
+    draft?.pleasureQuality ?? 7
+  );
+  const [pressure, setPressure] = useState<PressureOption>(
+    draft?.pressureRushing ?? "medium"
+  );
+  const [afterFeeling, setAfterFeeling] = useState<AfterFeelingOption>(
+    draft?.afterwardFeeling ?? "neutral"
+  );
+
+  useEffect(() => {
+    if (draft === null) {
+      router.replace(routes.arousalControl);
+    }
+  }, [draft, router]);
 
   const continueToDuration = () => {
-    updateArousalControlDraft({
-      pauseCount: pauseCountValues[pauseCount],
+    if (draft === null) {
+      return;
+    }
+
+    updateArousalSession(draft.id, {
+      ...mapReflectionPauseCount(pauseCount),
       highestArousal,
       controlFeeling,
-      pleasureQuality: `${pleasureQuality}/10`,
+      pleasureQuality,
       pressureRushing: pressure,
-      afterwardFeeling: afterFeeling
+      afterwardFeeling: afterFeeling,
+      reflectionCompleted: true
     });
     router.push(routes.arousalControlDuration);
   };
+
+  const closePractice = () => {
+    if (draft !== null) {
+      discardArousalSession(draft.id);
+    }
+
+    router.replace(routes.exercises);
+  };
+
+  if (draft === null) {
+    return <AppScreen />;
+  }
 
   return (
     <AppScreen contentStyle={styles.content}>
@@ -93,7 +127,7 @@ export function SessionReflectionScreen() {
         title="What did you notice?"
         subtitle="A few details can help you understand your pattern without judging it."
         onBackPress={() => router.replace(routes.arousalControlFinish)}
-        onClosePress={() => router.replace(routes.exercises)}
+        onClosePress={closePractice}
       />
 
       <View style={styles.stack}>
@@ -148,6 +182,29 @@ export function SessionReflectionScreen() {
       </View>
     </AppScreen>
   );
+}
+
+function getPauseCountOption(
+  pauseCount: number | undefined,
+  pauseCountBucket: ArousalPauseCountBucket | undefined
+): ArousalPauseCountBucket {
+  if (pauseCountBucket !== undefined) {
+    return pauseCountBucket;
+  }
+
+  if (pauseCount === undefined || pauseCount <= 0) {
+    return "0";
+  }
+
+  if (pauseCount === 1) {
+    return "1";
+  }
+
+  if (pauseCount === 2) {
+    return "2";
+  }
+
+  return "3plus";
 }
 
 type ReflectionSectionProps = PropsWithChildren<{

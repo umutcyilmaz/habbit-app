@@ -1,16 +1,45 @@
 import {
   activePlanFromQuizResult,
+  arousalAdultContentOptions,
+  arousalAfterPauseNextSteps,
+  arousalAfterwardFeelings,
+  arousalDurationPreferences,
+  arousalEndingChoices,
+  arousalFirmnessChangeOptions,
+  arousalFirmnessPlanOptions,
+  arousalFocusOptions,
+  arousalPauseCountBuckets,
+  arousalPracticeModes,
+  arousalPressureOptions,
+  bloomCheckInEventTypes,
+  bloomCheckInMoments,
+  bloomCheckInMoods,
   createDefaultBloomState,
+  hasGenuineLegacyArousalCompletionEvidence,
+  pauseHelpfulActionIds,
+  pauseIntensityAfterChanges,
+  pauseNextStepIds,
+  pauseSessionPhases,
+  pauseTriggerIds,
+  pauseTruthIds,
   type ActivePlan,
   type ArousalControlDraft,
+  type ArousalFirmnessChange,
   type ArousalControlPracticeLog,
+  type ArousalControlSessionValues,
   type ArousalControlState,
+  type BloomCheckInRecord,
+  type BloomCheckInState,
   type BloomDebugState,
   type BloomLocalState,
+  MAX_BLOOM_NOTE_LENGTH,
   MAX_RESET_DAYS,
   type NormalizedScores,
   type OnboardingState,
   type PatternId,
+  type PauseRecord,
+  type PauseSessionDraft,
+  type PauseState,
   type ProtectionLevel,
   type ProtectionState,
   type ProtectionStatus,
@@ -98,29 +127,12 @@ const protectionWindows = [
   "custom",
   "alwaysOn"
 ] as const;
-const durationPreferences = ["notLogged", "estimated", "exact"] as const;
-const pressureRushingValues = ["low", "medium", "high", "veryHigh"] as const;
-const afterwardFeelingValues = [
-  "calm",
-  "satisfied",
-  "neutral",
-  "empty",
-  "uneasy",
-  "anxious",
-  "frustrated",
-  "notSure"
-] as const;
-const firmnessChangeValues = [
+const legacyFirmnessChangeValues = [
   "No change",
   "Slightly decreased",
   "Decreased, but I could continue",
   "Decreased and continuing felt difficult",
-  "Not sure",
-  "noChange",
-  "slightlyDecreased",
-  "decreasedCouldContinue",
-  "decreasedDifficult",
-  "notSure"
+  "Not sure"
 ] as const;
 
 export function parsePersistedPayload(rawPayload: string): ParsedPersistedPayload {
@@ -197,6 +209,8 @@ export function validateAndNormalizeBloomState(value: unknown): BloomStateValida
       tenDayReset: normalizeTenDayReset(record.tenDayReset, defaults.tenDayReset),
       debug: normalizeDebug(record.debug, defaults.debug),
       protection: normalizeProtection(record.protection, defaults.protection),
+      checkIns: normalizeCheckIns(record.checkIns, defaults.checkIns),
+      pause: normalizePause(record.pause, defaults.pause),
       arousalControl: normalizeArousalControl(record.arousalControl, defaults.arousalControl)
     };
 
@@ -553,6 +567,234 @@ function normalizeProtection(value: unknown, defaults: ProtectionState): Protect
   };
 }
 
+function normalizeCheckIns(
+  value: unknown,
+  defaults: BloomCheckInState
+): BloomCheckInState {
+  const record = optionalRecord(value, "state.checkIns");
+
+  if (record === null) {
+    return defaults;
+  }
+
+  return {
+    records:
+      record.records === undefined
+        ? defaults.records
+        : normalizeCheckInRecords(record.records)
+  };
+}
+
+function normalizeCheckInRecords(value: unknown): BloomCheckInRecord[] {
+  if (!Array.isArray(value)) {
+    throw new BloomStateValidationError(
+      "state.checkIns.records must be an array."
+    );
+  }
+
+  const recordsById = new Map<string, BloomCheckInRecord>();
+
+  value.forEach((recordValue, index) => {
+    const path = `state.checkIns.records[${index}]`;
+    const record = tryNormalizeRecord(() => {
+      const rawRecord = requireRecord(recordValue, path);
+      const eventType = optionalEnumValue(
+        rawRecord.eventType,
+        bloomCheckInEventTypes,
+        `${path}.eventType`
+      );
+      const note = optionalSavedNote(rawRecord.note, `${path}.note`);
+
+      return {
+        id: requiredString(rawRecord.id, `${path}.id`),
+        createdAt: requiredIsoTimestamp(
+          rawRecord.createdAt,
+          `${path}.createdAt`
+        ),
+        mood: requiredEnum(
+          rawRecord.mood,
+          bloomCheckInMoods,
+          `${path}.mood`
+        ),
+        moment: requiredEnum(
+          rawRecord.moment,
+          bloomCheckInMoments,
+          `${path}.moment`
+        ),
+        ...(eventType !== undefined ? { eventType } : {}),
+        ...(note !== undefined ? { note } : {})
+      } satisfies BloomCheckInRecord;
+    });
+
+    if (record !== null) {
+      recordsById.set(record.id, record);
+    }
+  });
+
+  return Array.from(recordsById.values()).sort(
+    (first, second) =>
+      Date.parse(second.createdAt) - Date.parse(first.createdAt)
+  );
+}
+
+function normalizePause(value: unknown, defaults: PauseState): PauseState {
+  const record = optionalRecord(value, "state.pause");
+
+  if (record === null) {
+    return defaults;
+  }
+
+  const activeSession =
+    record.activeSession === undefined || record.activeSession === null
+      ? null
+      : tryNormalizeRecord(() =>
+          normalizePauseSessionDraft(record.activeSession)
+        );
+
+  return {
+    activeSession,
+    records:
+      record.records === undefined
+        ? defaults.records
+        : normalizePauseRecords(record.records)
+  };
+}
+
+function normalizePauseSessionDraft(value: unknown): PauseSessionDraft {
+  const path = "state.pause.activeSession";
+  const record = requireRecord(value, path);
+  const intensityBefore = optionalStrictBoundedInteger(
+    record.intensityBefore,
+    0,
+    10,
+    `${path}.intensityBefore`
+  );
+  const selectedAction = optionalEnumValue(
+    record.selectedAction,
+    pauseHelpfulActionIds,
+    `${path}.selectedAction`
+  );
+  const timerStartedAt =
+    record.timerStartedAt === undefined || record.timerStartedAt === null
+      ? undefined
+      : requiredIsoTimestamp(
+          record.timerStartedAt,
+          `${path}.timerStartedAt`
+        );
+
+  return {
+    id: requiredString(record.id, `${path}.id`),
+    startedAt: requiredIsoTimestamp(record.startedAt, `${path}.startedAt`),
+    phase: optionalEnum(
+      record.phase,
+      pauseSessionPhases,
+      "checkIn",
+      `${path}.phase`
+    ),
+    triggers: normalizeEnumArray(
+      record.triggers,
+      pauseTriggerIds,
+      `${path}.triggers`
+    ),
+    ...(intensityBefore !== undefined ? { intensityBefore } : {}),
+    ...(selectedAction !== undefined ? { selectedAction } : {}),
+    ...(timerStartedAt !== undefined ? { timerStartedAt } : {}),
+    timerDurationSeconds: requiredPositiveInteger(
+      record.timerDurationSeconds,
+      `${path}.timerDurationSeconds`
+    ),
+    elapsedDurationSeconds: requiredIntegerInRange(
+      record.elapsedDurationSeconds,
+      0,
+      requiredPositiveInteger(
+        record.timerDurationSeconds,
+        `${path}.timerDurationSeconds`
+      ),
+      `${path}.elapsedDurationSeconds`
+    )
+  };
+}
+
+function normalizePauseRecords(value: unknown): PauseRecord[] {
+  if (!Array.isArray(value)) {
+    throw new BloomStateValidationError(
+      "state.pause.records must be an array."
+    );
+  }
+
+  const recordsById = new Map<string, PauseRecord>();
+
+  value.forEach((recordValue, index) => {
+    const path = `state.pause.records[${index}]`;
+    const record = tryNormalizeRecord(() => {
+      const rawRecord = requireRecord(recordValue, path);
+      const intensityBefore = optionalStrictBoundedInteger(
+        rawRecord.intensityBefore,
+        0,
+        10,
+        `${path}.intensityBefore`
+      );
+      const intensityAfterChange = optionalEnumValue(
+        rawRecord.intensityAfterChange,
+        pauseIntensityAfterChanges,
+        `${path}.intensityAfterChange`
+      );
+      const selectedAction = optionalEnumValue(
+        rawRecord.selectedAction,
+        pauseHelpfulActionIds,
+        `${path}.selectedAction`
+      );
+      const feltTruth = optionalEnumValue(
+        rawRecord.feltTruth,
+        pauseTruthIds,
+        `${path}.feltTruth`
+      );
+      const nextStep = optionalEnumValue(
+        rawRecord.nextStep,
+        pauseNextStepIds,
+        `${path}.nextStep`
+      );
+
+      return {
+        id: requiredString(rawRecord.id, `${path}.id`),
+        startedAt: requiredIsoTimestamp(
+          rawRecord.startedAt,
+          `${path}.startedAt`
+        ),
+        completedAt: requiredIsoTimestamp(
+          rawRecord.completedAt,
+          `${path}.completedAt`
+        ),
+        triggers: normalizeEnumArray(
+          rawRecord.triggers,
+          pauseTriggerIds,
+          `${path}.triggers`
+        ),
+        ...(intensityBefore !== undefined ? { intensityBefore } : {}),
+        ...(intensityAfterChange !== undefined
+          ? { intensityAfterChange }
+          : {}),
+        ...(selectedAction !== undefined ? { selectedAction } : {}),
+        ...(feltTruth !== undefined ? { feltTruth } : {}),
+        ...(nextStep !== undefined ? { nextStep } : {}),
+        durationSeconds: requiredNonNegativeInteger(
+          rawRecord.durationSeconds,
+          `${path}.durationSeconds`
+        )
+      } satisfies PauseRecord;
+    });
+
+    if (record !== null) {
+      recordsById.set(record.id, record);
+    }
+  });
+
+  return Array.from(recordsById.values()).sort(
+    (first, second) =>
+      Date.parse(second.completedAt) - Date.parse(first.completedAt)
+  );
+}
+
 function normalizeArousalControl(
   value: unknown,
   defaults: ArousalControlState
@@ -566,7 +808,7 @@ function normalizeArousalControl(
   const draft =
     record.draft === undefined || record.draft === null
       ? null
-      : normalizeArousalDraft(record.draft);
+      : tryNormalizeRecord(() => normalizeArousalDraft(record.draft));
   const logs =
     record.logs === undefined
       ? defaults.logs
@@ -580,25 +822,25 @@ function normalizeArousalControl(
 
 function normalizeArousalDraft(value: unknown): ArousalControlDraft {
   const record = requireRecord(value, "state.arousalControl.draft");
+  const startedAt = requiredIsoTimestamp(
+    record.startedAt,
+    "state.arousalControl.draft.startedAt"
+  );
 
   return {
-    ...normalizePracticeOptionalFields(record, "state.arousalControl.draft"),
-    ...(record.id !== undefined
-      ? { id: requiredString(record.id, "state.arousalControl.draft.id") }
-      : {}),
-    startedAt: requiredIsoTimestamp(
-      record.startedAt,
-      "state.arousalControl.draft.startedAt"
+    ...normalizeArousalSessionValues(
+      record,
+      "state.arousalControl.draft"
     ),
-    ...(record.completedAt !== undefined
-      ? {
-          completedAt: requiredIsoTimestamp(
-            record.completedAt,
-            "state.arousalControl.draft.completedAt"
-          )
-        }
-      : {}),
-    dateKey: requiredDateKey(record.dateKey, "state.arousalControl.draft.dateKey")
+    id:
+      record.id === undefined
+        ? createLegacyArousalId(startedAt)
+        : requiredString(record.id, "state.arousalControl.draft.id"),
+    startedAt,
+    dateKey: requiredDateKey(
+      record.dateKey,
+      "state.arousalControl.draft.dateKey"
+    )
   };
 }
 
@@ -611,16 +853,42 @@ function normalizeArousalLogs(value: unknown): ArousalControlPracticeLog[] {
 
   value.forEach((logValue, index) => {
     const path = `state.arousalControl.logs[${index}]`;
-    const record = requireRecord(logValue, path);
-    const log: ArousalControlPracticeLog = {
-      ...normalizePracticeOptionalFields(record, path),
-      id: requiredString(record.id, `${path}.id`),
-      startedAt: requiredIsoTimestamp(record.startedAt, `${path}.startedAt`),
-      completedAt: requiredIsoTimestamp(record.completedAt, `${path}.completedAt`),
-      dateKey: requiredDateKey(record.dateKey, `${path}.dateKey`)
-    };
+    const log = tryNormalizeRecord(() => {
+      const record = requireRecord(logValue, path);
+      const persistedCompletionStatus = optionalEnumValue(
+        record.completionStatus,
+        ["completed", "legacyCompleted"] as const,
+        `${path}.completionStatus`
+      );
 
-    logsById.set(log.id, log);
+      const normalizedLog = {
+        ...normalizeArousalSessionValues(record, path),
+        id: requiredString(record.id, `${path}.id`),
+        startedAt: requiredIsoTimestamp(
+          record.startedAt,
+          `${path}.startedAt`
+        ),
+        completedAt: requiredIsoTimestamp(
+          record.completedAt,
+          `${path}.completedAt`
+        ),
+        dateKey: requiredDateKey(record.dateKey, `${path}.dateKey`)
+      } satisfies ArousalControlPracticeLog;
+      const completionStatus =
+        persistedCompletionStatus ??
+        (hasGenuineLegacyArousalCompletionEvidence(normalizedLog)
+          ? "legacyCompleted"
+          : undefined);
+
+      return {
+        ...normalizedLog,
+        ...(completionStatus !== undefined ? { completionStatus } : {})
+      } satisfies ArousalControlPracticeLog;
+    });
+
+    if (log !== null) {
+      logsById.set(log.id, log);
+    }
   });
 
   return Array.from(logsById.values()).sort((first, second) => {
@@ -632,55 +900,152 @@ function normalizeArousalLogs(value: unknown): ArousalControlPracticeLog[] {
   });
 }
 
-function normalizePracticeOptionalFields(
+function normalizeArousalSessionValues(
   record: Record<string, unknown>,
   path: string
-): Partial<ArousalControlPracticeLog> {
-  const highestArousal = optionalBoundedNumber(record.highestArousal, 0, 10, `${path}.highestArousal`);
-  const pauseCount = optionalNonNegativeInteger(record.pauseCount, `${path}.pauseCount`);
-  const controlFeeling = optionalBoundedNumber(record.controlFeeling, 0, 10, `${path}.controlFeeling`);
-  const anxietyLevel = optionalBoundedNumber(record.anxietyLevel, 0, 10, `${path}.anxietyLevel`);
-  const pleasureQuality = optionalPatternString(
+): Partial<ArousalControlSessionValues> {
+  const mode = optionalEnumValue(
+    record.mode,
+    arousalPracticeModes,
+    `${path}.mode`
+  );
+  const focus = optionalEnumValue(
+    record.focus,
+    arousalFocusOptions,
+    `${path}.focus`
+  );
+  const adultContent = optionalEnumValue(
+    record.adultContent,
+    arousalAdultContentOptions,
+    `${path}.adultContent`
+  );
+  const firmnessPlan = optionalEnumValue(
+    record.firmnessPlan,
+    arousalFirmnessPlanOptions,
+    `${path}.firmnessPlan`
+  );
+  const startingArousalLevel = optionalStrictBoundedInteger(
+    record.startingArousalLevel,
+    0,
+    10,
+    `${path}.startingArousalLevel`
+  );
+  const currentArousalLevel = optionalStrictBoundedInteger(
+    record.currentArousalLevel,
+    0,
+    10,
+    `${path}.currentArousalLevel`
+  );
+  const pauseZoneLevel = optionalStrictBoundedInteger(
+    record.pauseZoneLevel,
+    0,
+    10,
+    `${path}.pauseZoneLevel`
+  );
+  const afterPauseLevel = optionalStrictBoundedInteger(
+    record.afterPauseLevel,
+    0,
+    10,
+    `${path}.afterPauseLevel`
+  );
+  const afterPauseNextStep = optionalEnumValue(
+    record.afterPauseNextStep,
+    arousalAfterPauseNextSteps,
+    `${path}.afterPauseNextStep`
+  );
+  const endingChoice = optionalEnumValue(
+    record.endingChoice,
+    arousalEndingChoices,
+    `${path}.endingChoice`
+  );
+  const highestArousal = optionalStrictBoundedInteger(
+    record.highestArousal,
+    0,
+    10,
+    `${path}.highestArousal`
+  );
+  const pauseCount = optionalStrictNonNegativeInteger(
+    record.pauseCount,
+    `${path}.pauseCount`
+  );
+  const pauseCountBucket = optionalEnumValue(
+    record.pauseCountBucket,
+    arousalPauseCountBuckets,
+    `${path}.pauseCountBucket`
+  );
+  const controlFeeling = optionalStrictBoundedInteger(
+    record.controlFeeling,
+    0,
+    10,
+    `${path}.controlFeeling`
+  );
+  const anxietyLevel = optionalStrictBoundedInteger(
+    record.anxietyLevel,
+    0,
+    10,
+    `${path}.anxietyLevel`
+  );
+  const pleasureQuality = optionalLegacyScore(
     record.pleasureQuality,
-    /^(?:10|[0-9])\/10$/,
     `${path}.pleasureQuality`
   );
-  const pressureRushing = optionalKnownString(
+  const pressureRushing = optionalEnumValue(
     record.pressureRushing,
-    pressureRushingValues,
+    arousalPressureOptions,
     `${path}.pressureRushing`
   );
-  const firmnessChange = optionalKnownString(
+  const firmnessChange = optionalFirmnessChange(
     record.firmnessChange,
-    firmnessChangeValues,
     `${path}.firmnessChange`
   );
-  const afterwardFeeling = optionalKnownString(
+  const afterwardFeeling = optionalEnumValue(
     record.afterwardFeeling,
-    afterwardFeelingValues,
+    arousalAfterwardFeelings,
     `${path}.afterwardFeeling`
+  );
+  const reflectionCompleted = optionalBooleanValue(
+    record.reflectionCompleted,
+    `${path}.reflectionCompleted`
   );
   const durationPreference = optionalEnumValue(
     record.durationPreference,
-    durationPreferences,
+    arousalDurationPreferences,
     `${path}.durationPreference`
   );
-  const durationSeconds = optionalNullableNonNegativeInteger(
+  const durationSeconds = optionalNullableStrictNonNegativeInteger(
     record.durationSeconds,
     `${path}.durationSeconds`
   );
+  const note = optionalSavedNote(record.note, `${path}.note`);
 
   return {
+    ...(mode !== undefined ? { mode } : {}),
+    ...(focus !== undefined ? { focus } : {}),
+    ...(adultContent !== undefined ? { adultContent } : {}),
+    ...(firmnessPlan !== undefined ? { firmnessPlan } : {}),
+    ...(startingArousalLevel !== undefined
+      ? { startingArousalLevel }
+      : {}),
+    ...(currentArousalLevel !== undefined
+      ? { currentArousalLevel }
+      : {}),
+    ...(pauseZoneLevel !== undefined ? { pauseZoneLevel } : {}),
+    ...(afterPauseLevel !== undefined ? { afterPauseLevel } : {}),
+    ...(afterPauseNextStep !== undefined ? { afterPauseNextStep } : {}),
+    ...(endingChoice !== undefined ? { endingChoice } : {}),
     ...(highestArousal !== undefined ? { highestArousal } : {}),
     ...(pauseCount !== undefined ? { pauseCount } : {}),
+    ...(pauseCountBucket !== undefined ? { pauseCountBucket } : {}),
     ...(controlFeeling !== undefined ? { controlFeeling } : {}),
     ...(anxietyLevel !== undefined ? { anxietyLevel } : {}),
     ...(pleasureQuality !== undefined ? { pleasureQuality } : {}),
     ...(pressureRushing !== undefined ? { pressureRushing } : {}),
     ...(firmnessChange !== undefined ? { firmnessChange } : {}),
     ...(afterwardFeeling !== undefined ? { afterwardFeeling } : {}),
+    ...(reflectionCompleted !== undefined ? { reflectionCompleted } : {}),
     ...(durationPreference !== undefined ? { durationPreference } : {}),
-    ...(durationSeconds !== undefined ? { durationSeconds } : {})
+    ...(durationSeconds !== undefined ? { durationSeconds } : {}),
+    ...(note !== undefined ? { note } : {})
   };
 }
 
@@ -722,6 +1087,21 @@ function optionalBoolean(value: unknown, fallback: boolean): boolean {
   return value;
 }
 
+function optionalBooleanValue(
+  value: unknown,
+  path: string
+): boolean | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+
+  if (typeof value !== "boolean") {
+    throw new BloomStateValidationError(`${path} must be a boolean.`);
+  }
+
+  return value;
+}
+
 function requiredString(value: unknown, path: string): string {
   if (!isSafeString(value)) {
     throw new BloomStateValidationError(`${path} must be a non-empty string.`);
@@ -739,7 +1119,10 @@ function optionalText(value: unknown, fallback: string, path: string): string {
     return fallback;
   }
 
-  if (typeof value !== "string" || value.length > 5000) {
+  if (
+    typeof value !== "string" ||
+    value.length > MAX_BLOOM_NOTE_LENGTH
+  ) {
     throw new BloomStateValidationError(`${path} must be a string.`);
   }
 
@@ -844,6 +1227,22 @@ function normalizeStringArray(value: unknown, path: string): string[] {
   return Array.from(new Set(value));
 }
 
+function normalizeEnumArray<const TValues extends readonly string[]>(
+  value: unknown,
+  values: TValues,
+  path: string
+): TValues[number][] {
+  if (!Array.isArray(value)) {
+    throw new BloomStateValidationError(`${path} must be an array.`);
+  }
+
+  const normalized = value.map((item, index) =>
+    requiredEnum(item, values, `${path}[${index}]`)
+  );
+
+  return Array.from(new Set(normalized));
+}
+
 function requiredEnum<const TValues extends readonly string[]>(
   value: unknown,
   values: TValues,
@@ -890,30 +1289,74 @@ function optionalEnumValue<const TValues extends readonly string[]>(
   return requiredEnum(value, values, path);
 }
 
-function optionalKnownString<const TValues extends readonly string[]>(
+function optionalSavedNote(
   value: unknown,
-  values: TValues,
   path: string
 ): string | undefined {
-  return optionalEnumValue(value, values, path);
+  if (value === undefined || value === null || value === "") {
+    return undefined;
+  }
+
+  if (
+    typeof value !== "string" ||
+    value.length > MAX_BLOOM_NOTE_LENGTH
+  ) {
+    throw new BloomStateValidationError(`${path} must be a saved note.`);
+  }
+
+  return value;
 }
 
-function optionalPatternString(
+function optionalLegacyScore(
   value: unknown,
-  pattern: RegExp,
   path: string
-): string | undefined {
+): number | undefined {
   if (value === undefined || value === null) {
     return undefined;
   }
 
-  const stringValue = requiredString(value, path);
-
-  if (!pattern.test(stringValue)) {
-    throw new BloomStateValidationError(`${path} has an unsupported value.`);
+  if (typeof value === "number") {
+    return requiredIntegerInRange(value, 0, 10, path);
   }
 
-  return stringValue;
+  if (
+    typeof value === "string" &&
+    /^(?:10|[0-9])\/10$/.test(value)
+  ) {
+    return Number(value.split("/")[0]);
+  }
+
+  throw new BloomStateValidationError(`${path} has an unsupported value.`);
+}
+
+function optionalFirmnessChange(
+  value: unknown,
+  path: string
+): ArousalFirmnessChange | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+
+  if (isEnumValue(value, arousalFirmnessChangeOptions)) {
+    return value;
+  }
+
+  if (isEnumValue(value, legacyFirmnessChangeValues)) {
+    const legacyMap: Record<
+      (typeof legacyFirmnessChangeValues)[number],
+      ArousalFirmnessChange
+    > = {
+      "No change": "noChange",
+      "Slightly decreased": "slightlyDecreased",
+      "Decreased, but I could continue": "decreasedCouldContinue",
+      "Decreased and continuing felt difficult": "decreasedDifficult",
+      "Not sure": "notSure"
+    };
+
+    return legacyMap[value];
+  }
+
+  throw new BloomStateValidationError(`${path} has an unsupported value.`);
 }
 
 function finiteNumber(value: unknown, path: string): number {
@@ -924,7 +1367,46 @@ function finiteNumber(value: unknown, path: string): number {
   return value;
 }
 
-function optionalBoundedNumber(
+function requiredNonNegativeInteger(value: unknown, path: string): number {
+  return requiredIntegerInRange(
+    value,
+    0,
+    Number.MAX_SAFE_INTEGER,
+    path
+  );
+}
+
+function requiredPositiveInteger(value: unknown, path: string): number {
+  return requiredIntegerInRange(
+    value,
+    1,
+    Number.MAX_SAFE_INTEGER,
+    path
+  );
+}
+
+function requiredIntegerInRange(
+  value: unknown,
+  minimum: number,
+  maximum: number,
+  path: string
+): number {
+  const numberValue = finiteNumber(value, path);
+
+  if (
+    !Number.isInteger(numberValue) ||
+    numberValue < minimum ||
+    numberValue > maximum
+  ) {
+    throw new BloomStateValidationError(
+      `${path} must be an integer between ${minimum} and ${maximum}.`
+    );
+  }
+
+  return numberValue;
+}
+
+function optionalStrictBoundedInteger(
   value: unknown,
   minimum: number,
   maximum: number,
@@ -934,18 +1416,21 @@ function optionalBoundedNumber(
     return undefined;
   }
 
-  return clamp(finiteNumber(value, path), minimum, maximum);
+  return requiredIntegerInRange(value, minimum, maximum, path);
 }
 
-function optionalNonNegativeInteger(value: unknown, path: string): number | undefined {
+function optionalStrictNonNegativeInteger(
+  value: unknown,
+  path: string
+): number | undefined {
   if (value === undefined || value === null) {
     return undefined;
   }
 
-  return Math.max(0, Math.round(finiteNumber(value, path)));
+  return requiredNonNegativeInteger(value, path);
 }
 
-function optionalNullableNonNegativeInteger(
+function optionalNullableStrictNonNegativeInteger(
   value: unknown,
   path: string
 ): number | null | undefined {
@@ -957,7 +1442,7 @@ function optionalNullableNonNegativeInteger(
     return null;
   }
 
-  return Math.max(0, Math.round(finiteNumber(value, path)));
+  return requiredNonNegativeInteger(value, path);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -977,6 +1462,22 @@ function isEnumValue<const TValues extends readonly string[]>(
   values: TValues
 ): value is TValues[number] {
   return typeof value === "string" && values.some((candidate) => candidate === value);
+}
+
+function tryNormalizeRecord<T>(normalize: () => T): T | null {
+  try {
+    return normalize();
+  } catch (error) {
+    if (error instanceof BloomStateValidationError) {
+      return null;
+    }
+
+    throw error;
+  }
+}
+
+function createLegacyArousalId(startedAt: string) {
+  return `arousal-${startedAt.replace(/[^0-9A-Za-z]/g, "")}`;
 }
 
 function areJsonValuesEqual(first: unknown, second: unknown): boolean {

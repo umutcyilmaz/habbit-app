@@ -387,7 +387,6 @@ function verifyDraftAndPlaceholderLogsDoNotCount() {
   state.arousalControl.draft = {
     id: "draft",
     startedAt: "2026-07-27T08:00:00.000Z",
-    completedAt: "2026-07-27T08:10:00.000Z",
     dateKey: todayKey
   };
   state.arousalControl.logs = [{} as ArousalControlPracticeLog];
@@ -440,7 +439,15 @@ function validPracticeLog(): ArousalControlPracticeLog {
     id: "practice-1",
     startedAt: "2026-07-20T08:00:00.000Z",
     completedAt: "2026-07-20T08:15:00.000Z",
-    dateKey: "2026-07-20"
+    dateKey: "2026-07-20",
+    completionStatus: "completed",
+    mode: "onePause",
+    focus: "noticeRising",
+    adultContent: "no",
+    firmnessPlan: "appSuggest",
+    endingChoice: "stoppedByChoice",
+    reflectionCompleted: true,
+    durationPreference: "notLogged"
   };
 }
 

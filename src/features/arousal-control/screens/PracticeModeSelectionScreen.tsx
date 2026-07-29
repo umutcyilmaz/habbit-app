@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
+import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppScreen } from "../../../shared/components/AppScreen";
@@ -40,7 +41,24 @@ const modes = [
 
 export function PracticeModeSelectionScreen() {
   const router = useRouter();
+  const { state, startArousalSession, discardArousalSession } =
+    useBloomLocalState();
   const [selectedMode, setSelectedMode] = useState<PracticeModeId>("onePause");
+
+  const continueToCheckIn = () => {
+    startArousalSession({ mode: selectedMode });
+    router.push(routes.arousalControlCheckIn);
+  };
+
+  const closePractice = () => {
+    const draft = state.arousalControl.draft;
+
+    if (draft !== null) {
+      discardArousalSession(draft.id);
+    }
+
+    router.replace(routes.exercises);
+  };
 
   return (
     <AppScreen contentStyle={styles.content}>
@@ -49,7 +67,7 @@ export function PracticeModeSelectionScreen() {
         title="Choose a gentle starting point."
         subtitle="There is no perfect mode. Choose the one that feels safest today."
         onBackPress={() => router.replace(routes.arousalControl)}
-        onClosePress={() => router.replace(routes.exercises)}
+        onClosePress={closePractice}
       />
 
       <View style={styles.stack}>
@@ -69,7 +87,7 @@ export function PracticeModeSelectionScreen() {
         </View>
 
         <View style={styles.actions}>
-          <AppButton onPress={() => router.push(routes.arousalControlCheckIn)}>
+          <AppButton onPress={continueToCheckIn}>
             Continue
           </AppButton>
           <AppButton variant="secondary" onPress={() => router.replace(routes.exercises)}>

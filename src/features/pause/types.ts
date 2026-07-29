@@ -1,7 +1,3 @@
-import type { PauseSession } from "../../domain/models";
+import type { PauseSessionPatch } from "../../storage/bloomState";
 
-export interface PauseDraft {
-  durationSeconds: PauseSession["durationSeconds"];
-  contextTags: PauseSession["contextTags"];
-  source: PauseSession["source"];
-}
+export type PauseDraft = PauseSessionPatch;
