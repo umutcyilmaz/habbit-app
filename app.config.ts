@@ -11,20 +11,21 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   orientation: "portrait",
   userInterfaceStyle: "light",
   ios: {
-    supportsTablet: true
+    supportsTablet: true,
+    bundleIdentifier: "com.umutcyilmaz.bloom",
   },
   android: {
     adaptiveIcon: {
-      backgroundColor: "#F8F4EE"
-    }
+      backgroundColor: "#F8F4EE",
+    },
   },
   web: {
-    bundler: "metro"
+    bundler: "metro",
   },
   plugins: ["expo-router"],
   extra: {
     router: {
-      root: "app"
-    }
-  }
+      root: "app",
+    },
+  },
 });

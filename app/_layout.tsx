@@ -8,20 +8,12 @@ export default function RootLayout() {
     <AppProviders>
       <Stack
         screenOptions={{
-          contentStyle: { backgroundColor: theme.colors.background },
-          headerShown: false
+          contentStyle: {
+            backgroundColor: theme.colors.background,
+          },
+          headerShown: false,
         }}
-      >
-        <Stack.Screen name="index" />
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="onboarding" />
-        <Stack.Screen name="guidance" />
-        <Stack.Screen name="exercises" />
-        <Stack.Screen name="pause" />
-        <Stack.Screen name="protect" />
-        <Stack.Screen name="reset" />
-        <Stack.Screen name="settings" />
-      </Stack>
+      />
     </AppProviders>
   );
 }
