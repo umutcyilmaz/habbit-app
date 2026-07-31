@@ -135,7 +135,7 @@ export function PauseCheckInScreen() {
       />
 
       <View style={styles.stack}>
-        <AppCard>
+        <AppCard testID="bloom.pause.check-in">
           <View style={styles.cardStack}>
             <AppText variant="title">Urge strength now</AppText>
             <UrgeStrengthControl value={urgeStrength} onChange={setUrgeStrength} />

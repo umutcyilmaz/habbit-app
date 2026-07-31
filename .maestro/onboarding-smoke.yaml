@@ -1,0 +1,22 @@
+appId: com.umutcyilmaz.bloom
+name: Bloom onboarding smoke
+---
+- runFlow:
+    file: subflows/open-bloom.yaml
+    env:
+      CLEAR_STATE: "true"
+      READY_ID: "bloom.onboarding.start"
+
+- assertVisible: "Start"
+- tapOn:
+    id: "bloom.onboarding.start"
+
+- extendedWaitUntil:
+    visible:
+      id: "bloom.quiz.answer.never"
+    timeout: 30000
+
+- assertVisible: "Never"
+- assertVisible: "Sometimes"
+- assertVisible: "Often"
+- assertVisible: "Very often"

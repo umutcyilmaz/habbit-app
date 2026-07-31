@@ -68,7 +68,12 @@ export function OnboardingIntroScreen() {
         </View>
 
         <View style={styles.actions}>
-          <AppButton onPress={() => router.push(routes.onboardingQuiz)}>Start</AppButton>
+          <AppButton
+            testID="bloom.onboarding.start"
+            onPress={() => router.push(routes.onboardingQuiz)}
+          >
+            Start
+          </AppButton>
           <AppText variant="bodySmall" tone="secondary" align="center">
             Takes about 2 minutes
           </AppText>

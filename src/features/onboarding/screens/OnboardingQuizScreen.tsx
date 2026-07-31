@@ -29,6 +29,12 @@ const totalQuestions = quizQuestions.length;
 // TODO: disable before production release.
 const SHOW_QUIZ_SCORING_PREVIEW = true;
 const previewScoreAreas = ["PL", "PP", "CT", "FC"] as const;
+const frequencyAnswerTestIds: Record<FrequencyAnswerValue, string> = {
+  0: "bloom.quiz.answer.never",
+  1: "bloom.quiz.answer.sometimes",
+  2: "bloom.quiz.answer.often",
+  3: "bloom.quiz.answer.very-often"
+};
 
 export function OnboardingQuizScreen() {
   const router = useRouter();
@@ -107,7 +113,11 @@ export function OnboardingQuizScreen() {
         />
 
         <View style={styles.actionStack}>
-          <AppButton disabled={!canContinue} onPress={continueFlow}>
+          <AppButton
+            testID="bloom.quiz.continue"
+            disabled={!canContinue}
+            onPress={continueFlow}
+          >
             {isLastQuestion ? "See my plan" : "Continue"}
           </AppButton>
           {currentQuestion.type === "multiSelect" ? (
@@ -245,6 +255,7 @@ function FrequencySelect({ selected, onChange }: FrequencySelectProps) {
       {frequencyAnswers.map((answer) => (
         <SelectableCard
           key={answer.label}
+          testID={frequencyAnswerTestIds[answer.value]}
           selected={selected === answer.value}
           title={answer.label}
           onPress={() => onChange(answer.value)}
@@ -303,6 +314,7 @@ function TriggerMultiSelect({ selected, onChange }: TriggerMultiSelectProps) {
 }
 
 type SelectableCardProps = {
+  testID: string;
   selected: boolean;
   title: string;
   body?: string;
@@ -310,9 +322,10 @@ type SelectableCardProps = {
   onPress: () => void;
 };
 
-function SelectableCard({ selected, title, body, icon, onPress }: SelectableCardProps) {
+function SelectableCard({ testID, selected, title, body, icon, onPress }: SelectableCardProps) {
   return (
     <Pressable
+      testID={testID}
       accessibilityRole="button"
       accessibilityState={{ selected }}
       onPress={onPress}

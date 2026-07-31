@@ -1,0 +1,19 @@
+appId: com.umutcyilmaz.bloom
+---
+- scrollUntilVisible:
+    element:
+      id: "bloom.quiz.answer.never"
+    direction: UP
+    timeout: 20000
+
+- tapOn:
+    id: "bloom.quiz.answer.never"
+
+- scrollUntilVisible:
+    element:
+      id: "bloom.quiz.continue"
+    direction: DOWN
+    timeout: 20000
+
+- tapOn:
+    id: "bloom.quiz.continue"

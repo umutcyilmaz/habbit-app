@@ -1,0 +1,70 @@
+appId: com.umutcyilmaz.bloom
+name: Bloom general onboarding
+---
+- runFlow:
+    file: subflows/open-bloom.yaml
+    env:
+      CLEAR_STATE: "true"
+      READY_ID: "bloom.onboarding.start"
+
+- tapOn:
+    id: "bloom.onboarding.start"
+
+- runFlow: subflows/answer-never.yaml
+- runFlow: subflows/answer-never.yaml
+- runFlow: subflows/answer-never.yaml
+- runFlow: subflows/answer-never.yaml
+- runFlow: subflows/answer-never.yaml
+- runFlow: subflows/answer-never.yaml
+- runFlow: subflows/answer-never.yaml
+- runFlow: subflows/answer-never.yaml
+- runFlow: subflows/answer-never.yaml
+- runFlow: subflows/answer-never.yaml
+- runFlow: subflows/answer-never.yaml
+- runFlow: subflows/answer-never.yaml
+
+- extendedWaitUntil:
+    visible: "QUESTION 13 OF 13"
+    timeout: 30000
+
+- scrollUntilVisible:
+    element:
+      text: "Not sure"
+    direction: DOWN
+    timeout: 20000
+
+- tapOn: "Not sure"
+
+- scrollUntilVisible:
+    element:
+      id: "bloom.quiz.continue"
+    direction: DOWN
+    timeout: 20000
+
+- tapOn:
+    id: "bloom.quiz.continue"
+
+- extendedWaitUntil:
+    visible: "A simple starting point"
+    timeout: 60000
+
+- assertVisible:
+    id: "bloom.result.starting-plan"
+- assertVisible: "Your first plan"
+
+- scrollUntilVisible:
+    element:
+      id: "bloom.result.primary-action"
+    direction: DOWN
+    timeout: 20000
+
+- assertVisible: "Start a Quick Check-In"
+- tapOn:
+    id: "bloom.result.primary-action"
+
+- extendedWaitUntil:
+    visible:
+      id: "bloom.pause.check-in"
+    timeout: 30000
+
+- assertVisible: "How strong is the urge right now?"

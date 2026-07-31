@@ -52,7 +52,10 @@ export function OnboardingResultScreen() {
                 {firstStep.body}
               </AppText>
               <View style={styles.miniActions}>
-                <AppButton onPress={() => router.replace(firstStep.route)}>
+                <AppButton
+                  testID="bloom.result.primary-action"
+                  onPress={() => router.replace(firstStep.route)}
+                >
                   {firstStep.primary}
                 </AppButton>
                 <AppButton variant="subtle" onPress={() => router.replace(routes.home)}>
@@ -93,7 +96,7 @@ export function OnboardingResultScreen() {
           </View>
         </AppCard>
 
-        <AppCard style={styles.card}>
+        <AppCard testID="bloom.result.starting-plan" style={styles.card}>
           <View style={styles.cardStack}>
             <AppText variant="title" style={styles.cardTitle}>Your first plan</AppText>
             <View style={styles.stepStack}>
@@ -119,7 +122,12 @@ export function OnboardingResultScreen() {
               {firstStep.body}
             </AppText>
             <View style={styles.miniActions}>
-              <AppButton onPress={() => router.push(firstStep.route)}>{firstStep.primary}</AppButton>
+              <AppButton
+                testID="bloom.result.primary-action"
+                onPress={() => router.push(firstStep.route)}
+              >
+                {firstStep.primary}
+              </AppButton>
               <AppButton variant="subtle" onPress={() => router.replace(routes.home)}>
                 Go to Today
               </AppButton>

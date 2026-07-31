@@ -1,0 +1,44 @@
+appId: com.umutcyilmaz.bloom
+---
+- runFlow:
+    when:
+      true: ${CLEAR_STATE == 'true'}
+    commands:
+      - launchApp:
+          clearState: true
+
+- runFlow:
+    when:
+      true: ${CLEAR_STATE != 'true'}
+    commands:
+      - launchApp
+
+- runFlow:
+    when:
+      true: ${CLEAR_STATE == 'true'}
+    commands:
+      - extendedWaitUntil:
+          visible: "Development Servers"
+          timeout: 30000
+
+- runFlow:
+    when:
+      visible: "Development Servers"
+    commands:
+      - tapOn:
+          text: "http://localhost:8082"
+      - extendedWaitUntil:
+          visible: "Connected to:.*localhost:8082"
+          timeout: 60000
+      - tapOn: "Close"
+
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+
+- extendedWaitUntil:
+    visible:
+      id: "${READY_ID}"
+    timeout: 90000

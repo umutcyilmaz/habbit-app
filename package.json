@@ -13,7 +13,10 @@
     "verify:quiz": "node scripts/run-bloom-quiz-verification.cjs",
     "verify:journey": "node scripts/run-bloom-journey-verification.cjs",
     "verify:protection-reset": "node scripts/run-bloom-protection-reset-verification.cjs",
-    "verify:guided-flows": "node scripts/run-bloom-guided-flows-verification.cjs"
+    "verify:guided-flows": "node scripts/run-bloom-guided-flows-verification.cjs",
+    "maestro:smoke": "maestro test .maestro/onboarding-smoke.yaml",
+    "maestro:onboarding": "maestro test .maestro/onboarding-general.yaml",
+    "maestro:all": "maestro test .maestro/onboarding-smoke.yaml .maestro/onboarding-general.yaml"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
