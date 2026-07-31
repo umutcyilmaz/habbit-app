@@ -1,0 +1,97 @@
+appId: com.umutcyilmaz.bloom
+name: Bloom Arousal Control entry
+---
+- runFlow:
+    file: subflows/open-bloom.yaml
+    env:
+      CLEAR_STATE: "true"
+      READY_ID: "bloom.onboarding.start"
+
+- runFlow:
+    file: subflows/start-debug-profile.yaml
+    env:
+      PROFILE_ID: "bloom.debug.profile.control"
+      RESULT_TITLE: "Control and timing practice"
+      PRIMARY_ACTION: "Start Arousal Control Practice"
+
+- tapOn:
+    id: "bloom.result.primary-action"
+
+- extendedWaitUntil:
+    visible: "Notice the rise earlier."
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: "bloom.arousal.overview.start"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.arousal.overview.start"
+
+- extendedWaitUntil:
+    visible: "Choose a gentle starting point."
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: "bloom.arousal.mode.practicePlus"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.arousal.mode.practicePlus"
+
+- scrollUntilVisible:
+    element:
+      id: "bloom.arousal.mode.continue"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.arousal.mode.continue"
+
+- extendedWaitUntil:
+    visible: "Set a gentle intention."
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: "bloom.arousal.check-in.focus.reduceRushing"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.arousal.check-in.focus.reduceRushing"
+
+- scrollUntilVisible:
+    element:
+      id: "bloom.arousal.check-in.adult-content.yes"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.arousal.check-in.adult-content.yes"
+
+- scrollUntilVisible:
+    element:
+      id: "bloom.arousal.check-in.firmness.finish"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.arousal.check-in.firmness.finish"
+
+- scrollUntilVisible:
+    element:
+      id: "bloom.arousal.check-in.continue"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.arousal.check-in.continue"
+
+- extendedWaitUntil:
+    visible:
+      id: "bloom.arousal.practice"
+    timeout: 30000
+- assertVisible:
+    id: "bloom.arousal.practice.mode.practicePlus"
+- assertVisible: "Notice where you are."
+- assertVisible: "Current arousal level"
+- scrollUntilVisible:
+    element:
+      text: "Keep noticing."
+    direction: DOWN
+    timeout: 20000

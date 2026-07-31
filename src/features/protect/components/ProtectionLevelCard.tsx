@@ -21,6 +21,7 @@ export function ProtectionLevelCard({
 }: ProtectionLevelCardProps) {
   return (
     <Pressable
+      testID={`bloom.protection.level.${id}`}
       accessibilityRole="button"
       accessibilityState={{ selected }}
       onPress={() => onSelect(id)}

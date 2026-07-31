@@ -15,6 +15,12 @@ appId: com.umutcyilmaz.bloom
 
 - runFlow:
     when:
+      visible: "Cancel"
+    commands:
+      - tapOn: "Cancel"
+
+- runFlow:
+    when:
       true: ${CLEAR_STATE == 'true'}
     commands:
       - extendedWaitUntil:
@@ -30,6 +36,12 @@ appId: com.umutcyilmaz.bloom
       - extendedWaitUntil:
           visible: "Connected to:.*localhost:8082"
           timeout: 60000
+      - tapOn: "Close"
+
+- runFlow:
+    when:
+      visible: "Connected to:.*localhost:8082"
+    commands:
       - tapOn: "Close"
 
 - runFlow:

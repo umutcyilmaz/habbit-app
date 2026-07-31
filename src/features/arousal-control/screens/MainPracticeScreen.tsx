@@ -175,8 +175,11 @@ export function MainPracticeScreen() {
       />
 
       <View style={styles.stack}>
-        <AppCard style={styles.practiceCard}>
-          <View style={styles.cardStack}>
+        <AppCard testID="bloom.arousal.practice" style={styles.practiceCard}>
+          <View
+            testID={`bloom.arousal.practice.mode.${draft.mode}`}
+            style={styles.cardStack}
+          >
             <View style={styles.copy}>
               <AppText variant="title">Current arousal level</AppText>
               <AppText variant="bodySmall" tone="secondary">

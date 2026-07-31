@@ -138,7 +138,11 @@ export function PauseCheckInScreen() {
         <AppCard testID="bloom.pause.check-in">
           <View style={styles.cardStack}>
             <AppText variant="title">Urge strength now</AppText>
-            <UrgeStrengthControl value={urgeStrength} onChange={setUrgeStrength} />
+            <UrgeStrengthControl
+              value={urgeStrength}
+              onChange={setUrgeStrength}
+              testIDPrefix="bloom.pause.intensity"
+            />
           </View>
         </AppCard>
 
@@ -150,6 +154,7 @@ export function PauseCheckInScreen() {
               selectedValues={selectedTriggers}
               onToggle={toggleTrigger}
               getLabel={(trigger) => pauseTriggerLabels[trigger]}
+              testIDPrefix="bloom.pause.trigger"
             />
           </View>
         </AppCard>
@@ -166,11 +171,12 @@ export function PauseCheckInScreen() {
                   description={action.description}
                   selected={selectedAction === action.value}
                   onSelect={setSelectedAction}
+                  testIDPrefix="bloom.pause.action"
                 />
               ))}
             </View>
             <View style={styles.actions}>
-              <AppButton onPress={startTimer}>
+              <AppButton testID="bloom.pause.check-in.continue" onPress={startTimer}>
                 Start 90-Second Pause
               </AppButton>
               <AppButton variant="ghost" onPress={saveAndClose}>

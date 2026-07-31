@@ -127,7 +127,7 @@ export function ProtectionSetupScreen() {
           </View>
         </ProtectionSetupSection>
 
-        <AppButton onPress={activateProtection}>
+        <AppButton testID="bloom.protection.setup.complete" onPress={activateProtection}>
           {protection.status === "off" ? "Save and activate" : "Save settings"}
         </AppButton>
       </View>

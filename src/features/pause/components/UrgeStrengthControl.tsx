@@ -6,11 +6,16 @@ import { theme } from "../../../shared/design-system/theme";
 type UrgeStrengthControlProps = {
   value: number;
   onChange: (value: number) => void;
+  testIDPrefix?: string;
 };
 
 const strengthValues = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
 
-export function UrgeStrengthControl({ value, onChange }: UrgeStrengthControlProps) {
+export function UrgeStrengthControl({
+  value,
+  onChange,
+  testIDPrefix
+}: UrgeStrengthControlProps) {
   return (
     <View style={styles.stack}>
       <View style={styles.scale}>
@@ -20,6 +25,9 @@ export function UrgeStrengthControl({ value, onChange }: UrgeStrengthControlProp
           return (
             <Pressable
               key={strength}
+              {...(testIDPrefix !== undefined
+                ? { testID: `${testIDPrefix}.${strength}` }
+                : {})}
               accessibilityRole="button"
               accessibilityState={{ selected: isSelected }}
               accessibilityLabel={`Urge strength ${strength}`}

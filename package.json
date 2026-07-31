@@ -16,7 +16,11 @@
     "verify:guided-flows": "node scripts/run-bloom-guided-flows-verification.cjs",
     "maestro:smoke": "maestro test .maestro/onboarding-smoke.yaml",
     "maestro:onboarding": "maestro test .maestro/onboarding-general.yaml",
-    "maestro:all": "maestro test .maestro/onboarding-smoke.yaml .maestro/onboarding-general.yaml"
+    "maestro:protection": "maestro test .maestro/protection-setup.yaml",
+    "maestro:pause": "maestro test .maestro/pause-entry.yaml",
+    "maestro:arousal": "maestro test .maestro/arousal-entry.yaml",
+    "maestro:core": "maestro test .maestro/protection-setup.yaml .maestro/pause-entry.yaml .maestro/arousal-entry.yaml",
+    "maestro:all": "maestro test .maestro/onboarding-smoke.yaml .maestro/onboarding-general.yaml .maestro/protection-setup.yaml .maestro/pause-entry.yaml .maestro/arousal-entry.yaml"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",

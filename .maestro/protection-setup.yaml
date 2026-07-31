@@ -1,0 +1,89 @@
+appId: com.umutcyilmaz.bloom
+name: Bloom Protection setup entry
+---
+- runFlow:
+    file: subflows/open-bloom.yaml
+    env:
+      CLEAR_STATE: "true"
+      READY_ID: "bloom.onboarding.start"
+
+- runFlow:
+    file: subflows/start-debug-profile.yaml
+    env:
+      PROFILE_ID: "bloom.debug.profile.mixed"
+      RESULT_TITLE: "Porn loop + pressure pattern"
+      PRIMARY_ACTION: "Set up Protection"
+
+- tapOn:
+    id: "bloom.result.primary-action"
+
+- extendedWaitUntil:
+    visible: "Protection Setup"
+    timeout: 30000
+
+- scrollUntilVisible:
+    element:
+      id: "bloom.protection.level.strong"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.protection.level.strong"
+
+- scrollUntilVisible:
+    element:
+      id: "bloom.protection.schedule.alwaysOn"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.protection.schedule.alwaysOn"
+
+- scrollUntilVisible:
+    element:
+      id: "bloom.protection.setup.complete"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.protection.setup.complete"
+
+- extendedWaitUntil:
+    visible:
+      id: "bloom.today.primary-action"
+    timeout: 30000
+- assertVisible: "Protection is ready."
+- assertVisible: "Start 10-Day Reset"
+
+- tapOn:
+    id: "bloom.tab.protect"
+- extendedWaitUntil:
+    visible:
+      id: "bloom.protection.status"
+    timeout: 30000
+- assertVisible: "Protection is ready."
+
+- scrollUntilVisible:
+    element:
+      text: ".*Any time.*"
+    direction: DOWN
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: ".*Strong.*"
+    direction: DOWN
+    timeout: 20000
+
+- tapOn:
+    id: "bloom.tab.today"
+- extendedWaitUntil:
+    visible:
+      id: "bloom.today.primary-action"
+    timeout: 30000
+- assertVisible: "Start 10-Day Reset"
+
+- runFlow:
+    file: subflows/open-bloom.yaml
+    env:
+      CLEAR_STATE: "false"
+      READY_ID: "bloom.today.primary-action"
+
+- assertVisible: "Protection is ready."
+- assertVisible: "Start 10-Day Reset"

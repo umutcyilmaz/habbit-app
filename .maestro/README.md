@@ -30,6 +30,30 @@ Run the complete general-onboarding journey:
 npm run maestro:onboarding
 ```
 
+Run the mixed-profile Protection setup journey:
+
+```sh
+npm run maestro:protection
+```
+
+Run the general-profile Pause entry journey:
+
+```sh
+npm run maestro:pause
+```
+
+Run the control-profile Arousal Control entry journey:
+
+```sh
+npm run maestro:arousal
+```
+
+Run all three core entry flows:
+
+```sh
+npm run maestro:core
+```
+
 Run every maintainable top-level E2E flow:
 
 ```sh
@@ -39,12 +63,20 @@ npm run maestro:all
 `maestro:all` lists only top-level flows. Files in `.maestro/subflows` are reusable helpers and
 must not be run as standalone tests.
 
+The core entry flows intentionally stop at the Pause timer or Arousal Control practice screen.
+They do not shorten or wait through production timers. Terminal Saved coverage is deferred to a
+separate E2E test-clock task.
+
 ## Development Client Bootstrap
 
 The top-level flows call `subflows/open-bloom.yaml`. Clearing app state also resets the Expo
 Development Client launcher, so this helper reconnects to `http://localhost:8082`, closes the
 developer menu, handles the optional Continue screen, and waits for a stable Bloom test ID.
 Cold JavaScript bundle loads use intentionally generous timeouts.
+
+Core flows then open the development-only state screen through the registered `tms` scheme and
+start a deterministic debug profile. This avoids repeating onboarding while still exercising the
+real result screen and user-facing navigation.
 
 ## Inspecting Selectors
 

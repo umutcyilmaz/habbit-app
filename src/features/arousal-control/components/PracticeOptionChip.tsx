@@ -8,16 +8,19 @@ type PracticeOptionChipProps<T extends string> = {
   label: string;
   selected: boolean;
   onSelect: (value: T) => void;
+  testID: string;
 };
 
 export function PracticeOptionChip<T extends string>({
   value,
   label,
   selected,
-  onSelect
+  onSelect,
+  testID
 }: PracticeOptionChipProps<T>) {
   return (
     <Pressable
+      testID={testID}
       accessibilityRole="button"
       accessibilityState={{ selected }}
       onPress={() => onSelect(value)}

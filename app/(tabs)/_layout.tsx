@@ -74,7 +74,8 @@ export default function TabsLayout() {
           key={route.name}
           name={route.name}
           options={{
-            title: route.title
+            title: route.title,
+            tabBarButtonTestID: `bloom.tab.${route.name}`
           }}
         />
       ))}

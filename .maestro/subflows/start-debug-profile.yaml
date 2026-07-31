@@ -1,0 +1,25 @@
+appId: com.umutcyilmaz.bloom
+---
+- runFlow: open-debug-state.yaml
+
+- scrollUntilVisible:
+    element:
+      id: "${PROFILE_ID}"
+    direction: DOWN
+    timeout: 60000
+    speed: 80
+
+- tapOn:
+    id: "${PROFILE_ID}"
+
+- extendedWaitUntil:
+    visible: "${RESULT_TITLE}"
+    timeout: 30000
+
+- scrollUntilVisible:
+    element:
+      id: "bloom.result.primary-action"
+    direction: DOWN
+    timeout: 30000
+
+- assertVisible: "${PRIMARY_ACTION}"

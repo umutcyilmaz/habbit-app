@@ -8,13 +8,15 @@ type TriggerChipGroupProps<TValue extends string> = {
   selectedValues: readonly TValue[];
   onToggle: (value: TValue) => void;
   getLabel?: (value: TValue) => string;
+  testIDPrefix?: string;
 };
 
 export function TriggerChipGroup<TValue extends string>({
   values,
   selectedValues,
   onToggle,
-  getLabel = (value) => value
+  getLabel = (value) => value,
+  testIDPrefix
 }: TriggerChipGroupProps<TValue>) {
   return (
     <View style={styles.grid}>
@@ -24,6 +26,9 @@ export function TriggerChipGroup<TValue extends string>({
         return (
           <Pressable
             key={value}
+            {...(testIDPrefix !== undefined
+              ? { testID: `${testIDPrefix}.${value}` }
+              : {})}
             accessibilityRole="button"
             accessibilityState={{ selected: isSelected }}
             onPress={() => onToggle(value)}

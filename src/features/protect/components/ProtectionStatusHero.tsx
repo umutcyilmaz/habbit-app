@@ -18,7 +18,7 @@ export function ProtectionStatusHero({
   variant = "off"
 }: ProtectionStatusHeroProps) {
   return (
-    <AppCard style={[styles.card, variantStyles[variant]]}>
+    <AppCard testID="bloom.protection.status" style={[styles.card, variantStyles[variant]]}>
       <View style={styles.stack}>
         <View style={styles.headerRow}>
           <View style={styles.badge}>

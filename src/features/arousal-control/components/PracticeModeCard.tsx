@@ -26,6 +26,7 @@ export function PracticeModeCard({
 }: PracticeModeCardProps) {
   return (
     <Pressable
+      testID={`bloom.arousal.mode.${id}`}
       accessibilityRole="button"
       accessibilityState={{ selected }}
       onPress={() => onSelect(id)}

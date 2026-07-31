@@ -9,6 +9,7 @@ type NextStepOptionCardProps<TValue extends string> = {
   description?: string;
   selected: boolean;
   onSelect: (value: TValue) => void;
+  testIDPrefix?: string;
 };
 
 export function NextStepOptionCard<TValue extends string>({
@@ -16,10 +17,14 @@ export function NextStepOptionCard<TValue extends string>({
   title,
   description,
   selected,
-  onSelect
+  onSelect,
+  testIDPrefix
 }: NextStepOptionCardProps<TValue>) {
   return (
     <Pressable
+      {...(testIDPrefix !== undefined
+        ? { testID: `${testIDPrefix}.${value}` }
+        : {})}
       accessibilityRole="button"
       accessibilityState={{ selected }}
       onPress={() => onSelect(value)}

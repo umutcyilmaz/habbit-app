@@ -251,7 +251,7 @@ export function PauseTimerScreen() {
       />
 
       <View style={styles.stack}>
-        <AppCard style={styles.timerCard}>
+        <AppCard testID="bloom.pause.timer" style={styles.timerCard}>
           <View style={styles.cardStack}>
             <PauseCircleTimer
               remainingSeconds={remainingSeconds}

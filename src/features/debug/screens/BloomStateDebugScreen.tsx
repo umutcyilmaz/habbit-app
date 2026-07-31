@@ -257,7 +257,10 @@ export function BloomStateDebugScreen() {
                         {createDebugQuizResult(profileId).resultTitle}
                       </AppText>
                       <View style={styles.profileActions}>
-                        <AppButton onPress={() => startAsDebugProfile(profileId)}>
+                        <AppButton
+                          testID={debugProfileTestIds[profileId]}
+                          onPress={() => startAsDebugProfile(profileId)}
+                        >
                           Start as this profile
                         </AppButton>
                         <AppButton variant="subtle" onPress={() => setDebugProfile(profileId)}>
@@ -399,6 +402,14 @@ const debugProfileIds = [
   "generalStartingPoint"
 ] as const satisfies readonly DebugProfileId[];
 
+const debugProfileTestIds: Record<DebugProfileId, string> = {
+  pornLoop: "bloom.debug.profile.porn-loop",
+  mixedPornPressure: "bloom.debug.profile.mixed",
+  pressurePattern: "bloom.debug.profile.pressure",
+  controlTiming: "bloom.debug.profile.control",
+  generalStartingPoint: "bloom.debug.profile.general"
+};
+
 function formatFlags(flags: QuizFlags) {
   const activeFlags = Object.entries(flags)
     .filter(([, enabled]) => enabled)
@@ -421,7 +432,7 @@ type SummaryCardProps = {
 
 function SummaryCard({ rows }: SummaryCardProps) {
   return (
-    <AppCard style={styles.card}>
+    <AppCard testID="bloom.debug.state" style={styles.card}>
       <View style={styles.cardStack}>
         <AppText variant="title">State summary</AppText>
         <View style={styles.summaryStack}>

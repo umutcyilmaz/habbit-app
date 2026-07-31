@@ -87,7 +87,7 @@ export function PracticeModeSelectionScreen() {
         </View>
 
         <View style={styles.actions}>
-          <AppButton onPress={continueToCheckIn}>
+          <AppButton testID="bloom.arousal.mode.continue" onPress={continueToCheckIn}>
             Continue
           </AppButton>
           <AppButton variant="secondary" onPress={() => router.replace(routes.exercises)}>

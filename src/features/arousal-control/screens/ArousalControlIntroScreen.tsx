@@ -71,7 +71,10 @@ export function ArousalControlIntroScreen() {
         </View>
 
         <View style={styles.actions}>
-          <AppButton onPress={() => router.push(routes.arousalControlMode)}>
+          <AppButton
+            testID="bloom.arousal.overview.start"
+            onPress={() => router.push(routes.arousalControlMode)}
+          >
             Start Practice →
           </AppButton>
           <AppButton variant="ghost" onPress={() => setShowHowItWorks(true)}>

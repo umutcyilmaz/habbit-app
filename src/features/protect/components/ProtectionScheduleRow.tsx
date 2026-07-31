@@ -23,6 +23,7 @@ export function ProtectionScheduleRow({
 }: ProtectionScheduleRowProps) {
   return (
     <Pressable
+      testID={`bloom.protection.schedule.${id}`}
       accessibilityRole="button"
       accessibilityState={{ selected }}
       onPress={() => onSelect(id)}

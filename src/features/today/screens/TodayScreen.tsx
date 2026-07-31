@@ -241,7 +241,9 @@ function TodayHeroCard({
         </AppText>
       </View>
       <View style={styles.heroActions}>
-        <AppButton onPress={onPrimaryPress}>{primaryAction}</AppButton>
+        <AppButton testID="bloom.today.primary-action" onPress={onPrimaryPress}>
+          {primaryAction}
+        </AppButton>
         {onSecondaryPress ? (
           <AppButton variant="subtle" onPress={onSecondaryPress}>
             {activePlan.secondaryAction}

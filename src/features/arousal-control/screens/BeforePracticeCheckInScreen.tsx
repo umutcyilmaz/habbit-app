@@ -111,6 +111,7 @@ export function BeforePracticeCheckInScreen() {
                 label={option.label}
                 selected={focus === option.value}
                 onSelect={setFocus}
+                testID={`bloom.arousal.check-in.focus.${option.value}`}
               />
             ))}
           </View>
@@ -125,6 +126,7 @@ export function BeforePracticeCheckInScreen() {
                 label={option.label}
                 selected={adultContent === option.value}
                 onSelect={setAdultContent}
+                testID={`bloom.arousal.check-in.adult-content.${option.value}`}
               />
             ))}
           </View>
@@ -147,6 +149,7 @@ export function BeforePracticeCheckInScreen() {
                 label={option.label}
                 selected={firmnessPlan === option.value}
                 onSelect={setFirmnessPlan}
+                testID={`bloom.arousal.check-in.firmness.${option.value}`}
               />
             ))}
           </View>
@@ -156,7 +159,9 @@ export function BeforePracticeCheckInScreen() {
           You can stop anytime. This is not a test.
         </AppText>
 
-        <AppButton onPress={beginPractice}>Begin Practice</AppButton>
+        <AppButton testID="bloom.arousal.check-in.continue" onPress={beginPractice}>
+          Begin Practice
+        </AppButton>
       </View>
     </AppScreen>
   );

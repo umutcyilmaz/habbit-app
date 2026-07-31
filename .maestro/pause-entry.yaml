@@ -1,0 +1,60 @@
+appId: com.umutcyilmaz.bloom
+name: Bloom Pause entry
+---
+- runFlow:
+    file: subflows/open-bloom.yaml
+    env:
+      CLEAR_STATE: "true"
+      READY_ID: "bloom.onboarding.start"
+
+- runFlow:
+    file: subflows/start-debug-profile.yaml
+    env:
+      PROFILE_ID: "bloom.debug.profile.general"
+      RESULT_TITLE: "A simple starting point"
+      PRIMARY_ACTION: "Start a Quick Check-In"
+
+- tapOn:
+    id: "bloom.result.primary-action"
+
+- extendedWaitUntil:
+    visible:
+      id: "bloom.pause.check-in"
+    timeout: 30000
+- assertVisible: "How strong is the urge right now?"
+
+- tapOn:
+    id: "bloom.pause.intensity.4"
+
+- scrollUntilVisible:
+    element:
+      id: "bloom.pause.trigger.nighttime"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.pause.trigger.nighttime"
+- tapOn:
+    id: "bloom.pause.trigger.stress"
+
+- scrollUntilVisible:
+    element:
+      id: "bloom.pause.action.breathe3"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.pause.action.breathe3"
+
+- scrollUntilVisible:
+    element:
+      id: "bloom.pause.check-in.continue"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.pause.check-in.continue"
+
+- extendedWaitUntil:
+    visible:
+      id: "bloom.pause.timer"
+    timeout: 30000
+- assertVisible: "90-Second Pause"
+- assertVisible: "Add 60 seconds"
