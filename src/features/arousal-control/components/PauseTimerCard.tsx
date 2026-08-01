@@ -9,7 +9,7 @@ type PauseTimerCardProps = {
 
 export function PauseTimerCard({ secondsLeft }: PauseTimerCardProps) {
   return (
-    <View style={styles.card}>
+    <View testID="bloom.arousal.pause.timer" style={styles.card}>
       <View style={styles.outerCircle}>
         <View style={styles.innerCircle}>
           <AppText variant="heading" style={styles.timer}>

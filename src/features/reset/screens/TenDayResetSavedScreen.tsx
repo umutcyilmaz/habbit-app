@@ -159,7 +159,7 @@ function ProgressCard({
   resetTerminal
 }: ProgressCardProps) {
   return (
-    <AppCard style={styles.progressCard}>
+    <AppCard testID="bloom.reset.saved" style={styles.progressCard}>
       <View style={styles.cardStack}>
         <View style={styles.progressHeader}>
           <AppText variant="title" style={styles.sectionTitle}>

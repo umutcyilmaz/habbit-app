@@ -55,7 +55,7 @@ export function PauseAfterCheckInForm({
     useState<PauseNextStepId>("savePause");
 
   return (
-    <View style={styles.stack}>
+    <View testID="bloom.pause.after-check-in" style={styles.stack}>
       <AppCard>
         <View style={styles.cardStack}>
           <AppText variant="title">How is the urge now?</AppText>
@@ -67,6 +67,7 @@ export function PauseAfterCheckInForm({
                 title={pauseIntensityAfterLabels[option]}
                 selected={urgeAfter === option}
                 onSelect={setUrgeAfter}
+                testIDPrefix="bloom.pause.after.intensity"
               />
             ))}
           </View>
@@ -84,6 +85,7 @@ export function PauseAfterCheckInForm({
                 title={pauseTruthLabels[option]}
                 selected={truth === option}
                 onSelect={setTruth}
+                testIDPrefix="bloom.pause.after.truth"
               />
             ))}
           </View>
@@ -101,11 +103,13 @@ export function PauseAfterCheckInForm({
                 title={pauseNextStepLabels[option]}
                 selected={nextStep === option}
                 onSelect={setNextStep}
+                testIDPrefix="bloom.pause.after.next-step"
               />
             ))}
           </View>
           <View style={styles.actions}>
             <AppButton
+              testID="bloom.pause.complete"
               onPress={() =>
                 onSave({
                   intensityAfterChange: urgeAfter,
@@ -116,7 +120,11 @@ export function PauseAfterCheckInForm({
             >
               Save Pause
             </AppButton>
-            <AppButton variant="ghost" onPress={onPauseAgain}>
+            <AppButton
+              testID="bloom.pause.timer.pause-again"
+              variant="ghost"
+              onPress={onPauseAgain}
+            >
               Pause Again
             </AppButton>
           </View>

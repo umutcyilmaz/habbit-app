@@ -186,7 +186,11 @@ export function MainPracticeScreen() {
                 Tap the closest number. You can adjust it anytime.
               </AppText>
             </View>
-            <ArousalLevelPicker value={level} onChange={setLevel} />
+            <ArousalLevelPicker
+              value={level}
+              onChange={setLevel}
+              testIDPrefix="bloom.arousal.practice.level"
+            />
           </View>
         </AppCard>
 
@@ -247,7 +251,12 @@ export function MainPracticeScreen() {
             </>
           ) : (
             <>
-              <AppButton onPress={startPause}>Start Pause</AppButton>
+              <AppButton
+                testID="bloom.arousal.practice.pause"
+                onPress={startPause}
+              >
+                Start Pause
+              </AppButton>
               <AppButton variant="secondary" onPress={finishPractice}>
                 Finish Practice
               </AppButton>

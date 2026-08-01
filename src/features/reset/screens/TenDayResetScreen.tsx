@@ -129,7 +129,9 @@ export function TenDayResetScreen() {
               {getNextBloomActionLabel(nextAction)}
             </AppButton>
           ) : (
-            <AppButton onPress={startTodayReset}>Start today’s reset</AppButton>
+            <AppButton testID="bloom.reset.start" onPress={startTodayReset}>
+              Start today’s reset
+            </AppButton>
           )}
           <AppButton variant="subtle" onPress={() => router.replace(routes.home)}>
             Back to Today

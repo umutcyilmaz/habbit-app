@@ -113,6 +113,10 @@ export function BloomStateDebugScreen() {
           <>
             <SummaryCard
               rows={[
+                ["Next action label", getNextBloomActionLabel(nextAction)],
+                ["Completed reset days", String(completedResetDates.length)],
+                ["Pause record count", String(state.pause.records.length)],
+                ["Arousal completed logs", String(validArousalLogs.length)],
                 ["Real date", getTodayKey()],
                 ["Simulated today", todayKey],
                 ["Date offset days", String(state.debug.dateOffsetDays)],
@@ -121,7 +125,6 @@ export function BloomStateDebugScreen() {
                 ["Result title", state.onboarding.quizResult?.resultTitle ?? "none"],
                 ["Active plan", state.activePlan.planName],
                 ["Next action", nextAction.id],
-                ["Next action label", getNextBloomActionLabel(nextAction)],
                 ["Next phase", nextAction.phase],
                 ["Next route", nextAction.route],
                 ["Next reason", nextAction.reason],
@@ -155,7 +158,6 @@ export function BloomStateDebugScreen() {
                 ["Reset started at", state.tenDayReset.startedAt ?? "not started"],
                 ["Reset day", resetProgramComplete ? "Complete" : `Day ${resetDay} of 10`],
                 ["Today completed", resetTodayCompleted ? "yes" : "no"],
-                ["Completed reset days", String(completedResetDates.length)],
                 ["Reset terminal", resetProgramComplete ? "yes" : "no"],
                 ["Completed dates", completedResetDates.join(", ") || "none"],
                 ["Protection status", state.protection.status],
@@ -177,7 +179,6 @@ export function BloomStateDebugScreen() {
                   "Pause active draft",
                   state.pause.activeSession === null ? "no" : "yes"
                 ],
-                ["Pause record count", String(state.pause.records.length)],
                 [
                   "Latest pause duration",
                   latestPauseRecord !== null
@@ -202,7 +203,6 @@ export function BloomStateDebugScreen() {
                   "Arousal session status",
                   state.arousalControl.draft === null ? "none" : "active"
                 ],
-                ["Arousal completed logs", String(validArousalLogs.length)],
                 ["Latest arousal log date", latestArousalLog?.dateKey ?? "none"],
                 ["Latest practice mode", latestArousalLog?.mode ?? "none"],
                 [
@@ -436,20 +436,48 @@ function SummaryCard({ rows }: SummaryCardProps) {
       <View style={styles.cardStack}>
         <AppText variant="title">State summary</AppText>
         <View style={styles.summaryStack}>
-          {rows.map(([label, value]) => (
-            <View key={label} style={styles.summaryRow}>
-              <AppText variant="caption" tone="secondary" style={styles.summaryLabel}>
-                {label}
-              </AppText>
-              <AppText variant="bodySmall" style={styles.summaryValue}>
-                {value}
-              </AppText>
-            </View>
-          ))}
+          {rows.map(([label, value]) => {
+            const testID = getDebugSummaryTestID(label);
+
+            return (
+              <View
+                key={label}
+                {...(testID !== undefined
+                  ? {
+                      testID,
+                      accessibilityLabel: `${label}: ${value}`
+                    }
+                  : {})}
+                style={styles.summaryRow}
+              >
+                <AppText variant="caption" tone="secondary" style={styles.summaryLabel}>
+                  {label}
+                </AppText>
+                <AppText variant="bodySmall" style={styles.summaryValue}>
+                  {value}
+                </AppText>
+              </View>
+            );
+          })}
         </View>
       </View>
     </AppCard>
   );
+}
+
+function getDebugSummaryTestID(label: string) {
+  switch (label) {
+    case "Pause record count":
+      return "bloom.debug.pause-record-count";
+    case "Completed reset days":
+      return "bloom.debug.reset-completed-count";
+    case "Arousal completed logs":
+      return "bloom.debug.arousal-log-count";
+    case "Next action label":
+      return "bloom.debug.next-action";
+    default:
+      return undefined;
+  }
 }
 
 type ProfileSummaryRowProps = {

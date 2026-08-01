@@ -75,7 +75,7 @@ export function PracticeSavedScreen() {
       />
 
       <View style={styles.stack}>
-        <AppCard style={styles.successCard}>
+        <AppCard testID="bloom.arousal.saved" style={styles.successCard}>
           <View style={styles.successGlow} />
           <View style={styles.successContent}>
             <View style={styles.successMark}>

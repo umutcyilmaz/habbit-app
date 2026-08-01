@@ -86,6 +86,7 @@ export function FinishPracticeScreen() {
                 title={option.title}
                 selected={ending === option.value}
                 onSelect={setEnding}
+                testIDPrefix="bloom.arousal.finish.ending"
               />
             ))}
           </View>
@@ -103,7 +104,9 @@ export function FinishPracticeScreen() {
           </View>
         </View>
 
-        <AppButton onPress={continueToReflection}>Continue</AppButton>
+        <AppButton testID="bloom.arousal.finish" onPress={continueToReflection}>
+          Continue
+        </AppButton>
       </View>
     </AppScreen>
   );

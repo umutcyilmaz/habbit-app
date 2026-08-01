@@ -112,7 +112,11 @@ export function AfterPauseCheckInScreen() {
 
       <View style={styles.stack}>
         <PracticeQuestionCard title="Arousal now" body="0 = calm · 10 = very close to climax">
-          <ArousalLevelPicker value={arousalNow} onChange={setArousalNow} />
+          <ArousalLevelPicker
+            value={arousalNow}
+            onChange={setArousalNow}
+            testIDPrefix="bloom.arousal.after-pause.level"
+          />
         </PracticeQuestionCard>
 
         <PracticeQuestionCard title="Did firmness change during the pause?">
@@ -124,6 +128,7 @@ export function AfterPauseCheckInScreen() {
                 title={option.title}
                 selected={firmnessChange === option.value}
                 onSelect={setFirmnessChange}
+                testIDPrefix="bloom.arousal.after-pause.firmness"
               />
             ))}
           </View>
@@ -136,6 +141,7 @@ export function AfterPauseCheckInScreen() {
             minLabel="0 = not anxious"
             maxLabel="10 = very anxious"
             groups={[]}
+            testIDPrefix="bloom.arousal.after-pause.anxiety"
           />
         </PracticeQuestionCard>
 
@@ -161,12 +167,18 @@ export function AfterPauseCheckInScreen() {
                 title={option.title}
                 selected={nextStep === option.value}
                 onSelect={setNextStep}
+                testIDPrefix="bloom.arousal.after-pause.next-step"
               />
             ))}
           </View>
         </PracticeQuestionCard>
 
-        <AppButton onPress={continueFromSelection}>Continue</AppButton>
+        <AppButton
+          testID="bloom.arousal.after-pause.continue"
+          onPress={continueFromSelection}
+        >
+          Continue
+        </AppButton>
       </View>
     </AppScreen>
   );

@@ -132,11 +132,20 @@ export function SessionReflectionScreen() {
 
       <View style={styles.stack}>
         <ReflectionSection title="How many pauses did you take?">
-          <ChipGroup options={pauseCountOptions} selected={pauseCount} onSelect={setPauseCount} />
+          <ChipGroup
+            options={pauseCountOptions}
+            selected={pauseCount}
+            onSelect={setPauseCount}
+            testIDPrefix="bloom.arousal.reflection.pause-count"
+          />
         </ReflectionSection>
 
         <ReflectionSection title="Highest arousal level you noticed">
-          <ArousalLevelPicker value={highestArousal} onChange={setHighestArousal} />
+          <ArousalLevelPicker
+            value={highestArousal}
+            onChange={setHighestArousal}
+            testIDPrefix="bloom.arousal.reflection.highest"
+          />
         </ReflectionSection>
 
         <ReflectionSection title="Control feeling">
@@ -146,6 +155,7 @@ export function SessionReflectionScreen() {
             minLabel="0 = low control"
             maxLabel="10 = strong control"
             groups={controlFeelingGroups}
+            testIDPrefix="bloom.arousal.reflection.control"
           />
         </ReflectionSection>
 
@@ -156,15 +166,26 @@ export function SessionReflectionScreen() {
             minLabel="0 = low"
             maxLabel="10 = high"
             groups={[]}
+            testIDPrefix="bloom.arousal.reflection.pleasure"
           />
         </ReflectionSection>
 
         <ReflectionSection title="Pressure or rushing">
-          <ChipGroup options={pressureOptions} selected={pressure} onSelect={setPressure} />
+          <ChipGroup
+            options={pressureOptions}
+            selected={pressure}
+            onSelect={setPressure}
+            testIDPrefix="bloom.arousal.reflection.pressure"
+          />
         </ReflectionSection>
 
         <ReflectionSection title="How do you feel afterward?">
-          <ChipGroup options={afterFeelingOptions} selected={afterFeeling} onSelect={setAfterFeeling} />
+          <ChipGroup
+            options={afterFeelingOptions}
+            selected={afterFeeling}
+            onSelect={setAfterFeeling}
+            testIDPrefix="bloom.arousal.reflection.afterward"
+          />
         </ReflectionSection>
 
         <View style={styles.supportNote}>
@@ -178,7 +199,12 @@ export function SessionReflectionScreen() {
           </View>
         </View>
 
-        <AppButton onPress={continueToDuration}>Continue</AppButton>
+        <AppButton
+          testID="bloom.arousal.reflection.continue"
+          onPress={continueToDuration}
+        >
+          Continue
+        </AppButton>
       </View>
     </AppScreen>
   );
@@ -231,14 +257,23 @@ type ChipGroupProps<T extends string> = {
   options: readonly ChipOption<T>[];
   selected: T;
   onSelect: (value: T) => void;
+  testIDPrefix?: string;
 };
 
-function ChipGroup<T extends string>({ options, selected, onSelect }: ChipGroupProps<T>) {
+function ChipGroup<T extends string>({
+  options,
+  selected,
+  onSelect,
+  testIDPrefix
+}: ChipGroupProps<T>) {
   return (
     <View style={styles.chipGroup}>
       {options.map((option) => (
         <Pressable
           key={option.value}
+          {...(testIDPrefix !== undefined
+            ? { testID: `${testIDPrefix}.${option.value}` }
+            : {})}
           accessibilityRole="button"
           accessibilityState={{ selected: selected === option.value }}
           onPress={() => onSelect(option.value)}

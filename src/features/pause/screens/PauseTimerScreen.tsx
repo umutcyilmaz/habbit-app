@@ -9,6 +9,7 @@ import { AppCard } from "../../../shared/components/AppCard";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
+import { pauseRoundDurationSeconds } from "../../../shared/runtime/e2eMode";
 import { PauseCircleTimer } from "../components/PauseCircleTimer";
 import { PauseAfterCheckInForm } from "../components/PauseAfterCheckInForm";
 import { PauseFlowHeader } from "../components/PauseFlowHeader";
@@ -56,7 +57,7 @@ export function PauseTimerScreen() {
     useRef<PauseTimerSessionSnapshot | null>(initialTimerSnapshot);
   const [remainingSeconds, setRemainingSeconds] = useState(() =>
     initialTimerSnapshot === null
-      ? 90
+      ? pauseRoundDurationSeconds
       : getPauseTimerRemainingSeconds(initialTimerSnapshot)
   );
   const remainingSecondsRef = useRef(remainingSeconds);
@@ -64,6 +65,7 @@ export function PauseTimerScreen() {
     activeSession?.phase === "afterPause"
   );
   const hasRoutedRef = useRef(false);
+  const completedSessionIdRef = useRef<string | null>(null);
 
   const showAfterPauseCheckIn = useCallback(() => {
     if (hasRoutedRef.current || activeSession === null) {
@@ -119,7 +121,19 @@ export function PauseTimerScreen() {
 
   useEffect(() => {
     if (activeSession === null) {
-      router.replace(routes.pause);
+      const completedSessionId = completedSessionIdRef.current;
+
+      if (
+        completedSessionId !== null &&
+        state.pause.records.some(
+          (record) => record.id === completedSessionId
+        )
+      ) {
+        router.replace(routes.pauseSaved);
+      } else if (completedSessionId === null) {
+        router.replace(routes.pause);
+      }
+
       return undefined;
     }
 
@@ -130,7 +144,7 @@ export function PauseTimerScreen() {
     }
 
     return undefined;
-  }, [activeSession, router, updatePauseSession]);
+  }, [activeSession, router, state.pause.records, updatePauseSession]);
 
   useEffect(() => {
     if (activeSession === null || isCheckingIn) {
@@ -185,14 +199,19 @@ export function PauseTimerScreen() {
   };
 
   const savePause = (completionData: PauseSessionCompletionData) => {
-    if (activeSession === null) {
+    if (
+      activeSession === null ||
+      completedSessionIdRef.current !== null
+    ) {
       return;
     }
 
-    const result = completePauseSession(activeSession.id, completionData);
+    const sessionId = activeSession.id;
+    completedSessionIdRef.current = sessionId;
+    const result = completePauseSession(sessionId, completionData);
 
-    if (result.ok) {
-      router.replace(routes.pauseSaved);
+    if (!result.ok) {
+      completedSessionIdRef.current = null;
     }
   };
 
@@ -201,7 +220,11 @@ export function PauseTimerScreen() {
       return;
     }
 
-    const pauseAgainUpdate = resolvePauseAgainUpdate(activeSession);
+    const pauseAgainUpdate = resolvePauseAgainUpdate(
+      activeSession,
+      new Date().toISOString(),
+      pauseRoundDurationSeconds
+    );
     const result = updatePauseSession(activeSession.id, pauseAgainUpdate);
 
     if (!result.ok) {
@@ -213,8 +236,8 @@ export function PauseTimerScreen() {
       ...activeSession,
       ...pauseAgainUpdate
     });
-    remainingSecondsRef.current = 90;
-    setRemainingSeconds(90);
+    remainingSecondsRef.current = pauseRoundDurationSeconds;
+    setRemainingSeconds(pauseRoundDurationSeconds);
     setIsCheckingIn(false);
   };
 
@@ -261,7 +284,11 @@ export function PauseTimerScreen() {
               An urge can feel intense and still pass.
             </AppText>
             <View style={styles.actions}>
-              <AppButton variant="secondary" onPress={addTime}>
+              <AppButton
+                testID="bloom.pause.timer.add-time"
+                variant="secondary"
+                onPress={addTime}
+              >
                 Add 60 seconds
               </AppButton>
               <AppButton onPress={showAfterPauseCheckIn}>Finish early</AppButton>

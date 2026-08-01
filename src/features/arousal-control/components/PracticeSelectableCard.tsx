@@ -8,16 +8,21 @@ type PracticeSelectableCardProps<T extends string> = {
   title: string;
   selected: boolean;
   onSelect: (value: T) => void;
+  testIDPrefix?: string;
 };
 
 export function PracticeSelectableCard<T extends string>({
   value,
   title,
   selected,
-  onSelect
+  onSelect,
+  testIDPrefix
 }: PracticeSelectableCardProps<T>) {
   return (
     <Pressable
+      {...(testIDPrefix !== undefined
+        ? { testID: `${testIDPrefix}.${value}` }
+        : {})}
       accessibilityRole="button"
       accessibilityState={{ selected }}
       onPress={() => onSelect(value)}

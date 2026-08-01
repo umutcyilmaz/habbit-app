@@ -9,7 +9,10 @@ import { AppCard } from "../../../shared/components/AppCard";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
-import { isArousalSessionReadyForCompletion } from "../../../storage/bloomState";
+import {
+  isArousalSessionReadyForCompletion,
+  isValidCompletedArousalLog
+} from "../../../storage/bloomState";
 import { ArousalControlFlowHeader } from "../components/ArousalControlFlowHeader";
 import {
   createInitialDurationInputState,
@@ -47,15 +50,32 @@ export function OptionalDurationScreen() {
   const [validationMessage, setValidationMessage] =
     useState<string | undefined>();
   const submitInFlightRef = useRef(false);
+  const completedSessionIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (
-      draft === null ||
-      !isArousalSessionReadyForCompletion(draft)
-    ) {
+    if (draft === null) {
+      const completedSessionId = completedSessionIdRef.current;
+
+      if (
+        completedSessionId !== null &&
+        state.arousalControl.logs.some(
+          (log) =>
+            log.id === completedSessionId &&
+            isValidCompletedArousalLog(log)
+        )
+      ) {
+        router.replace(routes.arousalControlSaved);
+      } else if (completedSessionId === null) {
+        router.replace(routes.arousalControl);
+      }
+
+      return;
+    }
+
+    if (!isArousalSessionReadyForCompletion(draft)) {
       router.replace(routes.arousalControl);
     }
-  }, [draft, router]);
+  }, [draft, router, state.arousalControl.logs]);
 
   const selectDuration = (value: DurationOption) => {
     setValidationMessage(undefined);
@@ -105,19 +125,19 @@ export function OptionalDurationScreen() {
 
     submitInFlightRef.current = true;
     setIsSubmitting(true);
+    completedSessionIdRef.current = draft.id;
     const result = completeArousalSession(
       draft.id,
       submission.patch
     );
 
     if (!result.ok) {
+      completedSessionIdRef.current = null;
       submitInFlightRef.current = false;
       setIsSubmitting(false);
       setValidationMessage("This practice could not be saved yet.");
       return;
     }
-
-    router.replace(routes.arousalControlSaved);
   };
 
   const closePractice = () => {
@@ -160,6 +180,11 @@ export function OptionalDurationScreen() {
               {durationOptions.map((option) => (
                 <Pressable
                   key={option.value}
+                  testID={
+                    option.value === "preferNot"
+                      ? "bloom.arousal.duration.mode.prefer-not"
+                      : `bloom.arousal.duration.range.${option.value}`
+                  }
                   accessibilityRole="button"
                   accessibilityState={{
                     selected:
@@ -188,14 +213,21 @@ export function OptionalDurationScreen() {
               ))}
             </View>
 
-            <AppButton variant="subtle" onPress={showExactTime}>
+            <AppButton
+              testID="bloom.arousal.duration.mode.exact"
+              variant="subtle"
+              onPress={showExactTime}
+            >
               Enter exact time
             </AppButton>
           </View>
         </AppCard>
 
         {durationInput.mode === "exact" ? (
-          <AppCard style={styles.exactCard}>
+          <AppCard
+            testID="bloom.arousal.duration.exact.card"
+            style={styles.exactCard}
+          >
             <View style={styles.cardStack}>
               <View style={styles.copy}>
                 <AppText variant="title">Exact time</AppText>
@@ -210,6 +242,7 @@ export function OptionalDurationScreen() {
                     Minutes
                   </AppText>
                   <TextInput
+                    testID="bloom.arousal.duration.exact.minutes"
                     value={durationInput.minutes}
                     onChangeText={updateMinutes}
                     keyboardType="number-pad"
@@ -224,6 +257,7 @@ export function OptionalDurationScreen() {
                     Seconds
                   </AppText>
                   <TextInput
+                    testID="bloom.arousal.duration.exact.seconds"
                     value={durationInput.seconds}
                     onChangeText={updateSeconds}
                     keyboardType="number-pad"
@@ -255,6 +289,7 @@ export function OptionalDurationScreen() {
             </AppText>
           ) : null}
           <AppButton
+            testID="bloom.arousal.complete"
             loading={isSubmitting}
             onPress={() => savePractice()}
           >

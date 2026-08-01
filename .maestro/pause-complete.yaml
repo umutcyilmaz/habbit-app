@@ -1,0 +1,167 @@
+appId: com.umutcyilmaz.bloom
+name: Bloom Pause completion
+---
+- runFlow:
+    file: subflows/open-bloom.yaml
+    env:
+      CLEAR_STATE: "true"
+      READY_ID: "bloom.onboarding.start"
+
+- runFlow:
+    file: subflows/start-debug-profile.yaml
+    env:
+      PROFILE_ID: "bloom.debug.profile.general"
+      RESULT_TITLE: "A simple starting point"
+      PRIMARY_ACTION: "Start a Quick Check-In"
+
+- tapOn:
+    id: "bloom.result.primary-action"
+
+- extendedWaitUntil:
+    visible:
+      id: "bloom.pause.check-in"
+    timeout: 30000
+- tapOn:
+    id: "bloom.pause.intensity.4"
+
+- scrollUntilVisible:
+    element:
+      id: "bloom.pause.trigger.stress"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.pause.trigger.stress"
+
+- scrollUntilVisible:
+    element:
+      id: "bloom.pause.action.breathe3"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.pause.action.breathe3"
+
+- scrollUntilVisible:
+    element:
+      id: "bloom.pause.check-in.continue"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.pause.check-in.continue"
+
+- extendedWaitUntil:
+    visible:
+      id: "bloom.pause.timer"
+    timeout: 30000
+- assertVisible: "90-Second Pause"
+
+- extendedWaitUntil:
+    visible:
+      id: "bloom.pause.after-check-in"
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: "bloom.pause.timer.pause-again"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.pause.timer.pause-again"
+
+- extendedWaitUntil:
+    visible:
+      id: "bloom.pause.timer"
+    timeout: 15000
+- assertVisible: "90-Second Pause"
+
+- extendedWaitUntil:
+    visible:
+      id: "bloom.pause.after-check-in"
+    timeout: 15000
+- tapOn:
+    id: "bloom.pause.after.intensity.higher"
+
+- scrollUntilVisible:
+    element:
+      id: "bloom.pause.after.truth.wantSupport"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.pause.after.truth.wantSupport"
+
+- scrollUntilVisible:
+    element:
+      id: "bloom.pause.after.next-step.putPhoneAway"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.pause.after.next-step.putPhoneAway"
+
+- scrollUntilVisible:
+    element:
+      id: "bloom.pause.complete"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.pause.complete"
+
+- extendedWaitUntil:
+    visible:
+      id: "bloom.pause.saved"
+    timeout: 30000
+- assertVisible: "Saved pauses: 1."
+- assertVisible: "4 / 10"
+- assertVisible: "Higher"
+
+- scrollUntilVisible:
+    element:
+      text: "6 sec"
+    direction: DOWN
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: ".*Stress.*"
+    direction: DOWN
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: "Breathe for 3 minutes"
+    direction: DOWN
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: "I want support"
+    direction: DOWN
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: "Put phone away"
+    direction: DOWN
+    timeout: 20000
+
+- runFlow:
+    file: subflows/open-bloom.yaml
+    env:
+      CLEAR_STATE: "false"
+      READY_ID: "bloom.today.primary-action"
+
+- openLink: "tms:///pause/saved"
+- runFlow:
+    when:
+      visible: "Open"
+    commands:
+      - tapOn: "Open"
+- extendedWaitUntil:
+    visible:
+      id: "bloom.pause.saved"
+    timeout: 30000
+- assertVisible: "Saved pauses: 1."
+
+- runFlow: subflows/open-debug-state.yaml
+- scrollUntilVisible:
+    element:
+      text: "State summary"
+    direction: UP
+    timeout: 30000
+    speed: 80
+- assertVisible:
+    id: "bloom.debug.pause-record-count"
+- assertVisible: "Pause record count: 1"

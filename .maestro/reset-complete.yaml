@@ -1,0 +1,138 @@
+appId: com.umutcyilmaz.bloom
+name: Bloom 10-Day Reset daily completion
+---
+- runFlow:
+    file: subflows/open-bloom.yaml
+    env:
+      CLEAR_STATE: "true"
+      READY_ID: "bloom.onboarding.start"
+
+- runFlow:
+    file: subflows/start-debug-profile.yaml
+    env:
+      PROFILE_ID: "bloom.debug.profile.mixed"
+      RESULT_TITLE: "Porn loop + pressure pattern"
+      PRIMARY_ACTION: "Set up Protection"
+
+- tapOn:
+    id: "bloom.result.primary-action"
+
+- extendedWaitUntil:
+    visible: "Protection Setup"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: "bloom.protection.level.strong"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.protection.level.strong"
+- scrollUntilVisible:
+    element:
+      id: "bloom.protection.schedule.alwaysOn"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.protection.schedule.alwaysOn"
+- scrollUntilVisible:
+    element:
+      id: "bloom.protection.setup.complete"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.protection.setup.complete"
+
+- extendedWaitUntil:
+    visible:
+      id: "bloom.today.primary-action"
+    timeout: 30000
+- assertVisible: "Protection is ready."
+- assertVisible: "Start 10-Day Reset"
+- tapOn:
+    id: "bloom.today.primary-action"
+
+- extendedWaitUntil:
+    visible: "10-Day Reset"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: "bloom.reset.start"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.reset.start"
+
+- extendedWaitUntil:
+    visible:
+      id: "bloom.reset.timer"
+    timeout: 30000
+- assertVisible: "0:03"
+- tapOn:
+    id: "bloom.reset.practice.start"
+
+- extendedWaitUntil:
+    visible:
+      id: "bloom.reset.complete"
+    timeout: 15000
+- assertVisible: "0:00"
+- assertVisible: ".*reset is complete.*"
+- tapOn:
+    id: "bloom.reset.complete"
+
+- extendedWaitUntil:
+    visible:
+      id: "bloom.reset.saved"
+    timeout: 30000
+- assertVisible: "Today’s Reset is saved."
+- scrollUntilVisible:
+    element:
+      text: "1/10"
+    direction: DOWN
+    timeout: 20000
+- assertVisible: "Completed date"
+- assertVisible:
+    text: "20[0-9]{2}-[0-9]{2}-[0-9]{2}"
+
+- runFlow:
+    file: subflows/open-bloom.yaml
+    env:
+      CLEAR_STATE: "false"
+      READY_ID: "bloom.today.primary-action"
+
+- assertVisible: "Today’s reset is saved."
+- assertVisible: "View saved reset"
+- tapOn:
+    id: "bloom.tab.progress"
+- extendedWaitUntil:
+    visible: "Progress"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      text: "1/10 saved"
+    direction: DOWN
+    timeout: 20000
+
+- tapOn:
+    id: "bloom.tab.today"
+- extendedWaitUntil:
+    visible:
+      id: "bloom.today.primary-action"
+    timeout: 30000
+- tapOn:
+    id: "bloom.today.primary-action"
+- extendedWaitUntil:
+    visible:
+      id: "bloom.reset.saved"
+    timeout: 30000
+- assertVisible: "1/10"
+
+- runFlow: subflows/open-debug-state.yaml
+- scrollUntilVisible:
+    element:
+      text: "State summary"
+    direction: UP
+    timeout: 30000
+    speed: 80
+- assertVisible:
+    id: "bloom.debug.reset-completed-count"
+- assertVisible: "Completed reset days: 1"

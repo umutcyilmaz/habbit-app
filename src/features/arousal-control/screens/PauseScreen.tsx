@@ -9,17 +9,18 @@ import { AppCard } from "../../../shared/components/AppCard";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
+import { arousalPauseDurationSeconds } from "../../../shared/runtime/e2eMode";
 import { ArousalControlFlowHeader } from "../components/ArousalControlFlowHeader";
 import { BreathingGuideCard } from "../components/BreathingGuideCard";
 import { PauseTimerCard } from "../components/PauseTimerCard";
-
-const INITIAL_SECONDS = 30;
 
 export function PauseScreen() {
   const router = useRouter();
   const { state, discardArousalSession } = useBloomLocalState();
   const draft = state.arousalControl.draft;
-  const [secondsLeft, setSecondsLeft] = useState(INITIAL_SECONDS);
+  const [secondsLeft, setSecondsLeft] = useState(
+    arousalPauseDurationSeconds
+  );
 
   useEffect(() => {
     if (draft === null) {
@@ -40,7 +41,7 @@ export function PauseScreen() {
   }, [secondsLeft]);
 
   const extendPause = () => {
-    setSecondsLeft((current) => current + INITIAL_SECONDS);
+    setSecondsLeft((current) => current + arousalPauseDurationSeconds);
   };
 
   const closePractice = () => {
@@ -82,7 +83,14 @@ export function PauseScreen() {
         <BreathingGuideCard />
 
         <View style={styles.actions}>
-          <AppButton onPress={() => router.replace(routes.arousalControlAfterPause)}>
+          <AppButton
+            testID={
+              secondsLeft === 0
+                ? "bloom.arousal.pause.continue.ready"
+                : "bloom.arousal.pause.continue"
+            }
+            onPress={() => router.replace(routes.arousalControlAfterPause)}
+          >
             I'm ready to check in
           </AppButton>
           <AppButton variant="secondary" onPress={extendPause}>

@@ -9,6 +9,7 @@ type ArousalLevelPickerProps = {
   minLabel?: string;
   maxLabel?: string;
   groups?: readonly LevelGroup[];
+  testIDPrefix?: string;
 };
 
 const levels = Array.from({ length: 11 }, (_, index) => index);
@@ -30,7 +31,8 @@ export function ArousalLevelPicker({
   onChange,
   minLabel = "0 = calm",
   maxLabel = "10 = very close to climax",
-  groups = defaultGroups
+  groups = defaultGroups,
+  testIDPrefix
 }: ArousalLevelPickerProps) {
   return (
     <View style={styles.stack}>
@@ -41,6 +43,9 @@ export function ArousalLevelPicker({
           return (
             <Pressable
               key={level}
+              {...(testIDPrefix !== undefined
+                ? { testID: `${testIDPrefix}.${level}` }
+                : {})}
               accessibilityRole="button"
               accessibilityState={{ selected }}
               onPress={() => onChange(level)}

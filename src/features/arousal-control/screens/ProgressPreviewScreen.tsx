@@ -41,7 +41,7 @@ export function ProgressPreviewScreen() {
         onClosePress={() => router.replace(routes.exercises)}
       />
 
-      <View style={styles.stack}>
+      <View testID="bloom.arousal.progress-preview" style={styles.stack}>
         <ControlFeelingHeroCard log={latestLog} />
         <PracticePathCard log={latestLog} />
 

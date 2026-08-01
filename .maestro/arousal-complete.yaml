@@ -1,0 +1,366 @@
+appId: com.umutcyilmaz.bloom
+name: Bloom Arousal Control completion
+---
+- runFlow:
+    file: subflows/open-bloom.yaml
+    env:
+      CLEAR_STATE: "true"
+      READY_ID: "bloom.onboarding.start"
+
+- runFlow:
+    file: subflows/start-debug-profile.yaml
+    env:
+      PROFILE_ID: "bloom.debug.profile.control"
+      RESULT_TITLE: "Control and timing practice"
+      PRIMARY_ACTION: "Start Arousal Control Practice"
+
+- tapOn:
+    id: "bloom.result.primary-action"
+- extendedWaitUntil:
+    visible: "Notice the rise earlier."
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: "bloom.arousal.overview.start"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.arousal.overview.start"
+
+- extendedWaitUntil:
+    visible: "Choose a gentle starting point."
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: "bloom.arousal.mode.practicePlus"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.arousal.mode.practicePlus"
+- scrollUntilVisible:
+    element:
+      id: "bloom.arousal.mode.continue"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.arousal.mode.continue"
+
+- extendedWaitUntil:
+    visible: "Set a gentle intention."
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: "bloom.arousal.check-in.focus.reduceRushing"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.arousal.check-in.focus.reduceRushing"
+- scrollUntilVisible:
+    element:
+      id: "bloom.arousal.check-in.adult-content.yes"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.arousal.check-in.adult-content.yes"
+- scrollUntilVisible:
+    element:
+      id: "bloom.arousal.check-in.firmness.finish"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.arousal.check-in.firmness.finish"
+- scrollUntilVisible:
+    element:
+      id: "bloom.arousal.check-in.continue"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.arousal.check-in.continue"
+
+- extendedWaitUntil:
+    visible:
+      id: "bloom.arousal.practice"
+    timeout: 30000
+- tapOn:
+    id: "bloom.arousal.practice.level.7"
+- scrollUntilVisible:
+    element:
+      id: "bloom.arousal.practice.pause"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.arousal.practice.pause"
+
+- extendedWaitUntil:
+    visible:
+      id: "bloom.arousal.pause.timer"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: "bloom.arousal.pause.continue.ready"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "bloom.arousal.pause.continue.ready"
+
+- extendedWaitUntil:
+    visible: "What changed?"
+    timeout: 30000
+- tapOn:
+    id: "bloom.arousal.after-pause.level.4"
+- scrollUntilVisible:
+    element:
+      id: "bloom.arousal.after-pause.firmness.decreasedDifficult"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.arousal.after-pause.firmness.decreasedDifficult"
+- scrollUntilVisible:
+    element:
+      id: "bloom.arousal.after-pause.anxiety.8"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.arousal.after-pause.anxiety.8"
+- scrollUntilVisible:
+    element:
+      id: "bloom.arousal.after-pause.next-step.finishToday"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.arousal.after-pause.next-step.finishToday"
+- scrollUntilVisible:
+    element:
+      id: "bloom.arousal.after-pause.continue"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.arousal.after-pause.continue"
+
+- extendedWaitUntil:
+    visible: "Any ending is okay."
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: "bloom.arousal.finish.ending.feltAnxious"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.arousal.finish.ending.feltAnxious"
+- scrollUntilVisible:
+    element:
+      id: "bloom.arousal.finish"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.arousal.finish"
+
+- extendedWaitUntil:
+    visible: "What did you notice?"
+    timeout: 30000
+- tapOn:
+    id: "bloom.arousal.reflection.pause-count.3plus"
+- scrollUntilVisible:
+    element:
+      id: "bloom.arousal.reflection.highest.8"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.arousal.reflection.highest.8"
+- scrollUntilVisible:
+    element:
+      id: "bloom.arousal.reflection.control.2"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.arousal.reflection.control.2"
+- scrollUntilVisible:
+    element:
+      id: "bloom.arousal.reflection.pleasure.9"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.arousal.reflection.pleasure.9"
+- scrollUntilVisible:
+    element:
+      id: "bloom.arousal.reflection.pressure.veryHigh"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.arousal.reflection.pressure.veryHigh"
+- scrollUntilVisible:
+    element:
+      id: "bloom.arousal.reflection.afterward.anxious"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.arousal.reflection.afterward.anxious"
+- scrollUntilVisible:
+    element:
+      id: "bloom.arousal.reflection.continue"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.arousal.reflection.continue"
+
+- extendedWaitUntil:
+    visible: "Log duration only if useful."
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: "bloom.arousal.duration.mode.exact"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.arousal.duration.mode.exact"
+- scrollUntilVisible:
+    element:
+      id: "bloom.arousal.duration.exact.minutes"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.arousal.duration.exact.minutes"
+- inputText: "13"
+- tapOn:
+    id: "bloom.arousal.duration.exact.seconds"
+- inputText: "7"
+- tapOn:
+    id: "bloom.arousal.duration.exact.card"
+- scrollUntilVisible:
+    element:
+      id: "bloom.arousal.complete"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "bloom.arousal.complete"
+
+- extendedWaitUntil:
+    visible:
+      id: "bloom.arousal.saved"
+    timeout: 30000
+- assertVisible: "Practice saved"
+- scrollUntilVisible:
+    element:
+      text: "3+"
+    direction: DOWN
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: "8/10"
+    direction: DOWN
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: "2/10"
+    direction: DOWN
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: "9/10"
+    direction: DOWN
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: "Very high"
+    direction: DOWN
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: "Practice+"
+    direction: DOWN
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: "Reduce rushing"
+    direction: DOWN
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: "Stopped after feeling anxious"
+    direction: DOWN
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: "7/10"
+    direction: DOWN
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: "Decreased and continuing felt difficult"
+    direction: DOWN
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: "About 13 min"
+    direction: DOWN
+    timeout: 20000
+
+- scrollUntilVisible:
+    element:
+      text: "View Progress"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "View Progress"
+- extendedWaitUntil:
+    visible:
+      id: "bloom.arousal.progress-preview"
+    timeout: 30000
+- assertVisible: "Perceived sense of regulation"
+- assertVisible: "2/10"
+- scrollUntilVisible:
+    element:
+      text: "Practice+"
+    direction: DOWN
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: "3+"
+    direction: DOWN
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: "8/10"
+    direction: DOWN
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: "Recorded"
+    direction: DOWN
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: "Decreased and continuing felt difficult"
+    direction: DOWN
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: "About 13 min"
+    direction: DOWN
+    timeout: 20000
+
+- runFlow:
+    file: subflows/open-bloom.yaml
+    env:
+      CLEAR_STATE: "false"
+      READY_ID: "bloom.today.primary-action"
+- assertVisible: "View practice progress"
+- tapOn:
+    id: "bloom.today.primary-action"
+- extendedWaitUntil:
+    visible:
+      id: "bloom.arousal.progress-preview"
+    timeout: 30000
+
+- runFlow: subflows/open-debug-state.yaml
+- scrollUntilVisible:
+    element:
+      text: "State summary"
+    direction: UP
+    timeout: 30000
+    speed: 80
+- assertVisible:
+    id: "bloom.debug.next-action"
+- assertVisible: "Next action label: View practice progress"
+- assertVisible:
+    id: "bloom.debug.arousal-log-count"
+- assertVisible: "Arousal completed logs: 1"

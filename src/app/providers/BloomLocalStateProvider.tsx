@@ -56,6 +56,7 @@ import {
   saveBloomLocalState,
   type BloomStateLoadResult
 } from "../../storage/bloomStateStorage";
+import { pauseRoundDurationSeconds } from "../../shared/runtime/e2eMode";
 
 export type BloomHydrationStatus = "loading" | "ready" | "error";
 
@@ -473,7 +474,7 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
         startedAt: now.toISOString(),
         phase: "checkIn" as const,
         triggers: [],
-        timerDurationSeconds: 90,
+        timerDurationSeconds: pauseRoundDurationSeconds,
         elapsedDurationSeconds: 0,
         ...initialPatch
       };

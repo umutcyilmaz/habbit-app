@@ -86,7 +86,11 @@ function PauseRecordSummary({
       />
 
       <View style={styles.stack}>
-        <AppCard style={styles.savedCard} accessibilityRole="summary">
+        <AppCard
+          testID="bloom.pause.saved"
+          style={styles.savedCard}
+          accessibilityRole="summary"
+        >
           <View style={styles.cardStack}>
             <View style={styles.successCircle}>
               <AppText variant="title">✓</AppText>

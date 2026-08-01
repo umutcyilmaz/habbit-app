@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "expo-router";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 
@@ -11,6 +11,7 @@ import { AppIconButton } from "../../../shared/components/AppIconButton";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
+import { resetDurationSeconds } from "../../../shared/runtime/e2eMode";
 import {
   isResetProgramComplete,
   isResetStarted
@@ -35,8 +36,6 @@ const resetSteps = [
   }
 ] as const;
 
-const resetDurationSeconds = 120;
-
 type TimerStatus = "idle" | "running" | "paused" | "completed";
 
 export function TenDayResetPracticeScreen() {
@@ -53,6 +52,7 @@ export function TenDayResetPracticeScreen() {
   const [timerStatus, setTimerStatus] = useState<TimerStatus>("idle");
   const [secondsLeft, setSecondsLeft] = useState(resetDurationSeconds);
   const [practiceAgain, setPracticeAgain] = useState(false);
+  const completionRequestedRef = useRef(false);
   const showAlreadyCompleted = resetTodayCompleted && !practiceAgain;
 
   useEffect(() => {
@@ -92,6 +92,13 @@ export function TenDayResetPracticeScreen() {
     }
   }, [secondsLeft, timerStatus]);
 
+  useEffect(() => {
+    if (completionRequestedRef.current && resetTodayCompleted) {
+      completionRequestedRef.current = false;
+      router.replace(routes.tenDayResetSaved);
+    }
+  }, [resetTodayCompleted, router]);
+
   const startTimer = () => {
     setTimerStatus((currentStatus) => (currentStatus === "running" ? "paused" : "running"));
   };
@@ -103,8 +110,8 @@ export function TenDayResetPracticeScreen() {
   };
 
   const saveTodayReset = () => {
+    completionRequestedRef.current = true;
     completeTodayReset();
-    router.replace(routes.tenDayResetSaved);
   };
 
   const viewSavedReset = () => {
@@ -210,7 +217,7 @@ function PracticeTimerCard({
   const buttonLabel = getTimerButtonLabel(timerStatus, alreadyCompleted);
 
   return (
-    <AppCard style={styles.timerCard}>
+    <AppCard testID="bloom.reset.timer" style={styles.timerCard}>
       <View style={styles.timerVisual}>
         <View style={styles.timerInner}>
           <AppText variant="heading" style={styles.timerText}>
@@ -236,7 +243,16 @@ function PracticeTimerCard({
         </AppText>
       ) : null}
       <View style={styles.timerActions}>
-        <AppButton onPress={alreadyCompleted || timerComplete ? onSavePress : onStartPress}>
+        <AppButton
+          testID={
+            alreadyCompleted
+              ? "bloom.reset.saved-action"
+              : timerComplete
+                ? "bloom.reset.complete"
+                : "bloom.reset.practice.start"
+          }
+          onPress={alreadyCompleted || timerComplete ? onSavePress : onStartPress}
+        >
           {buttonLabel}
         </AppButton>
         <Pressable
