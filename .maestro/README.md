@@ -1,20 +1,51 @@
 # Bloom Maestro E2E
 
-These flows exercise the installed Bloom iOS development build through the Expo Development
-Client. They run visibly in the booted iOS Simulator.
+These flows exercise the separately installed Bloom E2E iOS development build through the Expo
+Development Client. They run visibly in the booted iOS Simulator and target only
+`com.umutcyilmaz.bloom.e2e`.
 
 ## Prerequisites
 
 - A booted iOS Simulator
-- The Bloom development build (`com.umutcyilmaz.bloom`) installed in that Simulator
+- The Bloom E2E development build (`com.umutcyilmaz.bloom.e2e`) installed in that Simulator
 - Maestro CLI and Java 17 or newer installed
-- E2E Metro running on port `8082`
+- Port `8082` available for E2E Metro
 
-Stop any normal Metro process, then start Metro in development-only E2E mode:
+## Local E2E Workflow
 
-```sh
-npm run start:e2e
-```
+1. Stop any normal Metro process before starting the E2E workflow.
+2. Start Metro in development-only E2E mode on canonical `localhost:8082`, and leave this terminal
+   running:
+
+   ```sh
+   npm run start:e2e
+   ```
+
+   If the Development Client launcher exposes only a LAN address instead, the bootstrap also
+   accepts an IPv4 URL ending exactly in `:8082`; it never selects port `8081` or another port.
+3. In another terminal, build and install Bloom E2E when it is not installed or its native
+   configuration is stale:
+
+   ```sh
+   npm run ios:e2e
+   ```
+
+   After an application-identity or other native configuration change, regenerate the local native
+   project first, then build and install:
+
+   ```sh
+   npm run ios:e2e:rebuild
+   npm run ios:e2e
+   ```
+
+   `ios:e2e` applies the E2E Expo configuration, then builds and installs the development client
+   while explicitly requesting port `8082`. Expo SDK 54's `run:ios` command does not expose a
+   localhost host flag, so starting the canonical localhost server first lets the native launch
+   reuse it. `ios:e2e:rebuild` explicitly deletes and regenerates the local gitignored `ios` project.
+   The clean rebuild is not part of an ordinary Metro start and should be used only when native
+   regeneration is required.
+
+4. Run the appropriate Maestro command from the list below.
 
 Metro must be restarted when switching between normal and E2E mode because Expo public
 environment variables are embedded in the JavaScript bundle.
@@ -25,12 +56,19 @@ The Bloom state debug route and onboarding quiz scoring preview are development-
 by `__DEV__`. Production builds redirect away from `/debug/bloom-state` to the safest normal entry
 and never mount the debug screen.
 
-Maestro requires the Expo Development Client. `EXPO_PUBLIC_E2E_MODE=1` only enables development
-timer shortcuts when `__DEV__` is true; it cannot enable the debug route or scoring preview in a
-release build.
+Maestro requires the Bloom E2E Expo Development Client. `npm run start:e2e` sets
+`APP_VARIANT=e2e` and `EXPO_PUBLIC_E2E_MODE=1`, then starts Expo with `--dev-client`, `--localhost`,
+and `--port 8082`.
 
-These flows still use Bloom's normal shared bundle ID (`com.umutcyilmaz.bloom`). A distinct E2E app
-identity and data container remain follow-up work; this change does not alter native identity.
+`EXPO_PUBLIC_E2E_MODE=1` only enables development timer shortcuts when `__DEV__` is true; it cannot
+select the native E2E application identity by itself, and it cannot enable the debug route or
+scoring preview in a release build.
+
+Bloom (`com.umutcyilmaz.bloom`) and Bloom E2E (`com.umutcyilmaz.bloom.e2e`) are separate installed
+applications with separate data containers. Every Maestro flow targets Bloom E2E, so its retained
+`clearState` operation clears only Bloom E2E. Never change Maestro back to the normal Bloom bundle
+identifier, and never copy normal Bloom data into the E2E container.
+
 Automated runs must use synthetic debug fixtures only, never real personal data. Treat screenshots,
 videos, and hierarchy output as potentially sensitive even when they contain synthetic fixtures.
 
@@ -123,14 +161,17 @@ npm start
 ## Development Client Bootstrap
 
 The top-level flows call `subflows/open-bloom.yaml`. Clearing app state also resets the Expo
-Development Client launcher, so this helper reconnects to `http://localhost:8082`, closes the
-developer menu, handles the optional Continue screen, and waits for a stable Bloom test ID.
-Cold JavaScript bundle loads use intentionally generous timeouts. The tests remain visible live
-in the iOS Simulator throughout each flow.
+Development Client launcher, so this helper prefers the canonical `http://localhost:8082` row and
+falls back to an IPv4 LAN URL only when it also ends exactly in `:8082`. The connected-state check
+enforces the same host and port boundary before closing the developer menu. The helper then handles
+the optional Continue screen and waits for a stable Bloom test ID. Cold JavaScript bundle loads use
+intentionally generous timeouts. The tests remain visible live in the iOS Simulator throughout
+each flow.
 
-Core flows then open the development-only state screen through the registered `tms` scheme and
-start a deterministic debug profile. This avoids repeating onboarding while still exercising the
-real result screen and user-facing navigation.
+Core flows then open the development-only state screen through the Bloom E2E `tms-e2e` scheme and
+start a deterministic synthetic debug profile. This avoids repeating onboarding while still
+exercising the real result screen and user-facing navigation. The normal Bloom `tms` scheme is not
+used by Maestro.
 
 ## Inspecting Selectors
 

@@ -8,6 +8,8 @@ This is a repository-grounded implementation audit, not a legal privacy policy o
 
 > **Post-audit implementation status (2026-08-02):** On `fix/production-debug-guards`, after the audited commit, Bloom added a shared `__DEV__`-only debug-tools boundary, guarded the quiz scoring preview and `/debug/bloom-state`, routed release access to `/`, replaced the selected-value Arousal mode test ID, and added `npm run verify:release-debug-guards`. The original findings below remain the evidence for the audited commit. Maestro still shares the normal bundle identifier; a distinct E2E application identity remains follow-up work.
 
+> **Post-audit E2E identity status (2026-08-02):** On `fix/separate-e2e-app-identity`, after the audited commit and release-guard follow-up, Bloom addressed the shared-identity finding by assigning the local E2E development client its own `com.umutcyilmaz.bloom.e2e` application identity and `tms-e2e` URL scheme. Maestro now targets only that isolated identity. The original shared-identity finding remains the evidence for the audited commit.
+
 ## 1. Executive summary
 
 Bloom has one runtime persistence authority. Native builds use AsyncStorage, web uses `window.localStorage`, and the whole `BloomLocalState` is serialized as JSON under `bloom.localState.v2` (`src/storage/storageClient.ts:11-31`, `src/storage/bloomStatePersistence.ts:65-76`). No independent feature key, backend, authentication store, analytics client, telemetry client, remote AI call, export/share path, or persisted Demo/E2E namespace was found in `app`, `src`, or the runtime dependencies in `package.json`.

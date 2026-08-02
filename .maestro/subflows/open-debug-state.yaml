@@ -1,6 +1,6 @@
-appId: com.umutcyilmaz.bloom
+appId: com.umutcyilmaz.bloom.e2e
 ---
-- openLink: "tms:///debug/bloom-state"
+- openLink: "tms-e2e:///debug/bloom-state"
 
 - runFlow:
     when:

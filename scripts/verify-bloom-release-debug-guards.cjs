@@ -441,9 +441,9 @@ function verifyDevelopmentSources() {
     "src/constants/navigation.ts: development debug route must remain registered."
   );
   assertInvariant(
-    bootstrapSource.includes("tms:///debug/bloom-state") &&
+    bootstrapSource.includes("tms-e2e:///debug/bloom-state") &&
       bootstrapSource.includes("bloom.debug.state"),
-    ".maestro/subflows/open-debug-state.yaml: development deep-link bootstrap must remain."
+    ".maestro/subflows/open-debug-state.yaml: E2E development deep-link bootstrap must remain."
   );
 }
 

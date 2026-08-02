@@ -1,4 +1,4 @@
-appId: com.umutcyilmaz.bloom
+appId: com.umutcyilmaz.bloom.e2e
 name: Bloom onboarding smoke
 ---
 - runFlow:
