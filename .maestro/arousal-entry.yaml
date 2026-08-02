@@ -87,7 +87,7 @@ name: Bloom Arousal Control entry
       id: "bloom.arousal.practice"
     timeout: 30000
 - assertVisible:
-    id: "bloom.arousal.practice.mode.practicePlus"
+    id: "bloom.arousal.practice.mode"
 - assertVisible: "Notice where you are."
 - assertVisible: "Current arousal level"
 - scrollUntilVisible:

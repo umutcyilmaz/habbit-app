@@ -10,6 +10,7 @@ import { AppIconButton } from "../../../shared/components/AppIconButton";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
+import { debugToolsEnabled } from "../../../shared/runtime/debugTools";
 import {
   calculateQuizResultPreview,
   frequencyAnswers,
@@ -26,8 +27,6 @@ import {
 } from "../quiz";
 
 const totalQuestions = quizQuestions.length;
-// TODO: disable before production release.
-const SHOW_QUIZ_SCORING_PREVIEW = true;
 const previewScoreAreas = ["PL", "PP", "CT", "FC"] as const;
 const frequencyAnswerTestIds: Record<FrequencyAnswerValue, string> = {
   0: "bloom.quiz.answer.never",
@@ -134,7 +133,7 @@ export function OnboardingQuizScreen() {
           ) : null}
         </View>
 
-        {SHOW_QUIZ_SCORING_PREVIEW ? (
+        {debugToolsEnabled ? (
           <TestScoringPreviewPanel
             question={currentQuestion}
             answers={answers}

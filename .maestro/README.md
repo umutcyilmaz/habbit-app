@@ -19,6 +19,21 @@ npm run start:e2e
 Metro must be restarted when switching between normal and E2E mode because Expo public
 environment variables are embedded in the JavaScript bundle.
 
+## Debug Tools and Test Data
+
+The Bloom state debug route and onboarding quiz scoring preview are development-only tools guarded
+by `__DEV__`. Production builds redirect away from `/debug/bloom-state` to the safest normal entry
+and never mount the debug screen.
+
+Maestro requires the Expo Development Client. `EXPO_PUBLIC_E2E_MODE=1` only enables development
+timer shortcuts when `__DEV__` is true; it cannot enable the debug route or scoring preview in a
+release build.
+
+These flows still use Bloom's normal shared bundle ID (`com.umutcyilmaz.bloom`). A distinct E2E app
+identity and data container remain follow-up work; this change does not alter native identity.
+Automated runs must use synthetic debug fixtures only, never real personal data. Treat screenshots,
+videos, and hierarchy output as potentially sensitive even when they contain synthetic fixtures.
+
 ## Commands
 
 Run the onboarding smoke test:

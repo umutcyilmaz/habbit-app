@@ -16,6 +16,7 @@ import { AppHeader } from "../../../shared/components/AppHeader";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
+import { debugToolsEnabled } from "../../../shared/runtime/debugTools";
 import {
   getLatestValidArousalLog,
   isValidCompletedArousalLog,
@@ -27,7 +28,6 @@ import {
 import { formatArousalPauseCount } from "../../arousal-control/practiceSubmission";
 
 const resetDayMarkers = Array.from({ length: 10 }, (_, index) => index + 1);
-const isDevelopment = typeof __DEV__ !== "undefined" && __DEV__;
 
 type RoadmapStatus = "done" | "current" | "next";
 
@@ -119,7 +119,7 @@ export function ProgressScreen() {
           onPress={(route) => router.push(route)}
         />
 
-        {isDevelopment ? (
+        {debugToolsEnabled ? (
           <AppCard style={styles.debugCard}>
             <View style={styles.cardStack}>
               <View style={styles.sectionHeader}>

@@ -177,7 +177,7 @@ export function MainPracticeScreen() {
       <View style={styles.stack}>
         <AppCard testID="bloom.arousal.practice" style={styles.practiceCard}>
           <View
-            testID={`bloom.arousal.practice.mode.${draft.mode}`}
+            testID="bloom.arousal.practice.mode"
             style={styles.cardStack}
           >
             <View style={styles.copy}>
