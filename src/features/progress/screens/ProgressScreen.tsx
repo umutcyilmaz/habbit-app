@@ -236,7 +236,7 @@ function getCurrentAction(action: NextBloomAction): CurrentAction {
       return {
         ...shared,
         title: "Complete onboarding.",
-        body: "Answer a few private questions so Bloom can suggest your first path."
+        body: "Answer a few personal questions so Bloom can suggest your first path."
       };
     case "startQuickCheckIn":
       return {

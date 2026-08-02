@@ -11,12 +11,12 @@ import { theme } from "../../../shared/design-system/theme";
 
 const cards = [
   {
-    title: "You choose what to answer",
-    body: "Sensitive questions can be skipped anytime."
+    title: "Quiz choices",
+    body: "The trigger question can be skipped. Frequency questions currently require an answer."
   },
   {
-    title: "You control what is saved",
-    body: "You can review and delete your history from Data Controls."
+    title: "Delete Bloom’s local data",
+    body: "Data Controls can remove Bloom’s data from this app’s or browser’s local storage."
   },
   {
     title: "Patterns, not judgment",
@@ -32,7 +32,7 @@ export function PrivacyOverviewScreen() {
       <AppHeader
         eyebrow="Settings"
         title="Privacy Overview"
-        subtitle="A simple view of how this app handles personal reflections."
+        subtitle="A summary of Bloom’s current local-data controls."
       />
 
       <View style={styles.stack}>

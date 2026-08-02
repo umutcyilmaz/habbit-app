@@ -37,7 +37,7 @@ export function DataControlsScreen() {
       <AppHeader
         eyebrow="Settings"
         title="Data Controls"
-        subtitle="Review and manage data stored on this device."
+        subtitle="See what Bloom stores and delete its data from this app or browser."
       />
 
       <View style={styles.stack}>
@@ -45,8 +45,9 @@ export function DataControlsScreen() {
           <View style={styles.cardStack}>
             <AppText variant="title">What this app stores</AppText>
             <AppText tone="secondary">
-              Check-ins, pause sessions, and protection preferences may be used to personalize your
-              experience.
+              Bloom stores onboarding answers and results; check-ins; Pause and Arousal Control
+              drafts and records; Reset progress; Protection preferences; optional notes; and
+              supporting dates, times, and identifiers.
             </AppText>
           </View>
         </AppCard>
@@ -75,7 +76,7 @@ export function DataControlsScreen() {
             <AppText variant="title">Delete local data</AppText>
             <AppText tone="secondary">
               This removes your onboarding result, plans, Reset progress,
-              practice records, and other Bloom data stored on this device.
+              practice records, and other Bloom data from this app’s or browser’s local storage.
             </AppText>
             {confirmingDeletion ? (
               <View style={styles.confirmation}>

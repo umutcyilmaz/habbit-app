@@ -93,7 +93,7 @@ function getTodayHeroState({
       return {
         statusLabel: null,
         title: "Complete your starting point.",
-        body: "Answer a few private questions so Bloom can suggest a simple first path.",
+        body: "Answer a few personal questions so Bloom can suggest a simple first path.",
         primaryAction,
         primaryRoute: action.route
       };

@@ -15,14 +15,15 @@ export function SettingsHomeScreen() {
 
   return (
     <AppScreen>
-      <AppHeader title="Settings" subtitle="Manage privacy, preferences, and account options." />
+      <AppHeader title="Settings" subtitle="Manage privacy and preferences." />
 
       <View style={styles.stack}>
         <AppCard style={styles.trustCard}>
           <View style={styles.cardStack}>
-            <AppText variant="title">Your space, your control</AppText>
+            <AppText variant="title">Your data controls</AppText>
             <AppText tone="secondary">
-              You choose what to record, what to skip, and what to delete.
+              Choose optional details to record, and use Data Controls to delete Bloom’s data from
+              this app’s or browser’s local storage.
             </AppText>
           </View>
         </AppCard>

@@ -39,7 +39,7 @@ export function OnboardingIntroScreen() {
             Let’s find your starting point.
           </AppText>
           <AppText tone="secondary" align="center" style={styles.subtitle}>
-            Answer a few private questions so Bloom can suggest a simple first path.
+            Answer a few personal questions so Bloom can suggest a simple first path.
           </AppText>
         </View>
 
@@ -63,7 +63,8 @@ export function OnboardingIntroScreen() {
 
         <View style={styles.privacyNote}>
           <AppText variant="bodySmall" tone="secondary" align="center">
-            Your answers stay private on this device.
+            When you finish, Bloom stores your answers in this app’s or browser’s local storage.
+            Data Controls in Settings can delete Bloom’s locally stored data.
           </AppText>
         </View>
 
