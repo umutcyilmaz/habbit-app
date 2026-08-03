@@ -25,14 +25,30 @@ export function AppButton({
   variant = "primary",
   loading = false,
   disabled,
+  accessibilityLabel,
+  accessibilityState,
   style,
   ...props
 }: AppButtonProps) {
-  const isDisabled = disabled || loading;
+  const isDisabled = Boolean(disabled || loading);
+
+  const resolvedAccessibilityLabel =
+    accessibilityLabel ??
+    (loading && (typeof children === "string" || typeof children === "number")
+      ? String(children)
+      : undefined);
+
+  const resolvedAccessibilityState = {
+    ...accessibilityState,
+    disabled: isDisabled,
+    busy: loading ? true : accessibilityState?.busy,
+  };
 
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={resolvedAccessibilityLabel}
+      accessibilityState={resolvedAccessibilityState}
       disabled={isDisabled}
       {...props}
       style={({ pressed }) => [
