@@ -44,34 +44,34 @@ const styles = StyleSheet.create({
     letterSpacing: 0
   },
   heading: {
+    fontFamily: theme.typography.family.bold,
     fontSize: theme.typography.size.heading,
-    lineHeight: theme.typography.lineHeight.heading,
-    fontWeight: theme.typography.weight.bold
+    lineHeight: theme.typography.lineHeight.heading
   },
   title: {
+    fontFamily: theme.typography.family.semibold,
     fontSize: theme.typography.size.title,
-    lineHeight: theme.typography.lineHeight.title,
-    fontWeight: theme.typography.weight.semibold
+    lineHeight: theme.typography.lineHeight.title
   },
   body: {
+    fontFamily: theme.typography.family.regular,
     fontSize: theme.typography.size.body,
-    lineHeight: theme.typography.lineHeight.body,
-    fontWeight: theme.typography.weight.regular
+    lineHeight: theme.typography.lineHeight.body
   },
   bodySmall: {
+    fontFamily: theme.typography.family.regular,
     fontSize: theme.typography.size.bodySmall,
-    lineHeight: theme.typography.lineHeight.bodySmall,
-    fontWeight: theme.typography.weight.regular
+    lineHeight: theme.typography.lineHeight.bodySmall
   },
   caption: {
+    fontFamily: theme.typography.family.medium,
     fontSize: theme.typography.size.caption,
-    lineHeight: theme.typography.lineHeight.caption,
-    fontWeight: theme.typography.weight.medium
+    lineHeight: theme.typography.lineHeight.caption
   },
   label: {
+    fontFamily: theme.typography.family.semibold,
     fontSize: theme.typography.size.bodySmall,
-    lineHeight: theme.typography.lineHeight.bodySmall,
-    fontWeight: theme.typography.weight.semibold
+    lineHeight: theme.typography.lineHeight.bodySmall
   }
 });
 

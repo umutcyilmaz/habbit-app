@@ -1,8 +1,13 @@
 export const typography = {
   family: {
-    regular: undefined,
-    medium: undefined,
-    semibold: undefined
+    regular: "Inter_400Regular",
+    medium: "Inter_500Medium",
+    semibold: "Inter_600SemiBold",
+    bold: "Inter_700Bold",
+    mono: "JetBrainsMono_400Regular",
+    monoMedium: "JetBrainsMono_500Medium",
+    monoSemibold: "JetBrainsMono_600SemiBold",
+    monoBold: "JetBrainsMono_700Bold"
   },
   size: {
     caption: 12,
