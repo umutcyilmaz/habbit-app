@@ -1,0 +1,674 @@
+{
+  "$description": "Bloom / Urge Control Design System — canonical tokens (DTCG-aligned). Semantic tokens hold REAL references, not copied values. Resolved values are produced at build time, never hand-maintained.",
+  "$meta": {
+    "version": "2.0",
+    "previousVersion": "1.0",
+    "theme": "dark",
+    "modes": ["Dark"],
+    "unitPolicy": "1 Figma px = 1 React Native logical unit = 1 pt (iOS) = 1 dp (Android). Never physical device pixels.",
+    "referenceViewport": { "width": 402, "height": 874, "$comment": "safe-area excluded content box" },
+    "layout": { "horizontalPadding": 24, "resolvedContentWidth": 354, "halfColumnWidth": 172 },
+    "namingRule": {
+      "slashToNesting": "color/bg/canvas -> colors.bg.canvas",
+      "kebabToCamel": "surface-elevated -> surfaceElevated",
+      "spaceToCamel": "Icon Button -> iconButton",
+      "components": "displayName preserved, machine id derived"
+    },
+    "counts": {
+      "primitives": 55, "semantic": 48, "spacing": 18, "radius": 7,
+      "size": 25, "motion": 9, "totalVariables": 162,
+      "textStyles": 17, "shadowStyles": 6,
+      "componentSets": 11, "singleComponents": 17, "totalVariants": 87
+    },
+    "deprecated": []
+  },
+
+  "primitives": {
+    "neutral": {
+      "975": { "$type": "color", "$value": "#0B0B0C" },
+      "950": { "$type": "color", "$value": "#111111" },
+      "925": { "$type": "color", "$value": "#161618" },
+      "900": { "$type": "color", "$value": "#1C1C1E" },
+      "875": { "$type": "color", "$value": "#222222" },
+      "850": { "$type": "color", "$value": "#272729" },
+      "800": { "$type": "color", "$value": "#2A2A2A" },
+      "775": { "$type": "color", "$value": "#2F2F2F" },
+      "750": { "$type": "color", "$value": "#333333" },
+      "700": { "$type": "color", "$value": "#424242" },
+      "600": { "$type": "color", "$value": "#555555" },
+      "500": { "$type": "color", "$value": "#666666" },
+      "450": { "$type": "color", "$value": "#767C85" },
+      "430": { "$type": "color", "$value": "#81858C" },
+      "400": { "$type": "color", "$value": "#8A9099" },
+      "300": { "$type": "color", "$value": "#A0A0A0" },
+      "200": { "$type": "color", "$value": "#E0E0E0" },
+      "100": { "$type": "color", "$value": "#F0F0F0" },
+      "0":   { "$type": "color", "$value": "#FFFFFF" }
+    },
+    "blue": {
+      "900": { "$type": "color", "$value": "#12173A" },
+      "700": { "$type": "color", "$value": "#1A2050" },
+      "600": { "$type": "color", "$value": "#0044CC" },
+      "500": { "$type": "color", "$value": "#2B4AFF" },
+      "400": { "$type": "color", "$value": "#3D5CE6" },
+      "300": { "$type": "color", "$value": "#5B8FDF" },
+      "200": { "$type": "color", "$value": "#8FB3EC" },
+      "100": { "$type": "color", "$value": "#C3D6F5" }
+    },
+    "green": {
+      "700": { "$type": "color", "$value": "#1E7A38" },
+      "500": { "$type": "color", "$value": "#34C759" },
+      "300": { "$type": "color", "$value": "#7BE095" }
+    },
+    "red": {
+      "700": { "$type": "color", "$value": "#C0261C" },
+      "500": { "$type": "color", "$value": "#FF453A" },
+      "300": { "$type": "color", "$value": "#FF8F87" }
+    },
+    "amber": {
+      "900": { "$type": "color", "$value": "#2A1F10" },
+      "600": { "$type": "color", "$value": "#B85E22" },
+      "500": { "$type": "color", "$value": "#E07030" },
+      "400": { "$type": "color", "$value": "#E0A060" },
+      "300": { "$type": "color", "$value": "#F0C08A" }
+    },
+    "base": { "black": { "$type": "color", "$value": "#000000" } },
+    "alpha": {
+      "white05": { "$type": "color", "$value": "rgba(255,255,255,0.05)" },
+      "white08": { "$type": "color", "$value": "rgba(255,255,255,0.08)" },
+      "white12": { "$type": "color", "$value": "rgba(255,255,255,0.12)" },
+      "white30": { "$type": "color", "$value": "rgba(255,255,255,0.30)" },
+      "white60": { "$type": "color", "$value": "rgba(255,255,255,0.60)" },
+      "white82": { "$type": "color", "$value": "rgba(255,255,255,0.82)" },
+      "blue22":  { "$type": "color", "$value": "rgba(61,92,230,0.22)" },
+      "blue35":  { "$type": "color", "$value": "rgba(61,92,230,0.35)" },
+      "blue45":  { "$type": "color", "$value": "rgba(61,92,230,0.45)" },
+      "green15": { "$type": "color", "$value": "rgba(52,199,89,0.15)" },
+      "green30": { "$type": "color", "$value": "rgba(52,199,89,0.30)" },
+      "red12":   { "$type": "color", "$value": "rgba(255,69,58,0.12)" },
+      "red30":   { "$type": "color", "$value": "rgba(255,69,58,0.30)" },
+      "amber30": { "$type": "color", "$value": "rgba(224,160,96,0.30)" },
+      "black40": { "$type": "color", "$value": "rgba(0,0,0,0.40)" },
+      "black60": { "$type": "color", "$value": "rgba(0,0,0,0.60)" }
+    }
+  },
+
+  "semantic": {
+    "bg": {
+      "canvas":          { "$type": "color", "$value": "{primitives.neutral.950}", "$description": "Screen background" },
+      "surface":         { "$type": "color", "$value": "{primitives.neutral.900}", "$description": "Card and row surface" },
+      "surfaceRaised":   { "$type": "color", "$value": "{primitives.neutral.875}", "$description": "Hero card, sheet, modal" },
+      "surfaceElevated": { "$type": "color", "$value": "{primitives.neutral.800}", "$description": "Input, chip, icon badge" },
+      "surfaceHover":    { "$type": "color", "$value": "{primitives.neutral.775}", "$description": "Hover / pressed surface" },
+      "surfaceSunken":   { "$type": "color", "$value": "{primitives.neutral.975}", "$description": "Recessed area" },
+      "inverse":         { "$type": "color", "$value": "{primitives.neutral.0}",   "$description": "Inverse contrast surface" },
+      "overlay":         { "$type": "color", "$value": "{primitives.alpha.black60}", "$description": "Modal / sheet scrim" },
+      "accentSubtle":    { "$type": "color", "$value": "{primitives.alpha.blue22}" },
+      "successSubtle":   { "$type": "color", "$value": "{primitives.alpha.green15}" },
+      "dangerSubtle":    { "$type": "color", "$value": "{primitives.alpha.red12}" },
+      "warningSubtle":   { "$type": "color", "$value": "{primitives.amber.900}" },
+      "infoSubtle":      { "$type": "color", "$value": "{primitives.blue.900}" }
+    },
+    "action": {
+      "primary":          { "$type": "color", "$value": "{primitives.blue.500}" },
+      "primaryPressed":   { "$type": "color", "$value": "{primitives.blue.600}" },
+      "primaryDisabled":  { "$type": "color", "$value": "{primitives.neutral.800}" },
+      "secondary":        { "$type": "color", "$value": "{primitives.neutral.800}" },
+      "secondaryPressed": { "$type": "color", "$value": "{primitives.neutral.775}" }
+    },
+    "accent": {
+      "primary": { "$type": "color", "$value": "{primitives.blue.500}" },
+      "success": { "$type": "color", "$value": "{primitives.green.500}" },
+      "warning": { "$type": "color", "$value": "{primitives.amber.500}" },
+      "danger":  { "$type": "color", "$value": "{primitives.red.500}" }
+    },
+    "text": {
+      "primary":     { "$type": "color", "$value": "{primitives.neutral.0}",   "$description": "Headings and main text" },
+      "primarySoft": { "$type": "color", "$value": "{primitives.neutral.100}", "$description": "Softened heading" },
+      "secondary":   { "$type": "color", "$value": "{primitives.neutral.400}", "$description": "Descriptive text the user is expected to READ" },
+      "tertiary":    { "$type": "color", "$value": "{primitives.neutral.300}" },
+      "muted":       { "$type": "color", "$value": "{primitives.neutral.430}", "$description": "Meta info the user is expected to SCAN, not read" },
+      "disabled":    { "$type": "color", "$value": "{primitives.neutral.600}", "$description": "Inactive; WCAG 1.4.3 exempt — see spec 6.2" },
+      "onPrimary":   { "$type": "color", "$value": "{primitives.neutral.0}" },
+      "onInverse":   { "$type": "color", "$value": "{primitives.neutral.950}" },
+      "onAccent":    { "$type": "color", "$value": "{primitives.neutral.0}" },
+      "accent":      { "$type": "color", "$value": "{primitives.blue.300}" },
+      "link":        { "$type": "color", "$value": "{primitives.blue.300}" },
+      "success":     { "$type": "color", "$value": "{primitives.green.500}" },
+      "danger":      { "$type": "color", "$value": "{primitives.red.300}" },
+      "warning":     { "$type": "color", "$value": "{primitives.amber.400}" },
+      "info":        { "$type": "color", "$value": "{primitives.blue.200}" }
+    },
+    "border": {
+      "subtle":   { "$type": "color", "$value": "{primitives.alpha.white05}" },
+      "default":  { "$type": "color", "$value": "{primitives.neutral.800}" },
+      "strong":   { "$type": "color", "$value": "{primitives.neutral.750}" },
+      "muted":    { "$type": "color", "$value": "{primitives.neutral.600}" },
+      "selected": { "$type": "color", "$value": "{primitives.alpha.white30}" },
+      "focus":    { "$type": "color", "$value": "{primitives.alpha.blue45}" },
+      "accent":   { "$type": "color", "$value": "{primitives.alpha.blue35}" },
+      "success":  { "$type": "color", "$value": "{primitives.green.500}" },
+      "danger":   { "$type": "color", "$value": "{primitives.red.500}" },
+      "warning":  { "$type": "color", "$value": "{primitives.amber.400}" },
+      "info":     { "$type": "color", "$value": "{primitives.blue.400}" }
+    }
+  },
+
+  "spacing": {
+    "$type": "dimension",
+    "xs3": { "$value": 2 }, "xs2": { "$value": 4 }, "xs": { "$value": 8 },
+    "sm": { "$value": 12 }, "md": { "$value": 16 }, "lg": { "$value": 20 },
+    "xl": { "$value": 24 }, "xl2": { "$value": 32 }, "xl3": { "$value": 48 },
+    "layout": {
+      "$description": "Named layout roles. RULE: every layout role must be a multiple of 4. New screens must not invent intermediate values.",
+      "screenX":      { "$value": 24, "$description": "Screen horizontal padding, constant on every screen" },
+      "sectionGap":   { "$value": 28, "$description": "Between major sections (28 = 4x7, valid on the 4-base grid)" },
+      "cardPadding":  { "$value": 16, "$description": "Standard card padding; hero card uses 24" },
+      "cardGap":      { "$value": 12 },
+      "formGap":      { "$value": 12 },
+      "listGap":      { "$value": 12, "$description": "v1 was 10 which broke the 4-base rule" },
+      "inlineGap":    { "$value": 8 },
+      "sheetPadding": { "$value": 20 },
+      "navClearance": { "$value": 88, "$description": "Add bottom safe-area inset on top of this" }
+    }
+  },
+
+  "radius": {
+    "$type": "dimension",
+    "xs":   { "$value": 3,    "$description": "Thin decorative indicators" },
+    "sm":   { "$value": 8,    "$description": "Chip, value chip, stepper, scale cell, skeleton" },
+    "md":   { "$value": 11,   "$description": "Small status card" },
+    "lg":   { "$value": 14,   "$description": "Button, input, standard card, option row, setting row, list row, alert card, stat card, toggle" },
+    "xl":   { "$value": 16,   "$description": "Panel, grouped block" },
+    "xxl":  { "$value": 24,   "$description": "Hero card, modal, bottom sheet top corners" },
+    "pill": { "$value": 9999, "$description": "Icon button, status pill, avatar, progress bar track and fill" }
+  },
+
+  "size": {
+    "$type": "dimension",
+    "icon":  { "xs": { "$value": 16 }, "sm": { "$value": 20 }, "md": { "$value": 24 }, "lg": { "$value": 28 } },
+    "touch": { "min": { "$value": 44, "$description": "WCAG minimum hit area; applies even when the visual is smaller" } },
+    "control": {
+      "xs": { "$value": 34, "$description": "Top App Bar visual circle (hit area is touch.min)" },
+      "sm": { "$value": 44 }, "md": { "$value": 52 }, "lg": { "$value": 58 }
+    },
+    "badge":  { "sm": { "$value": 38 }, "md": { "$value": 52 }, "lg": { "$value": 62 } },
+    "toggle": { "width": { "$value": 46 }, "height": { "$value": 27 }, "knob": { "$value": 21 } },
+    "radio":  { "$value": 20 },
+    "chip":   { "$value": 34 },
+    "scaleCell": { "width": { "$value": 46 }, "height": { "$value": 34 } },
+    "grabber":   { "width": { "$value": 40 }, "height": { "$value": 4 } },
+    "stroke":    { "hairline": { "$value": 1 }, "icon": { "$value": 1.6 } },
+    "ring":      { "timer": { "$value": 212 } },
+    "progress":  { "height": { "$value": 8 } }
+  },
+
+  "motion": {
+    "duration": {
+      "$type": "duration",
+      "instant":  { "$value": "0ms",   "$description": "Reduced-motion fallback for every duration" },
+      "fast":     { "$value": "120ms", "$description": "Pressed states, toggle knob, chip selection, focus ring" },
+      "standard": { "$value": "220ms", "$description": "General state change, alert enter/exit, progress fill" },
+      "slow":     { "$value": "320ms", "$description": "Modal open/close, skeleton shimmer loop" },
+      "sheet":    { "$value": "280ms", "$description": "Bottom sheet slide" }
+    },
+    "easing": {
+      "$type": "cubicBezier",
+      "standard":   { "$value": [0.2, 0, 0, 1] },
+      "decelerate": { "$value": [0, 0, 0, 1], "$description": "Entering elements" },
+      "accelerate": { "$value": [0.3, 0, 1, 1], "$description": "Exiting elements" }
+    },
+    "reducedMotion": {
+      "$description": "When AccessibilityInfo.isReduceMotionEnabled() is true",
+      "policy": {
+        "allDurations": "0ms",
+        "disable": ["translate", "scale"],
+        "keep": ["opacity crossfade"],
+        "skeletonShimmer": "static"
+      }
+    },
+    "componentMapping": {
+      "button": "fast / standard",
+      "iconButton": "fast / standard",
+      "chip": "fast / standard",
+      "scaleCell": "fast / standard",
+      "toggle": "fast / standard",
+      "inputFocusRing": "fast / standard",
+      "alertCard": "standard / decelerate on enter, accelerate on exit",
+      "progressBar": "standard / standard",
+      "timerRing": "no animation — steps once per second",
+      "modal": "slow / decelerate on open, accelerate on close",
+      "bottomSheet": "sheet / decelerate on open, accelerate on close",
+      "skeleton": "slow loop / standard"
+    }
+  },
+
+  "typography": {
+    "$fontSources": {
+      "@expo-google-fonts/inter": ["Inter_400Regular", "Inter_500Medium", "Inter_600SemiBold", "Inter_700Bold"],
+      "@expo-google-fonts/jetbrains-mono": ["JetBrainsMono_400Regular", "JetBrainsMono_500Medium", "JetBrainsMono_800ExtraBold_Italic"],
+      "$note": "7 font files total. No synthetic bold or italic — italic and ExtraBold ship as real files."
+    },
+    "display":      { "fontFamily": "Inter_700Bold",      "fontSize": 24, "lineHeight": 32,   "letterSpacing": 0,   "$description": "Hero / onboarding title, max once per screen" },
+    "heading1":     { "fontFamily": "Inter_700Bold",      "fontSize": 20, "lineHeight": 28,   "letterSpacing": 0,   "$description": "Primary screen title, one per screen" },
+    "heading2":     { "fontFamily": "Inter_600SemiBold",  "fontSize": 17, "lineHeight": 25.5, "letterSpacing": 0 },
+    "title":        { "fontFamily": "Inter_600SemiBold",  "fontSize": 16, "lineHeight": 24,   "letterSpacing": 0 },
+    "titleSmall":   { "fontFamily": "Inter_600SemiBold",  "fontSize": 14, "lineHeight": 20,   "letterSpacing": 0 },
+    "bodyLarge":    { "fontFamily": "Inter_400Regular",   "fontSize": 16, "lineHeight": 24,   "letterSpacing": 0 },
+    "body":         { "fontFamily": "Inter_400Regular",   "fontSize": 14, "lineHeight": 21,   "letterSpacing": 0 },
+    "bodySmall":    { "fontFamily": "Inter_400Regular",   "fontSize": 13, "lineHeight": 19.5, "letterSpacing": 0 },
+    "label":        { "fontFamily": "Inter_600SemiBold",  "fontSize": 14, "lineHeight": 20,   "letterSpacing": 0,   "$description": "Button label, always inside a 44pt touch target" },
+    "labelSmall":   { "fontFamily": "Inter_500Medium",    "fontSize": 12, "lineHeight": 18,   "letterSpacing": 0 },
+    "labelNav":     { "fontFamily": "Inter_500Medium",    "fontSize": 10, "lineHeight": 15,   "letterSpacing": 0 },
+    "caption":      { "fontFamily": "JetBrainsMono_400Regular", "fontSize": 11, "lineHeight": 16.5, "letterSpacing": 0 },
+    "monoBody":     { "fontFamily": "JetBrainsMono_400Regular", "fontSize": 12, "lineHeight": 18,   "letterSpacing": 0 },
+    "monoLabel":    { "fontFamily": "JetBrainsMono_500Medium",  "fontSize": 13, "lineHeight": 19.5, "letterSpacing": 0 },
+    "overline":     { "fontFamily": "JetBrainsMono_500Medium",  "fontSize": 10, "lineHeight": 15,   "letterSpacing": 0.5, "textTransform": "uppercase" },
+    "numericTimer": { "fontFamily": "JetBrainsMono_800ExtraBold_Italic", "fontSize": 32, "lineHeight": 40, "letterSpacing": 0 },
+    "numericValue": { "fontFamily": "JetBrainsMono_500Medium",  "fontSize": 20, "lineHeight": 28,   "letterSpacing": 0 }
+  },
+
+  "shadows": {
+    "$description": "Figma is the source. Platform values preserve visual hierarchy, not exact numeric parity.",
+    "none":     { "figma": null, "ios": null, "androidElevation": 0, "web": "none" },
+    "subtle":   { "figma": { "type": "drop", "x": 0, "y": 1, "blur": 2, "spread": 0, "color": "rgba(0,0,0,0.30)" },
+                  "ios": { "shadowColor": "#000", "shadowOffset": { "width": 0, "height": 1 }, "shadowOpacity": 0.30, "shadowRadius": 2 },
+                  "androidElevation": 1, "web": "0 1px 2px rgba(0,0,0,.30)" },
+    "card":     { "figma": { "type": "drop", "x": 0, "y": 1, "blur": 3, "spread": 0, "color": "rgba(0,0,0,0.40)" },
+                  "ios": { "shadowColor": "#000", "shadowOffset": { "width": 0, "height": 1 }, "shadowOpacity": 0.40, "shadowRadius": 3 },
+                  "androidElevation": 2, "web": "0 1px 3px rgba(0,0,0,.40)" },
+    "floating": { "figma": { "type": "drop", "x": 0, "y": 1, "blur": 4, "spread": 0, "color": "rgba(0,0,0,0.30)" },
+                  "ios": { "shadowColor": "#000", "shadowOffset": { "width": 0, "height": 1 }, "shadowOpacity": 0.30, "shadowRadius": 4 },
+                  "androidElevation": 4, "web": "0 1px 4px rgba(0,0,0,.30)" },
+    "modal":    { "figma": { "type": "drop", "x": 0, "y": -4, "blur": 24, "spread": 0, "color": "rgba(0,0,0,0.60)" },
+                  "ios": { "shadowColor": "#000", "shadowOffset": { "width": 0, "height": -4 }, "shadowOpacity": 0.60, "shadowRadius": 24 },
+                  "androidElevation": 16, "web": "0 -4px 24px rgba(0,0,0,.60)" },
+    "insetField": { "figma": { "type": "inner", "x": 0, "y": 2, "blur": 2.9, "spread": 0, "color": "rgba(0,0,0,0.25)" },
+                  "ios": null, "androidElevation": null, "web": "inset 0 2px 2.9px rgba(0,0,0,.25)",
+                  "reactNative": { "supported": false,
+                    "decision": "V4 uses NO inner shadow. Approved fallback: backgroundColor bg.surfaceElevated + 1px border.strong. Not exported to the RN theme." } }
+  },
+
+  "icons": {
+    "source": "Bloom custom hand-authored SVG set — NOT Lucide, Phosphor or any library",
+    "delivery": "icons/*.svg shipped with this package, one file per name",
+    "viewBox": "0 0 24 24",
+    "grid": 24,
+    "strokeWidth": 1.6,
+    "lineCap": "round",
+    "lineJoin": "round",
+    "fill": "none",
+    "colorBinding": "stroke=\"currentColor\"; bound to a token at the usage site",
+    "set": ["alert","arrow-left","chat","check","chevron-left","chevron-right","clock","close","heart","info","lock","minus","moon","more","phone","plus","shield","shield-check","sun","timer"],
+    "sizeVsTouch": { "$description": "Visual size and hit area are separate", "example": { "topAppBarControl": { "visualSize": 34, "hitArea": 44 } } },
+    "gap": "Bottom Navigation still uses placeholder 'shield' for all five tabs — real tab icons pending"
+  },
+
+  "components": {
+    "button": {
+      "displayName": "Button",
+      "widthBehavior": "fill", "heightBehavior": "fixed",
+      "referenceWidth": 354,
+      "properties": { "variant": ["primary","secondary","ghost","destructive"], "state": ["default","pressed","focused","disabled","loading"] },
+      "variantCount": 20,
+      "height": { "primary": 58, "secondary": 58, "ghost": 44, "destructive": 58 },
+      "layout": { "direction": "horizontal", "gap": 8, "paddingX": "{spacing.xl}", "radius": "{radius.lg}" },
+      "styling": {
+        "primary":     { "fill": "{semantic.action.primary}", "pressed": "{semantic.action.primaryPressed}", "disabled": "{semantic.action.primaryDisabled}", "text": "{semantic.text.onPrimary}", "textStyle": "label" },
+        "secondary":   { "fill": "{semantic.action.secondary}", "pressed": "{semantic.action.secondaryPressed}", "border": "{semantic.border.strong}", "borderWidth": 1, "text": "{semantic.text.primary}", "textStyle": "label" },
+        "ghost":       { "fill": "transparent", "text": "{semantic.text.secondary}", "textStyle": "body", "disabledOpacity": 0.35 },
+        "destructive": { "fill": "{semantic.bg.dangerSubtle}", "disabled": "{semantic.action.primaryDisabled}", "border": "{semantic.border.danger}", "borderWidth": 1.5, "text": "{semantic.text.danger}", "textStyle": "label" }
+      },
+      "focusRing": { "color": "{semantic.border.focus}", "width": 3, "align": "outside" },
+      "loading": { "spinner": 18, "labelBehavior": "loadingLabel if provided, otherwise the existing label is kept — never blanked" },
+      "props": { "label": "string (required, supplied by screen)", "loadingLabel": "string (optional)" },
+      "rules": {
+        "do": "One primary button per screen",
+        "dont": "Never make a destructive action primary",
+        "destructive": "Always paired with a confirmation modal. No single-tap destructive action."
+      }
+    },
+    "iconButton": {
+      "displayName": "Icon Button",
+      "widthBehavior": "fixed", "heightBehavior": "fixed", "size": 44,
+      "properties": { "style": ["filled","outline","plain"], "state": ["default","pressed","disabled"] },
+      "variantCount": 9,
+      "radius": "{radius.pill}", "iconSize": "{size.icon.sm}", "disabledOpacity": 0.35,
+      "styling": {
+        "filled":  { "fill": "{semantic.action.primary}", "pressed": "{semantic.action.primaryPressed}", "icon": "{semantic.text.onPrimary}" },
+        "outline": { "fill": "{semantic.bg.surfaceElevated}", "pressed": "{semantic.bg.surfaceHover}", "border": "{semantic.border.strong}" },
+        "plain":   { "fill": "transparent" }
+      }
+    },
+    "input": {
+      "displayName": "Input",
+      "widthBehavior": "fill", "heightBehavior": "hug",
+      "properties": { "type": ["single","multiline"], "state": ["default","focused","filled","error","success","readOnly","disabled"] },
+      "variantCount": 14,
+      "minHeight": { "single": 52, "multiline": 99 },
+      "layout": { "direction": "vertical", "gap": 6, "paddingX": "{spacing.md}", "paddingY": "{spacing.sm}", "radius": "{radius.lg}" },
+      "fill": "{semantic.bg.surfaceElevated}",
+      "states": {
+        "default":  { "border": "{semantic.border.strong}", "borderWidth": 1 },
+        "focused":  { "border": "{semantic.border.focus}", "borderWidth": 2, "caret": "{semantic.text.accent}" },
+        "filled":   { "border": "{semantic.border.strong}", "borderWidth": 1 },
+        "error":    { "border": "{semantic.border.danger}", "borderWidth": 1.5, "requires": "icon + description text below; colour alone is insufficient" },
+        "success":  { "border": "{semantic.border.success}", "borderWidth": 1.5, "requires": "confirmation text below" },
+        "readOnly": { "border": "{semantic.border.default}", "borderWidth": 1, "fill": "{semantic.bg.surface}", "caret": "none", "selectable": true },
+        "disabled": { "border": "{semantic.border.strong}", "borderWidth": 1, "opacity": 0.4 }
+      },
+      "placeholderStyle": "monoBody + {semantic.text.muted}",
+      "valueStyle": "body + {semantic.text.primary}",
+      "outOfScope": "secure/password state — no password field in the product"
+    },
+    "toggle": {
+      "displayName": "Toggle", "widthBehavior": "fixed", "heightBehavior": "fixed",
+      "size": { "width": "{size.toggle.width}", "height": "{size.toggle.height}", "knob": "{size.toggle.knob}" },
+      "radius": "{radius.lg}",
+      "properties": { "state": ["off","on","disabled"] },
+      "styling": {
+        "off": { "track": "{semantic.bg.surfaceElevated}", "border": "{semantic.border.strong}", "knob": "{semantic.text.muted}", "align": "start" },
+        "on":  { "track": "{semantic.action.primary}", "knob": "{semantic.text.onPrimary}", "align": "end" },
+        "disabled": { "opacity": 0.35 }
+      },
+      "rule": "Wrapped in a 44pt touch target inside rows"
+    },
+    "stepper": {
+      "displayName": "Stepper", "widthBehavior": "hug", "heightBehavior": "hug",
+      "layout": { "gap": 8, "paddingX": 8, "paddingY": 6, "radius": "{radius.sm}" },
+      "fill": "{semantic.bg.surfaceElevated}", "border": "{semantic.border.strong}",
+      "content": "minus icon 14 ({semantic.text.secondary}) + monoLabel value + plus icon 14 ({semantic.text.accent})",
+      "rule": "Arrow at its limit turns {semantic.text.disabled}"
+    },
+    "valueChip": {
+      "displayName": "Value Chip", "widthBehavior": "hug", "heightBehavior": "hug",
+      "layout": { "paddingX": 12, "paddingY": 8, "radius": "{radius.sm}" },
+      "fill": "{semantic.bg.surfaceElevated}", "border": "{semantic.border.strong}", "textStyle": "monoLabel",
+      "rule": "Read-only. If tappable, use Icon Button or Stepper instead."
+    },
+    "chip": {
+      "displayName": "Chip", "widthBehavior": "hug", "heightBehavior": "hug",
+      "properties": { "state": ["default","selected","disabled"] },
+      "layout": { "paddingX": 12, "paddingY": 8, "radius": "{radius.sm}" }, "textStyle": "labelSmall",
+      "styling": {
+        "default":  { "fill": "{semantic.bg.surfaceElevated}", "border": "{semantic.border.strong}", "text": "{semantic.text.primarySoft}" },
+        "selected": { "fill": "{semantic.bg.inverse}", "text": "{semantic.text.onInverse}" },
+        "disabled": { "opacity": 0.4, "text": "{semantic.text.disabled}" }
+      },
+      "selection": "multi", "gapInWrap": "{spacing.layout.inlineGap}"
+    },
+    "optionRow": {
+      "displayName": "Option Row", "widthBehavior": "fill", "heightBehavior": "hug", "minHeight": 52,
+      "properties": { "state": ["default","selected","disabled"] },
+      "layout": { "gap": 12, "paddingX": "{spacing.md}", "radius": "{radius.lg}" },
+      "fill": "{semantic.bg.surfaceElevated}", "radio": "{size.radio}",
+      "styling": {
+        "default":  { "border": "{semantic.border.strong}", "radio": "empty, {semantic.border.muted}" },
+        "selected": { "border": "{semantic.border.selected}", "radio": "filled {semantic.action.primary}" },
+        "disabled": { "opacity": 0.4 }
+      },
+      "selection": "single", "gapBetweenRows": "{spacing.layout.listGap}"
+    },
+    "scaleCell": {
+      "displayName": "Scale Cell", "widthBehavior": "fixed", "heightBehavior": "fixed",
+      "size": { "width": "{size.scaleCell.width}", "height": "{size.scaleCell.height}" },
+      "radius": "{radius.sm}", "textStyle": "titleSmall",
+      "properties": { "state": ["default","selected","highlighted"] },
+      "styling": {
+        "default":     { "fill": "{semantic.bg.surfaceElevated}", "text": "{semantic.text.secondary}" },
+        "selected":    { "fill": "{semantic.action.primary}", "text": "{semantic.text.onPrimary}" },
+        "highlighted": { "fill": "{semantic.bg.inverse}", "text": "{semantic.text.onInverse}" }
+      },
+      "usage": "0-10 intensity scale, 11 cells in 6+5 rows, caption labels at both ends"
+    },
+    "card": {
+      "displayName": "Card", "widthBehavior": "fill", "heightBehavior": "hug",
+      "properties": { "type": ["standard","hero"], "state": ["default","selected","disabled"] },
+      "variantCount": 6,
+      "standard": { "minHeight": 88,  "padding": "{spacing.md}", "radius": "{radius.lg}",  "fill": "{semantic.bg.surface}",       "shadow": "card",     "content": "titleSmall + bodySmall" },
+      "hero":     { "minHeight": 132, "padding": "{spacing.xl}", "radius": "{radius.xxl}", "fill": "{semantic.bg.surfaceRaised}", "shadow": "floating", "content": "overline + heading2 + bodySmall" },
+      "states": { "default": { "border": "{semantic.border.default}", "borderWidth": 1 },
+                  "selected": { "border": "{semantic.border.accent}", "borderWidth": 1.5 },
+                  "disabled": { "opacity": 0.4 } },
+      "rules": { "do": "Hero once per screen", "dont": "Never nest cards" }
+    },
+    "statCard": {
+      "displayName": "Stat Card", "widthBehavior": "fixed", "referenceWidth": 172, "heightBehavior": "hug", "minHeight": 96,
+      "layout": { "padding": "{spacing.sm}", "gap": 8, "radius": "{radius.lg}" },
+      "fill": "{semantic.bg.surfaceElevated}", "border": "{semantic.border.strong}",
+      "content": "overline + numericValue + '/10' + delta caption",
+      "rule": "Delta must use an arrow AND text, never colour alone",
+      "note": "172 = (354 - 10) / 2, half column"
+    },
+    "listRow": {
+      "displayName": "List Row", "widthBehavior": "fill", "heightBehavior": "hug", "minHeight": 66,
+      "layout": { "paddingX": "{spacing.md}", "paddingY": "{spacing.sm}", "gap": 4, "radius": "{radius.lg}" },
+      "fill": "{semantic.bg.surfaceElevated}", "border": "{semantic.border.default}",
+      "content": "caption label + body value + {size.icon.xs} icon"
+    },
+    "settingRow": {
+      "displayName": "Setting Row", "widthBehavior": "fill", "heightBehavior": "hug", "minHeight": 82,
+      "layout": { "paddingX": "{spacing.sm}", "paddingY": 14, "gap": 12, "radius": "{radius.lg}" },
+      "fill": "{semantic.bg.surface}", "border": "{semantic.border.default}",
+      "structure": "{size.badge.sm} circular icon badge + (titleSmall + monoBody) + control slot",
+      "controlSlot": ["toggle","stepper","valueChip"],
+      "rule": "One control per row"
+    },
+    "progressBar": {
+      "displayName": "Progress Bar", "widthBehavior": "fill", "heightBehavior": "fixed",
+      "height": "{size.progress.height}", "radius": "{radius.pill}",
+      "track": "{semantic.bg.surfaceElevated}", "fill": "{semantic.action.primary}",
+      "isVariantSet": false,
+      "props": { "progress": "number, 0…100, clamped in code", "label": "string (optional) — the percentage is always also given as text" },
+      "note": "v1 had 0/40/100 variants; v2 is a single component driven by a numeric prop. The Figma 40% is a demo state only.",
+      "dont": "Never use for indeterminate operations"
+    },
+    "timerRing": {
+      "displayName": "Timer Ring", "widthBehavior": "fixed", "heightBehavior": "fixed",
+      "size": "{size.ring.timer}", "ringThickness": "12% (innerRadius 0.88)",
+      "layers": [
+        { "name": "track", "shape": "arc ellipse", "fill": "{semantic.bg.surfaceElevated}" },
+        { "name": "progress", "shape": "arc ellipse", "startAngle": -90, "fill": "{semantic.action.primary}" },
+        { "name": "disc", "size": 176, "offset": 18, "fill": "{semantic.bg.surface}", "border": "{semantic.border.default}" }
+      ],
+      "content": "{size.icon.md} icon + numericTimer + caption",
+      "openQuestion": "RN implementation requires react-native-svg — dependency decision pending"
+    },
+    "alertCard": {
+      "displayName": "Alert Card", "widthBehavior": "fill", "heightBehavior": "hug", "minHeight": 80,
+      "properties": { "tone": ["info","success","warning","danger"] },
+      "layout": { "padding": "{spacing.md}", "gap": 10, "radius": "{radius.lg}" },
+      "content": "18pt icon + titleSmall + bodySmall",
+      "tones": {
+        "info":    { "fill": "{semantic.bg.infoSubtle}",    "border": "{semantic.border.info}",    "text": "{semantic.text.info}" },
+        "success": { "fill": "{semantic.bg.successSubtle}", "border": "{semantic.border.success}", "text": "{semantic.text.success}" },
+        "warning": { "fill": "{semantic.bg.warningSubtle}", "border": "{semantic.border.warning}", "text": "{semantic.text.warning}" },
+        "danger":  { "fill": "{semantic.bg.dangerSubtle}",  "border": "{semantic.border.danger}",  "text": "{semantic.text.danger}" }
+      },
+      "a11yRule": "Colour never carries meaning alone — icon + title + body required",
+      "dont": "No more than 2 alerts per screen"
+    },
+    "topAppBar": {
+      "displayName": "Top App Bar", "widthBehavior": "fill", "heightBehavior": "fixed", "height": 56,
+      "safeArea": "rendered height = 56 + top safe-area inset",
+      "layout": { "paddingX": "{spacing.lg}", "gap": 8 }, "fill": "{semantic.bg.surface}",
+      "left": { "hitArea": "{size.touch.min}", "visualSize": "{size.control.xs}", "iconSize": 18 },
+      "center": { "textStyle": "titleSmall", "align": "center", "width": "fill" },
+      "right": "44x44 empty spacer when no icon, so the title stays centred"
+    },
+    "navItem": {
+      "displayName": "Nav Item", "widthBehavior": "fixed", "heightBehavior": "fixed", "size": { "width": 76, "height": 52 },
+      "properties": { "state": ["inactive","active"] },
+      "layout": { "gap": 4 }, "iconSize": 22, "textStyle": "labelNav",
+      "colors": { "inactive": "{semantic.text.muted}", "active": "{semantic.text.accent}" }
+    },
+    "bottomNavigation": {
+      "displayName": "Bottom Navigation", "widthBehavior": "fill", "heightBehavior": "fixed", "height": 68,
+      "safeArea": "rendered height = 68 + bottom safe-area inset; surface extends into the inset, content does not",
+      "layout": { "justify": "space-between", "paddingX": "{spacing.md}", "paddingY": 8 },
+      "fill": "{semantic.bg.surface}", "borderTop": "{semantic.border.default}",
+      "items": 5, "clearance": "{spacing.layout.navClearance}"
+    },
+    "modal": {
+      "displayName": "Modal", "widthBehavior": "fixed", "referenceWidth": 354, "heightBehavior": "hug",
+      "layout": { "paddingX": "{spacing.xl}", "paddingTop": 24, "paddingBottom": 20, "gap": 14, "radius": "{radius.xxl}" },
+      "fill": "{semantic.bg.surfaceRaised}", "border": "{semantic.border.strong}", "shadow": "modal",
+      "structure": "{size.badge.md} badge -> heading2 + body -> primary button -> destructive/ghost button",
+      "interaction": {
+        "dismissVia": ["backdrop tap", "android back", "explicit cancel action"],
+        "destructiveConfirm": "backdrop tap and back both CANCEL (safe side)",
+        "focus": "moves to the title on open; focus trapped inside",
+        "keyboard": "no keyboard unless the modal contains an input",
+        "motion": "duration.slow, decelerate in / accelerate out",
+        "a11y": "accessibilityViewIsModal; background importantForAccessibility=no-hide-descendants"
+      }
+    },
+    "bottomSheet": {
+      "displayName": "Bottom Sheet", "widthBehavior": "fill", "heightBehavior": "hug", "maxHeight": "90% of screen",
+      "layout": { "paddingX": "{spacing.layout.sheetPadding}", "paddingTop": 12, "paddingBottom": 28, "gap": 16,
+                  "radiusTop": "{radius.xxl}", "radiusBottom": 0 },
+      "fill": "{semantic.bg.surfaceRaised}", "shadow": "modal", "backdrop": "{semantic.bg.overlay}",
+      "grabber": { "width": "{size.grabber.width}", "height": "{size.grabber.height}", "radius": 2, "fill": "{semantic.border.muted}" },
+      "interaction": {
+        "detents": "single (content height); multi-detent is out of scope for V4",
+        "swipeToDismiss": "threshold = 25% of height OR velocity > 0.5",
+        "backdropTap": "dismisses", "androidBack": "dismisses",
+        "keyboardAvoidance": "sheet lifts by keyboard height; content scrolls",
+        "focus": "first interactive element on open; returns to the trigger on close",
+        "motion": "duration.sheet, decelerate in / accelerate out"
+      }
+    },
+    "screenHeader": {
+      "displayName": "Screen Header", "widthBehavior": "fill", "heightBehavior": "hug",
+      "layout": { "gap": 8, "align": "center" }, "content": "heading1 + body ({semantic.text.secondary})"
+    },
+    "divider": {
+      "displayName": "Divider", "widthBehavior": "fill", "heightBehavior": "fixed", "height": 1,
+      "fill": "{semantic.border.default}", "spacingAround": "{spacing.lg}"
+    },
+    "patternEmptyState": {
+      "displayName": "Pattern / Empty State", "widthBehavior": "fill", "heightBehavior": "hug",
+      "layout": { "paddingX": "{spacing.xl}", "paddingY": 32, "gap": 12, "align": "center" },
+      "structure": "{size.badge.lg} neutral badge + heading2 + bodySmall",
+      "action": "single primary button",
+      "props": { "title": "string", "body": "string", "actionLabel": "string" }
+    },
+    "patternLoadingState": {
+      "displayName": "Pattern / Loading State", "widthBehavior": "fill", "heightBehavior": "hug",
+      "skeletonBlocks": [{ "w": 354, "h": 20 }, { "w": 300, "h": 14 }, { "w": 354, "h": 88 }],
+      "fill": "{semantic.bg.surfaceElevated}", "radius": "{radius.sm}",
+      "rules": ["Layout height must match the real content so nothing jumps", "All actions disabled", "Shimmer stops under reduced-motion"]
+    },
+    "patternErrorState": {
+      "displayName": "Pattern / Error State", "widthBehavior": "fill", "heightBehavior": "hug",
+      "structure": "{size.badge.lg} danger badge + heading2 + bodySmall (+ error code in caption)",
+      "action": "secondary retry button",
+      "props": { "title": "string", "body": "string", "errorCode": "string (optional)", "retryLabel": "string" }
+    },
+    "patternSuccessState": {
+      "displayName": "Pattern / Success State", "widthBehavior": "fill", "heightBehavior": "hug",
+      "structure": "{size.badge.lg} success badge + heading2 + bodySmall",
+      "action": "single primary button suggesting the next step",
+      "props": { "title": "string", "body": "string", "actionLabel": "string" }
+    }
+  },
+
+  "patterns": {
+    "screenComposition": {
+      "stack": [
+        { "block": "top safe-area inset", "height": "device" },
+        { "block": "Top App Bar", "height": 56 },
+        { "block": "Screen Header", "height": "hug" },
+        { "block": "Content block", "height": "hug" },
+        { "gap": "{spacing.layout.sectionGap}" },
+        { "block": "Content block", "height": "hug" },
+        { "gap": "{spacing.layout.navClearance}" },
+        { "block": "Bottom Navigation", "height": 68 },
+        { "block": "bottom safe-area inset", "height": "device" }
+      ],
+      "horizontalPadding": "{spacing.layout.screenX}",
+      "resolvedContentWidth": 354
+    },
+    "titleHierarchy": {
+      "$description": "Exactly one title layer per screen",
+      "rootTab":        { "appBar": false, "screenHeader": true,  "titleLives": "screenHeader" },
+      "pushedSubScreen":{ "appBar": true,  "screenHeader": false, "titleLives": "appBar" },
+      "flowStep":       { "appBar": true,  "screenHeader": true,  "titleLives": "screenHeader", "note": "app bar title is left EMPTY — only back/close" },
+      "modalOrSheet":   { "appBar": false, "screenHeader": true,  "titleLives": "sheet header" }
+    }
+  },
+
+  "accessibility": {
+    "contrastChecks": [
+      { "fg": "text.primary",     "bg": "bg.canvas",        "ratio": 18.88, "threshold": 4.5, "pass": true },
+      { "fg": "text.primary",     "bg": "bg.surface",       "ratio": 17.01, "threshold": 4.5, "pass": true },
+      { "fg": "text.primarySoft", "bg": "bg.surface",       "ratio": 14.93, "threshold": 4.5, "pass": true },
+      { "fg": "text.secondary",   "bg": "bg.surface",       "ratio": 5.29,  "threshold": 4.5, "pass": true },
+      { "fg": "text.tertiary",    "bg": "bg.surface",       "ratio": 6.51,  "threshold": 4.5, "pass": true },
+      { "fg": "text.muted",       "bg": "bg.surface",       "ratio": 4.59,  "threshold": 4.5, "pass": true },
+      { "fg": "text.muted",       "bg": "bg.canvas",        "ratio": 5.10,  "threshold": 4.5, "pass": true },
+      { "fg": "text.onPrimary",   "bg": "action.primary",   "ratio": 5.96,  "threshold": 4.5, "pass": true },
+      { "fg": "text.onPrimary",   "bg": "action.primaryPressed", "ratio": 7.78, "threshold": 4.5, "pass": true },
+      { "fg": "text.success",     "bg": "bg.successSubtle", "ratio": 5.87,  "threshold": 4.5, "pass": true },
+      { "fg": "text.danger",      "bg": "bg.dangerSubtle",  "ratio": 6.79,  "threshold": 4.5, "pass": true },
+      { "fg": "text.warning",     "bg": "bg.warningSubtle", "ratio": 7.19,  "threshold": 4.5, "pass": true },
+      { "fg": "text.info",        "bg": "bg.infoSubtle",    "ratio": 8.13,  "threshold": 4.5, "pass": true },
+      { "fg": "text.accent",      "bg": "bg.surface",       "ratio": 5.22,  "threshold": 3.0, "pass": true },
+      { "fg": "text.disabled",    "bg": "bg.surface",       "ratio": 2.28,  "threshold": null, "exempt": true,
+        "reason": "WCAG 2.1 SC 1.4.3 exempts inactive UI components. Disabled is additionally signalled by surface change, opacity and accessibilityState." }
+    ],
+    "method": "Translucent backgrounds are composited over their parent surface before measuring.",
+    "rules": {
+      "minTouchTarget": 44,
+      "visualCanBeSmallerThanTouch": true,
+      "focusIndicator": "{semantic.border.focus} 2-3pt ring on Button and Input focused states",
+      "colorNeverAlone": ["alertCard", "input error/success", "statCard delta", "navItem active"],
+      "textScaling": "Every text-bearing component uses hug height + min-height",
+      "disabled": "surface change + opacity 0.35-0.40 + accessibilityState.disabled",
+      "reducedMotion": "see motion.reducedMotion"
+    }
+  },
+
+  "handoff": {
+    "pathMapping": [
+      { "figma": "color/bg/canvas",            "json": "semantic.bg.canvas",            "reactNative": "theme.colors.bg.canvas" },
+      { "figma": "color/bg/surface-elevated",  "json": "semantic.bg.surfaceElevated",   "reactNative": "theme.colors.bg.surfaceElevated" },
+      { "figma": "color/action/primary",       "json": "semantic.action.primary",       "reactNative": "theme.colors.action.primary" },
+      { "figma": "color/text/on-primary",      "json": "semantic.text.onPrimary",       "reactNative": "theme.colors.text.onPrimary" },
+      { "figma": "color/border/focus",         "json": "semantic.border.focus",         "reactNative": "theme.colors.border.focus" },
+      { "figma": "spacing/md",                 "json": "spacing.md",                    "reactNative": "theme.spacing.md" },
+      { "figma": "spacing/layout/screen-x",    "json": "spacing.layout.screenX",        "reactNative": "theme.spacing.layout.screenX" },
+      { "figma": "radius/lg",                  "json": "radius.lg",                     "reactNative": "theme.radius.lg" },
+      { "figma": "size/touch/min",             "json": "size.touch.min",                "reactNative": "theme.size.touch.min" },
+      { "figma": "size/icon/sm",               "json": "size.icon.sm",                  "reactNative": "theme.size.icon.sm" },
+      { "figma": "motion/duration/fast",       "json": "motion.duration.fast",          "reactNative": "theme.motion.duration.fast" },
+      { "figma": "motion/easing/standard",     "json": "motion.easing.standard",        "reactNative": "theme.motion.easing.standard" },
+      { "figma": "TextStyle Heading/1",        "json": "typography.heading1",           "reactNative": "theme.typography.heading1" },
+      { "figma": "TextStyle Body/Small",       "json": "typography.bodySmall",          "reactNative": "theme.typography.bodySmall" },
+      { "figma": "Effect shadow/card",         "json": "shadows.card",                  "reactNative": "theme.shadows.card" }
+    ],
+    "rules": [
+      "Components never bind raw hex, only semantic tokens",
+      "The primitive layer is hidden from the Figma picker (scope: none) and never used directly",
+      "A new colour needs a semantic name first; add a primitive only if required",
+      "Size changes happen in the variable, not on the screen",
+      "Component names and variant properties transfer to code unchanged",
+      "If a measurement appears in two or more places in the same role, it must become a token"
+    ]
+  },
+
+  "outOfScope": {
+    "lightTheme": "Single Dark mode. Adding light = second mode in the Color collection with different primitive aliases; components bind to semantic tokens so it flips centrally.",
+    "securePasswordInput": "No password field in the product",
+    "multiDetentSheet": "Single detent is sufficient",
+    "innerShadowRN": "Removed — see shadows.insetField.reactNative.decision",
+    "serifEditorialType": "Playfair Display and Editorial/Title removed in v2",
+    "largeMotionLibrary": "Only duration + easing + reduced-motion. No spring or parallax."
+  },
+
+  "openIssues": [
+    "Timer Ring RN rendering requires react-native-svg — dependency decision pending",
+    "Skeleton shimmer implementation (reanimated vs static) not chosen; static assumed for now",
+    "Bottom Navigation still uses a placeholder 'shield' icon for all five tabs — real tab icons must be drawn"
+  ]
+}
