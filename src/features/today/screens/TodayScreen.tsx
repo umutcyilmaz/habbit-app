@@ -1,5 +1,7 @@
-import { useRouter } from "expo-router";
-import { Platform, StyleSheet, View } from "react-native";
+import { useCallback, useState } from "react";
+import { StyleSheet, View } from "react-native";
+import { StatusBar } from "expo-status-bar";
+import { useFocusEffect, useRouter } from "expo-router";
 
 import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
@@ -8,12 +10,13 @@ import {
   type NextBloomAction
 } from "../../../domain/journey/getNextBloomAction";
 import { getNextBloomActionLabel } from "../../../domain/journey/nextBloomActionPresentation";
-import { AppButton } from "../../../shared/components/AppButton";
-import { AppCard } from "../../../shared/components/AppCard";
-import { AppIconButton } from "../../../shared/components/AppIconButton";
-import { AppScreen } from "../../../shared/components/AppScreen";
-import { AppText } from "../../../shared/components/AppText";
-import { theme } from "../../../shared/design-system/theme";
+import { AppButton } from "../../../shared/components/v4/AppButton";
+import { AppCard } from "../../../shared/components/v4/AppCard";
+import { AppIconButton } from "../../../shared/components/v4/AppIconButton";
+import { AppScreen } from "../../../shared/components/v4/AppScreen";
+import { AppText } from "../../../shared/components/v4/AppText";
+import { ScreenHeader } from "../../../shared/components/v4/ScreenHeader";
+import { theme } from "../../../shared/design-system/v4/theme";
 
 const activePlan = {
   label: "YOUR PLAN",
@@ -36,6 +39,8 @@ const todayPathSteps = [
   }
 ] as const;
 
+// TODO: replace temporary glyphs with Bloom V4 SVG icons when the icon system lands.
+
 export function TodayScreen() {
   const router = useRouter();
   const { state, todayKey, resetDay } = useBloomLocalState();
@@ -46,9 +51,21 @@ export function TodayScreen() {
     resetDay
   });
 
+  const [isFocused, setIsFocused] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      setIsFocused(true);
+      return () => setIsFocused(false);
+    }, [])
+  );
+
   return (
-    <AppScreen contentStyle={styles.content}>
-      <View style={styles.stack}>
+    <>
+      {isFocused ? <StatusBar style="light" /> : null}
+      <AppScreen scroll contentContainerStyle={styles.content}>
+        <ScreenHeader title="Today" />
+
         <PlanHeader
           planName={state.activePlan.planName}
           onSettingsPress={() => router.push(routes.settings)}
@@ -70,8 +87,8 @@ export function TodayScreen() {
         <TodayGuideEntry onPress={() => router.push(routes.whatShouldIUse)} />
 
         <SensitiveWindowCard />
-      </View>
-    </AppScreen>
+      </AppScreen>
+    </>
   );
 }
 
@@ -185,19 +202,18 @@ function PlanHeader({ planName, onSettingsPress }: PlanHeaderProps) {
           <View style={styles.avatarInner} />
         </View>
         <View style={styles.planCopy}>
-          <AppText variant="caption" tone="secondary" style={styles.eyebrow}>
+          <AppText variant="overline" tone="muted">
             {activePlan.label}
           </AppText>
-          <AppText variant="title" style={styles.planName}>
+          <AppText variant="title" tone="primary">
             {planName}
           </AppText>
         </View>
       </View>
       <AppIconButton
         accessibilityLabel="Open settings"
-        icon={<AppText variant="title">⚙</AppText>}
+        icon={<AppText variant="heading1">⚙</AppText>}
         onPress={onSettingsPress}
-        style={styles.settingsButton}
       />
     </View>
   );
@@ -221,33 +237,38 @@ function TodayHeroCard({
   onSecondaryPress
 }: TodayHeroCardProps) {
   return (
-    <AppCard style={styles.heroCard}>
+    <AppCard variant="hero" style={styles.heroCard}>
       <View style={styles.heroIcon}>
-        <AppText variant="title">⏸</AppText>
+        <AppText variant="heading1">⏸</AppText>
       </View>
       <View style={styles.heroCopy}>
         {statusLabel ? (
           <View style={styles.heroStatusPill}>
-            <AppText variant="caption" tone="secondary">
+            <AppText variant="labelSmall" tone="muted">
               {statusLabel}
             </AppText>
           </View>
         ) : null}
-        <AppText variant="heading" align="center" style={styles.heroTitle}>
+        <AppText variant="display" tone="primary" style={styles.heroTitle}>
           {title}
         </AppText>
-        <AppText tone="secondary" align="center" style={styles.heroBody}>
+        <AppText variant="body" tone="secondary" style={styles.heroBody}>
           {body}
         </AppText>
       </View>
       <View style={styles.heroActions}>
-        <AppButton testID="bloom.today.primary-action" onPress={onPrimaryPress}>
-          {primaryAction}
-        </AppButton>
+        <AppButton
+          testID="bloom.today.primary-action"
+          variant="primary"
+          label={primaryAction}
+          onPress={onPrimaryPress}
+        />
         {onSecondaryPress ? (
-          <AppButton variant="subtle" onPress={onSecondaryPress}>
-            {activePlan.secondaryAction}
-          </AppButton>
+          <AppButton
+            variant="secondary"
+            label={activePlan.secondaryAction}
+            onPress={onSecondaryPress}
+          />
         ) : null}
       </View>
     </AppCard>
@@ -256,9 +277,9 @@ function TodayHeroCard({
 
 function TodayPathTimeline() {
   return (
-    <AppCard style={styles.pathCard}>
+    <AppCard variant="standard">
       <View style={styles.cardStack}>
-        <AppText variant="title" style={styles.sectionTitle}>
+        <AppText variant="title" tone="primary">
           Today’s path
         </AppText>
         <View style={styles.timeline}>
@@ -294,7 +315,9 @@ function TodayPathStep({ number, title, body, isLast }: TodayPathStepProps) {
         {!isLast ? <View style={styles.timelineLine} /> : null}
       </View>
       <View style={styles.timelineCopy}>
-        <AppText variant="label">{title}</AppText>
+        <AppText variant="titleSmall" tone="primary">
+          {title}
+        </AppText>
         <AppText variant="bodySmall" tone="secondary">
           {body}
         </AppText>
@@ -309,41 +332,41 @@ type TodayGuideEntryProps = {
 
 function TodayGuideEntry({ onPress }: TodayGuideEntryProps) {
   return (
-    <AppCard style={styles.guideEntryCard}>
-      <View style={styles.guideEntryRow}>
-        <View style={styles.guideEntryCopy}>
-          <AppText variant="label">Not sure what to use?</AppText>
-          <AppText variant="bodySmall" tone="secondary">
-            Choose the tool based on what is happening right now.
-          </AppText>
-        </View>
-        <AppButton variant="subtle" onPress={onPress} style={styles.guideEntryButton}>
-          Open guide
-        </AppButton>
+    <AppCard variant="standard" style={styles.guideEntryCard}>
+      <View style={styles.guideEntryCopy}>
+        <AppText variant="titleSmall" tone="primary">
+          Not sure what to use?
+        </AppText>
+        <AppText variant="bodySmall" tone="secondary">
+          Choose the tool based on what is happening right now.
+        </AppText>
       </View>
+      <AppButton variant="ghost" label="Open guide" onPress={onPress} />
     </AppCard>
   );
 }
 
 function SensitiveWindowCard() {
   return (
-    <AppCard style={styles.windowCard}>
+    <AppCard variant="standard" style={styles.windowCard}>
       <View style={styles.windowHeader}>
         <View style={styles.windowIcon}>
-          <AppText variant="label">☾</AppText>
+          <AppText variant="heading1">☾</AppText>
         </View>
-        <AppText variant="title" style={styles.windowTitle}>
+        <AppText variant="title" tone="primary" style={styles.windowTitle}>
           {activePlan.sensitiveWindow}
         </AppText>
       </View>
-      <AppText tone="secondary">
+      <AppText variant="body" tone="secondary">
         Empty moments and evenings may be the easiest places for the loop to start.
       </AppText>
       <View style={styles.recommendedAction}>
-        <AppText variant="caption" tone="secondary" style={styles.eyebrow}>
+        <AppText variant="overline" tone="warning">
           RECOMMENDED ACTION
         </AppText>
-        <AppText variant="label">Prepare Protection before tonight.</AppText>
+        <AppText variant="titleSmall" tone="primary">
+          Prepare Protection before tonight.
+        </AppText>
       </View>
     </AppCard>
   );
@@ -351,119 +374,80 @@ function SensitiveWindowCard() {
 
 const styles = StyleSheet.create({
   content: {
-    maxWidth: 430
-  },
-  stack: {
-    gap: theme.spacing.xl
+    gap: theme.spacing.layout.sectionGap
   },
   planHeader: {
-    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    gap: theme.spacing.md
+    flexDirection: "row",
+    gap: theme.spacing.md,
+    justifyContent: "space-between"
   },
   planIdentity: {
-    flex: 1,
-    minWidth: 0,
-    flexDirection: "row",
     alignItems: "center",
-    gap: theme.spacing.md
+    flex: 1,
+    flexDirection: "row",
+    gap: theme.spacing.md,
+    minWidth: 0
   },
   avatar: {
-    width: 48,
-    height: 48,
     alignItems: "center",
+    backgroundColor: theme.colors.bg.surfaceElevated,
+    borderColor: theme.colors.border.strong,
+    borderRadius: theme.radius.pill,
+    borderWidth: theme.size.stroke.hairline,
+    height: 48,
     justifyContent: "center",
-    borderRadius: 24,
-    backgroundColor: theme.colors.sageMuted,
-    borderColor: theme.colors.sage,
-    borderWidth: 1
+    width: 48
   },
   avatarInner: {
-    width: 18,
+    backgroundColor: theme.colors.accent.primary,
+    borderRadius: theme.radius.pill,
     height: 18,
-    borderRadius: 9,
-    backgroundColor: theme.colors.sage
+    width: 18
   },
   planCopy: {
     flex: 1,
-    minWidth: 0,
-    gap: 2
-  },
-  eyebrow: {
-    textTransform: "uppercase"
-  },
-  planName: {
-    fontFamily: Platform.select({
-      ios: "Georgia",
-      android: "serif",
-      web: "Georgia, serif"
-    }),
-    fontSize: 26,
-    lineHeight: 32
-  },
-  settingsButton: {
-    width: 46,
-    height: 46,
-    minWidth: 46
+    gap: theme.spacing.xs,
+    minWidth: 0
   },
   heroCard: {
     alignItems: "center",
-    gap: theme.spacing.lg,
-    borderRadius: theme.radius.xxl,
-    padding: 28
+    gap: theme.spacing.lg
   },
   heroIcon: {
-    width: 58,
-    height: 58,
     alignItems: "center",
+    backgroundColor: theme.colors.bg.surfaceElevated,
+    borderColor: theme.colors.border.strong,
+    borderRadius: theme.radius.pill,
+    borderWidth: theme.size.stroke.hairline,
+    height: theme.size.control.lg,
     justifyContent: "center",
-    borderRadius: 29,
-    backgroundColor: theme.colors.sageMuted,
-    borderColor: theme.colors.sage,
-    borderWidth: 1
+    width: theme.size.control.lg
   },
   heroCopy: {
     alignItems: "center",
     gap: theme.spacing.sm
   },
   heroStatusPill: {
+    backgroundColor: theme.colors.bg.surfaceElevated,
+    borderColor: theme.colors.border.strong,
     borderRadius: theme.radius.pill,
-    backgroundColor: theme.colors.sageMuted,
-    borderColor: theme.colors.sage,
-    borderWidth: 1,
+    borderWidth: theme.size.stroke.hairline,
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.xs
   },
   heroTitle: {
-    fontFamily: Platform.select({
-      ios: "Georgia",
-      android: "serif",
-      web: "Georgia, serif"
-    }),
-    fontSize: 31,
-    lineHeight: 37
+    textAlign: "center"
   },
   heroBody: {
-    maxWidth: 300
+    textAlign: "center"
   },
   heroActions: {
     alignSelf: "stretch",
     gap: theme.spacing.md
   },
-  pathCard: {
-    borderRadius: theme.radius.xxl,
-    padding: 28
-  },
   cardStack: {
     gap: theme.spacing.lg
-  },
-  sectionTitle: {
-    fontFamily: Platform.select({
-      ios: "Georgia",
-      android: "serif",
-      web: "Georgia, serif"
-    })
   },
   timeline: {
     gap: 0
@@ -477,25 +461,25 @@ const styles = StyleSheet.create({
     paddingBottom: 0
   },
   timelineRail: {
-    width: 32,
-    alignItems: "center"
+    alignItems: "center",
+    width: 32
   },
   timelineNumber: {
-    width: 30,
-    height: 30,
     alignItems: "center",
+    backgroundColor: theme.colors.bg.surfaceElevated,
+    borderColor: theme.colors.border.strong,
+    borderRadius: theme.radius.pill,
+    borderWidth: theme.size.stroke.hairline,
+    height: 30,
     justifyContent: "center",
-    borderRadius: 15,
-    backgroundColor: theme.colors.sageMuted,
-    borderColor: theme.colors.sage,
-    borderWidth: 1
+    width: 30
   },
   timelineLine: {
+    backgroundColor: theme.colors.border.default,
     flex: 1,
-    width: 1,
-    minHeight: theme.spacing.xl,
     marginTop: theme.spacing.xs,
-    backgroundColor: theme.colors.border
+    minHeight: theme.spacing.xl,
+    width: 1
   },
   timelineCopy: {
     flex: 1,
@@ -503,58 +487,41 @@ const styles = StyleSheet.create({
     paddingTop: 2
   },
   guideEntryCard: {
-    borderRadius: theme.radius.xl,
-    padding: theme.spacing.lg
-  },
-  guideEntryRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.md
+    gap: theme.spacing.sm
   },
   guideEntryCopy: {
     flex: 1,
-    minWidth: 0,
-    gap: theme.spacing.xs
-  },
-  guideEntryButton: {
-    minHeight: 42,
-    paddingHorizontal: theme.spacing.lg
+    gap: theme.spacing.xs,
+    minWidth: 0
   },
   windowCard: {
-    gap: theme.spacing.lg,
-    borderRadius: theme.radius.xxl,
-    borderColor: theme.colors.peach,
-    backgroundColor: theme.colors.peachMuted,
-    marginBottom: theme.spacing.lg,
-    padding: 28
+    backgroundColor: theme.colors.bg.warningSubtle,
+    borderColor: theme.colors.border.warning,
+    borderWidth: theme.size.stroke.hairline,
+    gap: theme.spacing.sm
   },
   windowHeader: {
-    flexDirection: "row",
     alignItems: "center",
+    flexDirection: "row",
     gap: theme.spacing.md
   },
   windowIcon: {
-    width: 38,
-    height: 38,
     alignItems: "center",
+    backgroundColor: theme.colors.bg.surfaceElevated,
+    borderColor: theme.colors.border.strong,
+    borderRadius: theme.radius.pill,
+    borderWidth: theme.size.stroke.hairline,
+    height: theme.size.badge.sm,
     justifyContent: "center",
-    borderRadius: 19,
-    backgroundColor: theme.colors.surface,
-    borderColor: theme.colors.border,
-    borderWidth: 1
+    width: theme.size.badge.sm
   },
   windowTitle: {
-    flex: 1,
-    fontFamily: Platform.select({
-      ios: "Georgia",
-      android: "serif",
-      web: "Georgia, serif"
-    })
+    flex: 1
   },
   recommendedAction: {
-    gap: theme.spacing.xs,
-    borderLeftColor: theme.colors.peach,
+    borderLeftColor: theme.colors.border.warning,
     borderLeftWidth: 2,
+    gap: theme.spacing.xs,
     paddingLeft: theme.spacing.md
   }
 });
