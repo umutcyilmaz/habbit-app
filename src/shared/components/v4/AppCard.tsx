@@ -61,13 +61,15 @@ export function AppCard({
 
 const styles = StyleSheet.create({
   base: {
+    borderColor: theme.colors.border.default,
+    borderWidth: theme.size.stroke.hairline,
     width: "100%"
   },
   selected: {
     borderColor: theme.colors.border.accent,
-    borderWidth: theme.size.stroke.hairline
+    borderWidth: 1.5
   },
   disabled: {
-    opacity: 0.45
+    opacity: 0.4
   }
 });

@@ -15,15 +15,15 @@ const FOCUS_RING_WIDTH = 3;
 const variantConfig = {
   filled: {
     base: {
-      backgroundColor: theme.colors.action.secondary
+      backgroundColor: theme.colors.action.primary
     },
     pressed: {
-      backgroundColor: theme.colors.action.secondaryPressed
+      backgroundColor: theme.colors.action.primaryPressed
     }
   },
   outline: {
     base: {
-      backgroundColor: "transparent",
+      backgroundColor: theme.colors.bg.surfaceElevated,
       borderColor: theme.colors.border.strong,
       borderWidth: theme.size.stroke.hairline
     },
@@ -46,8 +46,12 @@ export type AppIconButtonVariant = keyof typeof variantConfig;
 export type AppIconButtonProps = Omit<PressableProps, "children"> & {
   /**
    * Caller-provided icon content. The custom SVG icon set is not delivered
-   * yet, so no icon system lives here. Render icons at
-   * theme.size.icon.sm (20); the element is passed through untouched.
+   * yet, so no icon system lives here; the element is passed through
+   * untouched and the caller remains responsible for rendering.
+   * Canonical guidance:
+   * - visual icon size: theme.size.icon.sm (20)
+   * - filled variant: icon in a semantic on-primary color
+   * - outline/plain variants: icon in an appropriate semantic foreground
    */
   icon: ReactNode;
   accessibilityLabel: string;

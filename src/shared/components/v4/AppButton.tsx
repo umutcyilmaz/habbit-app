@@ -12,6 +12,7 @@ import { theme } from "../../design-system/v4/theme";
 import { AppText } from "./AppText";
 
 const DISABLED_OPACITY = 0.4;
+const GHOST_DISABLED_OPACITY = 0.35;
 const DESTRUCTIVE_PRESSED_OPACITY = 0.85;
 const FOCUS_RING_WIDTH = 3;
 const INDICATOR_SIZE = 18;
@@ -59,7 +60,7 @@ const variantConfig = {
       backgroundColor: theme.colors.bg.surfaceHover
     },
     disabled: {
-      opacity: DISABLED_OPACITY
+      opacity: GHOST_DISABLED_OPACITY
     },
     labelVariant: "body",
     labelTone: "secondary"
@@ -79,7 +80,7 @@ const variantConfig = {
       opacity: DESTRUCTIVE_PRESSED_OPACITY
     },
     disabled: {
-      opacity: DISABLED_OPACITY
+      backgroundColor: theme.colors.action.primaryDisabled
     },
     labelVariant: "label",
     labelTone: "danger"

@@ -1,3 +1,4 @@
+import { useState, type ReactNode } from "react";
 import {
   Pressable,
   StyleSheet,
@@ -5,12 +6,12 @@ import {
   type PressableProps,
   type ViewProps
 } from "react-native";
-import type { ReactNode } from "react";
 
 import { theme } from "../../design-system/v4/theme";
 import { AppText } from "./AppText";
 
 const DISABLED_OPACITY = 0.35;
+const FOCUS_RING_WIDTH = 3;
 
 // Title hierarchy (the screen decides the combination, never this component):
 // - root tabs -> ScreenHeader
@@ -37,6 +38,8 @@ export type TopAppBarProps = ViewProps & {
 };
 
 function ActionSlot({ action }: { action: TopAppBarAction | undefined }) {
+  const [focused, setFocused] = useState(false);
+
   if (action === undefined) {
     return <View style={styles.slot} />;
   }
@@ -50,19 +53,23 @@ function ActionSlot({ action }: { action: TopAppBarAction | undefined }) {
       accessibilityState={isDisabled ? { disabled: true } : undefined}
       disabled={action.disabled}
       onPress={action.onPress}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
       testID={action.testID}
       style={styles.slot}
     >
       {({ pressed }) => (
-        <View
-          pointerEvents="none"
-          style={[
-            styles.actionVisual,
-            pressed && !isDisabled ? styles.actionVisualPressed : undefined,
-            isDisabled ? styles.actionVisualDisabled : undefined
-          ]}
-        >
-          {action.content}
+        <View pointerEvents="none" style={styles.visualFrame}>
+          {focused && !isDisabled ? <View style={styles.focusRing} /> : null}
+          <View
+            style={[
+              styles.actionVisual,
+              pressed && !isDisabled ? styles.actionVisualPressed : undefined,
+              isDisabled ? styles.actionVisualDisabled : undefined
+            ]}
+          >
+            {action.content}
+          </View>
         </View>
       )}
     </Pressable>
@@ -114,6 +121,23 @@ const styles = StyleSheet.create({
     minHeight: theme.size.touch.min,
     minWidth: theme.size.touch.min,
     width: theme.size.touch.min
+  },
+  visualFrame: {
+    alignItems: "center",
+    height: theme.size.control.xs,
+    justifyContent: "center",
+    position: "relative",
+    width: theme.size.control.xs
+  },
+  focusRing: {
+    borderColor: theme.colors.border.focus,
+    borderRadius: theme.radius.pill,
+    borderWidth: FOCUS_RING_WIDTH,
+    bottom: -FOCUS_RING_WIDTH,
+    left: -FOCUS_RING_WIDTH,
+    position: "absolute",
+    right: -FOCUS_RING_WIDTH,
+    top: -FOCUS_RING_WIDTH
   },
   actionVisual: {
     alignItems: "center",
