@@ -3,24 +3,18 @@ import { Pressable, type ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { tabRoutes } from "../../src/constants/navigation";
-import { theme } from "../../src/shared/design-system/theme";
-import {
-  getTabBarBottomPadding,
-  getTabBarHeight,
-  TAB_BAR_TOP_PADDING
-} from "../../src/shared/layout/tabSpacing";
+import { theme } from "../../src/shared/design-system/v4/theme";
+
+const TAB_BAR_CONTENT_HEIGHT = 68;
 
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
-  const tabBarBottomPadding = getTabBarBottomPadding(insets.bottom);
-  const tabBarHeight = getTabBarHeight(insets.bottom);
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarButton: (props) => {
-          const selected = props.accessibilityState?.selected;
           const { ref: _ref, ...buttonProps } = props;
 
           return (
@@ -31,7 +25,6 @@ export default function TabsLayout() {
 
                 return [
                   styles.tabButton,
-                  selected ? styles.tabButtonActive : undefined,
                   focused ? styles.tabButtonFocused : undefined,
                   state.pressed ? styles.tabButtonPressed : undefined,
                   webFocusReset
@@ -42,26 +35,24 @@ export default function TabsLayout() {
         },
         tabBarIcon: () => null,
         tabBarIconStyle: styles.hiddenIcon,
-        tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: theme.colors.textSecondary,
+        tabBarActiveTintColor: theme.colors.text.accent,
+        tabBarInactiveTintColor: theme.colors.text.muted,
         tabBarLabelPosition: "below-icon",
         tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: "700",
-          lineHeight: 16,
+          ...theme.typography.labelNav,
           includeFontPadding: false,
           marginBottom: 0,
           marginTop: 0
         },
         tabBarStyle: {
-          backgroundColor: theme.colors.surface,
-          borderTopColor: theme.colors.border,
-          borderTopWidth: 1,
-          height: tabBarHeight,
-          minHeight: tabBarHeight,
-          paddingBottom: tabBarBottomPadding,
-          paddingHorizontal: 8,
-          paddingTop: TAB_BAR_TOP_PADDING
+          backgroundColor: theme.colors.bg.surface,
+          borderTopColor: theme.colors.border.default,
+          borderTopWidth: theme.size.stroke.hairline,
+          height: TAB_BAR_CONTENT_HEIGHT + insets.bottom,
+          minHeight: TAB_BAR_CONTENT_HEIGHT + insets.bottom,
+          paddingBottom: theme.spacing.xs + insets.bottom,
+          paddingHorizontal: theme.spacing.md,
+          paddingTop: theme.spacing.xs
         },
         tabBarItemStyle: {
           justifyContent: "center",
@@ -93,21 +84,15 @@ const styles = {
     alignItems: "center",
     borderColor: "transparent",
     borderWidth: 1,
-    borderRadius: theme.radius.pill,
     flex: 1,
     justifyContent: "center",
-    marginHorizontal: 2,
-    minHeight: 44,
-    paddingHorizontal: 2
-  },
-  tabButtonActive: {
-    backgroundColor: theme.colors.sageMuted
+    minHeight: theme.size.touch.min
   },
   tabButtonFocused: {
-    borderColor: theme.colors.lavenderDeep
+    borderColor: theme.colors.border.focus
   },
   tabButtonPressed: {
-    backgroundColor: theme.colors.surfaceMuted
+    backgroundColor: theme.colors.bg.surfaceSunken
   }
 } as const;
 
