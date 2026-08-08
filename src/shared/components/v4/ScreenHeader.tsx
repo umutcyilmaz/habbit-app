@@ -28,7 +28,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: theme.spacing.xs,
     justifyContent: "center",
-    minHeight: 78,
     width: "100%"
   },
   text: {
