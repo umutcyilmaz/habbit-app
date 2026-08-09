@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
@@ -8,6 +8,7 @@ import { AppCard } from "../../../shared/components/AppCard";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
+import { runStableMountMutationOnce } from "../../../shared/runtime/runStableMountMutationOnce";
 import { ProtectionActionRow } from "../components/ProtectionActionRow";
 import { ProtectionFlowHeader } from "../components/ProtectionFlowHeader";
 import { ProtectionReassuranceCard } from "../components/ProtectionReassuranceCard";
@@ -16,9 +17,14 @@ import { ProtectionVisual } from "../components/ProtectionVisual";
 export function ProtectionInterceptScreen() {
   const router = useRouter();
   const { recordProtectionPause } = useBloomLocalState();
+  const recordedProtectionPauseRef = useRef<string | null>(null);
 
   useEffect(() => {
-    recordProtectionPause();
+    runStableMountMutationOnce(
+      recordedProtectionPauseRef,
+      "protection-intercept",
+      () => recordProtectionPause().ok
+    );
   }, [recordProtectionPause]);
 
   return (

@@ -38,6 +38,10 @@ type QuickCheckInCardProps = {
   onSave: () => void;
   onAddDetailPress: () => void;
   isContextVisible: boolean;
+  disabled?: boolean;
+  saving?: boolean;
+  retrying?: boolean;
+  onRetry?: () => void;
   feedback?: CheckInFeedback;
 };
 
@@ -49,6 +53,10 @@ export function QuickCheckInCard({
   onSave,
   onAddDetailPress,
   isContextVisible,
+  disabled = false,
+  saving = false,
+  retrying = false,
+  onRetry,
   feedback
 }: QuickCheckInCardProps) {
   const feedbackPresentation =
@@ -74,22 +82,28 @@ export function QuickCheckInCard({
             options={moodOptions}
             value={mood}
             onChange={onMoodChange}
+            disabled={disabled}
           />
           <SelectableChipGroup
             title="Moment"
             options={momentOptions}
             value={moment}
             onChange={onMomentChange}
+            disabled={disabled}
           />
         </View>
 
         {feedbackPresentation !== null ? (
           <View
+            accessibilityLiveRegion="polite"
+            accessibilityRole="alert"
             style={[
               styles.feedbackNote,
               feedbackPresentation.status === "success"
                 ? styles.successFeedback
-                : styles.errorFeedback
+                : feedbackPresentation.status === "pending"
+                  ? styles.pendingFeedback
+                  : styles.errorFeedback
             ]}
           >
             <AppText variant="label">
@@ -98,17 +112,43 @@ export function QuickCheckInCard({
             <AppText variant="bodySmall" tone="secondary">
               {feedbackPresentation.message}
             </AppText>
+            {feedbackPresentation.status !== "success" &&
+            onRetry !== undefined ? (
+              <AppButton
+                testID="bloom.log.persistence.retry"
+                variant="subtle"
+                loading={retrying}
+                disabled={retrying}
+                accessibilityState={{ busy: retrying, disabled: retrying }}
+                onPress={onRetry}
+              >
+                Try saving again
+              </AppButton>
+            ) : null}
           </View>
         ) : null}
 
         <View style={styles.actions}>
-          <AppButton onPress={onSave}>Save Check-In</AppButton>
+          <AppButton
+            testID="bloom.log.check-in.save"
+            loading={saving}
+            disabled={disabled}
+            accessibilityState={{ busy: saving, disabled }}
+            onPress={onSave}
+          >
+            Save Check-In
+          </AppButton>
           {isContextVisible ? (
             <AppText variant="bodySmall" tone="secondary" align="center">
               Optional context is below.
             </AppText>
           ) : (
-            <AppButton variant="ghost" onPress={onAddDetailPress}>
+            <AppButton
+              variant="ghost"
+              disabled={disabled}
+              accessibilityState={{ disabled }}
+              onPress={onAddDetailPress}
+            >
               Add more detail
             </AppButton>
           )}
@@ -150,6 +190,10 @@ const styles = StyleSheet.create({
   successFeedback: {
     borderColor: theme.colors.sage,
     backgroundColor: theme.colors.sageMuted
+  },
+  pendingFeedback: {
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surfaceMuted
   },
   errorFeedback: {
     borderColor: theme.colors.peach,

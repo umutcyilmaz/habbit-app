@@ -18,8 +18,10 @@ import { formatArousalPauseCount } from "../practiceSubmission";
 
 export function ProgressPreviewScreen() {
   const router = useRouter();
-  const { state } = useBloomLocalState();
-  const latestLog = getLatestValidArousalLog(state.arousalControl.logs);
+  const { durableState } = useBloomLocalState();
+  const latestLog = getLatestValidArousalLog(
+    durableState.arousalControl.logs
+  );
 
   useEffect(() => {
     if (latestLog === null) {

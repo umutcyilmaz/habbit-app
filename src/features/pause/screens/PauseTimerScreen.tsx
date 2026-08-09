@@ -2,18 +2,26 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
-import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
+import {
+  useBloomLocalState,
+  type BloomPersistedMutationResult,
+  type BloomPersistenceRetryToken
+} from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
+import { usePersistenceNavigationGuard } from "../../../shared/navigation/usePersistenceNavigationGuard";
 import { pauseRoundDurationSeconds } from "../../../shared/runtime/e2eMode";
+import { runStableMountMutationOnce } from "../../../shared/runtime/runStableMountMutationOnce";
 import { PauseCircleTimer } from "../components/PauseCircleTimer";
 import { PauseAfterCheckInForm } from "../components/PauseAfterCheckInForm";
 import { PauseFlowHeader } from "../components/PauseFlowHeader";
 import type { PauseSessionCompletionData } from "../../../storage/bloomState";
+import { getPausePersistenceErrorMessage } from "../pausePersistenceFeedback";
+import { createPauseSavedCompletionHref } from "../pauseSavedRoute";
 import { resolvePauseAgainUpdate } from "../pauseSessionAdapters";
 import {
   createPauseTimerSessionSnapshot,
@@ -46,6 +54,7 @@ export function PauseTimerScreen() {
     updatePauseSession,
     addPauseSessionDuration,
     completePauseSession,
+    retryPersistedMutation,
     discardPauseSession
   } = useBloomLocalState();
   const activeSession = state.pause.activeSession;
@@ -65,7 +74,29 @@ export function PauseTimerScreen() {
     activeSession?.phase === "afterPause"
   );
   const hasRoutedRef = useRef(false);
-  const completedSessionIdRef = useRef<string | null>(null);
+  const timerInitializationSessionIdRef = useRef<string | null>(null);
+  const completionAttemptRef = useRef(false);
+  const completionRecordIdRef = useRef<string | null>(null);
+  const completionPromiseRef =
+    useRef<Promise<BloomPersistedMutationResult> | null>(null);
+  const isMountedRef = useRef(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [completionAccepted, setCompletionAccepted] = useState(false);
+  const [retryToken, setRetryToken] =
+    useState<BloomPersistenceRetryToken | null>(null);
+  const [persistenceError, setPersistenceError] = useState<string | null>(null);
+  const persistenceNavigationBlocked = isSaving;
+  const allowPersistenceNavigation = usePersistenceNavigationGuard(
+    persistenceNavigationBlocked
+  );
+
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const showAfterPauseCheckIn = useCallback(() => {
     if (hasRoutedRef.current || activeSession === null) {
@@ -121,30 +152,33 @@ export function PauseTimerScreen() {
 
   useEffect(() => {
     if (activeSession === null) {
-      const completedSessionId = completedSessionIdRef.current;
-
-      if (
-        completedSessionId !== null &&
-        state.pause.records.some(
-          (record) => record.id === completedSessionId
-        )
-      ) {
-        router.replace(routes.pauseSaved);
-      } else if (completedSessionId === null) {
+      if (!completionAttemptRef.current) {
         router.replace(routes.pause);
       }
 
       return undefined;
     }
 
-    if (activeSession.timerStartedAt === undefined) {
-      updatePauseSession(activeSession.id, {
-        timerStartedAt: new Date().toISOString()
-      });
+    if (
+      activeSession.timerStartedAt === undefined
+    ) {
+      runStableMountMutationOnce(
+        timerInitializationSessionIdRef,
+        activeSession.id,
+        () =>
+          updatePauseSession(activeSession.id, {
+            timerStartedAt: new Date().toISOString()
+          }).ok
+      );
     }
 
     return undefined;
-  }, [activeSession, router, state.pause.records, updatePauseSession]);
+  }, [
+    activeSession?.id,
+    activeSession?.timerStartedAt,
+    router,
+    updatePauseSession
+  ]);
 
   useEffect(() => {
     if (activeSession === null || isCheckingIn) {
@@ -198,20 +232,74 @@ export function PauseTimerScreen() {
     router.replace(routes.home);
   };
 
-  const savePause = (completionData: PauseSessionCompletionData) => {
-    if (
-      activeSession === null ||
-      completedSessionIdRef.current !== null
-    ) {
+  const savePause = async (completionData: PauseSessionCompletionData) => {
+    if (completionPromiseRef.current !== null) {
       return;
     }
 
-    const sessionId = activeSession.id;
-    completedSessionIdRef.current = sessionId;
-    const result = completePauseSession(sessionId, completionData);
+    let persistencePromise: Promise<BloomPersistedMutationResult>;
 
-    if (!result.ok) {
-      completedSessionIdRef.current = null;
+    if (retryToken !== null) {
+      persistencePromise = retryPersistedMutation(retryToken);
+    } else {
+      if (activeSession === null || completionAttemptRef.current) {
+        return;
+      }
+
+      completionAttemptRef.current = true;
+      completionRecordIdRef.current = activeSession.id;
+      persistencePromise = completePauseSession(
+        activeSession.id,
+        completionData
+      );
+    }
+
+    completionPromiseRef.current = persistencePromise;
+    setIsSaving(true);
+    setPersistenceError(null);
+
+    try {
+      const result = await persistencePromise;
+
+      if (!isMountedRef.current) {
+        return;
+      }
+
+      if (result.ok) {
+        const recordId = completionRecordIdRef.current;
+
+        if (recordId === null) {
+          setPersistenceError(
+            "Bloom saved this Pause, but couldn’t identify its saved record. You can leave safely."
+          );
+          return;
+        }
+
+        setRetryToken(null);
+        allowPersistenceNavigation();
+        router.replace(createPauseSavedCompletionHref(recordId));
+        return;
+      }
+
+      if (result.accepted) {
+        setCompletionAccepted(true);
+        setRetryToken(result.retryable ? result.retryToken : null);
+      } else {
+        completionAttemptRef.current = false;
+        completionRecordIdRef.current = null;
+        setCompletionAccepted(false);
+        setRetryToken(null);
+      }
+
+      setPersistenceError(getPausePersistenceErrorMessage(result));
+    } finally {
+      if (completionPromiseRef.current === persistencePromise) {
+        completionPromiseRef.current = null;
+
+        if (isMountedRef.current) {
+          setIsSaving(false);
+        }
+      }
     }
   };
 
@@ -247,18 +335,27 @@ export function PauseTimerScreen() {
         <PauseFlowHeader
           title="How is it now?"
           subtitle="You created a pause. Notice what changed."
-          onBackPress={() => {
-            if (activeSession !== null) {
-              updatePauseSession(activeSession.id, { phase: "timer" });
-            }
-            hasRoutedRef.current = false;
-            setIsCheckingIn(false);
-          }}
+          disabled={isSaving}
+          onBackPress={
+            completionAccepted
+              ? () => router.replace(routes.pause)
+              : () => {
+                  if (activeSession !== null) {
+                    updatePauseSession(activeSession.id, { phase: "timer" });
+                  }
+                  hasRoutedRef.current = false;
+                  setIsCheckingIn(false);
+                }
+          }
           onClosePress={closePause}
         />
         <PauseAfterCheckInForm
           onSave={savePause}
           onPauseAgain={pauseAgain}
+          isSaving={isSaving}
+          completionLocked={completionAccepted}
+          canRetry={retryToken !== null}
+          persistenceError={persistenceError}
         />
       </AppScreen>
     );
@@ -269,6 +366,7 @@ export function PauseTimerScreen() {
       <PauseFlowHeader
         title="90-Second Pause"
         subtitle="Breathe, notice, and let the moment settle before continuing."
+        disabled={isSaving}
         onBackPress={() => router.back()}
         onClosePress={closePause}
       />

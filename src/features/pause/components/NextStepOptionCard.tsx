@@ -8,6 +8,7 @@ type NextStepOptionCardProps<TValue extends string> = {
   title: string;
   description?: string;
   selected: boolean;
+  disabled?: boolean;
   onSelect: (value: TValue) => void;
   testIDPrefix?: string;
 };
@@ -17,6 +18,7 @@ export function NextStepOptionCard<TValue extends string>({
   title,
   description,
   selected,
+  disabled = false,
   onSelect,
   testIDPrefix
 }: NextStepOptionCardProps<TValue>) {
@@ -26,12 +28,14 @@ export function NextStepOptionCard<TValue extends string>({
         ? { testID: `${testIDPrefix}.${value}` }
         : {})}
       accessibilityRole="button"
-      accessibilityState={{ selected }}
+      accessibilityState={{ disabled, selected }}
+      disabled={disabled}
       onPress={() => onSelect(value)}
       style={({ pressed }) => [
         styles.option,
         selected ? styles.selectedOption : undefined,
-        pressed ? styles.pressedOption : undefined
+        pressed && !disabled ? styles.pressedOption : undefined,
+        disabled ? styles.disabledOption : undefined
       ]}
     >
       <View style={[styles.indicator, selected ? styles.selectedIndicator : undefined]} />
@@ -65,6 +69,9 @@ const styles = StyleSheet.create({
   },
   pressedOption: {
     backgroundColor: theme.colors.surfaceMuted
+  },
+  disabledOption: {
+    opacity: 0.6
   },
   indicator: {
     width: 18,

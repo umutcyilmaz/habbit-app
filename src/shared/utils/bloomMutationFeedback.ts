@@ -1,4 +1,6 @@
-import type { BloomMutationResult } from "../../storage/bloomState";
+import type {
+  BloomPersistedMutationResult
+} from "../../app/providers/bloomLocalStateMutationRuntime";
 
 export type BloomMutationFeedback = {
   didSave: boolean;
@@ -6,11 +8,11 @@ export type BloomMutationFeedback = {
 };
 
 export function resolveBloomMutationFeedback(
-  result: BloomMutationResult,
+  result: BloomPersistedMutationResult,
   successMessage: string,
   failureMessage: string
 ): BloomMutationFeedback {
-  return result.ok
+  return result.ok && result.persisted
     ? { didSave: true, message: successMessage }
     : { didSave: false, message: failureMessage };
 }

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
 import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
@@ -9,11 +9,7 @@ import { AppCard } from "../../../shared/components/AppCard";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
-import {
-  getLatestPauseRecord,
-  getPauseSavedRouteState,
-  type PauseRecord
-} from "../../../storage/bloomState";
+import type { PauseRecord } from "../../../storage/bloomState";
 import { PauseFlowHeader } from "../components/PauseFlowHeader";
 import { PauseObservationCard } from "../components/PauseObservationCard";
 import { PauseSummaryMetricCard } from "../components/PauseSummaryMetricCard";
@@ -25,12 +21,23 @@ import {
   pauseTriggerLabels,
   pauseTruthLabels
 } from "../pausePresentation";
+import {
+  getPauseSavedRouteIntent,
+  resolvePauseSavedRoute
+} from "../pauseSavedRoute";
 
 export function PauseSavedScreen() {
   const router = useRouter();
-  const { state } = useBloomLocalState();
-  const latestRecord = getLatestPauseRecord(state.pause.records);
-  const routeState = getPauseSavedRouteState(state.pause);
+  const { recordId } = useLocalSearchParams<{
+    recordId?: string | string[];
+  }>();
+  const { state, durableState } = useBloomLocalState();
+  const resolution = resolvePauseSavedRoute(
+    state.pause,
+    durableState.pause,
+    getPauseSavedRouteIntent(recordId)
+  );
+  const routeState = resolution.status;
 
   useEffect(() => {
     if (routeState === "collect-completion") {
@@ -43,18 +50,38 @@ export function PauseSavedScreen() {
     }
   }, [routeState, router]);
 
-  if (routeState !== "show-record") {
-    return <AppScreen />;
+  if (routeState === "unconfirmed") {
+    return (
+      <PauseSaveUnconfirmed
+        onReturn={() => {
+          if (router.canGoBack()) {
+            router.back();
+            return;
+          }
+
+          router.replace(routes.pause);
+        }}
+        onClose={() => router.replace(routes.home)}
+      />
+    );
   }
 
-  if (latestRecord === null) {
+  if (
+    resolution.status !== "show-completion" &&
+    resolution.status !== "show-history"
+  ) {
     return <AppScreen />;
   }
 
   return (
     <PauseRecordSummary
-      record={latestRecord}
-      recordCount={state.pause.records.length}
+      mode={
+        resolution.status === "show-completion"
+          ? "completion"
+          : "history"
+      }
+      record={resolution.record}
+      recordCount={durableState.pause.records.length}
       onClose={() => router.replace(routes.home)}
       onViewProgress={() => router.push(routes.progress)}
       onOpenProtection={() => router.push(routes.protect)}
@@ -63,6 +90,7 @@ export function PauseSavedScreen() {
 }
 
 type PauseRecordSummaryProps = {
+  mode: "completion" | "history";
   record: PauseRecord;
   recordCount: number;
   onClose: () => void;
@@ -71,6 +99,7 @@ type PauseRecordSummaryProps = {
 };
 
 function PauseRecordSummary({
+  mode,
   record,
   recordCount,
   onClose,
@@ -80,22 +109,30 @@ function PauseRecordSummary({
   return (
     <AppScreen>
       <PauseFlowHeader
-        title="Pause saved"
-        subtitle="You noticed the moment and created space before continuing."
+        title={mode === "completion" ? "Pause saved" : "Pause history"}
+        subtitle={
+          mode === "completion"
+            ? "You noticed the moment and created space before continuing."
+            : "Review a Pause previously saved on this device."
+        }
         onClosePress={onClose}
       />
 
       <View style={styles.stack}>
         <AppCard
           testID="bloom.pause.saved"
-          style={styles.savedCard}
+          style={mode === "completion" ? styles.savedCard : undefined}
           accessibilityRole="summary"
         >
           <View style={styles.cardStack}>
             <View style={styles.successCircle}>
-              <AppText variant="title">✓</AppText>
+              <AppText variant={mode === "completion" ? "title" : "caption"}>
+                {mode === "completion" ? "✓" : "History"}
+              </AppText>
             </View>
-            <AppText variant="title">Pause saved</AppText>
+            <AppText variant="title">
+              {mode === "completion" ? "Pause saved" : "Saved Pause record"}
+            </AppText>
             <AppText tone="secondary">
               Saved pauses: {recordCount}.
             </AppText>
@@ -173,6 +210,48 @@ function PauseRecordSummary({
           </AppButton>
           <AppButton variant="ghost" onPress={onOpenProtection}>
             Set Up Night Protection
+          </AppButton>
+        </View>
+      </View>
+    </AppScreen>
+  );
+}
+
+type PauseSaveUnconfirmedProps = {
+  onReturn: () => void;
+  onClose: () => void;
+};
+
+function PauseSaveUnconfirmed({
+  onReturn,
+  onClose
+}: PauseSaveUnconfirmedProps) {
+  return (
+    <AppScreen>
+      <PauseFlowHeader
+        title="Pause save not confirmed"
+        subtitle="Bloom could not match this screen to a Pause saved in local storage."
+        onClosePress={onClose}
+      />
+
+      <View style={styles.stack}>
+        <AppCard
+          testID="bloom.pause.saved-unconfirmed"
+          accessibilityRole="alert"
+        >
+          <View style={styles.cardStack}>
+            <AppText variant="title">This Pause is not shown as saved</AppText>
+            <AppText tone="secondary">
+              Go back to retry if the save option is still available, or return
+              safely to Today.
+            </AppText>
+          </View>
+        </AppCard>
+
+        <View style={styles.actions}>
+          <AppButton onPress={onReturn}>Go back</AppButton>
+          <AppButton variant="ghost" onPress={onClose}>
+            Back to Today
           </AppButton>
         </View>
       </View>

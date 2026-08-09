@@ -5,6 +5,7 @@ import { theme } from "../../../shared/design-system/theme";
 
 type UrgeStrengthControlProps = {
   value: number;
+  disabled?: boolean;
   onChange: (value: number) => void;
   testIDPrefix?: string;
 };
@@ -13,6 +14,7 @@ const strengthValues = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
 
 export function UrgeStrengthControl({
   value,
+  disabled = false,
   onChange,
   testIDPrefix
 }: UrgeStrengthControlProps) {
@@ -29,13 +31,15 @@ export function UrgeStrengthControl({
                 ? { testID: `${testIDPrefix}.${strength}` }
                 : {})}
               accessibilityRole="button"
-              accessibilityState={{ selected: isSelected }}
+              accessibilityState={{ disabled, selected: isSelected }}
               accessibilityLabel={`Urge strength ${strength}`}
+              disabled={disabled}
               onPress={() => onChange(strength)}
               style={({ pressed }) => [
                 styles.scaleButton,
                 isSelected ? styles.scaleButtonSelected : undefined,
-                pressed ? styles.scaleButtonPressed : undefined
+                pressed && !disabled ? styles.scaleButtonPressed : undefined,
+                disabled ? styles.scaleButtonDisabled : undefined
               ]}
             >
               <AppText variant="label" tone={isSelected ? "inverse" : "primary"}>
@@ -82,6 +86,9 @@ const styles = StyleSheet.create({
   },
   scaleButtonPressed: {
     backgroundColor: theme.colors.surfaceMuted
+  },
+  scaleButtonDisabled: {
+    opacity: 0.6
   },
   labelRow: {
     flexDirection: "row",

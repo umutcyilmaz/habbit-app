@@ -22,7 +22,9 @@ import {
 
 export function TenDayResetSavedScreen() {
   const router = useRouter();
-  const { state, todayKey } = useBloomLocalState();
+  const { durableState, durableTodayKey } = useBloomLocalState();
+  const state = durableState;
+  const todayKey = durableTodayKey;
   const nextAction = getNextBloomAction(state, todayKey);
   const completedDates = getCompletedResetDates(state.tenDayReset);
   const completedDayCount = completedDates.length;

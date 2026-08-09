@@ -889,13 +889,7 @@ export function completePauseSessionState(
   );
 
   if (existingRecord !== undefined) {
-    return {
-      ...state,
-      pause: {
-        activeSession: null,
-        records: state.pause.records
-      }
-    };
+    return state;
   }
 
   const record: PauseRecord = {
@@ -933,6 +927,41 @@ export function completePauseSessionState(
       records: sortPauseRecords([...state.pause.records, record])
     }
   };
+}
+
+export function completeNewPauseSessionState(
+  state: BloomLocalState,
+  session: PauseSessionDraft,
+  completionData: PauseSessionCompletionData,
+  completedAt = new Date().toISOString()
+): BloomLocalState {
+  if (
+    state.pause.activeSession !== null ||
+    state.pause.records.some((record) => record.id === session.id)
+  ) {
+    return state;
+  }
+
+  const stateWithDraft = startPauseSessionState(state, session);
+
+  if (stateWithDraft === state) {
+    return state;
+  }
+
+  const completedState = completePauseSessionState(
+    stateWithDraft,
+    session.id,
+    completionData,
+    completedAt
+  );
+
+  return completedState.pause.activeSession === null &&
+    completedState.pause.records.some(
+      (record) =>
+        record.id === session.id && record.completedAt === completedAt
+    )
+    ? completedState
+    : state;
 }
 
 export function discardPauseSessionState(

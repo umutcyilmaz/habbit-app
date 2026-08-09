@@ -6,6 +6,7 @@ import { theme } from "../../../shared/design-system/theme";
 type TriggerChipGroupProps<TValue extends string> = {
   values: readonly TValue[];
   selectedValues: readonly TValue[];
+  disabled?: boolean;
   onToggle: (value: TValue) => void;
   getLabel?: (value: TValue) => string;
   testIDPrefix?: string;
@@ -14,6 +15,7 @@ type TriggerChipGroupProps<TValue extends string> = {
 export function TriggerChipGroup<TValue extends string>({
   values,
   selectedValues,
+  disabled = false,
   onToggle,
   getLabel = (value) => value,
   testIDPrefix
@@ -30,12 +32,14 @@ export function TriggerChipGroup<TValue extends string>({
               ? { testID: `${testIDPrefix}.${value}` }
               : {})}
             accessibilityRole="button"
-            accessibilityState={{ selected: isSelected }}
+            accessibilityState={{ disabled, selected: isSelected }}
+            disabled={disabled}
             onPress={() => onToggle(value)}
             style={({ pressed }) => [
               styles.chip,
               isSelected ? styles.selectedChip : undefined,
-              pressed ? styles.pressedChip : undefined
+              pressed && !disabled ? styles.pressedChip : undefined,
+              disabled ? styles.disabledChip : undefined
             ]}
           >
             <AppText variant="label" tone={isSelected ? "primary" : "secondary"}>
@@ -71,5 +75,8 @@ const styles = StyleSheet.create({
   },
   pressedChip: {
     backgroundColor: theme.colors.surfaceMuted
+  },
+  disabledChip: {
+    opacity: 0.6
   }
 });

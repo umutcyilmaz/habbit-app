@@ -86,6 +86,12 @@ Run the complete general-onboarding journey:
 npm run maestro:onboarding
 ```
 
+Run the persistence-acknowledged Check-In save and relaunch journey:
+
+```sh
+npm run maestro:check-in
+```
+
 Run the mixed-profile Protection setup journey:
 
 ```sh

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
@@ -7,22 +8,81 @@ import { AppButton } from "../../../shared/components/AppButton";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
+import { usePersistenceNavigationGuard } from "../../../shared/navigation/usePersistenceNavigationGuard";
+import type { ProtectionStatus } from "../../../storage/bloomState";
 import { ProtectionActionRow } from "../components/ProtectionActionRow";
 import { ProtectionFlowHeader } from "../components/ProtectionFlowHeader";
+import { ProtectionPersistenceFeedback } from "../components/ProtectionPersistenceFeedback";
 import { ProtectionRoutineCard } from "../components/ProtectionRoutineCard";
 import { ProtectionVisual } from "../components/ProtectionVisual";
+import { useProtectionPersistenceAction } from "../useProtectionPersistenceAction";
 
 export function ProtectionActiveScreen() {
   const router = useRouter();
   const {
-    state,
+    durableState,
     pauseProtection,
     resumeProtection,
     turnOffProtection
   } = useBloomLocalState();
-  const protection = state.protection;
+  const protection = durableState.protection;
+  const [statusOverride, setStatusOverride] =
+    useState<ProtectionStatus | null>(null);
+  const {
+    activeAction,
+    isLocked,
+    isNavigationLocked,
+    message,
+    pendingRetryAction,
+    retry,
+    runAction
+  } = useProtectionPersistenceAction();
+  const allowPersistenceNavigation =
+    usePersistenceNavigationGuard(isNavigationLocked);
+  const visibleStatus = statusOverride ?? protection.status;
 
-  if (protection.status === "off") {
+  const handleResumeProtection = async () => {
+    setStatusOverride(protection.status);
+    await runAction("resume", resumeProtection, {
+      onSuccess: () => setStatusOverride(null),
+      onFailure: () => setStatusOverride(null)
+    });
+  };
+
+  const handlePauseProtection = async () => {
+    setStatusOverride(protection.status);
+    await runAction("pause", pauseProtection, {
+      onSuccess: () => {
+        setStatusOverride(null);
+        allowPersistenceNavigation();
+        router.replace(routes.protect);
+      },
+      onFailure: () => setStatusOverride(null)
+    });
+  };
+
+  const handleTurnOffProtection = async () => {
+    setStatusOverride(protection.status);
+    await runAction("turn-off", turnOffProtection, {
+      onSuccess: () => {
+        setStatusOverride(null);
+        allowPersistenceNavigation();
+        router.replace(routes.protect);
+      },
+      onFailure: () => setStatusOverride(null)
+    });
+  };
+
+  const persistenceFeedback = (
+    <ProtectionPersistenceFeedback
+      message={message}
+      canRetry={pendingRetryAction !== null}
+      retrying={activeAction !== null && pendingRetryAction === activeAction}
+      onRetry={() => void retry()}
+    />
+  );
+
+  if (visibleStatus === "off") {
     const hasSavedConfiguration = protection.setupCompletedAt !== null;
 
     return (
@@ -39,6 +99,7 @@ export function ProtectionActiveScreen() {
               : "Set up an optional pause plan for sensitive moments."
           }
           onBackPress={() => router.replace(routes.protect)}
+          disabled={isNavigationLocked}
         />
 
         <View style={styles.stack}>
@@ -58,7 +119,13 @@ export function ProtectionActiveScreen() {
             </View>
           </View>
 
-          <AppButton onPress={() => router.replace(routes.protectSetup)}>
+          {persistenceFeedback}
+
+          <AppButton
+            disabled={isNavigationLocked}
+            accessibilityState={{ disabled: isNavigationLocked }}
+            onPress={() => router.replace(routes.protectSetup)}
+          >
             {hasSavedConfiguration ? "Review settings" : "Set up Protection"}
           </AppButton>
         </View>
@@ -66,13 +133,14 @@ export function ProtectionActiveScreen() {
     );
   }
 
-  if (protection.status === "paused") {
+  if (visibleStatus === "paused") {
     return (
       <AppScreen contentStyle={styles.focusedContent}>
         <ProtectionFlowHeader
           title="Protection is paused"
           subtitle="Your in-app pause plan and preferences are still saved."
           onBackPress={() => router.replace(routes.protect)}
+          disabled={isNavigationLocked}
         />
 
         <View style={styles.stack}>
@@ -94,13 +162,18 @@ export function ProtectionActiveScreen() {
               description="Make the saved in-app pause plan ready again."
               iconLabel="R"
               accent="sage"
-              onPress={resumeProtection}
+              loading={
+                activeAction === "resume" && pendingRetryAction === null
+              }
+              disabled={isLocked}
+              onPress={() => void handleResumeProtection()}
             />
             <ProtectionActionRow
               title="Edit settings"
               description="Adjust the saved window and reminder style."
               iconLabel="E"
               accent="lavender"
+              disabled={isNavigationLocked}
               onPress={() => router.push(routes.protectSetup)}
             />
             <ProtectionActionRow
@@ -108,14 +181,22 @@ export function ProtectionActiveScreen() {
               description="Keep the configuration but mark Protection as off."
               iconLabel="O"
               accent="peach"
-              onPress={() => {
-                turnOffProtection();
-                router.replace(routes.protect);
-              }}
+              loading={
+                activeAction === "turn-off" &&
+                pendingRetryAction === null
+              }
+              disabled={isLocked}
+              onPress={() => void handleTurnOffProtection()}
             />
           </View>
 
-          <AppButton onPress={() => router.replace(routes.protect)}>
+          {persistenceFeedback}
+
+          <AppButton
+            disabled={isNavigationLocked}
+            accessibilityState={{ disabled: isNavigationLocked }}
+            onPress={() => router.replace(routes.protect)}
+          >
             Back to Protect
           </AppButton>
         </View>
@@ -129,6 +210,7 @@ export function ProtectionActiveScreen() {
         title="Protection is ready"
         subtitle="Your saved in-app pause plan is available when you choose it."
         onBackPress={() => router.replace(routes.protect)}
+        disabled={isNavigationLocked}
       />
 
       <View style={styles.stack}>
@@ -151,16 +233,18 @@ export function ProtectionActiveScreen() {
             description="Take a break from the current support plan."
             iconLabel="P"
             accent="peach"
-            onPress={() => {
-              pauseProtection();
-              router.replace(routes.protect);
-            }}
+            loading={
+              activeAction === "pause" && pendingRetryAction === null
+            }
+            disabled={isLocked}
+            onPress={() => void handlePauseProtection()}
           />
           <ProtectionActionRow
             title="Edit schedule"
             description="Adjust the saved window and reminder style."
             iconLabel="E"
             accent="lavender"
+            disabled={isNavigationLocked}
             onPress={() => router.push(routes.protectSetup)}
           />
           <ProtectionActionRow
@@ -168,19 +252,28 @@ export function ProtectionActiveScreen() {
             description="Keep the configuration but mark Protection as off."
             iconLabel="O"
             accent="peach"
-            onPress={() => {
-              turnOffProtection();
-              router.replace(routes.protect);
-            }}
+            loading={
+              activeAction === "turn-off" && pendingRetryAction === null
+            }
+            disabled={isLocked}
+            onPress={() => void handleTurnOffProtection()}
           />
         </View>
+
+        {persistenceFeedback}
 
         <ProtectionRoutineCard
           title={formatProtectionWindow(protection.preferredWindow)}
           body="Bloom keeps this pause plan inside the app. It is optional, reversible, and available when you choose it."
         />
 
-        <AppButton onPress={() => router.replace(routes.protect)}>Back to Protect</AppButton>
+        <AppButton
+          disabled={isNavigationLocked}
+          accessibilityState={{ disabled: isNavigationLocked }}
+          onPress={() => router.replace(routes.protect)}
+        >
+          Back to Protect
+        </AppButton>
       </View>
     </AppScreen>
   );

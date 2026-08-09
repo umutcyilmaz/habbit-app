@@ -1,14 +1,19 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
-import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
+import {
+  useBloomLocalState,
+  type BloomPersistedMutationResult,
+  type BloomPersistenceRetryToken
+} from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
+import { usePersistenceNavigationGuard } from "../../../shared/navigation/usePersistenceNavigationGuard";
 import { NextStepOptionCard } from "../components/NextStepOptionCard";
 import { PauseFlowHeader } from "../components/PauseFlowHeader";
 import { TriggerChipGroup } from "../components/TriggerChipGroup";
@@ -17,10 +22,13 @@ import {
   pauseHelpfulActionLabels,
   pauseTriggerLabels
 } from "../pausePresentation";
-import type {
-  PauseHelpfulActionId,
-  PauseSessionPatch,
-  PauseTriggerId
+import { getPausePersistenceErrorMessage } from "../pausePersistenceFeedback";
+import { createPauseSavedCompletionHref } from "../pauseSavedRoute";
+import {
+  createBloomRecordId,
+  type PauseHelpfulActionId,
+  type PauseSessionPatch,
+  type PauseTriggerId
 } from "../../../storage/bloomState";
 
 const triggers: readonly PauseTriggerId[] = [
@@ -63,7 +71,8 @@ export function PauseCheckInScreen() {
     state,
     startPauseSession,
     updatePauseSession,
-    completePauseSession,
+    saveAndClosePauseSession,
+    retryPersistedMutation,
     discardPauseSession
   } = useBloomLocalState();
   const activeSession = state.pause.activeSession;
@@ -79,6 +88,28 @@ export function PauseCheckInScreen() {
     useState<PauseHelpfulActionId>(
       activeSession?.selectedAction ?? "pause90"
     );
+  const completionAttemptRef = useRef(false);
+  const completionRecordIdRef = useRef<string | null>(null);
+  const completionPromiseRef =
+    useRef<Promise<BloomPersistedMutationResult> | null>(null);
+  const isMountedRef = useRef(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [completionAccepted, setCompletionAccepted] = useState(false);
+  const [retryToken, setRetryToken] =
+    useState<BloomPersistenceRetryToken | null>(null);
+  const [persistenceError, setPersistenceError] = useState<string | null>(null);
+  const persistenceNavigationBlocked = isSaving;
+  const allowPersistenceNavigation = usePersistenceNavigationGuard(
+    persistenceNavigationBlocked
+  );
+
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const toggleTrigger = (trigger: PauseTriggerId) => {
     setSelectedTriggers((currentTriggers) =>
@@ -107,14 +138,86 @@ export function PauseCheckInScreen() {
   };
 
   const startTimer = () => {
+    if (completionPromiseRef.current !== null || completionAttemptRef.current) {
+      return;
+    }
+
     getOrCreateSessionId("timer");
     router.push(routes.pauseTimer);
   };
 
-  const saveAndClose = () => {
-    const sessionId = getOrCreateSessionId("checkIn");
-    completePauseSession(sessionId, { durationSeconds: 0 });
-    router.replace(routes.pauseSaved);
+  const saveAndClose = async () => {
+    if (completionPromiseRef.current !== null) {
+      return;
+    }
+
+    let persistencePromise: Promise<BloomPersistedMutationResult>;
+
+    if (retryToken !== null) {
+      persistencePromise = retryPersistedMutation(retryToken);
+    } else {
+      if (completionAttemptRef.current) {
+        return;
+      }
+
+      completionAttemptRef.current = true;
+      const recordId =
+        activeSession?.id ?? createBloomRecordId("pause");
+      completionRecordIdRef.current = recordId;
+      persistencePromise = saveAndClosePauseSession(
+        recordId,
+        getSessionPatch("checkIn"),
+        { durationSeconds: 0 }
+      );
+    }
+
+    completionPromiseRef.current = persistencePromise;
+    setIsSaving(true);
+    setPersistenceError(null);
+
+    try {
+      const result = await persistencePromise;
+
+      if (!isMountedRef.current) {
+        return;
+      }
+
+      if (result.ok) {
+        const recordId = completionRecordIdRef.current;
+
+        if (recordId === null) {
+          setPersistenceError(
+            "Bloom saved this Pause, but couldn’t identify its saved record. You can leave safely."
+          );
+          return;
+        }
+
+        setRetryToken(null);
+        allowPersistenceNavigation();
+        router.replace(createPauseSavedCompletionHref(recordId));
+        return;
+      }
+
+      if (result.accepted) {
+        setCompletionAccepted(true);
+        setRetryToken(result.retryable ? result.retryToken : null);
+      } else {
+        completionAttemptRef.current = false;
+        completionRecordIdRef.current = null;
+        setCompletionAccepted(false);
+        setRetryToken(null);
+      }
+
+      setPersistenceError(getPausePersistenceErrorMessage(result));
+    } finally {
+      if (completionPromiseRef.current === persistencePromise) {
+        completionPromiseRef.current = null;
+
+        if (isMountedRef.current) {
+          setIsSaving(false);
+        }
+      }
+    }
   };
 
   const closePause = () => {
@@ -130,6 +233,7 @@ export function PauseCheckInScreen() {
       <PauseFlowHeader
         title="How strong is the urge right now?"
         subtitle="Take a moment to reflect on what is present."
+        disabled={isSaving}
         onBackPress={() => router.back()}
         onClosePress={closePause}
       />
@@ -140,6 +244,7 @@ export function PauseCheckInScreen() {
             <AppText variant="title">Urge strength now</AppText>
             <UrgeStrengthControl
               value={urgeStrength}
+              disabled={isSaving || completionAccepted}
               onChange={setUrgeStrength}
               testIDPrefix="bloom.pause.intensity"
             />
@@ -152,6 +257,7 @@ export function PauseCheckInScreen() {
             <TriggerChipGroup
               values={triggers}
               selectedValues={selectedTriggers}
+              disabled={isSaving || completionAccepted}
               onToggle={toggleTrigger}
               getLabel={(trigger) => pauseTriggerLabels[trigger]}
               testIDPrefix="bloom.pause.trigger"
@@ -170,17 +276,37 @@ export function PauseCheckInScreen() {
                   title={pauseHelpfulActionLabels[action.value]}
                   description={action.description}
                   selected={selectedAction === action.value}
+                  disabled={isSaving || completionAccepted}
                   onSelect={setSelectedAction}
                   testIDPrefix="bloom.pause.action"
                 />
               ))}
             </View>
+            {persistenceError !== null ? (
+              <AppText
+                accessibilityLiveRegion="polite"
+                accessibilityRole="alert"
+                variant="bodySmall"
+                tone="danger"
+              >
+                {persistenceError}
+              </AppText>
+            ) : null}
             <View style={styles.actions}>
-              <AppButton testID="bloom.pause.check-in.continue" onPress={startTimer}>
+              <AppButton
+                testID="bloom.pause.check-in.continue"
+                disabled={isSaving || completionAccepted}
+                onPress={startTimer}
+              >
                 Start 90-Second Pause
               </AppButton>
-              <AppButton variant="ghost" onPress={saveAndClose}>
-                Save and close
+              <AppButton
+                variant="ghost"
+                disabled={completionAccepted && retryToken === null}
+                loading={isSaving}
+                onPress={saveAndClose}
+              >
+                {retryToken !== null ? "Try saving again" : "Save and close"}
               </AppButton>
             </View>
           </View>

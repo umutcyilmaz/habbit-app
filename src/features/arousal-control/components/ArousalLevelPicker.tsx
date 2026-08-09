@@ -10,6 +10,7 @@ type ArousalLevelPickerProps = {
   maxLabel?: string;
   groups?: readonly LevelGroup[];
   testIDPrefix?: string;
+  disabled?: boolean;
 };
 
 const levels = Array.from({ length: 11 }, (_, index) => index);
@@ -32,7 +33,8 @@ export function ArousalLevelPicker({
   minLabel = "0 = calm",
   maxLabel = "10 = very close to climax",
   groups = defaultGroups,
-  testIDPrefix
+  testIDPrefix,
+  disabled = false
 }: ArousalLevelPickerProps) {
   return (
     <View style={styles.stack}>
@@ -47,12 +49,14 @@ export function ArousalLevelPicker({
                 ? { testID: `${testIDPrefix}.${level}` }
                 : {})}
               accessibilityRole="button"
-              accessibilityState={{ selected }}
+              accessibilityState={{ disabled, selected }}
+              disabled={disabled}
               onPress={() => onChange(level)}
               style={({ pressed }) => [
                 styles.levelButton,
                 selected ? styles.levelButtonSelected : undefined,
-                pressed ? styles.levelButtonPressed : undefined
+                pressed && !disabled ? styles.levelButtonPressed : undefined,
+                disabled ? styles.levelButtonDisabled : undefined
               ]}
             >
               <AppText variant="label">{level}</AppText>
@@ -122,6 +126,9 @@ const styles = StyleSheet.create({
   },
   levelButtonPressed: {
     backgroundColor: theme.colors.surfaceMuted
+  },
+  levelButtonDisabled: {
+    opacity: 0.5
   },
   helperRow: {
     flexDirection: "row",

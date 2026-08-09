@@ -2,18 +2,23 @@ import { useEffect, useReducer, useRef, useState } from "react";
 import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
 
-import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
+import {
+  useBloomLocalState,
+  type BloomPersistenceRetryToken
+} from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
+import { usePersistenceNavigationGuard } from "../../../shared/navigation/usePersistenceNavigationGuard";
 import {
   isArousalSessionReadyForCompletion,
-  isValidCompletedArousalLog
+  type ArousalControlDraft
 } from "../../../storage/bloomState";
 import { ArousalControlFlowHeader } from "../components/ArousalControlFlowHeader";
+import { createArousalSavedCompletionHref } from "../arousalSavedRoute";
 import {
   createInitialDurationInputState,
   durationInputReducer,
@@ -38,7 +43,8 @@ export function OptionalDurationScreen() {
   const {
     state,
     completeArousalSession,
-    discardArousalSession
+    discardArousalSession,
+    retryPersistedMutation
   } = useBloomLocalState();
   const draft = state.arousalControl.draft;
   const [durationInput, dispatchDuration] = useReducer(
@@ -49,33 +55,43 @@ export function OptionalDurationScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationMessage, setValidationMessage] =
     useState<string | undefined>();
+  const [completionDraft, setCompletionDraft] =
+    useState<ArousalControlDraft | null>(null);
+  const [hasAcceptedCompletion, setHasAcceptedCompletion] =
+    useState(false);
+  const [persistenceRetryToken, setPersistenceRetryToken] =
+    useState<BloomPersistenceRetryToken | null>(null);
   const submitInFlightRef = useRef(false);
-  const completedSessionIdRef = useRef<string | null>(null);
+  const completionAcceptedRef = useRef(false);
+  const completionLogIdRef = useRef<string | null>(null);
+  const persistenceRetryTokenRef =
+    useRef<BloomPersistenceRetryToken | null>(null);
+  const isMountedRef = useRef(true);
+  const renderDraft = draft ?? completionDraft;
+  const controlsLocked = isSubmitting || hasAcceptedCompletion;
+  const persistenceNavigationBlocked = isSubmitting;
+  const allowPersistenceNavigation = usePersistenceNavigationGuard(
+    persistenceNavigationBlocked
+  );
 
   useEffect(() => {
-    if (draft === null) {
-      const completedSessionId = completedSessionIdRef.current;
+    isMountedRef.current = true;
 
-      if (
-        completedSessionId !== null &&
-        state.arousalControl.logs.some(
-          (log) =>
-            log.id === completedSessionId &&
-            isValidCompletedArousalLog(log)
-        )
-      ) {
-        router.replace(routes.arousalControlSaved);
-      } else if (completedSessionId === null) {
-        router.replace(routes.arousalControl);
-      }
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
+  useEffect(() => {
+    if (renderDraft === null) {
+      router.replace(routes.arousalControl);
       return;
     }
 
-    if (!isArousalSessionReadyForCompletion(draft)) {
+    if (!isArousalSessionReadyForCompletion(renderDraft)) {
       router.replace(routes.arousalControl);
     }
-  }, [draft, router, state.arousalControl.logs]);
+  }, [renderDraft, router]);
 
   const selectDuration = (value: DurationOption) => {
     setValidationMessage(undefined);
@@ -99,48 +115,137 @@ export function OptionalDurationScreen() {
     dispatchDuration({ type: "setSeconds", value });
   };
 
-  const savePractice = (skipDuration = false) => {
-    if (
-      draft === null ||
-      !isArousalSessionReadyForCompletion(draft) ||
-      submitInFlightRef.current
-    ) {
+  const savePractice = async (skipDuration = false) => {
+    if (submitInFlightRef.current) {
       return;
     }
 
-    const submission = resolveDurationSubmission(
-      skipDuration
-        ? createInitialDurationInputState()
-        : durationInput
-    );
+    const retryToken = persistenceRetryTokenRef.current;
+    let completionPatch:
+      | ReturnType<typeof resolveDurationSubmission>
+      | null = null;
 
-    if (!submission.ok) {
-      setValidationMessage(
-        submission.reason === "invalidExactDuration"
-          ? "Enter seconds from 0 to 59."
-          : "Enter a duration before saving."
+    if (retryToken === null) {
+      if (
+        completionAcceptedRef.current ||
+        draft === null ||
+        !isArousalSessionReadyForCompletion(draft)
+      ) {
+        return;
+      }
+
+      completionPatch = resolveDurationSubmission(
+        skipDuration
+          ? createInitialDurationInputState()
+          : durationInput
       );
-      return;
+
+      if (!completionPatch.ok) {
+        setValidationMessage(
+          completionPatch.reason === "invalidExactDuration"
+            ? "Enter seconds from 0 to 59."
+            : "Enter a duration before saving."
+        );
+        return;
+      }
+
+      setCompletionDraft(draft);
+      completionLogIdRef.current = draft.id;
     }
 
     submitInFlightRef.current = true;
     setIsSubmitting(true);
-    completedSessionIdRef.current = draft.id;
-    const result = completeArousalSession(
-      draft.id,
-      submission.patch
-    );
+    setValidationMessage(undefined);
 
-    if (!result.ok) {
-      completedSessionIdRef.current = null;
+    try {
+      const result =
+        retryToken !== null
+          ? await retryPersistedMutation(retryToken)
+          : completionPatch !== null && completionPatch.ok && draft !== null
+            ? await completeArousalSession(draft.id, completionPatch.patch)
+            : null;
+
+      if (!isMountedRef.current) {
+        return;
+      }
+
+      if (result === null) {
+        setValidationMessage("This practice could not be saved yet.");
+        return;
+      }
+
+      if (result.ok) {
+        const logId = completionLogIdRef.current;
+
+        if (logId === null) {
+          setValidationMessage(
+            "Bloom saved this practice, but couldn’t identify its saved record. You can leave safely."
+          );
+          return;
+        }
+
+        completionAcceptedRef.current = true;
+        persistenceRetryTokenRef.current = null;
+        setPersistenceRetryToken(null);
+        allowPersistenceNavigation();
+        router.replace(createArousalSavedCompletionHref(logId));
+        return;
+      }
+
+      if (result.accepted) {
+        completionAcceptedRef.current = true;
+        setHasAcceptedCompletion(true);
+      } else {
+        completionAcceptedRef.current = false;
+        completionLogIdRef.current = null;
+        setCompletionDraft(null);
+      }
+
+      if (result.retryable && result.accepted) {
+        persistenceRetryTokenRef.current = result.retryToken;
+        setPersistenceRetryToken(result.retryToken);
+        setValidationMessage(
+          result.reason === "persistenceUnknown"
+            ? "Bloom is still confirming this practice in local storage. You can leave safely or try again; it is not shown as saved yet."
+            : "Practice updated this session, but couldn’t be saved to local storage. Try again."
+        );
+      } else {
+        persistenceRetryTokenRef.current = null;
+        setPersistenceRetryToken(null);
+        setValidationMessage(
+          result.reason === "persistenceSuperseded"
+            ? "A newer change replaced this save request. This request did not mark the practice as saved."
+            : "This practice could not be saved yet."
+        );
+      }
+    } catch {
+      if (!isMountedRef.current) {
+        return;
+      }
+
+      completionAcceptedRef.current = false;
+      completionLogIdRef.current = null;
+      persistenceRetryTokenRef.current = null;
+      setCompletionDraft(null);
+      setHasAcceptedCompletion(false);
+      setPersistenceRetryToken(null);
+      setValidationMessage(
+        "Bloom couldn’t confirm that this practice was saved to local storage."
+      );
+    } finally {
       submitInFlightRef.current = false;
-      setIsSubmitting(false);
-      setValidationMessage("This practice could not be saved yet.");
-      return;
+
+      if (isMountedRef.current) {
+        setIsSubmitting(false);
+      }
     }
   };
 
   const closePractice = () => {
+    if (submitInFlightRef.current) {
+      return;
+    }
+
     if (draft !== null) {
       discardArousalSession(draft.id);
     }
@@ -149,8 +254,8 @@ export function OptionalDurationScreen() {
   };
 
   if (
-    draft === null ||
-    !isArousalSessionReadyForCompletion(draft)
+    renderDraft === null ||
+    !isArousalSessionReadyForCompletion(renderDraft)
   ) {
     return <AppScreen />;
   }
@@ -162,7 +267,14 @@ export function OptionalDurationScreen() {
         icon="◌"
         title="Log duration only if useful."
         subtitle="Duration is saved only as a personal trend. It is not rated as good or bad."
-        onBackPress={() => router.replace(routes.arousalControlReflection)}
+        backDisabled={controlsLocked}
+        closeDisabled={isSubmitting}
+        busy={isSubmitting}
+        onBackPress={() => {
+          if (!controlsLocked) {
+            router.replace(routes.arousalControlReflection);
+          }
+        }}
         onClosePress={closePractice}
       />
 
@@ -186,7 +298,9 @@ export function OptionalDurationScreen() {
                       : `bloom.arousal.duration.range.${option.value}`
                   }
                   accessibilityRole="button"
+                  disabled={controlsLocked}
                   accessibilityState={{
+                    disabled: controlsLocked,
                     selected:
                       option.value === "preferNot"
                         ? durationInput.mode === "preferNot"
@@ -203,7 +317,7 @@ export function OptionalDurationScreen() {
                         durationInput.selectedRange === option.value)
                       ? styles.durationChipSelected
                       : undefined,
-                    pressed ? styles.durationChipPressed : undefined
+                    pressed && !controlsLocked ? styles.durationChipPressed : undefined
                   ]}
                 >
                   <AppText variant="label" align="center">
@@ -216,6 +330,7 @@ export function OptionalDurationScreen() {
             <AppButton
               testID="bloom.arousal.duration.mode.exact"
               variant="subtle"
+              disabled={controlsLocked}
               onPress={showExactTime}
             >
               Enter exact time
@@ -245,6 +360,7 @@ export function OptionalDurationScreen() {
                     testID="bloom.arousal.duration.exact.minutes"
                     value={durationInput.minutes}
                     onChangeText={updateMinutes}
+                    editable={!controlsLocked}
                     keyboardType="number-pad"
                     placeholder="0"
                     placeholderTextColor={theme.colors.textSecondary}
@@ -260,6 +376,7 @@ export function OptionalDurationScreen() {
                     testID="bloom.arousal.duration.exact.seconds"
                     value={durationInput.seconds}
                     onChangeText={updateSeconds}
+                    editable={!controlsLocked}
                     keyboardType="number-pad"
                     placeholder="0"
                     placeholderTextColor={theme.colors.textSecondary}
@@ -284,24 +401,33 @@ export function OptionalDurationScreen() {
 
         <View style={styles.actions}>
           {validationMessage ? (
-            <AppText variant="bodySmall" tone="secondary" align="center">
+            <AppText
+              accessibilityLiveRegion="polite"
+              accessibilityRole="alert"
+              variant="bodySmall"
+              tone="secondary"
+              align="center"
+            >
               {validationMessage}
             </AppText>
           ) : null}
           <AppButton
             testID="bloom.arousal.complete"
             loading={isSubmitting}
-            onPress={() => savePractice()}
+            disabled={hasAcceptedCompletion && persistenceRetryToken === null}
+            onPress={() => void savePractice()}
           >
-            Save Practice
+            {persistenceRetryToken === null ? "Save Practice" : "Try saving again"}
           </AppButton>
-          <AppButton
-            variant="ghost"
-            disabled={isSubmitting}
-            onPress={() => savePractice(true)}
-          >
-            Skip duration
-          </AppButton>
+          {!hasAcceptedCompletion ? (
+            <AppButton
+              variant="ghost"
+              disabled={isSubmitting}
+              onPress={() => void savePractice(true)}
+            >
+              Skip duration
+            </AppButton>
+          ) : null}
         </View>
       </View>
     </AppScreen>

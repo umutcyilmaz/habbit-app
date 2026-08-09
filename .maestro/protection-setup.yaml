@@ -87,3 +87,21 @@ name: Bloom Protection setup entry
 
 - assertVisible: "Protection is ready."
 - assertVisible: "Start 10-Day Reset"
+
+- tapOn:
+    id: "bloom.tab.protect"
+- extendedWaitUntil:
+    visible:
+      id: "bloom.protection.status"
+    timeout: 30000
+- assertVisible: "Protection is ready."
+- scrollUntilVisible:
+    element:
+      text: ".*Any time.*"
+    direction: DOWN
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: ".*Strong.*"
+    direction: DOWN
+    timeout: 20000

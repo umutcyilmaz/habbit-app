@@ -1,8 +1,12 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
-import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
+import {
+  useBloomLocalState,
+  type BloomPersistedMutationResult,
+  type BloomPersistenceRetryToken
+} from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
 import { AppHeader } from "../../../shared/components/AppHeader";
 import { AppScreen } from "../../../shared/components/AppScreen";
@@ -18,9 +22,13 @@ import {
   updateSavedCheckIn
 } from "../checkInSubmission";
 import {
+  clearCheckInPersistenceFeedback,
   createCheckInErrorFeedback,
-  resolveCheckInSaveOutcome,
-  type CheckInFeedback
+  resolveCheckInPersistenceFeedback,
+  routeCheckInPersistenceFeedback,
+  type CheckInFeedback,
+  type CheckInFeedbackChannels,
+  type CheckInPersistenceAction
 } from "../checkInFeedback";
 import { LogReassuranceNote } from "../components/LogReassuranceNote";
 import {
@@ -31,21 +39,197 @@ import { PrivateReflectionCard } from "../components/PrivateReflectionCard";
 import { QuickCheckInCard } from "../components/QuickCheckInCard";
 import { RecentMomentsCard } from "../components/RecentMomentsCard";
 
+type CheckInPersistenceOperation = {
+  action: CheckInPersistenceAction;
+  record: BloomCheckInRecord;
+  successMessage: string;
+  failureMessage: string;
+};
+
+type PendingCheckInRetry = {
+  operation: CheckInPersistenceOperation;
+  retryToken: BloomPersistenceRetryToken;
+};
+
 export function LogScreen() {
   const router = useRouter();
-  const { state, saveCheckInRecord } = useBloomLocalState();
+  const { durableState, retryPersistedMutation, saveCheckInRecord } =
+    useBloomLocalState();
   const [lastSavedRecord, setLastSavedRecord] =
     useState<BloomCheckInRecord | null>(null);
   const [mood, setMood] = useState<BloomCheckInMood>("neutral");
   const [moment, setMoment] = useState<BloomCheckInMoment>("evening");
-  const [checkInFeedback, setCheckInFeedback] =
-    useState<CheckInFeedback | null>(null);
+  const [feedbackChannels, setFeedbackChannels] =
+    useState<CheckInFeedbackChannels>({
+      checkInFeedback: null,
+      reflectionStatus: undefined
+    });
+  const { checkInFeedback, reflectionStatus } = feedbackChannels;
   const [showContext, setShowContext] = useState(false);
   const [eventType, setEventType] = useState<LogEventType>("nothing");
   const [reflectionNote, setReflectionNote] = useState("");
-  const [reflectionStatus, setReflectionStatus] = useState<string | undefined>();
+  const [savingAction, setSavingAction] =
+    useState<CheckInPersistenceAction | null>(null);
+  const [pendingRetry, setPendingRetry] =
+    useState<PendingCheckInRetry | null>(null);
+  const saveInFlightRef = useRef(false);
+  const isMountedRef = useRef(true);
+  const pendingRetryRef = useRef<PendingCheckInRetry | null>(null);
+  const preparedPrimaryRecordRef = useRef<BloomCheckInRecord | null>(null);
 
-  const createNewCheckIn = (
+  const isSaveLocked = savingAction !== null || pendingRetry !== null;
+
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const setCheckInFeedback = (feedback: CheckInFeedback | null) => {
+    setFeedbackChannels((currentChannels) => ({
+      ...currentChannels,
+      checkInFeedback: feedback
+    }));
+  };
+
+  const setReflectionStatus = (status: string | undefined) => {
+    setFeedbackChannels((currentChannels) => ({
+      ...currentChannels,
+      reflectionStatus: status
+    }));
+  };
+
+  const setPersistenceFeedback = (
+    operation: CheckInPersistenceOperation,
+    feedback: CheckInFeedback
+  ) => {
+    if (!isMountedRef.current) {
+      return;
+    }
+
+    setFeedbackChannels((currentChannels) =>
+      routeCheckInPersistenceFeedback(
+        currentChannels,
+        operation.action,
+        feedback
+      )
+    );
+  };
+
+  const finishPersistedOperation = (operation: CheckInPersistenceOperation) => {
+    if (!isMountedRef.current) {
+      return;
+    }
+
+    pendingRetryRef.current = null;
+    setPendingRetry(null);
+    preparedPrimaryRecordRef.current = null;
+    setLastSavedRecord(operation.record);
+    setPersistenceFeedback(operation, {
+      status: "success",
+      message: operation.successMessage
+    });
+  };
+
+  const handlePersistedResult = (
+    result: BloomPersistedMutationResult,
+    operation: CheckInPersistenceOperation
+  ) => {
+    if (!isMountedRef.current) {
+      return false;
+    }
+
+    if (result.ok) {
+      finishPersistedOperation(operation);
+      return true;
+    }
+
+    const subject = operation.action === "note" ? "This note" : "This moment";
+    const feedback = resolveCheckInPersistenceFeedback(
+      result,
+      operation.successMessage,
+      operation.failureMessage,
+      subject
+    );
+
+    setPersistenceFeedback(operation, feedback);
+
+    if (result.accepted && result.retryable) {
+      const nextPendingRetry = {
+        operation,
+        retryToken: result.retryToken
+      } satisfies PendingCheckInRetry;
+      pendingRetryRef.current = nextPendingRetry;
+      setPendingRetry(nextPendingRetry);
+    } else {
+      pendingRetryRef.current = null;
+      setPendingRetry(null);
+    }
+
+    return false;
+  };
+
+  const persistOperation = async (operation: CheckInPersistenceOperation) => {
+    if (saveInFlightRef.current || pendingRetryRef.current !== null) {
+      return;
+    }
+
+    saveInFlightRef.current = true;
+    setSavingAction(operation.action);
+
+    setFeedbackChannels((currentChannels) =>
+      clearCheckInPersistenceFeedback(currentChannels, operation.action)
+    );
+
+    try {
+      const result = await saveCheckInRecord(operation.record);
+      handlePersistedResult(result, operation);
+    } catch {
+      setPersistenceFeedback(
+        operation,
+        createCheckInErrorFeedback(operation.failureMessage)
+      );
+    } finally {
+      saveInFlightRef.current = false;
+
+      if (isMountedRef.current) {
+        setSavingAction(null);
+      }
+    }
+  };
+
+  const retryPendingPersistence = async () => {
+    const pending = pendingRetryRef.current;
+
+    if (pending === null || saveInFlightRef.current) {
+      return;
+    }
+
+    saveInFlightRef.current = true;
+    setSavingAction(pending.operation.action);
+
+    try {
+      const result = await retryPersistedMutation(pending.retryToken);
+      handlePersistedResult(result, pending.operation);
+    } catch {
+      setPersistenceFeedback(
+        pending.operation,
+        createCheckInErrorFeedback(
+          "Bloom still couldn’t save this change to local storage. Try again."
+        )
+      );
+    } finally {
+      saveInFlightRef.current = false;
+
+      if (isMountedRef.current) {
+        setSavingAction(null);
+      }
+    }
+  };
+
+  const prepareNewCheckIn = (
     includeContext: boolean,
     noteValue = ""
   ) => {
@@ -66,60 +250,44 @@ export function LogScreen() {
 
     if (!submission.ok) {
       setCheckInFeedback(submission.feedback);
-      return false;
-    }
-
-    const { record } = submission;
-    const result = saveCheckInRecord(record);
-    const outcome = resolveCheckInSaveOutcome(
-      result,
-      record,
-      "Your recent activity now includes this moment.",
-      "This moment could not be saved yet."
-    );
-    setCheckInFeedback(outcome.feedback);
-
-    if (outcome.savedRecord === null) {
-      return false;
-    }
-
-    setLastSavedRecord(outcome.savedRecord);
-    return true;
-  };
-
-  const updateLastCheckIn = (
-    values: Partial<Omit<BloomCheckInRecord, "id" | "createdAt">>,
-    successMessage: string
-  ) => {
-    setCheckInFeedback(null);
-
-    if (lastSavedRecord === null) {
       return null;
     }
 
-    const updatedRecord = updateSavedCheckIn(lastSavedRecord, values);
-    const result = saveCheckInRecord(updatedRecord);
-    const outcome = resolveCheckInSaveOutcome(
-      result,
-      updatedRecord,
-      successMessage,
-      "This moment could not be updated yet."
-    );
-    setCheckInFeedback(outcome.feedback);
-
-    if (outcome.savedRecord === null) {
-      return false;
-    }
-
-    setLastSavedRecord(outcome.savedRecord);
-    return true;
+    const preparedRecord = preparedPrimaryRecordRef.current;
+    const record =
+      preparedRecord === null
+        ? submission.record
+        : {
+            ...submission.record,
+            id: preparedRecord.id,
+            createdAt: preparedRecord.createdAt
+          };
+    preparedPrimaryRecordRef.current = record;
+    return record;
   };
 
   const handleSave = () => {
-    createNewCheckIn(showContext, reflectionNote);
+    if (saveInFlightRef.current || pendingRetryRef.current !== null) {
+      return;
+    }
+
+    const record = prepareNewCheckIn(showContext, reflectionNote);
+
+    if (record !== null) {
+      void persistOperation({
+        action: "checkIn",
+        record,
+        successMessage: "Your recent activity now includes this moment.",
+        failureMessage: "This moment could not be saved yet."
+      });
+    }
   };
 
   const handleSaveContext = () => {
+    if (saveInFlightRef.current || pendingRetryRef.current !== null) {
+      return;
+    }
+
     setCheckInFeedback(null);
     const noteResult = prepareBloomNoteSubmission(reflectionNote);
 
@@ -130,20 +298,29 @@ export function LogScreen() {
       return;
     }
 
-    const updated = updateLastCheckIn(
-      {
-        eventType,
-        ...(noteResult.note !== null ? { note: noteResult.note } : {})
-      },
-      "Context saved with your recent moment."
-    );
+    const record =
+      lastSavedRecord === null
+        ? prepareNewCheckIn(true, reflectionNote)
+        : updateSavedCheckIn(lastSavedRecord, {
+            eventType,
+            ...(noteResult.note !== null ? { note: noteResult.note } : {})
+          });
 
-    if (updated === null) {
-      createNewCheckIn(true, reflectionNote);
+    if (record !== null) {
+      void persistOperation({
+        action: "context",
+        record,
+        successMessage: "Context saved with your recent moment.",
+        failureMessage: "This moment could not be updated yet."
+      });
     }
   };
 
   const handleSaveNote = () => {
+    if (saveInFlightRef.current || pendingRetryRef.current !== null) {
+      return;
+    }
+
     setCheckInFeedback(null);
     setReflectionStatus(undefined);
     const noteResult = prepareBloomNoteSubmission(reflectionNote);
@@ -158,22 +335,21 @@ export function LogScreen() {
       return;
     }
 
-    const updated = updateLastCheckIn(
-      {
-        note: noteResult.note,
-        ...(showContext ? { eventType } : {})
-      },
-      "Note saved with this check-in."
-    );
+    const record =
+      lastSavedRecord === null
+        ? prepareNewCheckIn(showContext, reflectionNote)
+        : updateSavedCheckIn(lastSavedRecord, {
+            note: noteResult.note,
+            ...(showContext ? { eventType } : {})
+          });
 
-    if (updated === null) {
-      if (createNewCheckIn(showContext, reflectionNote)) {
-        setReflectionStatus("Note saved with this check-in.");
-      }
-    } else if (updated) {
-      setReflectionStatus("Note saved with this check-in.");
-    } else {
-      setReflectionStatus("This note could not be saved yet.");
+    if (record !== null) {
+      void persistOperation({
+        action: "note",
+        record,
+        successMessage: "Note saved with this check-in.",
+        failureMessage: "This note could not be saved yet."
+      });
     }
   };
 
@@ -218,6 +394,16 @@ export function LogScreen() {
             setShowContext(true);
           }}
           isContextVisible={showContext}
+          disabled={isSaveLocked}
+          saving={savingAction === "checkIn" && pendingRetry === null}
+          retrying={
+            savingAction !== null &&
+            pendingRetry !== null &&
+            pendingRetry?.operation.action !== "note"
+          }
+          {...(pendingRetry !== null && pendingRetry.operation.action !== "note"
+            ? { onRetry: () => void retryPendingPersistence() }
+            : {})}
           {...(checkInFeedback !== null
             ? { feedback: checkInFeedback }
             : {})}
@@ -228,6 +414,8 @@ export function LogScreen() {
             eventType={eventType}
             onEventTypeChange={handleEventTypeChange}
             onSaveWithContext={handleSaveContext}
+            disabled={isSaveLocked}
+            saving={savingAction === "context" && pendingRetry === null}
           />
         ) : null}
 
@@ -235,10 +423,16 @@ export function LogScreen() {
           note={reflectionNote}
           onNoteChange={handleReflectionNoteChange}
           onSaveNote={handleSaveNote}
+          disabled={isSaveLocked}
+          saving={savingAction === "note" && pendingRetry === null}
+          retrying={savingAction === "note" && pendingRetry !== null}
+          {...(pendingRetry?.operation.action === "note"
+            ? { onRetry: () => void retryPendingPersistence() }
+            : {})}
           {...(reflectionStatus !== undefined ? { savedMessage: reflectionStatus } : {})}
         />
 
-        <RecentMomentsCard records={state.checkIns.records} />
+        <RecentMomentsCard records={durableState.checkIns.records} />
         <LogReassuranceNote />
       </View>
     </AppScreen>

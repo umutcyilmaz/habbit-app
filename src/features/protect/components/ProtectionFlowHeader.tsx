@@ -9,19 +9,23 @@ type ProtectionFlowHeaderProps = {
   subtitle?: string;
   onBackPress: () => void;
   onClosePress?: () => void;
+  disabled?: boolean;
 };
 
 export function ProtectionFlowHeader({
   title,
   subtitle,
   onBackPress,
-  onClosePress
+  onClosePress,
+  disabled = false
 }: ProtectionFlowHeaderProps) {
   return (
     <View style={styles.container}>
       <View style={styles.actions}>
         <AppIconButton
           accessibilityLabel="Back to Protect"
+          accessibilityState={{ disabled }}
+          disabled={disabled}
           icon={<AppText variant="title">‹</AppText>}
           onPress={onBackPress}
           style={styles.iconButton}
@@ -29,6 +33,8 @@ export function ProtectionFlowHeader({
         {onClosePress ? (
           <AppIconButton
             accessibilityLabel="Close"
+            accessibilityState={{ disabled }}
+            disabled={disabled}
             icon={<AppText variant="title">×</AppText>}
             onPress={onClosePress}
             style={styles.iconButton}

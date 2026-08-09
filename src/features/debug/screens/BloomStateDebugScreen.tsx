@@ -1,8 +1,12 @@
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
-import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
+import {
+  useBloomLocalState,
+  type BloomPersistedMutationResult,
+  type BloomPersistenceRetryToken
+} from "../../../app/providers/BloomLocalStateProvider";
 import { useLocalDataLifecycle } from "../../../app/providers/LocalDataLifecycleProvider";
 import { routes } from "../../../constants/navigation";
 import {
@@ -15,6 +19,7 @@ import {
   getPatternLabel,
   type DebugProfileId
 } from "../../onboarding/quiz";
+import { getOnboardingPersistenceErrorMessage } from "../../onboarding/onboardingPersistenceFeedback";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
 import { AppHeader } from "../../../shared/components/AppHeader";
@@ -32,6 +37,11 @@ import {
   type QuizFlags
 } from "../../../storage/bloomState";
 
+type PendingDebugProfileRetry = {
+  profileId: DebugProfileId;
+  retryToken: BloomPersistenceRetryToken;
+};
+
 export function BloomStateDebugScreen() {
   const router = useRouter();
   const {
@@ -43,6 +53,7 @@ export function BloomStateDebugScreen() {
     todayKey,
     resetDay,
     resetTodayCompleted,
+    retryPersistedMutation,
     saveOnboardingResult,
     saveOnboardingResultForFreshJourney,
     clearOnboardingResult,
@@ -56,6 +67,15 @@ export function BloomStateDebugScreen() {
     clearDeletionStatus
   } = useLocalDataLifecycle();
   const [confirmingReset, setConfirmingReset] = useState(false);
+  const debugProfilePromiseRef =
+    useRef<Promise<BloomPersistedMutationResult> | null>(null);
+  const isMountedRef = useRef(true);
+  const [activeDebugProfile, setActiveDebugProfile] =
+    useState<DebugProfileId | null>(null);
+  const [pendingDebugProfileRetry, setPendingDebugProfileRetry] =
+    useState<PendingDebugProfileRetry | null>(null);
+  const [debugProfilePersistenceError, setDebugProfilePersistenceError] =
+    useState<string | null>(null);
   const isDeleting = deletionStatus === "deleting";
   const latestCheckIn = getLatestBloomCheckInRecord(state.checkIns.records);
   const latestPauseRecord = getLatestPauseRecord(state.pause.records);
@@ -72,18 +92,87 @@ export function BloomStateDebugScreen() {
     clearDeletionStatus();
   }, [clearDeletionStatus]);
 
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   const setDebugProfile = (profileId: DebugProfileId) => {
     const quizAnswers = getDebugQuizAnswers(profileId);
     const quizResult = createDebugQuizResult(profileId);
 
-    saveOnboardingResult(quizAnswers, quizResult);
+    void saveOnboardingResult(quizAnswers, quizResult);
   };
-  const startAsDebugProfile = (profileId: DebugProfileId) => {
-    const quizAnswers = getDebugQuizAnswers(profileId);
-    const quizResult = createDebugQuizResult(profileId);
+  const startAsDebugProfile = async (profileId: DebugProfileId) => {
+    if (debugProfilePromiseRef.current !== null) {
+      return;
+    }
 
-    saveOnboardingResultForFreshJourney(quizAnswers, quizResult);
-    router.push(routes.onboardingResult);
+    let persistencePromise: Promise<BloomPersistedMutationResult>;
+
+    if (pendingDebugProfileRetry !== null) {
+      if (pendingDebugProfileRetry.profileId !== profileId) {
+        return;
+      }
+
+      persistencePromise = retryPersistedMutation(
+        pendingDebugProfileRetry.retryToken
+      );
+    } else {
+      const quizAnswers = getDebugQuizAnswers(profileId);
+      const quizResult = createDebugQuizResult(profileId);
+      persistencePromise = saveOnboardingResultForFreshJourney(
+        quizAnswers,
+        quizResult
+      );
+    }
+
+    debugProfilePromiseRef.current = persistencePromise;
+    setActiveDebugProfile(profileId);
+    setDebugProfilePersistenceError(null);
+
+    try {
+      const result = await persistencePromise;
+
+      if (!isMountedRef.current) {
+        return;
+      }
+
+      if (result.ok) {
+        setPendingDebugProfileRetry(null);
+        router.push(routes.onboardingResult);
+        return;
+      }
+
+      setPendingDebugProfileRetry(
+        result.accepted && result.retryable
+          ? {
+              profileId,
+              retryToken: result.retryToken
+            }
+          : null
+      );
+      setDebugProfilePersistenceError(
+        getOnboardingPersistenceErrorMessage(result)
+      );
+    } catch {
+      if (isMountedRef.current) {
+        setDebugProfilePersistenceError(
+          "Bloom couldn’t confirm this debug profile in local storage."
+        );
+      }
+    } finally {
+      if (debugProfilePromiseRef.current === persistencePromise) {
+        debugProfilePromiseRef.current = null;
+
+        if (isMountedRef.current) {
+          setActiveDebugProfile(null);
+        }
+      }
+    }
   };
   const openNextAction = () => router.push(nextAction.route);
 
@@ -259,17 +348,45 @@ export function BloomStateDebugScreen() {
                       <View style={styles.profileActions}>
                         <AppButton
                           testID={debugProfileTestIds[profileId]}
-                          onPress={() => startAsDebugProfile(profileId)}
+                          disabled={
+                            (activeDebugProfile !== null &&
+                              activeDebugProfile !== profileId) ||
+                            (pendingDebugProfileRetry !== null &&
+                              pendingDebugProfileRetry.profileId !== profileId)
+                          }
+                          loading={activeDebugProfile === profileId}
+                          onPress={() => {
+                            void startAsDebugProfile(profileId);
+                          }}
                         >
-                          Start as this profile
+                          {pendingDebugProfileRetry?.profileId === profileId
+                            ? "Try starting this profile again"
+                            : "Start as this profile"}
                         </AppButton>
-                        <AppButton variant="subtle" onPress={() => setDebugProfile(profileId)}>
+                        <AppButton
+                          variant="subtle"
+                          disabled={
+                            activeDebugProfile !== null ||
+                            pendingDebugProfileRetry !== null
+                          }
+                          onPress={() => setDebugProfile(profileId)}
+                        >
                           Set only
                         </AppButton>
                       </View>
                     </View>
                   ))}
                 </View>
+                {debugProfilePersistenceError !== null ? (
+                  <AppText
+                    accessibilityLiveRegion="polite"
+                    accessibilityRole="alert"
+                    variant="bodySmall"
+                    tone="danger"
+                  >
+                    {debugProfilePersistenceError}
+                  </AppText>
+                ) : null}
                 {currentQuizResult ? (
                   <View style={styles.currentProfile}>
                     <View style={styles.cardStackSmall}>

@@ -1,7 +1,7 @@
 import type { BloomLocalState } from "./bloomState";
 import {
   createBloomStatePersistenceCoordinator,
-  loadBloomLocalState as loadBloomLocalStateWithClient
+  type BloomStateWriteReceipt
 } from "./bloomStatePersistence";
 import { storageClient } from "./storageClient";
 
@@ -10,10 +10,12 @@ export type { BloomStateLoadResult } from "./bloomStatePersistence";
 const persistenceCoordinator = createBloomStatePersistenceCoordinator(storageClient);
 
 export function loadBloomLocalState() {
-  return loadBloomLocalStateWithClient(storageClient);
+  return persistenceCoordinator.load();
 }
 
-export function saveBloomLocalState(state: BloomLocalState): Promise<void> {
+export function saveBloomLocalState(
+  state: BloomLocalState
+): Promise<BloomStateWriteReceipt> {
   return persistenceCoordinator.enqueueWrite(state);
 }
 

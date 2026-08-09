@@ -2,7 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "expo-router";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 
-import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
+import {
+  useBloomLocalState,
+  type BloomPersistedMutationResult,
+  type BloomPersistenceRetryToken
+} from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
 import { getNextBloomAction } from "../../../domain/journey/getNextBloomAction";
 import { AppButton } from "../../../shared/components/AppButton";
@@ -11,6 +15,7 @@ import { AppIconButton } from "../../../shared/components/AppIconButton";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
+import { usePersistenceNavigationGuard } from "../../../shared/navigation/usePersistenceNavigationGuard";
 import { resetDurationSeconds } from "../../../shared/runtime/e2eMode";
 import {
   isResetProgramComplete,
@@ -42,21 +47,49 @@ export function TenDayResetPracticeScreen() {
   const router = useRouter();
   const {
     state,
-    todayKey,
+    durableState,
+    durableTodayKey,
     startTenDayReset,
     completeTodayReset,
-    resetTodayCompleted
+    retryPersistedMutation,
+    durableTodayCompleted
   } = useBloomLocalState();
-  const resetComplete = isResetProgramComplete(state.tenDayReset);
-  const nextAction = getNextBloomAction(state, todayKey);
+  const resetComplete = isResetProgramComplete(
+    durableState.tenDayReset
+  );
+  const nextAction = getNextBloomAction(durableState, durableTodayKey);
   const [timerStatus, setTimerStatus] = useState<TimerStatus>("idle");
   const [secondsLeft, setSecondsLeft] = useState(resetDurationSeconds);
   const [practiceAgain, setPracticeAgain] = useState(false);
-  const completionRequestedRef = useRef(false);
-  const showAlreadyCompleted = resetTodayCompleted && !practiceAgain;
+  const completionAttemptRef = useRef(false);
+  const completionPromiseRef =
+    useRef<Promise<BloomPersistedMutationResult> | null>(null);
+  const isMountedRef = useRef(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [completionAccepted, setCompletionAccepted] = useState(false);
+  const [retryToken, setRetryToken] =
+    useState<BloomPersistenceRetryToken | null>(null);
+  const [persistenceError, setPersistenceError] = useState<string | null>(null);
+  const persistenceNavigationBlocked = isSaving;
+  const allowPersistenceNavigation = usePersistenceNavigationGuard(
+    persistenceNavigationBlocked
+  );
+  const showAlreadyCompleted =
+    durableTodayCompleted &&
+    !practiceAgain &&
+    !completionAccepted &&
+    !isSaving;
 
   useEffect(() => {
-    if (resetComplete) {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (resetComplete && !completionAttemptRef.current) {
       router.replace(nextAction.route);
       return;
     }
@@ -92,13 +125,6 @@ export function TenDayResetPracticeScreen() {
     }
   }, [secondsLeft, timerStatus]);
 
-  useEffect(() => {
-    if (completionRequestedRef.current && resetTodayCompleted) {
-      completionRequestedRef.current = false;
-      router.replace(routes.tenDayResetSaved);
-    }
-  }, [resetTodayCompleted, router]);
-
   const startTimer = () => {
     setTimerStatus((currentStatus) => (currentStatus === "running" ? "paused" : "running"));
   };
@@ -109,22 +135,80 @@ export function TenDayResetPracticeScreen() {
     setTimerStatus("idle");
   };
 
-  const saveTodayReset = () => {
-    completionRequestedRef.current = true;
-    completeTodayReset();
-  };
-
   const viewSavedReset = () => {
     router.replace(routes.tenDayResetSaved);
   };
 
-  if (resetComplete) {
+  const saveTodayReset = async () => {
+    if (completionPromiseRef.current !== null) {
+      return;
+    }
+
+    if (durableTodayCompleted && !completionAttemptRef.current) {
+      viewSavedReset();
+      return;
+    }
+
+    let persistencePromise: Promise<BloomPersistedMutationResult>;
+
+    if (retryToken !== null) {
+      persistencePromise = retryPersistedMutation(retryToken);
+    } else {
+      if (completionAttemptRef.current) {
+        return;
+      }
+
+      completionAttemptRef.current = true;
+      persistencePromise = completeTodayReset();
+    }
+
+    completionPromiseRef.current = persistencePromise;
+    setIsSaving(true);
+    setPersistenceError(null);
+
+    try {
+      const result = await persistencePromise;
+
+      if (!isMountedRef.current) {
+        return;
+      }
+
+      if (result.ok) {
+        setRetryToken(null);
+        allowPersistenceNavigation();
+        router.replace(routes.tenDayResetSaved);
+        return;
+      }
+
+      if (result.accepted) {
+        setCompletionAccepted(true);
+        setRetryToken(result.retryable ? result.retryToken : null);
+      } else {
+        completionAttemptRef.current = false;
+        setCompletionAccepted(false);
+        setRetryToken(null);
+      }
+
+      setPersistenceError(getResetPersistenceErrorMessage(result));
+    } finally {
+      if (completionPromiseRef.current === persistencePromise) {
+        completionPromiseRef.current = null;
+
+        if (isMountedRef.current) {
+          setIsSaving(false);
+        }
+      }
+    }
+  };
+
+  if (resetComplete && !completionAttemptRef.current) {
     return null;
   }
 
   return (
     <AppScreen contentStyle={styles.content}>
       <ResetPracticeHeader
+        disabled={isSaving}
         onBackPress={() => router.back()}
         onClosePress={() => router.replace(routes.home)}
       />
@@ -138,14 +222,24 @@ export function TenDayResetPracticeScreen() {
           onSavePress={showAlreadyCompleted ? viewSavedReset : saveTodayReset}
           onAlreadyDonePress={saveTodayReset}
           onPracticeAgainPress={practiceAgainToday}
+          isSaving={isSaving}
+          completionLocked={completionAccepted}
+          canRetry={retryToken !== null}
+          persistenceError={persistenceError}
         />
 
         <DuringResetCard />
 
         {!showAlreadyCompleted ? (
           <View style={styles.bottomActions}>
-            <AppButton onPress={saveTodayReset}>
-              Finish today’s reset
+            <AppButton
+              disabled={completionAccepted && retryToken === null}
+              loading={isSaving}
+              onPress={saveTodayReset}
+            >
+              {retryToken !== null
+                ? "Try saving again"
+                : "Finish today’s reset"}
             </AppButton>
           </View>
         ) : null}
@@ -155,16 +249,23 @@ export function TenDayResetPracticeScreen() {
 }
 
 type ResetPracticeHeaderProps = {
+  disabled: boolean;
   onBackPress: () => void;
   onClosePress: () => void;
 };
 
-function ResetPracticeHeader({ onBackPress, onClosePress }: ResetPracticeHeaderProps) {
+function ResetPracticeHeader({
+  disabled,
+  onBackPress,
+  onClosePress
+}: ResetPracticeHeaderProps) {
   return (
     <View style={styles.header}>
       <View style={styles.headerActions}>
         <AppIconButton
           accessibilityLabel="Back to reset overview"
+          accessibilityState={{ disabled }}
+          disabled={disabled}
           icon={<AppText variant="title">‹</AppText>}
           onPress={onBackPress}
           style={styles.headerButton}
@@ -176,6 +277,8 @@ function ResetPracticeHeader({ onBackPress, onClosePress }: ResetPracticeHeaderP
         </View>
         <AppIconButton
           accessibilityLabel="Close reset"
+          accessibilityState={{ disabled }}
+          disabled={disabled}
           icon={<AppText variant="title">×</AppText>}
           onPress={onClosePress}
           style={styles.headerButton}
@@ -198,6 +301,10 @@ type PracticeTimerCardProps = {
   secondsLeft: number;
   timerStatus: TimerStatus;
   alreadyCompleted: boolean;
+  isSaving: boolean;
+  completionLocked: boolean;
+  canRetry: boolean;
+  persistenceError: string | null;
   onStartPress: () => void;
   onSavePress: () => void;
   onAlreadyDonePress: () => void;
@@ -208,13 +315,23 @@ function PracticeTimerCard({
   secondsLeft,
   timerStatus,
   alreadyCompleted,
+  isSaving,
+  completionLocked,
+  canRetry,
+  persistenceError,
   onStartPress,
   onSavePress,
   onAlreadyDonePress,
   onPracticeAgainPress
 }: PracticeTimerCardProps) {
   const timerComplete = timerStatus === "completed";
-  const buttonLabel = getTimerButtonLabel(timerStatus, alreadyCompleted);
+  const buttonLabel = getTimerButtonLabel(
+    timerStatus,
+    alreadyCompleted,
+    completionLocked,
+    canRetry
+  );
+  const persistenceActionActive = isSaving || completionLocked || canRetry;
 
   return (
     <AppCard testID="bloom.reset.timer" style={styles.timerCard}>
@@ -242,6 +359,17 @@ function PracticeTimerCard({
           The reset is complete. Save today when you are ready.
         </AppText>
       ) : null}
+      {persistenceError !== null ? (
+        <AppText
+          accessibilityLiveRegion="polite"
+          accessibilityRole="alert"
+          variant="bodySmall"
+          tone="danger"
+          align="center"
+        >
+          {persistenceError}
+        </AppText>
+      ) : null}
       <View style={styles.timerActions}>
         <AppButton
           testID={
@@ -251,14 +379,26 @@ function PracticeTimerCard({
                 ? "bloom.reset.complete"
                 : "bloom.reset.practice.start"
           }
-          onPress={alreadyCompleted || timerComplete ? onSavePress : onStartPress}
+          disabled={completionLocked && !canRetry}
+          loading={isSaving}
+          onPress={
+            alreadyCompleted || timerComplete || persistenceActionActive
+              ? onSavePress
+              : onStartPress
+          }
         >
           {buttonLabel}
         </AppButton>
         <Pressable
           accessibilityRole="button"
+          accessibilityState={{ disabled: isSaving || completionLocked }}
+          disabled={isSaving || completionLocked}
           onPress={alreadyCompleted ? onPracticeAgainPress : onAlreadyDonePress}
-          style={styles.textAction}
+          style={({ pressed }) => [
+            styles.textAction,
+            pressed ? styles.textActionPressed : undefined,
+            isSaving || completionLocked ? styles.textActionDisabled : undefined
+          ]}
         >
           <AppText variant="label" tone="secondary" align="center">
             {alreadyCompleted ? "Practice again" : "I already did it"}
@@ -269,7 +409,20 @@ function PracticeTimerCard({
   );
 }
 
-function getTimerButtonLabel(timerStatus: TimerStatus, alreadyCompleted: boolean) {
+function getTimerButtonLabel(
+  timerStatus: TimerStatus,
+  alreadyCompleted: boolean,
+  completionLocked: boolean,
+  canRetry: boolean
+) {
+  if (canRetry) {
+    return "Try saving again";
+  }
+
+  if (completionLocked) {
+    return "Saving interrupted";
+  }
+
   if (alreadyCompleted) {
     return "View saved reset";
   }
@@ -285,6 +438,32 @@ function getTimerButtonLabel(timerStatus: TimerStatus, alreadyCompleted: boolean
     default:
       return "Start timer";
   }
+}
+
+function getResetPersistenceErrorMessage(
+  result: BloomPersistedMutationResult
+) {
+  if (result.ok) {
+    return null;
+  }
+
+  if (result.reason === "persistenceUnknown") {
+    return "Bloom is still confirming today’s Reset in local storage. You can leave safely or try again; it is not shown as saved yet.";
+  }
+
+  if (result.reason === "persistenceSuperseded") {
+    return "A newer change replaced this Reset save request. Today’s Reset was not marked as saved by this request.";
+  }
+
+  if (result.retryable) {
+    return "Today’s Reset is complete for this session, but Bloom couldn’t save it to local storage. Try saving again.";
+  }
+
+  if (result.accepted) {
+    return "Saving was interrupted because Bloom’s local data changed. Return to Reset before trying again.";
+  }
+
+  return "Bloom couldn’t complete today’s Reset right now. Try again.";
 }
 
 function formatTime(seconds: number) {
@@ -422,6 +601,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: theme.spacing.lg
+  },
+  textActionPressed: {
+    opacity: 0.75
+  },
+  textActionDisabled: {
+    opacity: 0.5
   },
   card: {
     borderRadius: theme.radius.xxl,

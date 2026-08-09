@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import type { BloomPersistenceRetryToken } from "../src/app/providers/bloomLocalStateMutationRuntime";
 import { routes } from "../src/constants/navigation";
 import { getNextBloomAction } from "../src/domain/journey/getNextBloomAction";
 import {
@@ -18,9 +19,12 @@ import {
   updateSavedCheckIn
 } from "../src/features/log/checkInSubmission";
 import {
+  clearCheckInPersistenceFeedback,
   getCheckInFeedbackPresentation,
-  resolveCheckInSaveOutcome
+  resolveCheckInPersistenceFeedback,
+  routeCheckInPersistenceFeedback
 } from "../src/features/log/checkInFeedback";
+import { createProtectionNavigationFocusGuard } from "../src/features/protect/protectionNavigationFocusGuard";
 import { resolvePauseAgainUpdate } from "../src/features/pause/pauseSessionAdapters";
 import {
   createPauseTimerSessionSnapshot,
@@ -40,6 +44,7 @@ import { createMemoryStorageClient } from "../src/storage/storageAdapters";
 import {
   addPauseSessionDurationState,
   completeArousalSessionState,
+  completeNewPauseSessionState,
   completePauseSessionState,
   createDefaultBloomState,
   discardArousalSessionState,
@@ -74,6 +79,7 @@ async function verifyGuidedFlows() {
   await verifyArousalLifecycle();
   verifyDurationAdapters();
   await verifyCrossStateRules();
+  await verifyPersistenceUiRegressions();
   verifyDemoConsumerScan();
 
   console.log("Bloom guided-flow verification passed.");
@@ -227,46 +233,98 @@ async function verifyCheckIns() {
     "The screen submission adapter must reject 5001 characters without clearing input, creating a record, or replacing the saved id."
   );
 
-  const candidateAfterMutationFailure = createCheckInSubmission(
+  const failedSaveFeedback = resolveCheckInPersistenceFeedback(
     {
-      mood: "calm",
-      moment: "evening"
+      ok: false,
+      accepted: true,
+      persisted: false,
+      sequence: 1,
+      reason: "persistenceInvalidated",
+      retryable: false
     },
-    {
-      now: fixedNow(),
-      randomValue: 0.5,
-      previousCreatedAt: acceptedSubmission.record.createdAt
-    }
-  );
-  const failedSaveOutcome = resolveCheckInSaveOutcome(
-    { ok: false, reason: "stateUnavailable" },
-    candidateAfterMutationFailure,
     "Saved.",
-    "This moment could not be saved yet."
+    "This moment could not be saved yet.",
+    "This moment"
   );
   const failedSavePresentation = getCheckInFeedbackPresentation(
-    failedSaveOutcome.feedback
+    failedSaveFeedback
   );
-  const successfulSaveOutcome = resolveCheckInSaveOutcome(
-    { ok: true },
-    candidateAfterMutationFailure,
+  const successfulSaveFeedback = resolveCheckInPersistenceFeedback(
+    {
+      ok: true,
+      accepted: true,
+      persisted: true,
+      sequence: 2
+    },
     "Your recent activity now includes this moment.",
-    "This moment could not be saved yet."
+    "This moment could not be saved yet.",
+    "This moment"
   );
   const successfulSavePresentation = getCheckInFeedbackPresentation(
-    successfulSaveOutcome.feedback
+    successfulSaveFeedback
+  );
+  const unknownSaveFeedback = resolveCheckInPersistenceFeedback(
+    {
+      ok: false,
+      accepted: true,
+      persisted: false,
+      sequence: 3,
+      reason: "persistenceUnknown",
+      retryable: true,
+      retryToken: 3 as BloomPersistenceRetryToken
+    },
+    "Saved.",
+    "This moment could not be saved yet.",
+    "This moment"
+  );
+  const unknownSavePresentation = getCheckInFeedbackPresentation(
+    unknownSaveFeedback
   );
   assert(
-    failedSaveOutcome.savedRecord === null &&
-      failedSaveOutcome.feedback.status === "error" &&
+    failedSaveFeedback.status === "error" &&
       failedSavePresentation.heading === "Check-in not saved" &&
       failedSavePresentation.message ===
-        "This moment could not be saved yet." &&
-      successfulSaveOutcome.savedRecord?.id ===
-        candidateAfterMutationFailure.id &&
-      successfulSaveOutcome.feedback.status === "success" &&
-      successfulSavePresentation.heading === "Check-in saved",
-    "The production feedback adapter must distinguish failed and successful Check-In mutations."
+        "This moment was updated in this session, but Bloom couldn’t confirm a local save." &&
+      successfulSaveFeedback.status === "success" &&
+      successfulSavePresentation.heading === "Check-in saved" &&
+      unknownSaveFeedback.status === "pending" &&
+      unknownSavePresentation.heading === "Save still pending",
+    "The production feedback adapter must distinguish failed, pending, and successful Check-In persistence."
+  );
+
+  const noteFailureFeedback = resolveCheckInPersistenceFeedback(
+    {
+      ok: false,
+      accepted: true,
+      persisted: false,
+      sequence: 4,
+      reason: "persistenceSuperseded",
+      retryable: false
+    },
+    "Note saved with this check-in.",
+    "This note could not be saved yet.",
+    "This note"
+  );
+  const feedbackBeforeNoteSave = {
+    checkInFeedback: successfulSaveFeedback,
+    reflectionStatus: "Previous reflection feedback."
+  };
+  const feedbackWhileNoteSaves = clearCheckInPersistenceFeedback(
+    feedbackBeforeNoteSave,
+    "note"
+  );
+  const feedbackAfterNoteFailure = routeCheckInPersistenceFeedback(
+    feedbackWhileNoteSaves,
+    "note",
+    noteFailureFeedback
+  );
+  assert(
+    feedbackWhileNoteSaves.checkInFeedback === successfulSaveFeedback &&
+      feedbackWhileNoteSaves.reflectionStatus === undefined &&
+      feedbackAfterNoteFailure.checkInFeedback === successfulSaveFeedback &&
+      feedbackAfterNoteFailure.reflectionStatus ===
+        "This note was replaced by a newer change and was not saved by this request.",
+    "A note save must clear and update only reflection feedback without replacing the truthful Check-In alert."
   );
 
   const retrySubmission = prepareCheckInSubmission(
@@ -291,18 +349,36 @@ async function verifyCheckIns() {
   );
   const retryMutationResult =
     retryState !== stateAfterRejectedSubmission
-      ? ({ ok: true } as const)
-      : ({ ok: false, reason: "invalidRecord" } as const);
-  const retryOutcome = resolveCheckInSaveOutcome(
+      ? ({
+          ok: true,
+          accepted: true,
+          persisted: true,
+          sequence: 3
+        } as const)
+      : ({
+          ok: false,
+          accepted: false,
+          persisted: false,
+          sequence: 3,
+          reason: "invalidRecord",
+          retryable: false
+        } as const);
+  const retryFeedback = resolveCheckInPersistenceFeedback(
     retryMutationResult,
-    retrySubmission.record,
     "Your recent activity now includes this moment.",
-    "This moment could not be saved yet."
+    "This moment could not be saved yet.",
+    "This moment"
+  );
+  const latestRetryRecord = getLatestBloomCheckInRecord(
+    retryState.checkIns.records
   );
   assert(
     retryState.checkIns.records.length === 2 &&
-      retryOutcome.feedback.status === "success" &&
-      retryOutcome.savedRecord?.id === retrySubmission.record.id,
+      retryFeedback.status === "success" &&
+      latestRetryRecord?.id === retrySubmission.record.id &&
+      latestRetryRecord.mood === retrySubmission.record.mood &&
+      latestRetryRecord.moment === retrySubmission.record.moment &&
+      latestRetryRecord.note === retrySubmission.record.note,
     "Retrying valid Check-In input should create exactly one record and replace error feedback with success."
   );
 
@@ -499,6 +575,44 @@ async function verifyPauseLifecycle() {
     repeated.pause.records.length === 1 &&
       repeated.pause.records[0]?.durationSeconds === 81,
     "Completing the same Pause id twice must not duplicate or overwrite it."
+  );
+
+  const atomicDraft: PauseSessionDraft = {
+    id: "pause-atomic-save-and-close",
+    startedAt,
+    phase: "checkIn",
+    triggers: ["nighttime", "habit"],
+    intensityBefore: 6,
+    selectedAction: "logAndClose",
+    timerDurationSeconds: 90,
+    elapsedDurationSeconds: 0
+  };
+  const atomicCompletion = completeNewPauseSessionState(
+    createDefaultBloomState(),
+    atomicDraft,
+    { durationSeconds: 0 },
+    completedAt
+  );
+  assert(
+    atomicCompletion.pause.activeSession === null &&
+      atomicCompletion.pause.records.length === 1 &&
+      atomicCompletion.pause.records[0]?.id === atomicDraft.id &&
+      atomicCompletion.pause.records[0]?.durationSeconds === 0 &&
+      atomicCompletion.pause.records[0]?.triggers.join(",") ===
+        "nighttime,habit",
+    "Pause Save and close should create only one final record without exposing a draft state."
+  );
+  const repeatedAtomicCompletion = completeNewPauseSessionState(
+    atomicCompletion,
+    atomicDraft,
+    { durationSeconds: 90 },
+    "2026-07-27T20:04:00.000Z"
+  );
+  assert(
+    repeatedAtomicCompletion.pause.activeSession === null &&
+      repeatedAtomicCompletion.pause.records.length === 1 &&
+      repeatedAtomicCompletion.pause.records[0]?.durationSeconds === 0,
+    "Repeating atomic Pause Save and close must not duplicate or overwrite its final record."
   );
 
   const firstRound = startPauseSessionState(
@@ -1102,6 +1216,109 @@ async function verifyCrossStateRules() {
   );
 }
 
+async function verifyPersistenceUiRegressions() {
+  const navigationFocusGuard = createProtectionNavigationFocusGuard();
+  const endInitialFocus = navigationFocusGuard.beginFocus();
+  const initialFocusSequence =
+    navigationFocusGuard.captureFocusSequence();
+  let settlePersistence!: () => void;
+  let navigationCalls = 0;
+  const getNavigationCalls = () => navigationCalls;
+  const delayedPersistence = new Promise<void>((resolve) => {
+    settlePersistence = resolve;
+  });
+  const delayedNavigation = delayedPersistence.then(() =>
+    navigationFocusGuard.runIfFocusUnchanged(
+      initialFocusSequence,
+      () => {
+        navigationCalls += 1;
+      }
+    )
+  );
+
+  endInitialFocus();
+  const endRestoredFocus = navigationFocusGuard.beginFocus();
+  settlePersistence();
+  const navigatedAfterFocusLoss = await delayedNavigation;
+  assert(
+    !navigatedAfterFocusLoss && getNavigationCalls() === 0,
+    "A delayed Protection success must not navigate after the originating tab loses focus."
+  );
+
+  const restoredFocusSequence =
+    navigationFocusGuard.captureFocusSequence();
+  const navigatedWhileFocused =
+    navigationFocusGuard.runIfFocusUnchanged(
+      restoredFocusSequence,
+      () => {
+        navigationCalls += 1;
+      }
+    );
+  endRestoredFocus();
+  assert(
+    navigatedWhileFocused && getNavigationCalls() === 1,
+    "A focused Protection success should retain its intended navigation."
+  );
+
+  const protectSource = readFileSync(
+    join(
+      process.cwd(),
+      "src/features/protect/screens/ProtectScreen.tsx"
+    ),
+    "utf8"
+  );
+  assert(
+    protectSource.includes("createProtectionNavigationFocusGuard") &&
+      protectSource.includes("navigationFocusGuard.beginFocus()") &&
+      protectSource.includes("navigationFocusGuard.captureFocusSequence()") &&
+      protectSource.includes("navigationFocusGuard.runIfFocusUnchanged("),
+    "ProtectScreen must use the verified focus guard for persisted Resume navigation."
+  );
+
+  const logSource = readFileSync(
+    join(process.cwd(), "src/features/log/screens/LogScreen.tsx"),
+    "utf8"
+  );
+  assert(
+    logSource.includes("routeCheckInPersistenceFeedback(") &&
+      logSource.includes("clearCheckInPersistenceFeedback("),
+    "LogScreen must use the verified feedback-channel helpers so note status stays out of the Check-In alert."
+  );
+
+  const indexSource = readFileSync(
+    join(process.cwd(), "app/index.tsx"),
+    "utf8"
+  );
+  assert(
+    indexSource.includes("const { durableState } = useBloomLocalState();") &&
+      indexSource.includes("if (!durableState.onboarding.completed)") &&
+      !indexSource.includes("const { state } = useBloomLocalState();"),
+    "The root journey redirect must read durable onboarding state, never accepted-only state."
+  );
+
+  const mainPracticeSource = readFileSync(
+    join(
+      process.cwd(),
+      "src/features/arousal-control/screens/MainPracticeScreen.tsx"
+    ),
+    "utf8"
+  );
+  const safeExitHandlers = ["startPause", "finishPractice", "closePractice"].map(
+    (handlerName) => extractArrowHandlerSource(mainPracticeSource, handlerName)
+  );
+  assert(
+    mainPracticeSource.includes("backDisabled={isNoteSaving}") &&
+      mainPracticeSource.includes("closeDisabled={isNoteSaving}") &&
+      mainPracticeSource.includes(
+        "const notePersistenceLocked = isNoteSaving;"
+      ) &&
+      safeExitHandlers.every(
+        (handlerSource) => !handlerSource.includes("noteRetryTokenRef")
+      ),
+    "Arousal practice navigation must unlock after a bounded unknown note result even while its retry token remains available."
+  );
+}
+
 function verifyDemoConsumerScan() {
   const runtimeFiles = [
     "src/features/log/screens/LogScreen.tsx",
@@ -1145,6 +1362,111 @@ function verifyDemoConsumerScan() {
     durationScreenSource.includes("resolveDurationSubmission") &&
       durationScreenSource.includes("submitInFlightRef"),
     "The duration screen should use the verified adapter and a synchronous duplicate-submit guard."
+  );
+
+  const pauseCheckInSource = readFileSync(
+    join(
+      process.cwd(),
+      "src/features/pause/screens/PauseCheckInScreen.tsx"
+    ),
+    "utf8"
+  );
+  assert(
+    pauseCheckInSource.includes("saveAndClosePauseSession(") &&
+      pauseCheckInSource.includes(
+        "const persistenceNavigationBlocked = isSaving;"
+      ) &&
+      !pauseCheckInSource.includes(
+        'const sessionId = getOrCreateSessionId("checkIn")'
+      ),
+    "Pause Save and close should be atomic and leave navigation available after a bounded persistence attempt settles."
+  );
+
+  const pauseTimerSource = readFileSync(
+    join(process.cwd(), "src/features/pause/screens/PauseTimerScreen.tsx"),
+    "utf8"
+  );
+  assert(
+    pauseTimerSource.includes("runStableMountMutationOnce(") &&
+      pauseTimerSource.includes(
+        "const persistenceNavigationBlocked = isSaving;"
+      ),
+    "Pause timer initialization should be Strict Mode safe and leave navigation available after persistence settles."
+  );
+
+  const protectionInterceptSource = readFileSync(
+    join(
+      process.cwd(),
+      "src/features/protect/screens/ProtectionInterceptScreen.tsx"
+    ),
+    "utf8"
+  );
+  assert(
+    protectionInterceptSource.includes(
+      "runStableMountMutationOnce("
+    ) &&
+      protectionInterceptSource.includes(
+        "() => recordProtectionPause().ok"
+      ),
+    "Protection pause recording should have a per-mount Strict Mode guard that leaves rejected mutations retryable."
+  );
+
+  const localStateProviderSource = readFileSync(
+    join(
+      process.cwd(),
+      "src/app/providers/BloomLocalStateProvider.tsx"
+    ),
+    "utf8"
+  );
+  assert(
+    localStateProviderSource.includes(
+      "recordProtectionPause: () => BloomMutationResult;"
+    ) &&
+      localStateProviderSource.includes(
+        "return applyStateMutation((currentState) =>"
+      ) &&
+      localStateProviderSource.includes(
+        "return () => {\n      isMountedRef.current = false;\n    };\n  }, [runHydration]);"
+      ),
+    "The local-state provider must expose Protection mutation rejection and reuse one in-flight hydration operation across Strict Mode effect replay."
+  );
+
+  const localDataLifecycleSource = readFileSync(
+    join(
+      process.cwd(),
+      "src/app/providers/LocalDataLifecycleProvider.tsx"
+    ),
+    "utf8"
+  );
+  assert(
+    localDataLifecycleSource.includes(
+      "retryBloomLocalDataResetNavigation"
+    ) &&
+      localDataLifecycleSource.includes(
+        "hasNavigatedAfterDeletionRef.current = false;"
+      ) &&
+      !localDataLifecycleSource.includes(
+        "catch {\n      finishBloomLocalDataReset();"
+      ),
+    "Failed post-deletion onboarding navigation must remain retryable without releasing the local-state write block on the old route."
+  );
+
+  const hydrationBoundarySource = readFileSync(
+    join(
+      process.cwd(),
+      "src/app/providers/BloomHydrationBoundary.tsx"
+    ),
+    "utf8"
+  );
+  assert(
+    hydrationBoundarySource.includes(
+      'if (deletionStatus === "success")'
+    ) &&
+      hydrationBoundarySource.includes(
+        "retryBloomLocalDataResetNavigation"
+      ) &&
+      hydrationBoundarySource.includes("Open onboarding"),
+    "Successful deletion must replace mutation-bearing routes with a retryable, mutation-free onboarding transition boundary."
   );
 }
 
@@ -1197,6 +1519,14 @@ function applyDurationActions(
     durationInputReducer,
     createInitialDurationInputState()
   );
+}
+
+function extractArrowHandlerSource(source: string, handlerName: string) {
+  const handlerStart = source.indexOf(`const ${handlerName} =`);
+  assert(handlerStart >= 0, `Missing production handler: ${handlerName}.`);
+  const handlerEnd = source.indexOf("\n  };", handlerStart);
+  assert(handlerEnd >= 0, `Could not read production handler: ${handlerName}.`);
+  return source.slice(handlerStart, handlerEnd + 5);
 }
 
 function assert(condition: boolean, message: string): asserts condition {

@@ -1,4 +1,5 @@
-import { useRouter } from "expo-router";
+import { useCallback, useRef, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
 import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
@@ -15,7 +16,10 @@ import type {
   ProtectionStatus
 } from "../../../storage/bloomState";
 import { ProtectionActionRow } from "../components/ProtectionActionRow";
+import { ProtectionPersistenceFeedback } from "../components/ProtectionPersistenceFeedback";
 import { ProtectionStatusHero } from "../components/ProtectionStatusHero";
+import { createProtectionNavigationFocusGuard } from "../protectionNavigationFocusGuard";
+import { useProtectionPersistenceAction } from "../useProtectionPersistenceAction";
 
 function getStatusCopy(status: ProtectionStatus) {
   switch (status) {
@@ -46,29 +50,80 @@ function getStatusCopy(status: ProtectionStatus) {
 
 export function ProtectScreen() {
   const router = useRouter();
+  const navigationFocusGuardRef = useRef(
+    createProtectionNavigationFocusGuard()
+  );
+  const navigationFocusGuard = navigationFocusGuardRef.current;
   const {
-    state,
+    durableState,
     pauseProtection,
     resumeProtection,
     turnOffProtection
   } = useBloomLocalState();
-  const protection = state.protection;
-  const statusCopy = getStatusCopy(protection.status);
+  const protection = durableState.protection;
+  const [statusOverride, setStatusOverride] =
+    useState<ProtectionStatus | null>(null);
+  const {
+    activeAction,
+    isLocked,
+    message,
+    pendingRetryAction,
+    retry,
+    runAction
+  } = useProtectionPersistenceAction();
+  const visibleStatus = statusOverride ?? protection.status;
+  const statusCopy = getStatusCopy(visibleStatus);
   const activeHours = formatActiveHours(protection);
 
-  const handlePrimaryAction = () => {
-    if (protection.status === "active") {
+  useFocusEffect(
+    useCallback(() => {
+      return navigationFocusGuard.beginFocus();
+    }, [navigationFocusGuard])
+  );
+
+  const handlePrimaryAction = async () => {
+    if (visibleStatus === "active") {
       router.push(routes.protectActive);
       return;
     }
 
-    if (protection.status === "paused") {
-      resumeProtection();
-      router.push(routes.protectActive);
+    if (visibleStatus === "paused") {
+      const resumeFocusSequence =
+        navigationFocusGuard.captureFocusSequence();
+      setStatusOverride(protection.status);
+      await runAction("resume", resumeProtection, {
+        onSuccess: () => {
+          setStatusOverride(null);
+
+          navigationFocusGuard.runIfFocusUnchanged(
+            resumeFocusSequence,
+            () => {
+              router.push(routes.protectActive);
+            }
+          );
+        },
+        onFailure: () => setStatusOverride(null)
+      });
       return;
     }
 
     router.push(routes.protectSetup);
+  };
+
+  const handlePauseProtection = async () => {
+    setStatusOverride(protection.status);
+    await runAction("pause", pauseProtection, {
+      onSuccess: () => setStatusOverride(null),
+      onFailure: () => setStatusOverride(null)
+    });
+  };
+
+  const handleTurnOffProtection = async () => {
+    setStatusOverride(protection.status);
+    await runAction("turn-off", turnOffProtection, {
+      onSuccess: () => setStatusOverride(null),
+      onFailure: () => setStatusOverride(null)
+    });
   };
 
   return (
@@ -84,33 +139,76 @@ export function ProtectScreen() {
           statusLabel={statusCopy.statusLabel}
           title={statusCopy.title}
           body={statusCopy.body}
-          variant={protection.status}
+          variant={visibleStatus}
         />
 
         <View style={styles.actions}>
           <AppButton
-            onPress={handlePrimaryAction}
+            testID="bloom.protection.primary-action"
+            loading={
+              activeAction === "resume" && pendingRetryAction === null
+            }
+            disabled={isLocked}
+            accessibilityState={{ disabled: isLocked }}
+            onPress={() => void handlePrimaryAction()}
           >
             {statusCopy.primaryAction}
           </AppButton>
-          <AppButton variant="secondary" onPress={() => router.push(routes.protectIntercept)}>
+          <AppButton
+            variant="secondary"
+            disabled={isLocked}
+            accessibilityState={{ disabled: isLocked }}
+            onPress={() => router.push(routes.protectIntercept)}
+          >
             Start temporary support
           </AppButton>
-          {protection.status !== "off" ? (
+          {visibleStatus !== "off" ? (
             <>
-              {protection.status === "active" ? (
-                <AppButton variant="ghost" onPress={pauseProtection}>
+              {visibleStatus === "active" ? (
+                <AppButton
+                  testID="bloom.protection.pause"
+                  variant="ghost"
+                  loading={
+                    activeAction === "pause" && pendingRetryAction === null
+                  }
+                  disabled={isLocked}
+                  accessibilityState={{ disabled: isLocked }}
+                  onPress={() => void handlePauseProtection()}
+                >
                   Pause Protection
                 </AppButton>
               ) : null}
-              <AppButton variant="ghost" onPress={() => router.push(routes.protectSetup)}>
+              <AppButton
+                variant="ghost"
+                disabled={isLocked}
+                accessibilityState={{ disabled: isLocked }}
+                onPress={() => router.push(routes.protectSetup)}
+              >
                 Edit schedule
               </AppButton>
-              <AppButton variant="ghost" onPress={turnOffProtection}>
+              <AppButton
+                testID="bloom.protection.turn-off"
+                variant="ghost"
+                loading={
+                  activeAction === "turn-off" &&
+                  pendingRetryAction === null
+                }
+                disabled={isLocked}
+                accessibilityState={{ disabled: isLocked }}
+                onPress={() => void handleTurnOffProtection()}
+              >
                 Turn off Protection
               </AppButton>
             </>
           ) : null}
+          <ProtectionPersistenceFeedback
+            message={message}
+            canRetry={pendingRetryAction !== null}
+            retrying={
+              activeAction !== null && pendingRetryAction === activeAction
+            }
+            onRetry={() => void retry()}
+          />
         </View>
 
         <AppCard style={styles.settingsCard}>
@@ -128,6 +226,7 @@ export function ProtectScreen() {
                 value={activeHours}
                 iconLabel="H"
                 accent="lavender"
+                disabled={isLocked}
                 onPress={() => router.push(routes.protectSetup)}
               />
               <ProtectionActionRow
@@ -136,6 +235,7 @@ export function ProtectScreen() {
                 value={protection.adultContentPauseEnabled ? "Saved" : "Not set"}
                 iconLabel="B"
                 accent="sage"
+                disabled={isLocked}
                 onPress={() => router.push(routes.protectSetup)}
               />
               <ProtectionActionRow
@@ -144,6 +244,7 @@ export function ProtectScreen() {
                 value={formatProtectionLevel(protection.level)}
                 iconLabel="N"
                 accent="peach"
+                disabled={isLocked}
                 onPress={() => router.push(routes.protectSetup)}
               />
             </View>

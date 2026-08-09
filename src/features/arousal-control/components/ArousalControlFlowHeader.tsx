@@ -11,6 +11,9 @@ type ArousalControlFlowHeaderProps = {
   icon?: string;
   onBackPress: () => void;
   onClosePress?: () => void;
+  backDisabled?: boolean;
+  closeDisabled?: boolean;
+  busy?: boolean;
 };
 
 export function ArousalControlFlowHeader({
@@ -19,7 +22,10 @@ export function ArousalControlFlowHeader({
   subtitle,
   icon,
   onBackPress,
-  onClosePress
+  onClosePress,
+  backDisabled = false,
+  closeDisabled = false,
+  busy = false
 }: ArousalControlFlowHeaderProps) {
   return (
     <View style={styles.container}>
@@ -27,6 +33,8 @@ export function ArousalControlFlowHeader({
       <View style={styles.topBar}>
         <AppIconButton
           accessibilityLabel="Go back"
+          accessibilityState={{ busy, disabled: backDisabled }}
+          disabled={backDisabled}
           icon={<AppText variant="title">‹</AppText>}
           onPress={onBackPress}
           style={styles.iconButton}
@@ -39,6 +47,8 @@ export function ArousalControlFlowHeader({
         {onClosePress ? (
           <AppIconButton
             accessibilityLabel="Close practice"
+            accessibilityState={{ busy, disabled: closeDisabled }}
+            disabled={closeDisabled}
             icon={<AppText variant="title">×</AppText>}
             onPress={onClosePress}
             style={styles.iconButton}

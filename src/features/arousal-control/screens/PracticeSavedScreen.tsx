@@ -1,96 +1,284 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { StyleSheet, TextInput, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 
-import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
+import {
+  useBloomLocalState,
+  type BloomPersistenceRetryToken
+} from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
+import { usePersistenceNavigationGuard } from "../../../shared/navigation/usePersistenceNavigationGuard";
 import { resolveBloomMutationFeedback } from "../../../shared/utils/bloomMutationFeedback";
 import {
-  getLatestValidArousalLog,
   MAX_BLOOM_NOTE_LENGTH,
   prepareBloomNoteSubmission,
   type ArousalControlPracticeLog
 } from "../../../storage/bloomState";
 import { ArousalControlFlowHeader } from "../components/ArousalControlFlowHeader";
+import {
+  getArousalSavedRouteIntent,
+  resolveArousalSavedRoute
+} from "../arousalSavedRoute";
 import { formatArousalPauseCount } from "../practiceSubmission";
 
 export function PracticeSavedScreen() {
   const router = useRouter();
-  const { state, editCompletedArousalLog } = useBloomLocalState();
-  const displayLog = getLatestValidArousalLog(state.arousalControl.logs);
+  const { logId } = useLocalSearchParams<{
+    logId?: string | string[];
+  }>();
+  const {
+    state,
+    durableState,
+    editCompletedArousalLog,
+    retryPersistedMutation
+  } = useBloomLocalState();
+  const resolution = resolveArousalSavedRoute(
+    state.arousalControl,
+    durableState.arousalControl,
+    getArousalSavedRouteIntent(logId)
+  );
+  const displayLog =
+    resolution.status === "show-completion" ||
+    resolution.status === "show-history"
+      ? resolution.log
+      : null;
+  const presentationMode =
+    resolution.status === "show-completion"
+      ? "completion"
+      : "history";
   const [noteVisible, setNoteVisible] = useState(false);
   const [note, setNote] = useState(displayLog?.note ?? "");
   const [noteMessage, setNoteMessage] = useState<string | undefined>();
+  const [isNoteSaving, setIsNoteSaving] = useState(false);
+  const [noteRetryToken, setNoteRetryToken] =
+    useState<BloomPersistenceRetryToken | null>(null);
+  const [noteMutationAccepted, setNoteMutationAccepted] = useState(false);
+  const noteSaveInFlightRef = useRef(false);
+  const noteMutationAcceptedRef = useRef(false);
+  const noteRetryTokenRef = useRef<BloomPersistenceRetryToken | null>(null);
+  const isMountedRef = useRef(true);
+  const notePersistenceLocked = isNoteSaving;
+  usePersistenceNavigationGuard(notePersistenceLocked);
   const sessionSummary = getSessionSummary(displayLog);
   const insight = getGentleInsight(displayLog);
 
   useEffect(() => {
-    if (state.arousalControl.draft !== null || displayLog === null) {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (resolution.status === "redirect") {
       router.replace(routes.arousalControl);
     }
-  }, [displayLog, router, state.arousalControl.draft]);
+  }, [resolution.status, router]);
 
-  const saveNote = () => {
-    const noteResult = prepareBloomNoteSubmission(note);
+  useEffect(() => {
+    setNote(displayLog?.note ?? "");
+  }, [displayLog?.id]);
 
-    if (!noteResult.ok) {
-      setNoteMessage("That note is too long to save.");
+  const saveNote = async () => {
+    if (noteSaveInFlightRef.current) {
       return;
     }
 
-    if (displayLog === null || noteResult.note === null) {
-      setNoteMessage("No note added. This practice is still saved.");
-      return;
+    const retryToken = noteRetryTokenRef.current;
+    let preparedNote: string | null = null;
+
+    if (retryToken === null) {
+      if (noteMutationAcceptedRef.current) {
+        return;
+      }
+
+      const noteResult = prepareBloomNoteSubmission(note);
+
+      if (!noteResult.ok) {
+        setNoteMessage("That note is too long to save.");
+        return;
+      }
+
+      if (displayLog === null || noteResult.note === null) {
+        setNoteMessage("No note added. This practice is still saved.");
+        return;
+      }
+
+      preparedNote = noteResult.note;
     }
 
-    const result = editCompletedArousalLog(displayLog.id, {
-      note: noteResult.note
-    });
-    const feedback = resolveBloomMutationFeedback(
-      result,
-      "Private note saved for this practice.",
-      "This note could not be saved yet."
-    );
-    setNoteMessage(feedback.message);
+    noteSaveInFlightRef.current = true;
+    setIsNoteSaving(true);
+    setNoteMessage(undefined);
+
+    try {
+      const result =
+        retryToken !== null
+          ? await retryPersistedMutation(retryToken)
+          : displayLog !== null && preparedNote !== null
+            ? await editCompletedArousalLog(displayLog.id, {
+                note: preparedNote
+              })
+            : null;
+
+      if (!isMountedRef.current) {
+        return;
+      }
+
+      if (result === null) {
+        setNoteMessage("This note could not be saved yet.");
+        return;
+      }
+
+      if (result.ok) {
+        noteRetryTokenRef.current = null;
+        noteMutationAcceptedRef.current = false;
+        setNoteRetryToken(null);
+        setNoteMutationAccepted(false);
+      } else if (result.accepted) {
+        noteMutationAcceptedRef.current = true;
+        noteRetryTokenRef.current = result.retryable
+          ? result.retryToken
+          : null;
+        setNoteMutationAccepted(true);
+        setNoteRetryToken(result.retryable ? result.retryToken : null);
+      } else {
+        noteMutationAcceptedRef.current = false;
+        noteRetryTokenRef.current = null;
+        setNoteMutationAccepted(false);
+        setNoteRetryToken(null);
+      }
+
+      const feedback = resolveBloomMutationFeedback(
+        result,
+        "Private note saved for this practice.",
+        !result.ok && result.reason === "persistenceUnknown"
+          ? "Bloom is still confirming this note in local storage. You can leave safely or try again; it is not shown as saved yet."
+          : !result.ok && result.reason === "persistenceSuperseded"
+            ? "A newer change replaced this note save request. This request did not mark the note as saved."
+            : !result.ok && result.accepted && result.retryable
+              ? "Note updated this session, but couldn’t be saved to local storage. Try again."
+              : "This note could not be saved yet."
+      );
+      setNoteMessage(feedback.message);
+    } catch {
+      if (!isMountedRef.current) {
+        return;
+      }
+
+      noteMutationAcceptedRef.current = false;
+      noteRetryTokenRef.current = null;
+      setNoteMutationAccepted(false);
+      setNoteRetryToken(null);
+      setNoteMessage(
+        "Bloom couldn’t confirm that this note was saved to local storage."
+      );
+    } finally {
+      noteSaveInFlightRef.current = false;
+
+      if (isMountedRef.current) {
+        setIsNoteSaving(false);
+      }
+    }
   };
 
-  if (state.arousalControl.draft !== null || displayLog === null) {
+  if (resolution.status === "unconfirmed") {
+    return (
+      <ArousalSaveUnconfirmed
+        onReturn={() => {
+          if (router.canGoBack()) {
+            router.back();
+            return;
+          }
+
+          router.replace(routes.arousalControl);
+        }}
+        onClose={() => router.replace(routes.exercises)}
+      />
+    );
+  }
+
+  if (displayLog === null) {
     return <AppScreen />;
   }
 
   return (
     <AppScreen contentStyle={styles.content}>
       <ArousalControlFlowHeader
-        label="PRACTICE SAVED"
-        icon="✓"
-        title="You practiced noticing the rise."
-        subtitle="This session adds useful context to your awareness pattern."
-        onBackPress={() => router.replace(routes.exercises)}
-        onClosePress={() => router.replace(routes.exercises)}
+        label={
+          presentationMode === "completion"
+            ? "PRACTICE SAVED"
+            : "PRACTICE HISTORY"
+        }
+        icon={presentationMode === "completion" ? "✓" : "◷"}
+        title={
+          presentationMode === "completion"
+            ? "You practiced noticing the rise."
+            : "Practice history"
+        }
+        subtitle={
+          presentationMode === "completion"
+            ? "This session adds useful context to your awareness pattern."
+            : "Review a practice previously saved on this device."
+        }
+        backDisabled={notePersistenceLocked}
+        closeDisabled={notePersistenceLocked}
+        busy={isNoteSaving}
+        onBackPress={() => {
+          if (!noteSaveInFlightRef.current) {
+            router.replace(routes.exercises);
+          }
+        }}
+        onClosePress={() => {
+          if (!noteSaveInFlightRef.current) {
+            router.replace(routes.exercises);
+          }
+        }}
       />
 
       <View style={styles.stack}>
-        <AppCard testID="bloom.arousal.saved" style={styles.successCard}>
-          <View style={styles.successGlow} />
+        <AppCard
+          testID="bloom.arousal.saved"
+          style={
+            presentationMode === "completion"
+              ? styles.successCard
+              : styles.summaryCard
+          }
+        >
+          {presentationMode === "completion" ? (
+            <View style={styles.successGlow} />
+          ) : null}
           <View style={styles.successContent}>
             <View style={styles.successMark}>
-              <AppText variant="title">✓</AppText>
+              <AppText
+                variant={
+                  presentationMode === "completion" ? "title" : "caption"
+                }
+              >
+                {presentationMode === "completion" ? "✓" : "History"}
+              </AppText>
             </View>
             <View style={styles.successCopy}>
               <AppText variant="caption" tone="secondary" align="center" style={styles.eyebrow}>
-                PRACTICE SAVED
+                {presentationMode === "completion"
+                  ? "PRACTICE SAVED"
+                  : "PRACTICE HISTORY"}
               </AppText>
               <AppText variant="title" align="center">
-                Practice saved
+                {presentationMode === "completion"
+                  ? "Practice saved"
+                  : "Saved practice record"}
               </AppText>
               <AppText tone="secondary" align="center">
-                You practiced noticing your arousal level and learning your body’s response without
-                judging the outcome.
+                {presentationMode === "completion"
+                  ? "You practiced noticing your arousal level and learning your body’s response without judging the outcome."
+                  : "This is an earlier completed practice from your local history."}
               </AppText>
             </View>
           </View>
@@ -182,7 +370,11 @@ export function PracticeSavedScreen() {
               <TextInput
                 multiline
                 value={note}
-                onChangeText={setNote}
+                onChangeText={(value) => {
+                  setNote(value);
+                  setNoteMessage(undefined);
+                }}
+                editable={!isNoteSaving && !noteMutationAccepted}
                 placeholder="What do you want to remember about this practice?"
                 placeholderTextColor={theme.colors.textSecondary}
                 style={styles.input}
@@ -190,31 +382,102 @@ export function PracticeSavedScreen() {
                 maxLength={MAX_BLOOM_NOTE_LENGTH}
               />
               {noteMessage ? (
-                <AppText variant="bodySmall" tone="secondary">
+                <AppText
+                  accessibilityLiveRegion="polite"
+                  accessibilityRole="alert"
+                  variant="bodySmall"
+                  tone="secondary"
+                >
                   {noteMessage}
                 </AppText>
               ) : null}
-              <AppButton variant="subtle" onPress={saveNote}>
-                Save note
+              <AppButton
+                variant="subtle"
+                loading={isNoteSaving}
+                disabled={noteMutationAccepted && noteRetryToken === null}
+                onPress={() => void saveNote()}
+              >
+                {noteRetryToken === null ? "Save note" : "Try saving again"}
               </AppButton>
             </View>
           </AppCard>
         ) : null}
 
         <View style={styles.actions}>
-          <AppButton onPress={() => router.replace(routes.home)}>Back to Today</AppButton>
+          <AppButton
+            disabled={notePersistenceLocked}
+            onPress={() => router.replace(routes.home)}
+          >
+            Back to Today
+          </AppButton>
           <AppButton
             variant="secondary"
+            disabled={notePersistenceLocked}
             onPress={() => router.push(routes.arousalControlProgressPreview)}
           >
             View Progress
           </AppButton>
           {!noteVisible ? (
-            <AppButton variant="subtle" onPress={() => setNoteVisible(true)}>
+            <AppButton
+              variant="subtle"
+              disabled={notePersistenceLocked}
+              onPress={() => setNoteVisible(true)}
+            >
               Add private note
             </AppButton>
           ) : null}
-          <AppButton variant="ghost" onPress={() => router.replace(routes.exercises)}>
+          <AppButton
+            variant="ghost"
+            disabled={notePersistenceLocked}
+            onPress={() => router.replace(routes.exercises)}
+          >
+            Back to Exercises
+          </AppButton>
+        </View>
+      </View>
+    </AppScreen>
+  );
+}
+
+type ArousalSaveUnconfirmedProps = {
+  onReturn: () => void;
+  onClose: () => void;
+};
+
+function ArousalSaveUnconfirmed({
+  onReturn,
+  onClose
+}: ArousalSaveUnconfirmedProps) {
+  return (
+    <AppScreen contentStyle={styles.content}>
+      <ArousalControlFlowHeader
+        label="SAVE NOT CONFIRMED"
+        icon="!"
+        title="Practice save not confirmed"
+        subtitle="Bloom could not match this screen to a practice saved in local storage."
+        onBackPress={onReturn}
+        onClosePress={onClose}
+      />
+
+      <View style={styles.stack}>
+        <AppCard
+          testID="bloom.arousal.saved-unconfirmed"
+          accessibilityRole="alert"
+        >
+          <View style={styles.cardStack}>
+            <AppText variant="title">
+              This practice is not shown as saved
+            </AppText>
+            <AppText tone="secondary">
+              Go back to retry if the save option is still available, or return
+              safely to Exercises.
+            </AppText>
+          </View>
+        </AppCard>
+
+        <View style={styles.actions}>
+          <AppButton onPress={onReturn}>Go back</AppButton>
+          <AppButton variant="ghost" onPress={onClose}>
             Back to Exercises
           </AppButton>
         </View>

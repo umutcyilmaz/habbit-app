@@ -84,7 +84,7 @@ const guidanceCards: readonly GuidanceCardConfig[] = [
 
 export function WhatShouldIUseScreen() {
   const router = useRouter();
-  const { state } = useBloomLocalState();
+  const { durableState } = useBloomLocalState();
 
   return (
     <AppScreen contentStyle={styles.content}>
@@ -126,7 +126,12 @@ export function WhatShouldIUseScreen() {
             card={card}
             onPress={() => {
               if (card.status === "available") {
-                router.push(getGuidanceRoute(card.route, state.protection.status));
+                router.push(
+                  getGuidanceRoute(
+                    card.route,
+                    durableState.protection.status
+                  )
+                );
               }
             }}
           />

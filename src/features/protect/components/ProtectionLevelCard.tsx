@@ -9,6 +9,7 @@ type ProtectionLevelCardProps = {
   title: string;
   description: string;
   selected: boolean;
+  disabled?: boolean;
   onSelect: (id: ProtectionLevel) => void;
 };
 
@@ -17,18 +18,21 @@ export function ProtectionLevelCard({
   title,
   description,
   selected,
+  disabled = false,
   onSelect
 }: ProtectionLevelCardProps) {
   return (
     <Pressable
       testID={`bloom.protection.level.${id}`}
       accessibilityRole="button"
-      accessibilityState={{ selected }}
+      accessibilityState={{ disabled, selected }}
+      disabled={disabled}
       onPress={() => onSelect(id)}
       style={({ pressed }) => [
         styles.card,
         selected ? styles.selectedCard : undefined,
-        pressed ? styles.pressedCard : undefined
+        pressed && !disabled ? styles.pressedCard : undefined,
+        disabled ? styles.disabledCard : undefined
       ]}
     >
       <View style={[styles.iconCircle, selected ? styles.selectedIconCircle : undefined]}>
@@ -65,6 +69,9 @@ const styles = StyleSheet.create({
   },
   pressedCard: {
     backgroundColor: theme.colors.surfaceMuted
+  },
+  disabledCard: {
+    opacity: 0.5
   },
   iconCircle: {
     width: 48,
