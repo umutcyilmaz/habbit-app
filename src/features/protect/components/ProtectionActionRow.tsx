@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
@@ -9,6 +9,8 @@ type ProtectionActionRowProps = {
   value?: string;
   iconLabel?: string;
   accent?: "sage" | "lavender" | "peach" | "navy";
+  disabled?: boolean;
+  loading?: boolean;
   onPress: () => void;
 };
 
@@ -18,13 +20,23 @@ export function ProtectionActionRow({
   value,
   iconLabel = "•",
   accent = "sage",
+  disabled = false,
+  loading = false,
   onPress
 }: ProtectionActionRowProps) {
+  const isDisabled = disabled || loading;
+
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityState={{ busy: loading, disabled: isDisabled }}
+      disabled={isDisabled}
       onPress={onPress}
-      style={({ pressed }) => [styles.row, pressed ? styles.pressed : undefined]}
+      style={({ pressed }) => [
+        styles.row,
+        pressed && !isDisabled ? styles.pressed : undefined,
+        isDisabled ? styles.disabled : undefined
+      ]}
     >
       <View style={[styles.iconCircle, iconAccentStyles[accent]]}>
         <AppText variant="label" tone={accent === "navy" ? "inverse" : "primary"}>
@@ -46,9 +58,13 @@ export function ProtectionActionRow({
           </AppText>
         </View>
       ) : null}
-      <AppText variant="body" tone="secondary">
-        ›
-      </AppText>
+      {loading ? (
+        <ActivityIndicator color={theme.colors.primary} />
+      ) : (
+        <AppText variant="body" tone="secondary">
+          ›
+        </AppText>
+      )}
     </Pressable>
   );
 }
@@ -68,6 +84,9 @@ const styles = StyleSheet.create({
   },
   pressed: {
     backgroundColor: theme.colors.surfaceMuted
+  },
+  disabled: {
+    opacity: 0.5
   },
   iconCircle: {
     width: 46,

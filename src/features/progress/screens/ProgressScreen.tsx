@@ -47,7 +47,11 @@ type CurrentAction = {
 
 export function ProgressScreen() {
   const router = useRouter();
-  const { state, todayKey, resetDay } = useBloomLocalState();
+  const { durableState, durableTodayKey, durableResetDay } =
+    useBloomLocalState();
+  const state = durableState;
+  const todayKey = durableTodayKey;
+  const resetDay = durableResetDay;
   const quizResult = state.onboarding.quizResult;
   const nextAction = getNextBloomAction(state, todayKey);
   const completedResetDates = getValidCompletedResetDates(state.tenDayReset);

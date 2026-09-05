@@ -84,8 +84,13 @@ operations. Starting from the Pause intro replaces an abandoned draft with a
 new id. Pause Again extends the current session without replacing its
 check-in selections, and timer-duration increments use the latest canonical
 state. The timer records elapsed seconds before the after-pause check-in.
-`/pause/saved` is read-only: an active draft returns to the timer, and no
-record returns to the Pause intro.
+`/pause/saved` is read-only. Completion navigation carries the completed
+record's existing id and shows “Pause saved” only when that exact record is in
+the durable projection. A missing or accepted-only completion shows an
+unconfirmed recovery state and never falls back to an older record. A
+no-parameter entry is an explicitly historical view of the latest durable
+record; an active draft returns to the timer, and no record returns to the
+Pause intro.
 
 For Pause timers, `timerDurationSeconds` is the configured total across the
 active session and `elapsedDurationSeconds` is actual accumulated elapsed time
@@ -103,12 +108,16 @@ journey completion.
 
 All guided-flow private notes share `MAX_BLOOM_NOTE_LENGTH`. UI inputs enforce
 the limit, domain helpers reject oversized programmatic values, and callers
-show success only after a successful typed mutation result.
+show persistence-sensitive success only after an acknowledged adapter write.
 
-`/exercises/arousal-control/saved` and
-`/exercises/arousal-control/progress-preview` only read a valid persisted
-completed log. They never create or complete one on mount, and invalid direct
-access replaces navigation with the Arousal Control overview.
+`/exercises/arousal-control/saved` is read-only. Completion navigation carries
+the completed log's existing id and shows “Practice saved” only when that exact
+valid log is in the durable projection. A missing or accepted-only completion
+shows an unconfirmed recovery state and never falls back to an older log. A
+no-parameter entry is an explicitly historical view of the latest valid durable
+log. `/exercises/arousal-control/progress-preview` likewise reads only the latest
+valid durable log. Neither route creates or completes a log on mount; missing
+history redirects to the Arousal Control overview.
 
 ## Legacy Migration
 
@@ -138,11 +147,54 @@ The provider exposes `loading`, `ready`, and `error` hydration states while reta
 
 Mutations requested during loading are queued and applied to the validated state after hydration. Mutations are ignored after a hydration error. Initial defaults are not autosaved, and canonical loaded state is not rewritten unless normalization or a real mutation requires it.
 
-Bloom writes use a serialized queue. A slow earlier write must finish before a later write starts, so the latest mutation remains the final stored envelope. Save failures are surfaced only through non-sensitive status text/warnings.
+Bloom loads, migrations, quarantine backups, writes, and full deletion share one serialized lifecycle coordinator per storage adapter. A slow earlier operation must finish before a later operation starts, so the latest mutation remains the final stored envelope. Every accepted provider mutation captures an immutable state snapshot and queues it once through this same coordinator; there is no separate React autosave effect or feature persistence path.
+
+User-triggered mutations that lead to Saved copy or terminal navigation receive a monotonic acknowledgement sequence. Their promise resolves successfully only when the receipt for that exact queued snapshot is `persisted`. Validation, hydration/deletion blocking, unavailable web storage, generic adapter failure, and deletion invalidation remain distinct sanitized results. Draft and system mutations that do not lead directly to Saved feedback use the same commit-and-persist path without waiting in their callers. Onboarding completion and the debug “Start as this profile” result path await an exact acknowledgement. The developer-only “Set only” action uses the acknowledged mutation path but intentionally does not present Saved feedback or navigate.
+
+The provider exposes two centralized projections. `state` is accepted
+current-session state and is used for active forms and drafts;
+`durableState` is the last snapshot whose exact storage write succeeded and is
+used for Saved, history, counts, Progress, and journey decisions. A pending or
+failed write can therefore preserve the user’s active input without appearing
+in durable product truth.
+
+If an acknowledged write fails, accepted memory remains unchanged and the
+result carries an opaque retry token rather than state or storage error data.
+Bloom uses explicit supersession (causality model C): accepting any newer state
+mutation invalidates older unresolved tokens. A retry can reuse an
+already-running write only for the token’s exact revision; it never treats an
+arbitrary later revision as proof and never writes an older whole-state
+snapshot over newer accepted state. Full deletion increments the
+acknowledgement generation, permanently invalidates pre-delete tokens only
+after deletion succeeds, and prevents retry from resurrecting an old snapshot.
+Provider-level and feature-level error copy does not expose raw state,
+serialized payloads, or adapter errors.
+
+Action acknowledgements, hydration, and full-deletion UI waits use a 10-second
+watchdog. A timeout reports that durability is still unknown; it does not
+cancel or duplicate the underlying adapter operation. Retrying while that
+exact operation is unresolved observes the same operation. A late success may
+advance the durable projection, but the timed-out action callback cannot later
+claim Saved or navigate. Hydration and deletion separately observe their
+eventual settlement so late completion can safely finish lifecycle state. A
+current hydration watchdog timeout always transitions the provider out of
+`loading`, including while an unresolved deletion keeps writes blocked; retry
+and reset recovery controls therefore remain bounded and reachable.
+
+Affected stack flows disable duplicate actions and route removal only while an
+acknowledgement or retry is actively awaited. After a failed or unknown result,
+safe close/back actions are available and the opaque token remains available
+for an explicit retry. Their own Saved navigation runs only from a persisted
+result while the initiating screen is still current.
 
 ## Full Local Deletion
 
-All user-facing full resets call one awaited lifecycle operation. The persistence coordinator increments its write generation before deletion, rejects new writes during deletion, waits for any write already inside the storage adapter, and skips older queued generations. A stale write therefore cannot recreate the envelope after deletion.
+All user-facing full resets call one awaited lifecycle operation. The persistence coordinator increments its generation before deletion, rejects new writes during deletion, invalidates older loads, waits for any load-side migration or quarantine write already inside the storage adapter, and skips older queued writes. Loads requested by remounts during deletion stay serialized behind it: they read only post-delete storage after success and reject without reading partial storage after failure. Stale hydration, migration, quarantine, and save work therefore cannot recreate the envelope or reinstall pre-delete state after deletion.
+
+A late deletion success invalidates hydration work queued while deletion was
+unresolved before installing defaults. Even if that queued load settles after
+reset navigation unblocks and a new mutation is accepted, it cannot replace the
+post-reset accepted state.
 
 Deletion enumerates only Bloom-owned keys and removes:
 
@@ -160,16 +212,37 @@ Log, Pause, Protection, Reset, and Arousal Control data are already removed
 with the canonical Bloom envelope. `DemoAppStateProvider` has no runtime
 authority for those features. If storage deletion fails, current in-memory
 state is retained, the app does not claim success, and a non-sensitive error
-explains that data may still remain.
+explains that data may still remain. Failed deletion uses recovery model A:
+when validated canonical state had been hydrated, the runtime automatically
+queues that exact accepted snapshot again without rerunning domain
+transformations or regenerating IDs, dates, or completed records. Existing
+retry metadata remains available until the deletion actually succeeds. If
+deletion interrupts an acknowledged write before its first result, that action
+also receives an exact retry token: successful deletion permanently
+invalidates it, while failed deletion retargets it to the automatic recovery
+write and preserves an explicit retry path if recovery fails or remains
+unknown. A deletion attempted from a hydration error never writes default
+state over the preserved corrupt or future payload. After successful deletion,
+Bloom replaces the old route with a mutation-free transition boundary and
+keeps writes blocked until the router confirms onboarding. A synchronous
+navigation failure or missing route confirmation exposes an onboarding retry;
+restarting the app also hydrates the already-cleared storage into the fresh
+journey.
 
 The same operation is used by Debug, Settings/Data Controls, and hydration-error recovery. The recovery `Try again` action only retries hydration; its reset action requires confirmation.
 
 ## Focused Verification
 
-The repository verification script uses only fake web storage and explicit memory adapters. It covers web availability/failure behavior, strict dates and timestamps, current and legacy loading, normalization, corrupt/future payload preservation, failed migration, serialized writes, scoped deletion, unrelated-key preservation, concurrent deletion, failed deletion, and write/delete races:
+The repository persistence verification script uses only fake web storage and explicit memory adapters. It covers web availability/failure behavior, strict dates and timestamps, current and legacy loading, normalization, corrupt/future payload preservation, failed migration, serialized writes, scoped deletion, unrelated-key preservation, concurrent deletion, failed deletion, and write/delete races:
 
 ```sh
 npm run verify:persistence
+```
+
+The acknowledgement verifier uses the production mutation runtime, persistence coordinator, domain transforms, envelope reader, and web adapter with delayed/failing synthetic storage clients. It covers exact-write timing, independent rapid-write outcomes, retry without domain replay, Check-In/Reset/Pause/Arousal/Protection idempotency, hydration/deletion blocking and late-success stale-hydration invalidation, storage unavailability, error clearing, stale-token invalidation, and continued unacknowledged system persistence:
+
+```sh
+npm run verify:persistence-acknowledgement
 ```
 
 Protection transitions, legacy Protection conversion, Reset idempotency and

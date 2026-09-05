@@ -42,11 +42,19 @@ const nextStepOptions = [
 type PauseAfterCheckInFormProps = {
   onSave: (completionData: PauseSessionCompletionData) => void;
   onPauseAgain: () => void;
+  isSaving?: boolean;
+  completionLocked?: boolean;
+  canRetry?: boolean;
+  persistenceError?: string | null;
 };
 
 export function PauseAfterCheckInForm({
   onSave,
-  onPauseAgain
+  onPauseAgain,
+  isSaving = false,
+  completionLocked = false,
+  canRetry = false,
+  persistenceError = null
 }: PauseAfterCheckInFormProps) {
   const [urgeAfter, setUrgeAfter] =
     useState<PauseIntensityAfterChange>("lower");
@@ -66,6 +74,7 @@ export function PauseAfterCheckInForm({
                 value={option}
                 title={pauseIntensityAfterLabels[option]}
                 selected={urgeAfter === option}
+                disabled={isSaving || completionLocked}
                 onSelect={setUrgeAfter}
                 testIDPrefix="bloom.pause.after.intensity"
               />
@@ -84,6 +93,7 @@ export function PauseAfterCheckInForm({
                 value={option}
                 title={pauseTruthLabels[option]}
                 selected={truth === option}
+                disabled={isSaving || completionLocked}
                 onSelect={setTruth}
                 testIDPrefix="bloom.pause.after.truth"
               />
@@ -102,14 +112,27 @@ export function PauseAfterCheckInForm({
                 value={option}
                 title={pauseNextStepLabels[option]}
                 selected={nextStep === option}
+                disabled={isSaving || completionLocked}
                 onSelect={setNextStep}
                 testIDPrefix="bloom.pause.after.next-step"
               />
             ))}
           </View>
+          {persistenceError !== null ? (
+            <AppText
+              accessibilityLiveRegion="polite"
+              accessibilityRole="alert"
+              variant="bodySmall"
+              tone="danger"
+            >
+              {persistenceError}
+            </AppText>
+          ) : null}
           <View style={styles.actions}>
             <AppButton
               testID="bloom.pause.complete"
+              disabled={completionLocked && !canRetry}
+              loading={isSaving}
               onPress={() =>
                 onSave({
                   intensityAfterChange: urgeAfter,
@@ -118,11 +141,12 @@ export function PauseAfterCheckInForm({
                 })
               }
             >
-              Save Pause
+              {canRetry ? "Try saving again" : "Save Pause"}
             </AppButton>
             <AppButton
               testID="bloom.pause.timer.pause-again"
               variant="ghost"
+              disabled={isSaving || completionLocked}
               onPress={onPauseAgain}
             >
               Pause Again

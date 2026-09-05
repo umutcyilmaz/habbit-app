@@ -61,11 +61,14 @@ const replacementActions = [
 export function TenDayResetScreen() {
   const router = useRouter();
   const {
-    state,
-    todayKey,
-    resetDay,
+    durableState,
+    durableTodayKey,
+    durableResetDay,
     startTenDayReset
   } = useBloomLocalState();
+  const state = durableState;
+  const todayKey = durableTodayKey;
+  const resetDay = durableResetDay;
   const resetStarted = isResetStarted(state.tenDayReset);
   const resetComplete = isResetProgramComplete(state.tenDayReset);
   const displayDay = resetStarted ? resetDay : 1;

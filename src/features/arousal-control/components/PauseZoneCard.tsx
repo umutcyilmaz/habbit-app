@@ -12,6 +12,7 @@ type PauseZoneCardProps = {
   tone: PauseZoneTone;
   actionLabel?: string;
   onActionPress?: () => void;
+  disabled?: boolean;
 };
 
 export function PauseZoneCard({
@@ -19,7 +20,8 @@ export function PauseZoneCard({
   body,
   tone,
   actionLabel,
-  onActionPress
+  onActionPress,
+  disabled = false
 }: PauseZoneCardProps) {
   return (
     <View style={[styles.card, toneStyles[tone]]}>
@@ -28,7 +30,11 @@ export function PauseZoneCard({
         <AppText tone="secondary">{body}</AppText>
       </View>
       {actionLabel && onActionPress ? (
-        <AppButton variant="secondary" onPress={onActionPress}>
+        <AppButton
+          variant="secondary"
+          disabled={disabled}
+          onPress={onActionPress}
+        >
           {actionLabel}
         </AppButton>
       ) : null}

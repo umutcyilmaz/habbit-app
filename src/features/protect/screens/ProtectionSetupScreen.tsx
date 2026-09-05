@@ -7,12 +7,15 @@ import { routes } from "../../../constants/navigation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { theme } from "../../../shared/design-system/theme";
+import { usePersistenceNavigationGuard } from "../../../shared/navigation/usePersistenceNavigationGuard";
 import type {
   ProtectionLevel,
+  ProtectionStatus,
   ProtectionWindow
 } from "../../../storage/bloomState";
 import { ProtectionFlowHeader } from "../components/ProtectionFlowHeader";
 import { ProtectionLevelCard } from "../components/ProtectionLevelCard";
+import { ProtectionPersistenceFeedback } from "../components/ProtectionPersistenceFeedback";
 import { ProtectionScheduleRow } from "../components/ProtectionScheduleRow";
 import { ProtectionSetupSection } from "../components/ProtectionSetupSection";
 import type {
@@ -20,6 +23,7 @@ import type {
   ProtectionSchedule,
   ProtectionScheduleOption
 } from "../types";
+import { useProtectionPersistenceAction } from "../useProtectionPersistenceAction";
 
 const protectionLevels: readonly ProtectionLevelOption[] = [
   {
@@ -59,26 +63,57 @@ const scheduleOptions: readonly ProtectionScheduleOption[] = [
 
 export function ProtectionSetupScreen() {
   const router = useRouter();
-  const { state, configureProtection } = useBloomLocalState();
+  const { state, durableState, configureProtection } = useBloomLocalState();
   const protection = state.protection;
+  const durableProtection = durableState.protection;
   const [selectedLevel, setSelectedLevel] = useState<ProtectionLevel>(
     protection.level ?? "balanced"
   );
   const [selectedSchedule, setSelectedSchedule] = useState<ProtectionSchedule>(
     getProtectionSchedule(protection.preferredWindow)
   );
+  const [statusOverride, setStatusOverride] =
+    useState<ProtectionStatus | null>(null);
+  const {
+    activeAction,
+    isLocked,
+    isNavigationLocked,
+    message,
+    pendingRetryAction,
+    retry,
+    runAction
+  } = useProtectionPersistenceAction();
+  const allowPersistenceNavigation =
+    usePersistenceNavigationGuard(isNavigationLocked);
+  const visibleStatus = statusOverride ?? durableProtection.status;
 
-  const activateProtection = () => {
-    configureProtection({
-      preferredWindow: selectedSchedule,
-      level: selectedLevel,
-      adultContentPauseEnabled: true,
-      nightStartTime:
-        protection.nightStartTime ?? (selectedSchedule === "night" ? "22:00" : null),
-      nightEndTime:
-        protection.nightEndTime ?? (selectedSchedule === "night" ? "08:00" : null)
-    });
-    router.replace(routes.home);
+  const activateProtection = async () => {
+    const previousStatus = durableProtection.status;
+    setStatusOverride(previousStatus);
+
+    await runAction(
+      "configure",
+      () =>
+        configureProtection({
+          preferredWindow: selectedSchedule,
+          level: selectedLevel,
+          adultContentPauseEnabled: true,
+          nightStartTime:
+            protection.nightStartTime ??
+            (selectedSchedule === "night" ? "22:00" : null),
+          nightEndTime:
+            protection.nightEndTime ??
+            (selectedSchedule === "night" ? "08:00" : null)
+        }),
+      {
+        onSuccess: () => {
+          setStatusOverride(null);
+          allowPersistenceNavigation();
+          router.replace(routes.home);
+        },
+        onFailure: () => setStatusOverride(null)
+      }
+    );
   };
 
   return (
@@ -87,6 +122,7 @@ export function ProtectionSetupScreen() {
         title="Protection Setup"
         subtitle="Choose the support that feels right for selected hours."
         onBackPress={() => router.replace(routes.protect)}
+        disabled={isNavigationLocked}
       />
 
       <View style={styles.stack}>
@@ -102,6 +138,7 @@ export function ProtectionSetupScreen() {
                 title={level.title}
                 description={level.description}
                 selected={selectedLevel === level.id}
+                disabled={isLocked}
                 onSelect={setSelectedLevel}
               />
             ))}
@@ -121,14 +158,33 @@ export function ProtectionSetupScreen() {
                 description={schedule.description}
                 iconLabel={schedule.id === "night" ? "N" : schedule.id === "custom" ? "C" : "A"}
                 selected={selectedSchedule === schedule.id}
+                disabled={isLocked}
                 onSelect={setSelectedSchedule}
               />
             ))}
           </View>
         </ProtectionSetupSection>
 
-        <AppButton testID="bloom.protection.setup.complete" onPress={activateProtection}>
-          {protection.status === "off" ? "Save and activate" : "Save settings"}
+        <ProtectionPersistenceFeedback
+          message={message}
+          canRetry={pendingRetryAction === "configure"}
+          retrying={
+            activeAction === "configure" && pendingRetryAction === "configure"
+          }
+          onRetry={() => void retry()}
+        />
+
+        <AppButton
+          testID="bloom.protection.setup.complete"
+          loading={activeAction === "configure" && pendingRetryAction === null}
+          disabled={isLocked}
+          accessibilityState={{
+            busy: activeAction === "configure",
+            disabled: isLocked
+          }}
+          onPress={() => void activateProtection()}
+        >
+          {visibleStatus === "off" ? "Save and activate" : "Save settings"}
         </AppButton>
       </View>
     </AppScreen>

@@ -35,9 +35,57 @@ export type BloomStateLoadResult =
 
 type Clock = () => Date;
 
+export type BloomStateWriteReceipt = {
+  status: "persisted" | "invalidated";
+  writeId: number;
+  generation: number;
+};
+
+export const BLOOM_STATE_LIFECYCLE_INVALIDATED_ERROR_CODE =
+  "bloom-state-lifecycle-invalidated" as const;
+
+export class BloomStateLifecycleInvalidatedError extends Error {
+  readonly code = BLOOM_STATE_LIFECYCLE_INVALIDATED_ERROR_CODE;
+
+  constructor() {
+    super("The Bloom storage lifecycle operation was invalidated.");
+    this.name = "BloomStateLifecycleInvalidatedError";
+  }
+}
+
+export function isBloomStateLifecycleInvalidatedError(
+  error: unknown
+): error is BloomStateLifecycleInvalidatedError {
+  return (
+    error instanceof BloomStateLifecycleInvalidatedError ||
+    (typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === BLOOM_STATE_LIFECYCLE_INVALIDATED_ERROR_CODE)
+  );
+}
+
+export type BloomStatePersistenceCoordinator = {
+  load(): Promise<BloomStateLoadResult>;
+  enqueueWrite(state: BloomLocalState): Promise<BloomStateWriteReceipt>;
+  deleteAll(): Promise<void>;
+};
+
+const persistenceCoordinators = new WeakMap<
+  StorageClient,
+  BloomStatePersistenceCoordinator
+>();
+
 export async function loadBloomLocalState(
   client: StorageClient,
   now: Clock = () => new Date()
+): Promise<BloomStateLoadResult> {
+  return createBloomStatePersistenceCoordinator(client, now).load();
+}
+
+async function loadBloomLocalStateWithinLifecycle(
+  client: StorageClient,
+  now: Clock
 ): Promise<BloomStateLoadResult> {
   const currentPayload = await client.getItem(BLOOM_STATE_STORAGE_KEY);
 
@@ -67,13 +115,27 @@ export async function persistBloomLocalState(
   client: StorageClient,
   now: Clock = () => new Date()
 ): Promise<void> {
+  const receipt = await createBloomStatePersistenceCoordinator(
+    client,
+    now
+  ).enqueueWrite(state);
+
+  if (receipt.status === "invalidated") {
+    throw new BloomStateLifecycleInvalidatedError();
+  }
+}
+
+function serializeBloomLocalState(
+  state: BloomLocalState,
+  now: Clock
+): string {
   const envelope: PersistedBloomEnvelopeV2 = {
     version: BLOOM_PERSISTENCE_VERSION,
     savedAt: now().toISOString(),
     state
   };
 
-  await client.setItem(BLOOM_STATE_STORAGE_KEY, JSON.stringify(envelope));
+  return JSON.stringify(envelope);
 }
 
 export function createBloomStateWriteQueue(
@@ -86,28 +148,104 @@ export function createBloomStateWriteQueue(
 export function createBloomStatePersistenceCoordinator(
   client: StorageClient,
   now: Clock = () => new Date()
-) {
+): BloomStatePersistenceCoordinator {
+  const existingCoordinator = persistenceCoordinators.get(client);
+
+  if (existingCoordinator !== undefined) {
+    return existingCoordinator;
+  }
+
   let queueTail: Promise<void> = Promise.resolve();
   let writeGeneration = 0;
+  let nextWriteId = 0;
   let deletionPromise: Promise<void> | null = null;
 
-  const enqueueWrite = (state: BloomLocalState): Promise<void> => {
+  const load = (): Promise<BloomStateLoadResult> => {
+    const loadGeneration = writeGeneration;
+    const activeDeletion = deletionPromise;
+    const queuedTail = queueTail;
+    const lifecycleBarrier =
+      activeDeletion === null
+        ? queuedTail.catch(() => undefined)
+        : activeDeletion.then(() => queuedTail);
+    const queuedLoad = lifecycleBarrier.then(async () => {
+      const lifecycleClient = createGenerationBoundStorageClient(
+        client,
+        () => {
+          if (loadGeneration !== writeGeneration) {
+            throw new BloomStateLifecycleInvalidatedError();
+          }
+        }
+      );
+      const result = await loadBloomLocalStateWithinLifecycle(
+        lifecycleClient,
+        now
+      );
+
+      if (loadGeneration !== writeGeneration) {
+        throw new BloomStateLifecycleInvalidatedError();
+      }
+
+      return result;
+    });
+
+    queueTail = queuedLoad.then(
+      () => undefined,
+      () => undefined
+    );
+    return queuedLoad;
+  };
+
+  const enqueueWrite = (
+    state: BloomLocalState
+  ): Promise<BloomStateWriteReceipt> => {
+    const writeId = nextWriteId + 1;
+    nextWriteId = writeId;
+    const queuedGeneration = writeGeneration;
+
     if (deletionPromise !== null) {
-      return Promise.reject(new Error("Bloom persistence is being reset."));
+      return Promise.resolve({
+        status: "invalidated",
+        writeId,
+        generation: queuedGeneration
+      });
     }
 
-    const queuedGeneration = writeGeneration;
+    let serializedSnapshot: string;
+
+    try {
+      serializedSnapshot = serializeBloomLocalState(state, now);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+
     const queuedWrite = queueTail
       .catch(() => undefined)
       .then(async () => {
         if (queuedGeneration !== writeGeneration) {
-          return;
+          return {
+            status: "invalidated",
+            writeId,
+            generation: queuedGeneration
+          } satisfies BloomStateWriteReceipt;
         }
 
-        await persistBloomLocalState(state, client, now);
+        await client.setItem(BLOOM_STATE_STORAGE_KEY, serializedSnapshot);
+
+        return {
+          status:
+            queuedGeneration === writeGeneration
+              ? "persisted"
+              : "invalidated",
+          writeId,
+          generation: queuedGeneration
+        } satisfies BloomStateWriteReceipt;
       });
 
-    queueTail = queuedWrite.catch(() => undefined);
+    queueTail = queuedWrite.then(
+      () => undefined,
+      () => undefined
+    );
     return queuedWrite;
   };
 
@@ -119,7 +257,7 @@ export function createBloomStatePersistenceCoordinator(
     writeGeneration += 1;
     const queuedDeletion = queueTail
       .catch(() => undefined)
-      .then(() => clearAllBloomStorage(client));
+      .then(() => clearAllBloomStorageWithinLifecycle(client));
     const trackedDeletion = queuedDeletion.finally(() => {
       if (deletionPromise === trackedDeletion) {
         deletionPromise = null;
@@ -131,13 +269,23 @@ export function createBloomStatePersistenceCoordinator(
     return trackedDeletion;
   };
 
-  return {
+  const coordinator: BloomStatePersistenceCoordinator = {
+    load,
     enqueueWrite,
     deleteAll
   };
+
+  persistenceCoordinators.set(client, coordinator);
+  return coordinator;
 }
 
 export async function clearAllBloomStorage(client: StorageClient): Promise<void> {
+  return createBloomStatePersistenceCoordinator(client).deleteAll();
+}
+
+async function clearAllBloomStorageWithinLifecycle(
+  client: StorageClient
+): Promise<void> {
   const allKeys = await client.getAllKeys();
   const existingKeys = new Set(allKeys);
   const corruptBackupKeys = allKeys
@@ -229,7 +377,10 @@ async function loadStoredPayload(
 
   if (isLegacyPayload) {
     try {
-      await persistBloomLocalState(validationResult.state, client, now);
+      await client.setItem(
+        BLOOM_STATE_STORAGE_KEY,
+        serializeBloomLocalState(validationResult.state, now)
+      );
 
       if (sourceKey !== BLOOM_STATE_STORAGE_KEY) {
         try {
@@ -246,7 +397,11 @@ async function loadStoredPayload(
         needsPersist: false,
         persistenceError: null
       };
-    } catch {
+    } catch (error) {
+      if (isBloomStateLifecycleInvalidatedError(error)) {
+        throw error;
+      }
+
       return {
         status: "success",
         state: validationResult.state,
@@ -314,9 +469,43 @@ async function preserveCorruptPayload(
     }
 
     return backupKey;
-  } catch {
+  } catch (error) {
+    if (isBloomStateLifecycleInvalidatedError(error)) {
+      throw error;
+    }
+
     return null;
   }
+}
+
+function createGenerationBoundStorageClient(
+  client: StorageClient,
+  assertActive: () => void
+): StorageClient {
+  return {
+    async getItem(key) {
+      assertActive();
+      const value = await client.getItem(key);
+      assertActive();
+      return value;
+    },
+    async setItem(key, value) {
+      assertActive();
+      await client.setItem(key, value);
+      assertActive();
+    },
+    async removeItem(key) {
+      assertActive();
+      await client.removeItem(key);
+      assertActive();
+    },
+    async getAllKeys() {
+      assertActive();
+      const keys = await client.getAllKeys();
+      assertActive();
+      return keys;
+    }
+  };
 }
 
 function fingerprint(value: string): string {

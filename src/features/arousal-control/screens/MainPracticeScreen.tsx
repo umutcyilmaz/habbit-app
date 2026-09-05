@@ -1,14 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "expo-router";
 import { StyleSheet, TextInput, View } from "react-native";
 
-import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
+import {
+  useBloomLocalState,
+  type BloomPersistenceRetryToken
+} from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
+import { usePersistenceNavigationGuard } from "../../../shared/navigation/usePersistenceNavigationGuard";
 import { resolveBloomMutationFeedback } from "../../../shared/utils/bloomMutationFeedback";
 import {
   MAX_BLOOM_NOTE_LENGTH,
@@ -74,8 +78,13 @@ function getGuidance(level: number): Guidance {
 
 export function MainPracticeScreen() {
   const router = useRouter();
-  const { state, updateArousalSession, discardArousalSession } =
-    useBloomLocalState();
+  const {
+    state,
+    updateArousalSession,
+    updateArousalSessionAndPersist,
+    retryPersistedMutation,
+    discardArousalSession
+  } = useBloomLocalState();
   const draft = state.arousalControl.draft;
   const [level, setLevel] = useState(
     draft?.currentArousalLevel ?? draft?.startingArousalLevel ?? 5
@@ -83,9 +92,27 @@ export function MainPracticeScreen() {
   const [showNote, setShowNote] = useState(false);
   const [note, setNote] = useState(draft?.note ?? "");
   const [noteMessage, setNoteMessage] = useState<string | undefined>();
+  const [isNoteSaving, setIsNoteSaving] = useState(false);
+  const [noteRetryToken, setNoteRetryToken] =
+    useState<BloomPersistenceRetryToken | null>(null);
+  const [noteMutationAccepted, setNoteMutationAccepted] = useState(false);
+  const noteSaveInFlightRef = useRef(false);
+  const noteMutationAcceptedRef = useRef(false);
+  const noteRetryTokenRef = useRef<BloomPersistenceRetryToken | null>(null);
+  const isMountedRef = useRef(true);
+  const notePersistenceLocked = isNoteSaving;
+  usePersistenceNavigationGuard(isNoteSaving);
   const guidance = getGuidance(level);
   const guidanceAction = guidance.action;
   const isFinishOriented = level >= 9;
+
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (draft === null) {
@@ -113,45 +140,140 @@ export function MainPracticeScreen() {
   };
 
   const startPause = () => {
+    if (noteSaveInFlightRef.current) {
+      return;
+    }
+
     updateCurrentLevel(true);
     router.push(routes.arousalControlPause);
   };
 
   const finishPractice = () => {
+    if (noteSaveInFlightRef.current) {
+      return;
+    }
+
     updateCurrentLevel(false);
     router.push(routes.arousalControlFinish);
   };
 
-  const saveNote = () => {
-    const noteResult = prepareBloomNoteSubmission(note);
-
-    if (!noteResult.ok) {
-      setNoteMessage("That note is too long to save.");
+  const saveNote = async () => {
+    if (noteSaveInFlightRef.current) {
       return;
     }
 
-    if (draft === null || noteResult.note === null) {
-      setNoteMessage(
-        "Nothing added. You can keep practicing without a note."
+    const retryToken = noteRetryTokenRef.current;
+    let preparedNote: string | null = null;
+
+    if (retryToken === null) {
+      if (noteMutationAcceptedRef.current) {
+        return;
+      }
+
+      const noteResult = prepareBloomNoteSubmission(note);
+
+      if (!noteResult.ok) {
+        setNoteMessage("That note is too long to save.");
+        return;
+      }
+
+      if (draft === null || noteResult.note === null) {
+        setNoteMessage(
+          "Nothing added. You can keep practicing without a note."
+        );
+        return;
+      }
+
+      preparedNote = noteResult.note;
+    }
+
+    noteSaveInFlightRef.current = true;
+    setIsNoteSaving(true);
+    setNoteMessage(undefined);
+
+    try {
+      const result =
+        retryToken !== null
+          ? await retryPersistedMutation(retryToken)
+          : draft !== null && preparedNote !== null
+            ? await updateArousalSessionAndPersist(draft.id, {
+                note: preparedNote,
+                currentArousalLevel: level,
+                startingArousalLevel:
+                  draft.startingArousalLevel ?? level,
+                highestArousal: Math.max(
+                  draft.highestArousal ?? level,
+                  level
+                )
+              })
+            : null;
+
+      if (!isMountedRef.current) {
+        return;
+      }
+
+      if (result === null) {
+        setNoteMessage("This note could not be saved yet.");
+        return;
+      }
+
+      if (result.ok) {
+        noteRetryTokenRef.current = null;
+        noteMutationAcceptedRef.current = false;
+        setNoteRetryToken(null);
+        setNoteMutationAccepted(false);
+      } else if (result.accepted) {
+        noteMutationAcceptedRef.current = true;
+        noteRetryTokenRef.current = result.retryable
+          ? result.retryToken
+          : null;
+        setNoteMutationAccepted(true);
+        setNoteRetryToken(result.retryable ? result.retryToken : null);
+      } else {
+        noteMutationAcceptedRef.current = false;
+        noteRetryTokenRef.current = null;
+        setNoteMutationAccepted(false);
+        setNoteRetryToken(null);
+      }
+
+      const feedback = resolveBloomMutationFeedback(
+        result,
+        "Note saved for this practice.",
+        !result.ok && result.reason === "persistenceUnknown"
+          ? "Bloom is still confirming this note in local storage. You can leave safely or try again; it is not shown as saved yet."
+          : !result.ok && result.reason === "persistenceSuperseded"
+            ? "A newer change replaced this note save request. This request did not mark the note as saved."
+            : !result.ok && result.accepted && result.retryable
+              ? "Note updated this session, but couldn’t be saved to local storage. Try again."
+              : "This note could not be saved yet."
       );
-      return;
-    }
+      setNoteMessage(feedback.message);
+    } catch {
+      if (!isMountedRef.current) {
+        return;
+      }
 
-    const result = updateArousalSession(draft.id, {
-      note: noteResult.note,
-      currentArousalLevel: level,
-      startingArousalLevel: draft.startingArousalLevel ?? level,
-      highestArousal: Math.max(draft.highestArousal ?? level, level)
-    });
-    const feedback = resolveBloomMutationFeedback(
-      result,
-      "Note saved for this practice.",
-      "This note could not be saved yet."
-    );
-    setNoteMessage(feedback.message);
+      noteMutationAcceptedRef.current = false;
+      noteRetryTokenRef.current = null;
+      setNoteMutationAccepted(false);
+      setNoteRetryToken(null);
+      setNoteMessage(
+        "Bloom couldn’t confirm that this note was saved to local storage."
+      );
+    } finally {
+      noteSaveInFlightRef.current = false;
+
+      if (isMountedRef.current) {
+        setIsNoteSaving(false);
+      }
+    }
   };
 
   const closePractice = () => {
+    if (noteSaveInFlightRef.current) {
+      return;
+    }
+
     if (draft !== null) {
       discardArousalSession(draft.id);
     }
@@ -170,6 +292,9 @@ export function MainPracticeScreen() {
         icon="∿"
         title="Notice where you are."
         subtitle="Choose the closest arousal level. The goal is noticing the rise earlier, not reaching a target."
+        backDisabled={isNoteSaving}
+        closeDisabled={isNoteSaving}
+        busy={isNoteSaving}
         onBackPress={() => router.replace(routes.arousalControlCheckIn)}
         onClosePress={closePractice}
       />
@@ -188,6 +313,7 @@ export function MainPracticeScreen() {
             </View>
             <ArousalLevelPicker
               value={level}
+              disabled={notePersistenceLocked}
               onChange={setLevel}
               testIDPrefix="bloom.arousal.practice.level"
             />
@@ -198,6 +324,7 @@ export function MainPracticeScreen() {
           title={guidance.title}
           body={guidance.body}
           tone={guidance.tone}
+          disabled={notePersistenceLocked}
           {...(guidanceAction !== undefined
             ? {
                 actionLabel: guidanceAction.label,
@@ -219,7 +346,11 @@ export function MainPracticeScreen() {
               <TextInput
                 multiline
                 value={note}
-                onChangeText={setNote}
+                onChangeText={(value) => {
+                  setNote(value);
+                  setNoteMessage(undefined);
+                }}
+                editable={!isNoteSaving && !noteMutationAccepted}
                 placeholder="What do you want to remember about this moment?"
                 placeholderTextColor={theme.colors.textSecondary}
                 style={styles.input}
@@ -227,15 +358,22 @@ export function MainPracticeScreen() {
                 maxLength={MAX_BLOOM_NOTE_LENGTH}
               />
               {noteMessage ? (
-                <AppText variant="bodySmall" tone="secondary">
+                <AppText
+                  accessibilityLiveRegion="polite"
+                  accessibilityRole="alert"
+                  variant="bodySmall"
+                  tone="secondary"
+                >
                   {noteMessage}
                 </AppText>
               ) : null}
               <AppButton
                 variant="subtle"
-                onPress={saveNote}
+                loading={isNoteSaving}
+                disabled={noteMutationAccepted && noteRetryToken === null}
+                onPress={() => void saveNote()}
               >
-                Save note
+                {noteRetryToken === null ? "Save note" : "Try saving again"}
               </AppButton>
             </View>
           </AppCard>
@@ -244,8 +382,14 @@ export function MainPracticeScreen() {
         <View style={styles.actions}>
           {isFinishOriented ? (
             <>
-              <AppButton onPress={finishPractice}>Finish today</AppButton>
-              <AppButton variant="secondary" onPress={() => setShowNote(true)}>
+              <AppButton disabled={notePersistenceLocked} onPress={finishPractice}>
+                Finish today
+              </AppButton>
+              <AppButton
+                variant="secondary"
+                disabled={notePersistenceLocked}
+                onPress={() => setShowNote(true)}
+              >
                 Add Quick Note
               </AppButton>
             </>
@@ -253,14 +397,23 @@ export function MainPracticeScreen() {
             <>
               <AppButton
                 testID="bloom.arousal.practice.pause"
+                disabled={notePersistenceLocked}
                 onPress={startPause}
               >
                 Start Pause
               </AppButton>
-              <AppButton variant="secondary" onPress={finishPractice}>
+              <AppButton
+                variant="secondary"
+                disabled={notePersistenceLocked}
+                onPress={finishPractice}
+              >
                 Finish Practice
               </AppButton>
-              <AppButton variant="ghost" onPress={() => setShowNote(true)}>
+              <AppButton
+                variant="ghost"
+                disabled={notePersistenceLocked}
+                onPress={() => setShowNote(true)}
+              >
                 Add Quick Note
               </AppButton>
             </>

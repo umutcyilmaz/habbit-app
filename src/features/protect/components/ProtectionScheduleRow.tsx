@@ -10,6 +10,7 @@ type ProtectionScheduleRowProps = {
   description: string;
   iconLabel?: string;
   selected: boolean;
+  disabled?: boolean;
   onSelect: (id: ProtectionSchedule) => void;
 };
 
@@ -19,18 +20,21 @@ export function ProtectionScheduleRow({
   description,
   iconLabel = "•",
   selected,
+  disabled = false,
   onSelect
 }: ProtectionScheduleRowProps) {
   return (
     <Pressable
       testID={`bloom.protection.schedule.${id}`}
       accessibilityRole="button"
-      accessibilityState={{ selected }}
+      accessibilityState={{ disabled, selected }}
+      disabled={disabled}
       onPress={() => onSelect(id)}
       style={({ pressed }) => [
         styles.row,
         selected ? styles.selectedRow : undefined,
-        pressed ? styles.pressedRow : undefined
+        pressed && !disabled ? styles.pressedRow : undefined,
+        disabled ? styles.disabledRow : undefined
       ]}
     >
       <View style={styles.iconCircle}>
@@ -69,6 +73,9 @@ const styles = StyleSheet.create({
   },
   pressedRow: {
     backgroundColor: theme.colors.surfaceMuted
+  },
+  disabledRow: {
+    opacity: 0.5
   },
   copy: {
     flex: 1,

@@ -4,9 +4,9 @@ import { useBloomLocalState } from "../src/app/providers/BloomLocalStateProvider
 import { routes } from "../src/constants/navigation";
 
 export default function IndexRoute() {
-  const { state } = useBloomLocalState();
+  const { durableState } = useBloomLocalState();
 
-  if (!state.onboarding.completed) {
+  if (!durableState.onboarding.completed) {
     return <Redirect href={routes.onboarding} />;
   }
 

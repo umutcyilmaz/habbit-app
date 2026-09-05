@@ -10,11 +10,13 @@ import { useBloomLocalState } from "./BloomLocalStateProvider";
 import { useLocalDataLifecycle } from "./LocalDataLifecycleProvider";
 
 export function BloomHydrationBoundary({ children }: PropsWithChildren) {
-  const { hydrationStatus, retryHydration } = useBloomLocalState();
+  const { hydrationStatus, hydrationError, retryHydration } =
+    useBloomLocalState();
   const {
     deletionStatus,
     deletionError,
     deleteAllLocalData,
+    retryBloomLocalDataResetNavigation,
     clearDeletionStatus
   } = useLocalDataLifecycle();
   const [confirmingReset, setConfirmingReset] = useState(false);
@@ -28,6 +30,31 @@ export function BloomHydrationBoundary({ children }: PropsWithChildren) {
 
     setConfirmingReset(false);
   }, [clearDeletionStatus, hydrationStatus]);
+
+  if (deletionStatus === "success") {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.errorContent}>
+          <AppCard style={styles.errorCard}>
+            <View style={styles.stack}>
+              <View style={styles.copyStack}>
+                <AppText variant="heading">Local data deleted.</AppText>
+                <AppText tone="secondary">
+                  {deletionError ?? "Bloom is opening onboarding."}
+                </AppText>
+              </View>
+
+              {deletionError !== null ? (
+                <AppButton onPress={retryBloomLocalDataResetNavigation}>
+                  Open onboarding
+                </AppButton>
+              ) : null}
+            </View>
+          </AppCard>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (hydrationStatus === "loading") {
     return (
@@ -52,8 +79,11 @@ export function BloomHydrationBoundary({ children }: PropsWithChildren) {
                   Bloom couldn’t load your local data.
                 </AppText>
                 <AppText tone="secondary">
-                  Your existing data has not been replaced. You can try again or
-                  reset the local data on this device.
+                  {hydrationError?.message ??
+                    "Bloom local data is temporarily unavailable."}
+                </AppText>
+                <AppText tone="secondary">
+                  You can try again or reset the local data on this device.
                 </AppText>
               </View>
 

@@ -10,6 +10,10 @@ type PrivateReflectionCardProps = {
   note: string;
   onNoteChange: (note: string) => void;
   onSaveNote: () => void;
+  disabled?: boolean;
+  saving?: boolean;
+  retrying?: boolean;
+  onRetry?: () => void;
   savedMessage?: string;
 };
 
@@ -17,6 +21,10 @@ export function PrivateReflectionCard({
   note,
   onNoteChange,
   onSaveNote,
+  disabled = false,
+  saving = false,
+  retrying = false,
+  onRetry,
   savedMessage
 }: PrivateReflectionCardProps) {
   return (
@@ -31,6 +39,7 @@ export function PrivateReflectionCard({
           multiline
           value={note}
           onChangeText={onNoteChange}
+          editable={!disabled}
           placeholder="What do you want to remember about this moment?"
           placeholderTextColor={theme.colors.textSecondary}
           style={styles.input}
@@ -39,12 +48,37 @@ export function PrivateReflectionCard({
         />
 
         {savedMessage ? (
-          <AppText variant="bodySmall" tone="secondary">
+          <AppText
+            accessibilityLiveRegion="polite"
+            accessibilityRole="alert"
+            variant="bodySmall"
+            tone="secondary"
+          >
             {savedMessage}
           </AppText>
         ) : null}
 
-        <AppButton variant="subtle" onPress={onSaveNote}>
+        {onRetry !== undefined ? (
+          <AppButton
+            testID="bloom.log.note.persistence.retry"
+            variant="subtle"
+            loading={retrying}
+            disabled={retrying}
+            accessibilityState={{ busy: retrying, disabled: retrying }}
+            onPress={onRetry}
+          >
+            Try saving again
+          </AppButton>
+        ) : null}
+
+        <AppButton
+          testID="bloom.log.note.save"
+          variant="subtle"
+          loading={saving}
+          disabled={disabled}
+          accessibilityState={{ busy: saving, disabled }}
+          onPress={onSaveNote}
+        >
           Save note
         </AppButton>
       </View>

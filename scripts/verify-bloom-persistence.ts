@@ -9,6 +9,7 @@ import {
   BLOOM_STATE_STORAGE_KEY,
   createBloomStatePersistenceCoordinator,
   createBloomStateWriteQueue,
+  isBloomStateLifecycleInvalidatedError,
   loadBloomLocalState,
   persistBloomLocalState
 } from "../src/storage/bloomStatePersistence";
@@ -50,8 +51,18 @@ async function verifyBloomPersistence() {
   await verifyUnsupportedVersionPreservation();
   await verifyFailedMigrationKeepsLegacyPayload();
   await verifyWriteOrdering();
+  await verifyQueuedSnapshotCapture();
   await verifyScopedDeletion();
   await verifyWriteDeleteRace();
+  await verifyDeletionInvalidatesDelayedLoad();
+  await verifyDeletionDrainsDelayedMigration();
+  await verifyDeletionDrainsDelayedLegacyCleanup();
+  await verifyDeletionDrainsDelayedQuarantine();
+  await verifyDeletionDrainsExistingQuarantineLookup();
+  await verifyRemountLoadWaitsForDelayedEnumeration();
+  await verifyRemountLoadWaitsForDeletion();
+  await verifyConcurrentRemountLoadsStaySerialized();
+  await verifyRemountLoadAbortsAfterFailedDeletion();
   await verifyConcurrentDeletionDeduplication();
   await verifyFailedDeletionPreservesActiveState();
   await verifyEarlyDeletionFailureKeepsCurrentEnvelope();
@@ -551,7 +562,10 @@ async function verifyWriteOrdering() {
   const firstState = stateWithDateOffset(1);
   const latestState = stateWithDateOffset(2);
 
-  await Promise.all([enqueueWrite(firstState), enqueueWrite(latestState)]);
+  const [firstReceipt, latestReceipt] = await Promise.all([
+    enqueueWrite(firstState),
+    enqueueWrite(latestState)
+  ]);
 
   const finalPayload = await client.getItem(BLOOM_STATE_STORAGE_KEY);
   assert(finalPayload !== null, "Queued writes should produce a current envelope.");
@@ -565,6 +579,38 @@ async function verifyWriteOrdering() {
   assert(
     client.completedWrites.length === 2,
     "Both queued writes should complete without being dropped."
+  );
+  assert(
+    firstReceipt.status === "persisted" &&
+      latestReceipt.status === "persisted" &&
+      firstReceipt.writeId < latestReceipt.writeId,
+    "Serialized writes should return monotonic persisted receipts for their exact snapshots."
+  );
+}
+
+async function verifyQueuedSnapshotCapture() {
+  const client = new TestStorageClient();
+  client.writeDelays.push(30, 0);
+  const coordinator = createBloomStatePersistenceCoordinator(client, fixedNow);
+  const firstState = stateWithDateOffset(1);
+  const queuedState = stateWithDateOffset(2);
+  const firstWrite = coordinator.enqueueWrite(firstState);
+  const queuedWrite = coordinator.enqueueWrite(queuedState);
+
+  queuedState.debug.dateOffsetDays = 99;
+  await Promise.all([firstWrite, queuedWrite]);
+
+  const queuedPayload = client.completedWrites[1];
+  assert(
+    queuedPayload !== undefined,
+    "The queued exact-snapshot check must complete its second write."
+  );
+  const parsed = JSON.parse(queuedPayload) as {
+    state?: { debug?: { dateOffsetDays?: number } };
+  };
+  assert(
+    parsed.state?.debug?.dateOffsetDays === 2,
+    "A queued write must serialize its exact snapshot at enqueue time, before caller-owned references can change."
   );
 }
 
@@ -614,7 +660,11 @@ async function verifyWriteDeleteRace() {
   const queuedWrite = coordinator.enqueueWrite(stateWithDateOffset(2));
   const deletion = coordinator.deleteAll();
 
-  await Promise.all([inFlightWrite, queuedWrite, deletion]);
+  const [inFlightReceipt, queuedReceipt] = await Promise.all([
+    inFlightWrite,
+    queuedWrite,
+    deletion
+  ]);
 
   assert(
     (await client.getItem(BLOOM_STATE_STORAGE_KEY)) === null,
@@ -624,8 +674,19 @@ async function verifyWriteDeleteRace() {
     client.completedWrites.length === 1,
     "Deletion should drain the in-flight write and invalidate the stale queued write."
   );
+  assert(
+    inFlightReceipt.status === "invalidated" &&
+      queuedReceipt.status === "invalidated",
+    "Deletion must report both pending pre-delete acknowledgements as invalidated."
+  );
 
-  await coordinator.enqueueWrite(stateWithDateOffset(3));
+  const postDeleteReceipt = await coordinator.enqueueWrite(
+    stateWithDateOffset(3)
+  );
+  assert(
+    postDeleteReceipt.status === "persisted",
+    "A post-delete write should receive a persisted receipt in the new generation."
+  );
   const postDeletePayload = await client.getItem(BLOOM_STATE_STORAGE_KEY);
   assert(
     postDeletePayload !== null,
@@ -637,6 +698,298 @@ async function verifyWriteDeleteRace() {
   assert(
     parsed.state?.debug?.dateOffsetDays === 3,
     "Post-delete writes should use the new persistence generation."
+  );
+}
+
+async function verifyDeletionInvalidatesDelayedLoad() {
+  const client = new TestStorageClient();
+  await persistBloomLocalState(stateWithDateOffset(8), client, fixedNow);
+  const coordinator = createBloomStatePersistenceCoordinator(client, fixedNow);
+  client.blockedGetsFor.add(BLOOM_STATE_STORAGE_KEY);
+
+  const delayedLoad = coordinator.load();
+  await client.waitForGetStart(BLOOM_STATE_STORAGE_KEY);
+  const deletion = coordinator.deleteAll();
+  client.releaseBlockedGet(BLOOM_STATE_STORAGE_KEY);
+
+  const loadError = await delayedLoad.then(
+    () => null,
+    (error: unknown) => error
+  );
+  await deletion;
+
+  assert(
+    isBloomStateLifecycleInvalidatedError(loadError),
+    "Deletion should invalidate a load that began in an older lifecycle generation."
+  );
+  assert(
+    (await client.getItem(BLOOM_STATE_STORAGE_KEY)) === null,
+    "A delayed pre-delete load must not leave the active envelope behind."
+  );
+}
+
+async function verifyDeletionDrainsDelayedMigration() {
+  const client = new TestStorageClient();
+  const legacyKey = BLOOM_LEGACY_STATE_STORAGE_KEYS[0];
+  await client.setItem(
+    legacyKey,
+    JSON.stringify({ onboarding: { completed: true } })
+  );
+  const coordinator = createBloomStatePersistenceCoordinator(client, fixedNow);
+  client.blockedSetPrefixes.add(BLOOM_STATE_STORAGE_KEY);
+
+  const delayedMigration = coordinator.load();
+  await client.waitForSetStart(BLOOM_STATE_STORAGE_KEY);
+  const deletion = coordinator.deleteAll();
+  client.releaseBlockedSet(BLOOM_STATE_STORAGE_KEY);
+
+  const loadError = await delayedMigration.then(
+    () => null,
+    (error: unknown) => error
+  );
+  await deletion;
+
+  assert(
+    isBloomStateLifecycleInvalidatedError(loadError),
+    "Deletion should invalidate hydration whose legacy migration was still writing."
+  );
+  assert(
+    (await client.getItem(BLOOM_STATE_STORAGE_KEY)) === null &&
+      (await client.getItem(legacyKey)) === null,
+    "Deletion must wait for a delayed migration and then remove both current and legacy keys."
+  );
+}
+
+async function verifyDeletionDrainsDelayedLegacyCleanup() {
+  const client = new TestStorageClient();
+  const legacyKey = BLOOM_LEGACY_STATE_STORAGE_KEYS[0];
+  await client.setItem(
+    legacyKey,
+    JSON.stringify({ onboarding: { completed: true } })
+  );
+  const coordinator = createBloomStatePersistenceCoordinator(client, fixedNow);
+  client.blockedRemovalsFor.add(legacyKey);
+
+  const delayedCleanup = coordinator.load();
+  await client.waitForRemovalStart(legacyKey);
+  const deletion = coordinator.deleteAll();
+  client.releaseBlockedRemoval(legacyKey);
+
+  const loadError = await delayedCleanup.then(
+    () => null,
+    (error: unknown) => error
+  );
+  await deletion;
+
+  assert(
+    isBloomStateLifecycleInvalidatedError(loadError),
+    "Deletion should invalidate hydration whose migrated legacy-key cleanup was still running."
+  );
+  assert(
+    (await client.getItem(BLOOM_STATE_STORAGE_KEY)) === null &&
+      (await client.getItem(legacyKey)) === null,
+    "Deletion must drain delayed legacy cleanup and remove the migrated current envelope."
+  );
+}
+
+async function verifyDeletionDrainsDelayedQuarantine() {
+  const client = new TestStorageClient();
+  await client.setItem(BLOOM_STATE_STORAGE_KEY, "{not-valid-json");
+  const coordinator = createBloomStatePersistenceCoordinator(client, fixedNow);
+  client.blockedSetPrefixes.add(BLOOM_CORRUPT_BACKUP_PREFIX);
+
+  const delayedQuarantine = coordinator.load();
+  await client.waitForSetStart(BLOOM_CORRUPT_BACKUP_PREFIX);
+  const deletion = coordinator.deleteAll();
+  client.releaseBlockedSet(BLOOM_CORRUPT_BACKUP_PREFIX);
+
+  const loadError = await delayedQuarantine.then(
+    () => null,
+    (error: unknown) => error
+  );
+  await deletion;
+
+  assert(
+    isBloomStateLifecycleInvalidatedError(loadError),
+    "Deletion should invalidate hydration whose quarantine backup was still writing."
+  );
+  assert(
+    (await client.getAllKeys()).every(
+      (key) =>
+        key !== BLOOM_STATE_STORAGE_KEY &&
+        !key.startsWith(BLOOM_CORRUPT_BACKUP_PREFIX)
+    ),
+    "Deletion must drain and remove a late quarantine backup without resurrecting Bloom data."
+  );
+}
+
+async function verifyDeletionDrainsExistingQuarantineLookup() {
+  const client = new TestStorageClient();
+  const rawPayload = "{not-valid-json";
+  await client.setItem(BLOOM_STATE_STORAGE_KEY, rawPayload);
+  const coordinator = createBloomStatePersistenceCoordinator(client, fixedNow);
+  const firstLoad = await coordinator.load();
+  assert(
+    firstLoad.status === "corrupt" && firstLoad.backupKey !== null,
+    "The delayed existing-quarantine regression requires a preserved backup."
+  );
+  const backupKey = firstLoad.backupKey;
+  client.getAttempts.length = 0;
+  client.blockedGetsFor.add(backupKey);
+
+  const delayedLookup = coordinator.load();
+  await client.waitForGetStart(backupKey);
+  const deletion = coordinator.deleteAll();
+  client.releaseBlockedGet(backupKey);
+
+  const loadError = await delayedLookup.then(
+    () => null,
+    (error: unknown) => error
+  );
+  await deletion;
+
+  assert(
+    isBloomStateLifecycleInvalidatedError(loadError),
+    "Deletion should invalidate a delayed lookup of an existing quarantine backup."
+  );
+  assert(
+    (await client.getAllKeys()).every(
+      (key) =>
+        key !== BLOOM_STATE_STORAGE_KEY &&
+        !key.startsWith(BLOOM_CORRUPT_BACKUP_PREFIX)
+    ),
+    "Deletion must remove both the active corrupt payload and its existing delayed backup."
+  );
+}
+
+async function verifyRemountLoadWaitsForDelayedEnumeration() {
+  const client = new TestStorageClient();
+  await persistBloomLocalState(stateWithDateOffset(7), client, fixedNow);
+  const coordinator = createBloomStatePersistenceCoordinator(client, fixedNow);
+  client.blockAllKeysReads = true;
+
+  const deletion = coordinator.deleteAll();
+  await client.waitForAllKeysReadStart();
+  const remountLoad = coordinator.load();
+  const writeDuringDeletion = await coordinator.enqueueWrite(
+    stateWithDateOffset(99)
+  );
+  await Promise.resolve();
+
+  assert(
+    client.getAttempts.length === 0 &&
+      writeDuringDeletion.status === "invalidated",
+    "Delayed deletion enumeration must block remount reads and invalidate new writes."
+  );
+
+  client.releaseBlockedAllKeysRead();
+  await deletion;
+  const remountResult = await remountLoad;
+  assert(
+    remountResult.status === "success" && remountResult.source === "empty",
+    "A remount load must wait for delayed key enumeration and observe post-delete storage."
+  );
+}
+
+async function verifyRemountLoadWaitsForDeletion() {
+  const client = new TestStorageClient();
+  await client.setItem(BLOOM_STATE_STORAGE_KEY, "current");
+  const coordinator = createBloomStatePersistenceCoordinator(client, fixedNow);
+  client.blockedRemovalsFor.add(BLOOM_STATE_STORAGE_KEY);
+
+  const deletion = coordinator.deleteAll();
+  await client.waitForRemovalStart(BLOOM_STATE_STORAGE_KEY);
+  const remountLoad = coordinator.load();
+  client.releaseBlockedRemoval(BLOOM_STATE_STORAGE_KEY);
+
+  await deletion;
+  const remountResult = await remountLoad;
+
+  assert(
+    remountResult.status === "success" && remountResult.source === "empty",
+    "A remount load requested during deletion must wait and observe empty post-delete storage."
+  );
+}
+
+async function verifyConcurrentRemountLoadsStaySerialized() {
+  const client = new TestStorageClient();
+  await persistBloomLocalState(stateWithDateOffset(6), client, fixedNow);
+  const coordinator = createBloomStatePersistenceCoordinator(client, fixedNow);
+  client.blockedRemovalsFor.add(BLOOM_STATE_STORAGE_KEY);
+
+  const deletion = coordinator.deleteAll();
+  await client.waitForRemovalStart(BLOOM_STATE_STORAGE_KEY);
+  client.blockedGetsFor.add(BLOOM_STATE_STORAGE_KEY);
+  const firstRemountLoad = coordinator.load();
+  const secondRemountLoad = coordinator.load();
+  client.releaseBlockedRemoval(BLOOM_STATE_STORAGE_KEY);
+  await deletion;
+  await client.waitForGetStart(BLOOM_STATE_STORAGE_KEY);
+  await Promise.resolve();
+  await Promise.resolve();
+
+  assert(
+    client.getAttempts.filter((key) => key === BLOOM_STATE_STORAGE_KEY)
+      .length === 1,
+    "Concurrent remount loads must remain serialized after their shared deletion barrier."
+  );
+
+  client.releaseBlockedGet(BLOOM_STATE_STORAGE_KEY);
+  const [firstResult, secondResult] = await Promise.all([
+    firstRemountLoad,
+    secondRemountLoad
+  ]);
+  assert(
+    firstResult.status === "success" &&
+      firstResult.source === "empty" &&
+      secondResult.status === "success" &&
+      secondResult.source === "empty" &&
+      client.getAttempts.filter((key) => key === BLOOM_STATE_STORAGE_KEY)
+        .length === 2,
+    "Serialized remount loads should each observe the same empty post-delete state."
+  );
+}
+
+async function verifyRemountLoadAbortsAfterFailedDeletion() {
+  const client = new TestStorageClient();
+  await persistBloomLocalState(stateWithDateOffset(8), client, fixedNow);
+  const corruptKey = `${BLOOM_CORRUPT_BACKUP_PREFIX}removed-before-failure`;
+  await client.setItem(corruptKey, "quarantined-payload");
+  const coordinator = createBloomStatePersistenceCoordinator(client, fixedNow);
+  client.blockedRemovalsFor.add(BLOOM_STATE_STORAGE_KEY);
+
+  const deletion = coordinator.deleteAll();
+  await client.waitForRemovalStart(BLOOM_STATE_STORAGE_KEY);
+  const remountLoad = coordinator.load();
+  client.failRemovalsFor.add(BLOOM_STATE_STORAGE_KEY);
+  client.releaseBlockedRemoval(BLOOM_STATE_STORAGE_KEY);
+
+  const [deletionError, loadError] = await Promise.all([
+    deletion.then(
+      () => null,
+      (error: unknown) => error
+    ),
+    remountLoad.then(
+      () => null,
+      (error: unknown) => error
+    )
+  ]);
+  assert(
+    deletionError instanceof Error &&
+      loadError === deletionError &&
+      client.getAttempts.length === 0 &&
+      !client.values.has(corruptKey) &&
+      client.values.has(BLOOM_STATE_STORAGE_KEY),
+    "A remount load queued during failed deletion must abort without reading partial storage."
+  );
+
+  client.failRemovalsFor.clear();
+  await coordinator.enqueueWrite(stateWithDateOffset(9));
+  const recoveredLoad = await coordinator.load();
+  assert(
+    recoveredLoad.status === "success" &&
+      recoveredLoad.state.debug.dateOffsetDays === 9,
+    "Hydration retry after failed-deletion recovery must observe the requeued canonical state."
   );
 }
 
@@ -768,19 +1121,49 @@ class TestStorageClient implements StorageClient {
   readonly getAttempts: string[] = [];
   readonly failWritesFor = new Set<string>();
   readonly failRemovalsFor = new Set<string>();
+  readonly blockedGetsFor = new Set<string>();
+  readonly blockedSetPrefixes = new Set<string>();
+  readonly blockedRemovalsFor = new Set<string>();
+  blockAllKeysReads = false;
+  allKeysReadAttempts = 0;
   readonly writeDelays: number[] = [];
+  readonly setAttempts: string[] = [];
   readonly startedWrites: string[] = [];
   readonly completedWrites: string[] = [];
   readonly removeAttempts: string[] = [];
   private readonly writeStartWaiters: Array<() => void> = [];
+  private readonly getStartWaiters = new Map<string, Array<() => void>>();
+  private readonly setStartWaiters: Array<{
+    prefix: string;
+    resolve: () => void;
+  }> = [];
+  private readonly removalStartWaiters = new Map<
+    string,
+    Array<() => void>
+  >();
+  private readonly blockedGetReleases = new Map<string, () => void>();
+  private readonly blockedSetReleases = new Map<string, () => void>();
+  private readonly blockedRemovalReleases = new Map<string, () => void>();
+  private readonly allKeysReadStartWaiters: Array<() => void> = [];
+  private blockedAllKeysReadRelease: (() => void) | null = null;
 
   async getItem(key: string): Promise<string | null> {
     this.getAttempts.push(key);
+    this.resolveKeyWaiters(this.getStartWaiters, key);
+
+    if (this.blockedGetsFor.has(key)) {
+      await new Promise<void>((resolve) => {
+        this.blockedGetReleases.set(key, resolve);
+      });
+    }
+
     return this.values.get(key) ?? null;
   }
 
   async setItem(key: string, value: string): Promise<void> {
     const delay = this.writeDelays.shift() ?? 0;
+    this.setAttempts.push(key);
+    this.resolvePrefixWaiters(this.setStartWaiters, key);
 
     if (key === BLOOM_STATE_STORAGE_KEY) {
       this.startedWrites.push(value);
@@ -797,6 +1180,16 @@ class TestStorageClient implements StorageClient {
       });
     }
 
+    const blockedPrefix = Array.from(this.blockedSetPrefixes).find((prefix) =>
+      key.startsWith(prefix)
+    );
+
+    if (blockedPrefix !== undefined) {
+      await new Promise<void>((resolve) => {
+        this.blockedSetReleases.set(key, resolve);
+      });
+    }
+
     if (this.failWritesFor.has(key)) {
       throw new Error("Synthetic storage failure.");
     }
@@ -810,6 +1203,13 @@ class TestStorageClient implements StorageClient {
 
   async removeItem(key: string): Promise<void> {
     this.removeAttempts.push(key);
+    this.resolveKeyWaiters(this.removalStartWaiters, key);
+
+    if (this.blockedRemovalsFor.has(key)) {
+      await new Promise<void>((resolve) => {
+        this.blockedRemovalReleases.set(key, resolve);
+      });
+    }
 
     if (this.failRemovalsFor.has(key)) {
       throw new Error("Synthetic storage removal failure.");
@@ -819,6 +1219,19 @@ class TestStorageClient implements StorageClient {
   }
 
   async getAllKeys(): Promise<readonly string[]> {
+    this.allKeysReadAttempts += 1;
+    const waiters = this.allKeysReadStartWaiters.splice(0);
+
+    for (const resolve of waiters) {
+      resolve();
+    }
+
+    if (this.blockAllKeysReads) {
+      await new Promise<void>((resolve) => {
+        this.blockedAllKeysReadRelease = resolve;
+      });
+    }
+
     return Array.from(this.values.keys());
   }
 
@@ -830,6 +1243,118 @@ class TestStorageClient implements StorageClient {
     return new Promise<void>((resolve) => {
       this.writeStartWaiters.push(resolve);
     });
+  }
+
+  waitForGetStart(key: string): Promise<void> {
+    if (this.getAttempts.includes(key)) {
+      return Promise.resolve();
+    }
+
+    return this.waitForKey(this.getStartWaiters, key);
+  }
+
+  waitForSetStart(prefix: string): Promise<void> {
+    if (this.setAttempts.some((key) => key.startsWith(prefix))) {
+      return Promise.resolve();
+    }
+
+    return new Promise<void>((resolve) => {
+      this.setStartWaiters.push({ prefix, resolve });
+    });
+  }
+
+  waitForRemovalStart(key: string): Promise<void> {
+    if (this.removeAttempts.includes(key)) {
+      return Promise.resolve();
+    }
+
+    return this.waitForKey(this.removalStartWaiters, key);
+  }
+
+  waitForAllKeysReadStart(): Promise<void> {
+    if (this.allKeysReadAttempts > 0) {
+      return Promise.resolve();
+    }
+
+    return new Promise<void>((resolve) => {
+      this.allKeysReadStartWaiters.push(resolve);
+    });
+  }
+
+  releaseBlockedGet(key: string): void {
+    const release = this.blockedGetReleases.get(key);
+    assert(release !== undefined, `No blocked get exists for ${key}.`);
+    this.blockedGetsFor.delete(key);
+    this.blockedGetReleases.delete(key);
+    release();
+  }
+
+  releaseBlockedSet(prefix: string): void {
+    const entry = Array.from(this.blockedSetReleases.entries()).find(([key]) =>
+      key.startsWith(prefix)
+    );
+    assert(entry !== undefined, `No blocked set exists for ${prefix}.`);
+    this.blockedSetPrefixes.delete(prefix);
+    this.blockedSetReleases.delete(entry[0]);
+    entry[1]();
+  }
+
+  releaseBlockedRemoval(key: string): void {
+    const release = this.blockedRemovalReleases.get(key);
+    assert(release !== undefined, `No blocked removal exists for ${key}.`);
+    this.blockedRemovalsFor.delete(key);
+    this.blockedRemovalReleases.delete(key);
+    release();
+  }
+
+  releaseBlockedAllKeysRead(): void {
+    const release = this.blockedAllKeysReadRelease;
+    assert(release !== null, "No blocked all-keys read exists.");
+    this.blockAllKeysReads = false;
+    this.blockedAllKeysReadRelease = null;
+    release();
+  }
+
+  private waitForKey(
+    waiters: Map<string, Array<() => void>>,
+    key: string
+  ): Promise<void> {
+    return new Promise<void>((resolve) => {
+      const keyWaiters = waiters.get(key) ?? [];
+      keyWaiters.push(resolve);
+      waiters.set(key, keyWaiters);
+    });
+  }
+
+  private resolveKeyWaiters(
+    waiters: Map<string, Array<() => void>>,
+    key: string
+  ): void {
+    const keyWaiters = waiters.get(key) ?? [];
+    waiters.delete(key);
+
+    for (const resolve of keyWaiters) {
+      resolve();
+    }
+  }
+
+  private resolvePrefixWaiters(
+    waiters: Array<{ prefix: string; resolve: () => void }>,
+    key: string
+  ): void {
+    const matchingWaiters = waiters.filter(({ prefix }) =>
+      key.startsWith(prefix)
+    );
+
+    for (const waiter of matchingWaiters) {
+      const index = waiters.indexOf(waiter);
+
+      if (index >= 0) {
+        waiters.splice(index, 1);
+      }
+
+      waiter.resolve();
+    }
   }
 }
 

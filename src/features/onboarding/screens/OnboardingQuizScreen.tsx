@@ -1,8 +1,12 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "expo-router";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 
-import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
+import {
+  useBloomLocalState,
+  type BloomPersistedMutationResult,
+  type BloomPersistenceRetryToken
+} from "../../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../../constants/navigation";
 import { AppButton } from "../../../shared/components/AppButton";
 import { AppCard } from "../../../shared/components/AppCard";
@@ -10,7 +14,9 @@ import { AppIconButton } from "../../../shared/components/AppIconButton";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
+import { usePersistenceNavigationGuard } from "../../../shared/navigation/usePersistenceNavigationGuard";
 import { debugToolsEnabled } from "../../../shared/runtime/debugTools";
+import { getOnboardingPersistenceErrorMessage } from "../onboardingPersistenceFeedback";
 import {
   calculateQuizResultPreview,
   frequencyAnswers,
@@ -37,10 +43,31 @@ const frequencyAnswerTestIds: Record<FrequencyAnswerValue, string> = {
 
 export function OnboardingQuizScreen() {
   const router = useRouter();
-  const { saveOnboardingResult } = useBloomLocalState();
+  const {
+    retryPersistedMutation,
+    saveOnboardingResult
+  } = useBloomLocalState();
   const [stepIndex, setStepIndex] = useState(0);
   const [answers, setAnswers] = useState<QuizAnswerMap>({});
+  const completionAttemptRef = useRef(false);
+  const completionPromiseRef =
+    useRef<Promise<BloomPersistedMutationResult> | null>(null);
+  const isMountedRef = useRef(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [completionAccepted, setCompletionAccepted] = useState(false);
+  const [retryToken, setRetryToken] =
+    useState<BloomPersistenceRetryToken | null>(null);
+  const [persistenceError, setPersistenceError] = useState<string | null>(null);
+  const allowPersistenceNavigation = usePersistenceNavigationGuard(isSaving);
   const currentQuestion = quizQuestions[stepIndex] ?? quizQuestions[0];
+
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   if (currentQuestion === undefined) {
     return null;
@@ -50,13 +77,86 @@ export function OnboardingQuizScreen() {
   const canContinue = canContinueQuestion(currentQuestion, answers);
   const isLastQuestion = stepIndex === totalQuestions - 1;
 
-  const finishQuiz = (finalAnswers: QuizAnswerMap) => {
-    const result = scoreOnboardingQuiz(finalAnswers);
-    saveOnboardingResult(finalAnswers, result);
-    router.replace(routes.onboardingResult);
+  const finishQuiz = async (finalAnswers: QuizAnswerMap) => {
+    if (completionPromiseRef.current !== null) {
+      return;
+    }
+
+    const isRetry = retryToken !== null;
+    let persistencePromise: Promise<BloomPersistedMutationResult>;
+
+    if (retryToken !== null) {
+      persistencePromise = retryPersistedMutation(retryToken);
+    } else {
+      if (completionAttemptRef.current) {
+        return;
+      }
+
+      completionAttemptRef.current = true;
+      const result = scoreOnboardingQuiz(finalAnswers);
+      persistencePromise = saveOnboardingResult(finalAnswers, result);
+    }
+
+    completionPromiseRef.current = persistencePromise;
+    setIsSaving(true);
+    setPersistenceError(null);
+
+    try {
+      const persistenceResult = await persistencePromise;
+
+      if (!isMountedRef.current) {
+        return;
+      }
+
+      if (persistenceResult.ok) {
+        setRetryToken(null);
+        allowPersistenceNavigation();
+        router.replace(routes.onboardingResult);
+        return;
+      }
+
+      if (persistenceResult.accepted) {
+        setCompletionAccepted(true);
+        setRetryToken(
+          persistenceResult.retryable
+            ? persistenceResult.retryToken
+            : null
+        );
+      } else {
+        completionAttemptRef.current = false;
+        setCompletionAccepted(false);
+        setRetryToken(null);
+      }
+
+      setPersistenceError(
+        getOnboardingPersistenceErrorMessage(persistenceResult)
+      );
+    } catch {
+      if (isMountedRef.current) {
+        if (!isRetry) {
+          setCompletionAccepted(true);
+        }
+
+        setPersistenceError(
+          "Bloom couldn’t confirm this starting-plan save. You can leave safely without opening a saved result."
+        );
+      }
+    } finally {
+      if (completionPromiseRef.current === persistencePromise) {
+        completionPromiseRef.current = null;
+
+        if (isMountedRef.current) {
+          setIsSaving(false);
+        }
+      }
+    }
   };
 
   const goBack = () => {
+    if (isSaving || completionAccepted) {
+      return;
+    }
+
     if (stepIndex === 0) {
       router.replace(routes.onboarding);
       return;
@@ -66,15 +166,23 @@ export function OnboardingQuizScreen() {
   };
 
   const continueFlow = () => {
+    if (isSaving) {
+      return;
+    }
+
     if (!isLastQuestion) {
       setStepIndex((current) => current + 1);
       return;
     }
 
-    finishQuiz(answers);
+    void finishQuiz(answers);
   };
 
   const skipTriggers = () => {
+    if (isSaving || completionAccepted) {
+      return;
+    }
+
     const nextAnswers = {
       ...answers,
       loop_triggers: []
@@ -83,7 +191,7 @@ export function OnboardingQuizScreen() {
     setAnswers(nextAnswers);
 
     if (isLastQuestion) {
-      finishQuiz(nextAnswers);
+      void finishQuiz(nextAnswers);
       return;
     }
 
@@ -91,8 +199,20 @@ export function OnboardingQuizScreen() {
   };
 
   const clearQuizAnswers = () => {
+    if (isSaving || completionAccepted) {
+      return;
+    }
+
     setAnswers({});
     setStepIndex(0);
+  };
+
+  const closeQuiz = () => {
+    if (isSaving) {
+      return;
+    }
+
+    router.replace(routes.home);
   };
 
   return (
@@ -100,27 +220,59 @@ export function OnboardingQuizScreen() {
       <QuizHeader
         stepIndex={stepIndex}
         progress={progress}
+        backDisabled={isSaving || completionAccepted}
+        closeDisabled={isSaving}
         onBackPress={goBack}
-        onClosePress={() => router.replace(routes.home)}
+        onClosePress={closeQuiz}
       />
 
       <View style={styles.stack}>
         <QuestionContent
           question={currentQuestion}
           answers={answers}
+          disabled={isSaving || completionAccepted}
           onAnswerChange={setAnswers}
         />
 
         <View style={styles.actionStack}>
+          {persistenceError !== null ? (
+            <AppText
+              accessibilityLiveRegion="polite"
+              accessibilityRole="alert"
+              variant="bodySmall"
+              tone="danger"
+            >
+              {persistenceError}
+            </AppText>
+          ) : null}
           <AppButton
             testID="bloom.quiz.continue"
-            disabled={!canContinue}
+            disabled={
+              !canContinue ||
+              (completionAccepted && retryToken === null)
+            }
+            loading={isSaving}
             onPress={continueFlow}
           >
-            {isLastQuestion ? "See my plan" : "Continue"}
+            {retryToken !== null
+              ? "Try saving again"
+              : isLastQuestion
+                ? "See my plan"
+                : "Continue"}
           </AppButton>
           {currentQuestion.type === "multiSelect" ? (
-            <Pressable accessibilityRole="button" onPress={skipTriggers} style={styles.textAction}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ disabled: isSaving || completionAccepted }}
+              disabled={isSaving || completionAccepted}
+              onPress={skipTriggers}
+              style={[
+                styles.textAction,
+                isSaving || completionAccepted
+                  ? styles.disabledAction
+                  : undefined
+              ]}
+            >
               <AppText variant="label" tone="secondary" align="center">
                 Skip
               </AppText>
@@ -137,6 +289,7 @@ export function OnboardingQuizScreen() {
           <TestScoringPreviewPanel
             question={currentQuestion}
             answers={answers}
+            disabled={isSaving || completionAccepted}
             onClearAnswers={clearQuizAnswers}
           />
         ) : null}
@@ -148,16 +301,27 @@ export function OnboardingQuizScreen() {
 type QuizHeaderProps = {
   stepIndex: number;
   progress: number;
+  backDisabled: boolean;
+  closeDisabled: boolean;
   onBackPress: () => void;
   onClosePress: () => void;
 };
 
-function QuizHeader({ stepIndex, progress, onBackPress, onClosePress }: QuizHeaderProps) {
+function QuizHeader({
+  stepIndex,
+  progress,
+  backDisabled,
+  closeDisabled,
+  onBackPress,
+  onClosePress
+}: QuizHeaderProps) {
   return (
     <View style={styles.header}>
       <View style={styles.headerActions}>
         <AppIconButton
           accessibilityLabel="Go back"
+          accessibilityState={{ disabled: backDisabled }}
+          disabled={backDisabled}
           icon={<AppText variant="title">‹</AppText>}
           onPress={onBackPress}
           style={styles.headerButton}
@@ -169,6 +333,8 @@ function QuizHeader({ stepIndex, progress, onBackPress, onClosePress }: QuizHead
         </View>
         <AppIconButton
           accessibilityLabel="Close quiz"
+          accessibilityState={{ disabled: closeDisabled }}
+          disabled={closeDisabled}
           icon={<AppText variant="title">×</AppText>}
           onPress={onClosePress}
           style={styles.headerButton}
@@ -184,15 +350,22 @@ function QuizHeader({ stepIndex, progress, onBackPress, onClosePress }: QuizHead
 type QuestionContentProps = {
   question: QuizQuestion;
   answers: QuizAnswerMap;
+  disabled: boolean;
   onAnswerChange: (updater: (answers: QuizAnswerMap) => QuizAnswerMap) => void;
 };
 
-function QuestionContent({ question, answers, onAnswerChange }: QuestionContentProps) {
+function QuestionContent({
+  question,
+  answers,
+  disabled,
+  onAnswerChange
+}: QuestionContentProps) {
   if (question.type === "multiSelect") {
     return (
       <QuestionShell question={question.question} subtitle={question.subtitle}>
         <TriggerMultiSelect
           selected={getSelectedTriggers(answers.loop_triggers)}
+          disabled={disabled}
           onChange={(selected) =>
             onAnswerChange((current) => ({
               ...current,
@@ -208,6 +381,7 @@ function QuestionContent({ question, answers, onAnswerChange }: QuestionContentP
     <QuestionShell question={question.question}>
       <FrequencySelect
         selected={getSelectedFrequencyAnswer(answers[question.id])}
+        disabled={disabled}
         onChange={(selected) =>
           onAnswerChange((current) => ({
             ...current,
@@ -245,10 +419,15 @@ function QuestionShell({ question, subtitle, children }: QuestionShellProps) {
 
 type FrequencySelectProps = {
   selected: FrequencyAnswerValue | null;
+  disabled: boolean;
   onChange: (value: FrequencyAnswerValue) => void;
 };
 
-function FrequencySelect({ selected, onChange }: FrequencySelectProps) {
+function FrequencySelect({
+  selected,
+  disabled,
+  onChange
+}: FrequencySelectProps) {
   return (
     <View style={styles.answerStack}>
       {frequencyAnswers.map((answer) => (
@@ -256,6 +435,7 @@ function FrequencySelect({ selected, onChange }: FrequencySelectProps) {
           key={answer.label}
           testID={frequencyAnswerTestIds[answer.value]}
           selected={selected === answer.value}
+          disabled={disabled}
           title={answer.label}
           onPress={() => onChange(answer.value)}
         />
@@ -266,10 +446,15 @@ function FrequencySelect({ selected, onChange }: FrequencySelectProps) {
 
 type TriggerMultiSelectProps = {
   selected: TriggerOptionId[];
+  disabled: boolean;
   onChange: (selected: TriggerOptionId[]) => void;
 };
 
-function TriggerMultiSelect({ selected, onChange }: TriggerMultiSelectProps) {
+function TriggerMultiSelect({
+  selected,
+  disabled,
+  onChange
+}: TriggerMultiSelectProps) {
   const selectedSet = useMemo(() => new Set(selected), [selected]);
 
   const toggle = (id: TriggerOptionId) => {
@@ -295,12 +480,17 @@ function TriggerMultiSelect({ selected, onChange }: TriggerMultiSelectProps) {
         <Pressable
           key={option.id}
           accessibilityRole="button"
-          accessibilityState={{ selected: selectedSet.has(option.id) }}
+          accessibilityState={{
+            disabled,
+            selected: selectedSet.has(option.id)
+          }}
+          disabled={disabled}
           onPress={() => toggle(option.id)}
           style={({ pressed }) => [
             styles.triggerChip,
             selectedSet.has(option.id) ? styles.selectedSurface : undefined,
-            pressed ? styles.pressedSurface : undefined
+            pressed && !disabled ? styles.pressedSurface : undefined,
+            disabled ? styles.disabledAction : undefined
           ]}
         >
           <AppText variant="label" align="center">
@@ -315,23 +505,34 @@ function TriggerMultiSelect({ selected, onChange }: TriggerMultiSelectProps) {
 type SelectableCardProps = {
   testID: string;
   selected: boolean;
+  disabled: boolean;
   title: string;
   body?: string;
   icon?: string;
   onPress: () => void;
 };
 
-function SelectableCard({ testID, selected, title, body, icon, onPress }: SelectableCardProps) {
+function SelectableCard({
+  testID,
+  selected,
+  disabled,
+  title,
+  body,
+  icon,
+  onPress
+}: SelectableCardProps) {
   return (
     <Pressable
       testID={testID}
       accessibilityRole="button"
-      accessibilityState={{ selected }}
+      accessibilityState={{ disabled, selected }}
+      disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [
         styles.selectableCard,
         selected ? styles.selectedSurface : undefined,
-        pressed ? styles.pressedSurface : undefined
+        pressed && !disabled ? styles.pressedSurface : undefined,
+        disabled ? styles.disabledAction : undefined
       ]}
     >
       <View style={styles.selectableRow}>
@@ -356,12 +557,14 @@ function SelectableCard({ testID, selected, title, body, icon, onPress }: Select
 type TestScoringPreviewPanelProps = {
   question: QuizQuestion;
   answers: QuizAnswerMap;
+  disabled: boolean;
   onClearAnswers: () => void;
 };
 
 function TestScoringPreviewPanel({
   question,
   answers,
+  disabled,
   onClearAnswers
 }: TestScoringPreviewPanelProps) {
   const preview = calculateQuizResultPreview(answers);
@@ -482,7 +685,16 @@ function TestScoringPreviewPanel({
           )}
         </DebugSection>
 
-        <Pressable accessibilityRole="button" onPress={onClearAnswers} style={styles.clearDebugAction}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ disabled }}
+          disabled={disabled}
+          onPress={onClearAnswers}
+          style={[
+            styles.clearDebugAction,
+            disabled ? styles.disabledAction : undefined
+          ]}
+        >
           <AppText variant="label" tone="secondary" align="center">
             Clear quiz answers
           </AppText>
@@ -732,6 +944,9 @@ const styles = StyleSheet.create({
   },
   pressedSurface: {
     opacity: 0.82
+  },
+  disabledAction: {
+    opacity: 0.5
   },
   actionStack: {
     gap: theme.spacing.md

@@ -22,12 +22,16 @@ type OptionalContextCardProps = {
   eventType: LogEventType;
   onEventTypeChange: (eventType: LogEventType) => void;
   onSaveWithContext: () => void;
+  disabled?: boolean;
+  saving?: boolean;
 };
 
 export function OptionalContextCard({
   eventType,
   onEventTypeChange,
-  onSaveWithContext
+  onSaveWithContext,
+  disabled = false,
+  saving = false
 }: OptionalContextCardProps) {
   return (
     <AppCard style={styles.card}>
@@ -44,9 +48,17 @@ export function OptionalContextCard({
           options={eventTypeOptions}
           value={eventType}
           onChange={onEventTypeChange}
+          disabled={disabled}
         />
 
-        <AppButton variant="secondary" onPress={onSaveWithContext}>
+        <AppButton
+          testID="bloom.log.context.save"
+          variant="secondary"
+          loading={saving}
+          disabled={disabled}
+          accessibilityState={{ busy: saving, disabled }}
+          onPress={onSaveWithContext}
+        >
           Save with context
         </AppButton>
       </View>

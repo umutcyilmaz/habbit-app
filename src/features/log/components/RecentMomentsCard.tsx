@@ -23,7 +23,7 @@ export function RecentMomentsCard({ records }: RecentMomentsCardProps) {
       <View style={styles.stack}>
         <AppText variant="title">Recent moments</AppText>
         {recentRecords.length > 0 ? (
-          <View style={styles.rows}>
+          <View testID="bloom.log.recent-moments" style={styles.rows}>
             {recentRecords.map((record) => (
               <View key={record.id} style={styles.row}>
                 <View style={styles.iconCircle}>

@@ -7,9 +7,12 @@ import { AppButton } from "../../../shared/components/AppButton";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
+import { usePersistenceNavigationGuard } from "../../../shared/navigation/usePersistenceNavigationGuard";
 import { ProtectionFlowHeader } from "../components/ProtectionFlowHeader";
 import { ProtectionModeCard } from "../components/ProtectionModeCard";
+import { ProtectionPersistenceFeedback } from "../components/ProtectionPersistenceFeedback";
 import { ProtectionSetupSection } from "../components/ProtectionSetupSection";
+import { useProtectionPersistenceAction } from "../useProtectionPersistenceAction";
 
 export function NightProtectionSetupScreen() {
   const router = useRouter();
@@ -17,16 +20,36 @@ export function NightProtectionSetupScreen() {
   const protection = state.protection;
   const nightStartTime = protection.nightStartTime ?? "22:00";
   const nightEndTime = protection.nightEndTime ?? "08:00";
+  const {
+    activeAction,
+    isLocked,
+    isNavigationLocked,
+    message,
+    pendingRetryAction,
+    retry,
+    runAction
+  } = useProtectionPersistenceAction();
+  const allowPersistenceNavigation =
+    usePersistenceNavigationGuard(isNavigationLocked);
 
-  const startNightProtection = () => {
-    configureProtection({
-      preferredWindow: "night",
-      level: protection.level ?? "balanced",
-      adultContentPauseEnabled: true,
-      nightStartTime,
-      nightEndTime
-    });
-    router.replace(routes.protectActive);
+  const startNightProtection = async () => {
+    await runAction(
+      "configure-night",
+      () =>
+        configureProtection({
+          preferredWindow: "night",
+          level: protection.level ?? "balanced",
+          adultContentPauseEnabled: true,
+          nightStartTime,
+          nightEndTime
+        }),
+      {
+        onSuccess: () => {
+          allowPersistenceNavigation();
+          router.replace(routes.protectActive);
+        }
+      }
+    );
   };
 
   return (
@@ -35,6 +58,7 @@ export function NightProtectionSetupScreen() {
         title="Night Protection Setup"
         subtitle="Save an in-app pause plan for your preferred night window."
         onBackPress={() => router.replace(routes.protect)}
+        disabled={isNavigationLocked}
       />
 
       <View style={styles.stack}>
@@ -57,7 +81,30 @@ export function NightProtectionSetupScreen() {
           </View>
         </ProtectionSetupSection>
 
-        <AppButton onPress={startNightProtection}>Save night pause plan</AppButton>
+        <ProtectionPersistenceFeedback
+          message={message}
+          canRetry={pendingRetryAction === "configure-night"}
+          retrying={
+            activeAction === "configure-night" &&
+            pendingRetryAction === "configure-night"
+          }
+          onRetry={() => void retry()}
+        />
+
+        <AppButton
+          testID="bloom.protection.night.complete"
+          loading={
+            activeAction === "configure-night" && pendingRetryAction === null
+          }
+          disabled={isLocked}
+          accessibilityState={{
+            busy: activeAction === "configure-night",
+            disabled: isLocked
+          }}
+          onPress={() => void startNightProtection()}
+        >
+          Save night pause plan
+        </AppButton>
         <AppText variant="bodySmall" tone="secondary" align="center">
           You can adjust these settings anytime.
         </AppText>

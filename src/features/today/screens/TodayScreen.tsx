@@ -43,12 +43,13 @@ const todayPathSteps = [
 
 export function TodayScreen() {
   const router = useRouter();
-  const { state, todayKey, resetDay } = useBloomLocalState();
-  const nextAction = getNextBloomAction(state, todayKey);
+  const { durableState, durableTodayKey, durableResetDay } =
+    useBloomLocalState();
+  const nextAction = getNextBloomAction(durableState, durableTodayKey);
   const heroState = getTodayHeroState({
     action: nextAction,
-    resultTitle: state.activePlan.resultTitle,
-    resetDay
+    resultTitle: durableState.activePlan.resultTitle,
+    resetDay: durableResetDay
   });
 
   const [isFocused, setIsFocused] = useState(false);
@@ -67,7 +68,7 @@ export function TodayScreen() {
         <ScreenHeader title="Today" />
 
         <PlanHeader
-          planName={state.activePlan.planName}
+          planName={durableState.activePlan.planName}
           onSettingsPress={() => router.push(routes.settings)}
         />
 

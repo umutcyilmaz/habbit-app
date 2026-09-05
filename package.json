@@ -13,6 +13,7 @@
     "web": "expo start --web --port 8082",
     "typecheck": "tsc --noEmit",
     "verify:persistence": "node scripts/run-bloom-persistence-verification.cjs",
+    "verify:persistence-acknowledgement": "node scripts/run-bloom-persistence-acknowledgement-verification.cjs",
     "verify:quiz": "node scripts/run-bloom-quiz-verification.cjs",
     "verify:journey": "node scripts/run-bloom-journey-verification.cjs",
     "verify:protection-reset": "node scripts/run-bloom-protection-reset-verification.cjs",
@@ -22,6 +23,7 @@
     "verify:release-debug-guards": "node scripts/verify-bloom-release-debug-guards.cjs",
     "maestro:smoke": "maestro test .maestro/onboarding-smoke.yaml",
     "maestro:onboarding": "maestro test .maestro/onboarding-general.yaml",
+    "maestro:check-in": "maestro test .maestro/check-in-save.yaml",
     "maestro:protection": "maestro test .maestro/protection-setup.yaml",
     "maestro:pause": "maestro test .maestro/pause-entry.yaml",
     "maestro:arousal": "maestro test .maestro/arousal-entry.yaml",
@@ -30,7 +32,7 @@
     "maestro:arousal-complete": "maestro test .maestro/arousal-complete.yaml",
     "maestro:core": "maestro test .maestro/protection-setup.yaml .maestro/pause-entry.yaml .maestro/arousal-entry.yaml",
     "maestro:terminal": "maestro test .maestro/pause-complete.yaml .maestro/reset-complete.yaml .maestro/arousal-complete.yaml",
-    "maestro:all": "maestro test .maestro/onboarding-smoke.yaml .maestro/onboarding-general.yaml .maestro/protection-setup.yaml .maestro/pause-entry.yaml .maestro/arousal-entry.yaml .maestro/pause-complete.yaml .maestro/reset-complete.yaml .maestro/arousal-complete.yaml"
+    "maestro:all": "maestro test .maestro/onboarding-smoke.yaml .maestro/onboarding-general.yaml .maestro/check-in-save.yaml .maestro/protection-setup.yaml .maestro/pause-entry.yaml .maestro/arousal-entry.yaml .maestro/pause-complete.yaml .maestro/reset-complete.yaml .maestro/arousal-complete.yaml"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",

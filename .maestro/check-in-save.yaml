@@ -1,0 +1,73 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Bloom Check-In persistence acknowledgement
+---
+- runFlow:
+    file: subflows/open-bloom.yaml
+    env:
+      CLEAR_STATE: "true"
+      READY_ID: "bloom.onboarding.start"
+
+- runFlow:
+    file: subflows/start-debug-profile.yaml
+    env:
+      PROFILE_ID: "bloom.debug.profile.general"
+      RESULT_TITLE: "A simple starting point"
+      PRIMARY_ACTION: "Start a Quick Check-In"
+
+- scrollUntilVisible:
+    element:
+      text: "^Go to Today$"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    text: "^Go to Today$"
+- extendedWaitUntil:
+    visible:
+      id: "bloom.today.primary-action"
+    timeout: 30000
+
+- tapOn:
+    id: "bloom.tab.log"
+- scrollUntilVisible:
+    element:
+      id: "bloom.log.check-in.save"
+    direction: DOWN
+    timeout: 30000
+
+- tapOn:
+    id: "bloom.log.check-in.save"
+- extendedWaitUntil:
+    visible: "Check-in saved"
+    timeout: 30000
+- assertVisible: "Your recent activity now includes this moment."
+- scrollUntilVisible:
+    element:
+      id: "bloom.log.recent-moments"
+    direction: DOWN
+    timeout: 20000
+- assertVisible: "Evening check-in"
+- assertVisible:
+    id: "bloom.log.recent-moments"
+
+- runFlow:
+    file: subflows/open-bloom.yaml
+    env:
+      CLEAR_STATE: "false"
+      READY_ID: "bloom.today.primary-action"
+
+- tapOn:
+    id: "bloom.tab.log"
+- extendedWaitUntil:
+    visible:
+      id: "bloom.log.check-in.save"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: "bloom.log.recent-moments"
+    direction: DOWN
+    timeout: 20000
+- assertVisible: "Evening check-in"
+- assertVisible:
+    id: "bloom.log.recent-moments"
+- assertVisible:
+    text: ".*Neutral.*"

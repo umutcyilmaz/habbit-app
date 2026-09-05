@@ -7,13 +7,15 @@ import { theme } from "../../../shared/design-system/theme";
 type PauseFlowHeaderProps = {
   title: string;
   subtitle?: string;
-  onBackPress?: () => void;
+  disabled?: boolean;
+  onBackPress?: (() => void) | undefined;
   onClosePress: () => void;
 };
 
 export function PauseFlowHeader({
   title,
   subtitle,
+  disabled = false,
   onBackPress,
   onClosePress
 }: PauseFlowHeaderProps) {
@@ -23,6 +25,8 @@ export function PauseFlowHeader({
         {onBackPress ? (
           <AppIconButton
             accessibilityLabel="Go back"
+            accessibilityState={{ disabled }}
+            disabled={disabled}
             icon={<AppText variant="title">‹</AppText>}
             onPress={onBackPress}
           />
@@ -31,6 +35,8 @@ export function PauseFlowHeader({
         )}
         <AppIconButton
           accessibilityLabel="Close pause flow"
+          accessibilityState={{ disabled }}
+          disabled={disabled}
           icon={<AppText variant="title">×</AppText>}
           onPress={onClosePress}
         />

@@ -13,13 +13,15 @@ type SelectableChipGroupProps<T extends string> = {
   options: readonly SelectableChipOption<T>[];
   value: T;
   onChange: (value: T) => void;
+  disabled?: boolean;
 };
 
 export function SelectableChipGroup<T extends string>({
   title,
   options,
   value,
-  onChange
+  onChange,
+  disabled = false
 }: SelectableChipGroupProps<T>) {
   return (
     <View style={styles.group}>
@@ -32,12 +34,14 @@ export function SelectableChipGroup<T extends string>({
             <Pressable
               key={option.value}
               accessibilityRole="button"
-              accessibilityState={{ selected: isSelected }}
+              accessibilityState={{ disabled, selected: isSelected }}
+              disabled={disabled}
               onPress={() => onChange(option.value)}
               style={({ pressed }) => [
                 styles.chip,
                 isSelected ? styles.chipSelected : undefined,
-                pressed ? styles.chipPressed : undefined
+                pressed && !disabled ? styles.chipPressed : undefined,
+                disabled ? styles.chipDisabled : undefined
               ]}
             >
               <AppText variant="label" tone="primary" numberOfLines={1}>
@@ -77,5 +81,8 @@ const styles = StyleSheet.create({
   },
   chipPressed: {
     backgroundColor: theme.colors.surfaceMuted
+  },
+  chipDisabled: {
+    opacity: 0.55
   }
 });
