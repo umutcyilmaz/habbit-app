@@ -50,8 +50,20 @@ historical facts. They are neither silently recalculated nor reconciled with raw
 answers during save/load validation. Raw answer key order, selected values/order,
 and explicit unknowns are retained in detached copies for future explicit
 re-scoring. Missing, extra, or malformed facts are rejected rather than dropped.
-The state mutation stores only the recommendation result, without starting any
+The save mutation stores only the recommendation result, without starting any
 feature, changing `activePlan`, or navigating.
+
+Phase 1E adds separate explicit acceptance through
+`acceptProductOnboardingRecommendationState`. The stored result is unchanged;
+`planAcceptance` records only the accepted recommendation and supplied action
+time. Acceptance enables Tracking, activates Content-Free immediately, prepares
+Reset in `baseline_pending`, or prepares Reset plus activates Content-Free.
+Reset has not started and Tracking stays disabled for its onboarding strategy.
+The transition is atomic, preserves history, rejects conflicting active state,
+and retains the original marker on retries. Saving another quiz result cannot
+erase an accepted action; a retake lifecycle is deferred. See
+[the data model](../../../docs/DATA_MODEL.md#explicit-acceptance) for exact inputs
+and preconditions. No scorer, screen, provider, or routing integration is added.
 
 ## Questions and signals
 

@@ -7,6 +7,10 @@ import type {
 } from "../domain/models";
 import type { BloomOnboardingQuizResult } from "../domain/onboarding/types";
 import { validateBloomOnboardingResult } from "../domain/onboarding/validation";
+export {
+  acceptProductOnboardingRecommendationState,
+  type ProductOnboardingAcceptanceInput
+} from "./bloomProductOnboardingTransitions";
 import {
   isValidBloomDateKey,
   isValidBloomIsoTimestamp,
@@ -653,6 +657,11 @@ export function saveProductOnboardingResultState(
   state: BloomLocalState,
   result: BloomOnboardingQuizResult
 ): BloomLocalState {
+  // Retakes after acceptance need a separate lifecycle. A save must not erase
+  // the historical acceptance or make the initial transition repeatable.
+  if (state.productOnboarding.status === "completed" && state.productOnboarding.planAcceptance !== null) {
+    return state;
+  }
   let validatedResult: BloomOnboardingQuizResult;
   try {
     validatedResult = validateBloomOnboardingResult(result);
@@ -663,7 +672,7 @@ export function saveProductOnboardingResultState(
 
   return {
     ...state,
-    productOnboarding: { status: "completed", result: validatedResult }
+    productOnboarding: { status: "completed", result: validatedResult, planAcceptance: null }
   };
 }
 

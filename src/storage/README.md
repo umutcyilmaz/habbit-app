@@ -16,20 +16,20 @@ AsyncStorage is durable local storage. It does not provide application-level enc
 The canonical key is:
 
 ```text
-bloom.localState.v4
+bloom.localState.v5
 ```
 
 Its JSON value is a versioned envelope:
 
 ```ts
-type PersistedBloomEnvelopeV4 = {
-  version: 4;
+type PersistedBloomEnvelopeV5 = {
+  version: 5;
   savedAt: string;
   state: unknown;
 };
 ```
 
-Payloads are parsed as `unknown`, validated section by section, and normalized into `BloomLocalState`. Existing slices retain their normalization/default and unknown-field rules. Current v4 payloads must include the four Phase 1B feature slices plus `productOnboarding`; malformed new records reject the load without silently removing user facts. Product onboarding uses a closed versioned schema and rejects unknown fields. Important enum, date, array, record, Boolean, and finite-number fields are validated before use.
+Payloads are parsed as `unknown`, validated section by section, and normalized into `BloomLocalState`. Existing slices retain their normalization/default and unknown-field rules. Current v5 payloads must include the four Phase 1B feature slices plus `productOnboarding`; completed product onboarding requires `planAcceptance`, either null or a valid historical action. Malformed new records reject the load without silently removing user facts. Product onboarding uses a closed versioned schema and rejects unknown fields. Important enum, date, array, record, Boolean, and finite-number fields are validated before use.
 
 Bloom date keys must be real Gregorian dates in exact `YYYY-MM-DD` form. Persisted timestamps, including envelope `savedAt`, must exactly match the canonical form produced by `Date.prototype.toISOString()`:
 
@@ -53,11 +53,15 @@ start is valid and ten valid unique dates remain.
 
 ## Transitional Product State
 
-`masturbationTracking`, `contentFree`, `resetJourney`, and `urgeControl` are persisted alongside all legacy state. Tracking defaults to disabled with no current session/history; Content-Free is inactive with zero best streak and no history; Reset is inactive for 15 days with zero progress, no identity, attempts, violations, baseline, or assessment; Urge Control has no active event or records. These slices have no new feature actions or UI yet.
+`masturbationTracking`, `contentFree`, `resetJourney`, and `urgeControl` are persisted alongside all legacy state. Tracking defaults to disabled with no current session/history; Content-Free is inactive with zero best streak and no history; Reset is inactive for 15 days with zero progress, no identity, attempts, violations, baseline, or assessment; Urge Control has no active event or records. Explicit onboarding acceptance can prepare the starting product state; independent feature mutations and UI remain deferred.
 
 `bloomProductStateSchema.ts` validates the new unions, canonical timestamps, finite numeric ranges, explicit enums/Booleans, source identities, and record/history relationships. The entire payload is preserved as corrupt if a new record is malformed. It does not recompute streaks, infer medical facts, prove elapsed Reset days, or implement feature transitions.
 
-`productOnboarding` defaults to `{ status: "notCompleted", result: null }`. Completed state contains the full versioned result, including raw answers, derived dimensions/recommendation/confidence/eligibility/safety, completion timestamp, and internal evidence. No timestamp is duplicated outside the result. The pure save mutation changes only this slice and returns unchanged state for invalid input; it does not accept or activate a plan or change legacy onboarding.
+`productOnboarding` defaults to `{ status: "notCompleted", result: null }`. Completed state contains the full versioned result and a null-or-recorded `planAcceptance`. The result retains raw answers, derived dimensions/recommendation/confidence/eligibility/safety, completion timestamp, and internal evidence. The separate acceptance action owns only `acceptedAt` and the accepted recommendation. The pure save mutation records a result with null acceptance, changes no feature or legacy state, and refuses invalid input or overwriting an accepted result.
+
+`acceptProductOnboardingRecommendationState` is a separate pure transition using supplied time and only the IDs required by the stored recommendation. It records acceptance and atomically enables Tracking, activates Content-Free, prepares Reset in `baseline_pending`, or prepares Reset plus activates Content-Free. Reset has no start time, baseline, or attempt yet; Tracking remains disabled for non-tracking recommendations. Conflicts are exact no-ops; histories, best values, and unrelated systems are preserved. Retries cannot replace the original marker or identities. [DATA_MODEL.md](../../docs/DATA_MODEL.md#explicit-acceptance) defines the initial-state preconditions. The transition itself performs no storage write; its returned snapshot uses the existing persistence coordinator when saved.
+
+Acceptance validation requires an exact marker, canonical `acceptedAt` at or after quiz completion, and an accepted recommendation equal to the stored result. It rejects mismatches without rescoring or rewriting them. Current feature state is not used to infer or invalidate a historical acceptance.
 
 `bloomOnboardingSchema.ts` delegates result validation to the pure onboarding structural validator. Known versions, exact fields/question IDs, answer selections, enums, canonical timestamps, and finite score/count ranges are checked without invoking the scorer. Historical derived results are retained as stored facts, including results that differ from today's scoring. Raw answer key/selection order is retained for explicit future re-scoring. Unknown result versions or malformed records follow the corruption strategy instead of being silently repaired. No provider action or screen integration is added.
 
@@ -131,17 +135,18 @@ history redirects to the Arousal Control overview.
 
 ## Legacy Migration
 
-The loader checks `bloom.localState.v4` first, followed by these migration sources in order:
+The loader checks `bloom.localState.v5` first, followed by these migration sources in order:
 
 ```text
+bloom.localState.v4
 bloom.localState.v3
 bloom.localState.v2
 bloom.localState.v1
 ```
 
-Valid v3 envelopes preserve all twelve existing slices and add only the safe product onboarding default. Valid v2 envelopes and previously supported raw legacy payloads retain their existing legacy normalization and receive defaults for the four Phase 1B slices plus product onboarding. No legacy quiz, plan, feature record, or similarly named field is reinterpreted as a new onboarding result. Migration dispatch follows the envelope version rather than its key location.
+Valid v4 envelopes preserve every existing slice/result and add `planAcceptance: null` to completed onboarding; not-completed state stays unchanged. No acceptance is inferred from enabled Tracking, active Content-Free, or Reset state. Only a later-looking `planAcceptance` property is ignored when validating the old v4 lifecycle; other malformed fields still fail. Valid v3 envelopes preserve all twelve existing slices and add the safe product onboarding default. V2 envelopes and previously supported raw legacy payloads retain legacy normalization and receive safe product defaults. No older feature or quiz data is reinterpreted. Migration dispatch follows the envelope version rather than its key location.
 
-Every migration writes directly to v4 without intermediate historical writes. The source key is removed only after that write succeeds. If the write fails, the source payload stays in place and hydration returns usable validated state with a persistence warning and `needsPersist: true`. Existing serialization, acknowledgement, and generation protections remain in force.
+Every migration writes directly to v5 without intermediate historical writes. The source key is removed only after that write succeeds. If the write fails, the source payload stays in place and hydration returns usable validated state with a persistence warning and `needsPersist: true`. Existing serialization, acknowledgement, and generation protections remain in force.
 
 ## Corrupt and Future Payloads
 
@@ -213,6 +218,7 @@ post-reset accepted state.
 Deletion enumerates only Bloom-owned keys and removes:
 
 ```text
+bloom.localState.v5
 bloom.localState.v4
 bloom.localState.v3
 bloom.localState.v2

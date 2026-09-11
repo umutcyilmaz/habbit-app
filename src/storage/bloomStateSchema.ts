@@ -69,7 +69,7 @@ export {
   isValidBloomTime
 } from "./bloomValueValidation";
 
-export const BLOOM_PERSISTENCE_VERSION = 4 as const;
+export const BLOOM_PERSISTENCE_VERSION = 5 as const;
 
 export type PersistedBloomEnvelopeV2 = {
   version: 2;
@@ -84,6 +84,12 @@ export type PersistedBloomEnvelopeV3 = {
 };
 
 export type PersistedBloomEnvelopeV4 = {
+  version: 4;
+  savedAt: string;
+  state: unknown;
+};
+
+export type PersistedBloomEnvelopeV5 = {
   version: typeof BLOOM_PERSISTENCE_VERSION;
   savedAt: string;
   state: unknown;
@@ -96,11 +102,11 @@ export type ParsedPersistedPayload =
 export type PersistedEnvelopeReadResult =
   | {
       status: "current";
-      envelope: PersistedBloomEnvelopeV4;
+      envelope: PersistedBloomEnvelopeV5;
     }
   | {
       status: "legacy";
-      sourceVersion: 2 | 3 | null;
+      sourceVersion: 2 | 3 | 4 | null;
       state: unknown;
     }
   | {
@@ -194,6 +200,7 @@ export function readPersistedEnvelope(value: unknown): PersistedEnvelopeReadResu
 
   if (
     value.version !== BLOOM_PERSISTENCE_VERSION &&
+    value.version !== 4 &&
     value.version !== 3 &&
     value.version !== 2
   ) {
@@ -210,7 +217,7 @@ export function readPersistedEnvelope(value: unknown): PersistedEnvelopeReadResu
     };
   }
 
-  if (value.version === 2 || value.version === 3) {
+  if (value.version === 2 || value.version === 3 || value.version === 4) {
     return {
       status: "legacy",
       sourceVersion: value.version,
@@ -230,7 +237,7 @@ export function readPersistedEnvelope(value: unknown): PersistedEnvelopeReadResu
 
 export function validateAndNormalizeBloomState(
   value: unknown,
-  mode: "current" | "v3" | "legacy" = "current"
+  mode: "current" | "v4" | "v3" | "legacy" = "current"
 ): BloomStateValidationResult {
   try {
     const record = requireRecord(value, "state");
@@ -266,11 +273,11 @@ export function validateAndNormalizeBloomState(
         mode === "legacy"
           ? defaults.urgeControl
           : normalizeUrgeControl(record.urgeControl),
-      // A new onboarding result cannot be inferred or imported from an older
-      // schema, even if the old payload contains a similarly named property.
+      // V4 owns onboarding results but never acceptance. V3 and older schemas
+      // cannot supply either fact, even if similarly named properties exist.
       productOnboarding:
-        mode === "current"
-          ? normalizeProductOnboarding(record.productOnboarding)
+        mode === "current" || mode === "v4"
+          ? normalizeProductOnboarding(record.productOnboarding, mode)
           : defaults.productOnboarding
     };
 

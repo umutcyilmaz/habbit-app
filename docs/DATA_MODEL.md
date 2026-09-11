@@ -10,6 +10,8 @@ Phase 1C adds a pure onboarding engine and standalone answer/result types under 
 
 Phase 1D adds `ProductOnboardingState` to `BloomLocalState` and persistence v4. The complete result is saved independently of plan activation; legacy onboarding and its screens remain in use.
 
+Phase 1E adds an explicit, idempotent acceptance transition and persists its historical marker in v5. It prepares the starting product state without starting the Reset restriction or changing legacy flows.
+
 The TypeScript files are the field-level source of truth. Lifecycle unions are not proof that stored input is valid. `bloomProductStateSchema.ts` explicitly validates new persisted records through the existing corruption boundary. Future feature actions must also validate their mutation and route inputs.
 
 The models reuse `UUID` and `ISODateString` from the existing `shared.ts`; both are string aliases, not format validators. [`BehaviorEventSource.ts`](../src/domain/models/BehaviorEventSource.ts) supplies a small shared event-origin union: `{ kind: "manual", logActionId }` or `{ kind: "masturbationSession", sessionId }`. The same origin follows an event across affected systems and retries.
@@ -186,14 +188,42 @@ The [domain guide](../src/domain/onboarding/README.md) specifies provisional wei
 Source: [`ProductOnboardingState.ts`](../src/domain/models/ProductOnboardingState.ts).
 
 ```ts
+type ProductPlanAcceptance = {
+  acceptedAt: ISODateString;
+  recommendation: OnboardingRecommendation;
+};
+
 type ProductOnboardingState =
   | { status: "notCompleted"; result: null }
-  | { status: "completed"; result: BloomOnboardingQuizResult };
+  | {
+      status: "completed";
+      result: BloomOnboardingQuizResult;
+      planAcceptance: ProductPlanAcceptance | null;
+    };
 ```
 
-The fresh default is not completed and has no timestamp or ID. Completed state uses only `result.completedAt`, avoiding a duplicate clock. `saveProductOnboardingResultState` validates and copies the full result, then replaces only this slice. Invalid results return the original state, following existing pure mutation conventions. Legacy onboarding, `activePlan`, Protect, and all feature slices keep their original references. No plan is activated and no new provider action is exposed.
+The fresh default is not completed and has no timestamp or ID. Completed state uses only `result.completedAt` for quiz completion. `saveProductOnboardingResultState` validates and copies the full result with `planAcceptance: null`, replacing only this slice. Invalid results return the original state, following existing pure mutation conventions. Saving never activates a plan or changes feature slices. Once accepted, subsequent saves are also no-ops to protect the historical action; retakes require a separate future lifecycle. No provider action is exposed.
 
 The structural validator in [`validation.ts`](../src/domain/onboarding/validation.ts) accepts the known quiz/scoring versions, exact question/field names, valid raw selections, enums, timestamps, and bounded numeric evidence. Counts are integral and consistent with their declared totals; repeated confidence/safety fields must agree. It does not compare raw answers to derived scores, dimensions, eligibility, or recommendations, and does not call the scorer. Valid historical derived values survive unchanged even if today's algorithm would differ. Raw answers retain their key and selection order for explicit future re-scoring. Malformed or unknown-version results reject the load through the existing corruption boundary; fields are not silently dropped or recomputed.
+
+### Explicit acceptance
+
+[`acceptProductOnboardingRecommendationState`](../src/storage/bloomProductOnboardingTransitions.ts), also exported from `bloomState.ts`, accepts `{ acceptedAt, contentFreeActivationId?, resetJourneyId? }`. It uses only the stored recommendation. Caller-supplied recommendation fields are rejected. IDs are required only for the systems being prepared; no time or identity is generated internally. `acceptedAt` must be canonical ISO and at or after quiz completion.
+
+| Stored recommendation | IDs required | Starting state |
+| --- | --- | --- |
+| `masturbation_tracking` | None | Enable Tracking without creating a session. |
+| `content_free` | Content-Free activation ID | Activate Content-Free immediately; Tracking stays disabled. |
+| `reset` | Reset journey ID | Reset enters `baseline_pending`; Tracking stays disabled. |
+| `reset_and_content_free` | Both IDs | Reset enters `baseline_pending` and Content-Free activates immediately; Tracking stays disabled. |
+
+All paths require a completed, valid result with null acceptance, an inactive Reset journey, and no unfinished masturbation session. Non-tracking recommendations additionally require Tracking already disabled, preventing acceptance from turning off an existing system. Tracking acceptance may retain an already-enabled setting. Content-Free must be inactive only when this action activates it; otherwise its existing state is untouched. New activation IDs cannot repeat a past activation ID, and activation time cannot overlap past activation boundaries. Histories, best streak/progress, and unchanged slice references are preserved.
+
+Reset preparation adds only its journey ID and `baseline_pending` status to the preserved 15-day history. It creates no `startedAt`, baseline, attempt, completion, or assessment. The restriction begins only after baseline completion in a later phase; enabling Tracking after Reset is also deferred. Content-Free starts its activation and streak at `acceptedAt`, without a violation or masturbation restriction. Urge Control and every legacy slice are unchanged.
+
+The transition returns one atomic snapshot containing the product changes and `{ acceptedAt, recommendation }` acceptance. Invalid inputs or conflicting state return the original state. Repeated acceptance returns the original accepted state before inspecting new inputs, preventing duplicate identities or replacement timestamps. The saved scoring result remains the same historical object and is never rescored.
+
+`bloomOnboardingSchema.ts` requires acceptance to be null or an exact marker with valid time and a recommendation equal to the stored result. Mismatches are rejected, not repaired. Acceptance validation does not require current feature state to still match the initial plan: the marker records a past user action, not a second current-plan authority.
 
 ## Compatibility With The Running Application
 
@@ -215,7 +245,7 @@ urgeControl
 productOnboarding
 ```
 
-[`bloomStateSchema.ts`](../src/storage/bloomStateSchema.ts) now validates version 4. The loader prefers `bloom.localState.v4`, then v3, v2, and v1. A valid v3 envelope preserves all existing legacy and Phase 1B slices through their existing validation rules and adds only the not-completed product onboarding default. Valid v2 envelopes and supported raw legacy payloads preserve the legacy slices and receive safe defaults for all five product slices. No old payload seeds a product onboarding result, even if it contains a similarly named field. Each migration writes directly to v4, removing its source key only after the write succeeds. Unknown future versions and corrupt data retain the existing backup/error behavior. Delete-all covers v4, v3, v2, v1, and Bloom corrupt backups.
+[`bloomStateSchema.ts`](../src/storage/bloomStateSchema.ts) now validates version 5. The loader prefers `bloom.localState.v5`, then v4, v3, v2, and v1. V4 preserves all existing slices and results, adding only `planAcceptance: null` to completed onboarding; not-completed state stays unchanged. Acceptance is never inferred from feature state or imported from a later-looking v4 field. V3 preserves legacy and Phase 1B slices and adds the not-completed product onboarding default. V2 and supported raw legacy payloads retain the legacy slices and receive safe defaults for all five product slices. Each migration writes directly to v5, removing its source key only after the write succeeds. Corrupt/future payload preservation and lifecycle guarantees remain intact. Delete-all covers v1–v5 and Bloom corrupt backups.
 
 Fresh Content-Free is inactive with `bestStreakSeconds: 0`, empty `pastActivations`, and empty `violations`. Fresh Reset is inactive with `durationDays: 15`, `bestCompletedDays: 0`, empty attempts/violations, and no ID, baseline, or assessment. No legacy Reset, Pause, Arousal, Protection, or Check-In record seeds any new entity.
 
@@ -233,7 +263,7 @@ Known differences requiring later explicit work:
 
 ## Runtime Validation and Deferred Behavior
 
-The v4 storage boundary checks record shapes, discriminated lifecycle fields, canonical timestamps, numeric ranges, identity uniqueness, and local history/reference consistency. Invalid new records reject the load and preserve the source payload and backup; they are not silently filtered or converted into different user facts. Existing legacy normalization remains unchanged. Future feature adoption must maintain these invariants:
+The v5 storage boundary checks record shapes, discriminated lifecycle fields, canonical timestamps, numeric ranges, identity uniqueness, and local history/reference consistency. Invalid new records reject the load and preserve the source payload and backup; they are not silently filtered or converted into different user facts. Existing legacy normalization remains unchanged. Future feature adoption must maintain these invariants:
 
 - Stable nonempty identities and valid timestamps with consistent chronology.
 - Finite, nonnegative durations and intervals; progress within the declared day range, ratios from 0 through 1, average erection quality from 1 through 10, and integer session ratings from 1 through 10.

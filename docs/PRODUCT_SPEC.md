@@ -10,6 +10,8 @@ Phase 1C adds a separate pure onboarding quiz/scoring engine under `src/domain/o
 
 Phase 1D persists that complete result in `productOnboarding` alongside legacy onboarding, using persistence v4. Saving a recommendation does not accept or activate it. No existing screen or provider action uses the new save mutation yet.
 
+Phase 1E adds explicit recommendation acceptance as a pure state transition, with a persisted v5 acceptance marker. It remains separate from saving the quiz result and is not connected to screens, providers, or routing.
+
 The Expo Router architecture and local-first approach remain technical constraints. Older inventories in [ARCHITECTURE.md](ARCHITECTURE.md) and product references in [DECISIONS.md](DECISIONS.md) describe earlier stages; they do not require a new flow to depend on Protect. Existing navigation remains unchanged in this phase.
 
 ## Product Summary
@@ -146,9 +148,13 @@ The recommendation identifiers are `masturbation_tracking`, `content_free`, `res
 
 Reset eligibility requires **both** high erection-response concern and high stimulation pattern. Content dysregulation uses Q2–Q6, with stronger weights for Q4/Q6 and at least two strong signals for high. Q6 never-tried is unknown, not zero. Q7/Q8/Q11 inform response concern; Q10 dependency outweighs Q9 technique choices. Techniques alone never trigger Reset. Q1 frequency is context only; Q12 safety changes reported context only. Neither affects recommendation confidence or Reset eligibility. These thresholds are product heuristics, not a diagnosis, problem score, medical explanation, or validated assessment. No route or feature action is invoked.
 
-`productOnboarding` starts as `{ status: "notCompleted", result: null }`. A completed record retains raw answers, versions, all derived fields, internal evidence, and the result's completion timestamp. Stored derived values are historical facts: loading validates their structure without running today's scorer. Future re-scoring must be explicit and use the retained raw answers.
+`productOnboarding` starts as `{ status: "notCompleted", result: null }`. A completed record retains raw answers, versions, all derived fields, internal evidence, and the result's completion timestamp, with `planAcceptance: null` until explicitly accepted. Stored derived values are historical facts: loading validates their structure without running today's scorer. Future re-scoring must be explicit and use the retained raw answers.
 
-Saving this record changes only `productOnboarding`. It does not change legacy onboarding or `activePlan`, enable Masturbation Tracking, activate Content-Free, start Reset, create a baseline or activation, or alter Urge Control or Protect. Plan acceptance remains a separate future user action.
+Saving this record changes only `productOnboarding`. It does not change legacy onboarding or `activePlan`, enable Masturbation Tracking, activate Content-Free, start Reset, create a baseline or activation, or alter Urge Control or Protect. Once accepted, saves cannot overwrite the result and erase its acceptance; retakes remain future work.
+
+Explicit acceptance records the stored recommendation and caller-supplied `acceptedAt`, then prepares its starting state. Tracking acceptance enables Tracking without creating a session. Content-Free acceptance activates Content-Free immediately with a supplied activation ID and starts its streak. Reset acceptance creates a supplied journey ID in `baseline_pending`, with no start time, baseline, or attempt: the 15-day restriction has not begun. Combined acceptance prepares Reset and activates Content-Free atomically. Tracking remains disabled for Content-Free and Reset starting strategies; a later post-Reset transition will enable it.
+
+Initial acceptance requires an inactive Reset and no unfinished session; non-tracking recommendations also require disabled Tracking. Active Content-Free cannot be replaced by a new activation. Existing histories and best values are retained, and unrelated active Content-Free remains unchanged. Invalid input or conflicting state is a no-op. Repeating acceptance retains the original time and identities. Full preconditions are specified in [DATA_MODEL.md](DATA_MODEL.md#explicit-acceptance). No legacy flow, UI, or route is changed.
 
 ## Compatibility Gaps Intentionally Retained
 
@@ -159,10 +165,10 @@ Saving this record changes only `productOnboarding`. It does not change legacy o
 | Protection-dependent journey decisions | Protect is deferred and is not required by new flows. Existing decisions still run until routing is deliberately changed. |
 | Separate Pause and Arousal Control drafts/logs | Normal Masturbation Sessions with optional timed pauses, plus the separate acute Urge Control tool. No automatic reinterpretation of legacy records. |
 | Existing Arousal flow can start without a Reset restriction | The future Masturbation Session start guard applies during active Reset. No existing start action changes in Phase 1B. |
-| Content-Free state is persisted without feature actions | Add independent Content-Free behavior and deduplication in a later phase. |
-| Transitional `BloomLocalState` and version-4 persistence | All legacy slices remain alongside the four feature slices and `productOnboarding`. v3 migration preserves existing feature records and initializes onboarding as not completed; v2/raw migration also starts feature slices inactive/empty. No legacy quiz is reinterpreted. |
+| Content-Free supports initial activation through explicit plan acceptance | Violation, correction, and streak calculations remain deferred. |
+| Transitional `BloomLocalState` and version-5 persistence | V4 results gain null acceptance without inference from feature state. Older migrations remain supported, preserving their existing facts and safe defaults. |
 | Five current tabs and `/reset/ten-day`, `/pause`, and Arousal routes | Keep Expo Router and all working routes now; new navigation is outside Phase 1B. |
 
 ## Out of Scope for the Transitional Foundation
 
-No UI redesign, Figma implementation, new screens, deleted flows, Protect changes, legacy onboarding replacement, navigation changes, plan activation, tracking-based Reset recommendations, backend, authentication, analytics, AI, or speculative framework is part of Phase 1D. Further phases require a separate task.
+No UI redesign, Figma implementation, new screens, deleted flows, Protect changes, legacy onboarding replacement, navigation changes, Reset baseline completion/restriction start, session or violation mutations, post-Reset Tracking enablement, tracking-based Reset recommendations, backend, authentication, analytics, AI, or speculative framework is part of Phase 1E. Further phases require a separate task.
