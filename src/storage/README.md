@@ -16,20 +16,20 @@ AsyncStorage is durable local storage. It does not provide application-level enc
 The canonical key is:
 
 ```text
-bloom.localState.v3
+bloom.localState.v4
 ```
 
 Its JSON value is a versioned envelope:
 
 ```ts
-type PersistedBloomEnvelopeV3 = {
-  version: 3;
+type PersistedBloomEnvelopeV4 = {
+  version: 4;
   savedAt: string;
   state: unknown;
 };
 ```
 
-Payloads are parsed as `unknown`, validated section by section, and normalized into `BloomLocalState`. Unknown object fields are ignored. Existing legacy fields retain their normalization/default rules. Current v3 payloads must include all four new slices; malformed new records reject the load without silently removing user facts. Important enum, date, array, record, Boolean, and finite-number fields are validated before use.
+Payloads are parsed as `unknown`, validated section by section, and normalized into `BloomLocalState`. Existing slices retain their normalization/default and unknown-field rules. Current v4 payloads must include the four Phase 1B feature slices plus `productOnboarding`; malformed new records reject the load without silently removing user facts. Product onboarding uses a closed versioned schema and rejects unknown fields. Important enum, date, array, record, Boolean, and finite-number fields are validated before use.
 
 Bloom date keys must be real Gregorian dates in exact `YYYY-MM-DD` form. Persisted timestamps, including envelope `savedAt`, must exactly match the canonical form produced by `Date.prototype.toISOString()`:
 
@@ -39,7 +39,7 @@ YYYY-MM-DDTHH:mm:ss.sssZ
 
 Timezone offsets, date-only timestamp values, malformed milliseconds, and normalized impossible dates are rejected.
 
-When a valid quiz result exists, `activePlan` is derived from that result during hydration so separately persisted plan data cannot conflict with the result.
+When a valid legacy quiz result exists in `onboarding`, `activePlan` is derived from that legacy result during hydration so separately persisted plan data cannot conflict with it. A new `productOnboarding` result never changes `activePlan` or activates a recommendation.
 
 Protection uses one canonical persisted status: `off`, `active`, or `paused`.
 Legacy `isEnabled: true` normalizes to `active`; `false` normalizes to `off`.
@@ -56,6 +56,10 @@ start is valid and ten valid unique dates remain.
 `masturbationTracking`, `contentFree`, `resetJourney`, and `urgeControl` are persisted alongside all legacy state. Tracking defaults to disabled with no current session/history; Content-Free is inactive with zero best streak and no history; Reset is inactive for 15 days with zero progress, no identity, attempts, violations, baseline, or assessment; Urge Control has no active event or records. These slices have no new feature actions or UI yet.
 
 `bloomProductStateSchema.ts` validates the new unions, canonical timestamps, finite numeric ranges, explicit enums/Booleans, source identities, and record/history relationships. The entire payload is preserved as corrupt if a new record is malformed. It does not recompute streaks, infer medical facts, prove elapsed Reset days, or implement feature transitions.
+
+`productOnboarding` defaults to `{ status: "notCompleted", result: null }`. Completed state contains the full versioned result, including raw answers, derived dimensions/recommendation/confidence/eligibility/safety, completion timestamp, and internal evidence. No timestamp is duplicated outside the result. The pure save mutation changes only this slice and returns unchanged state for invalid input; it does not accept or activate a plan or change legacy onboarding.
+
+`bloomOnboardingSchema.ts` delegates result validation to the pure onboarding structural validator. Known versions, exact fields/question IDs, answer selections, enums, canonical timestamps, and finite score/count ranges are checked without invoking the scorer. Historical derived results are retained as stored facts, including results that differ from today's scoring. Raw answer key/selection order is retained for explicit future re-scoring. Unknown result versions or malformed records follow the corruption strategy instead of being silently repaired. No provider action or screen integration is added.
 
 ## Canonical Guided-Flow Records
 
@@ -127,14 +131,17 @@ history redirects to the Arousal Control overview.
 
 ## Legacy Migration
 
-The loader checks `bloom.localState.v3` first, followed by these migration sources in order:
+The loader checks `bloom.localState.v4` first, followed by these migration sources in order:
 
 ```text
+bloom.localState.v3
 bloom.localState.v2
 bloom.localState.v1
 ```
 
-Valid v2 envelopes and previously supported raw legacy payloads are normalized using the legacy rules and written as version 3. Their four new slices always receive fresh defaults; old product state is never reinterpreted as new activity, even if similarly named new fields are present. The legacy key is removed only after that write succeeds. If the write fails, the legacy payload stays in place and hydration returns the valid in-memory state with a persistence warning so a later write can retry safely.
+Valid v3 envelopes preserve all twelve existing slices and add only the safe product onboarding default. Valid v2 envelopes and previously supported raw legacy payloads retain their existing legacy normalization and receive defaults for the four Phase 1B slices plus product onboarding. No legacy quiz, plan, feature record, or similarly named field is reinterpreted as a new onboarding result. Migration dispatch follows the envelope version rather than its key location.
+
+Every migration writes directly to v4 without intermediate historical writes. The source key is removed only after that write succeeds. If the write fails, the source payload stays in place and hydration returns usable validated state with a persistence warning and `needsPersist: true`. Existing serialization, acknowledgement, and generation protections remain in force.
 
 ## Corrupt and Future Payloads
 
@@ -206,6 +213,7 @@ post-reset accepted state.
 Deletion enumerates only Bloom-owned keys and removes:
 
 ```text
+bloom.localState.v4
 bloom.localState.v3
 bloom.localState.v2
 bloom.localState.v1

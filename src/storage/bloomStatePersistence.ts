@@ -4,12 +4,13 @@ import {
   parsePersistedPayload,
   readPersistedEnvelope,
   validateAndNormalizeBloomState,
-  type PersistedBloomEnvelopeV3
+  type PersistedBloomEnvelopeV4
 } from "./bloomStateSchema";
 import type { StorageClient } from "./storageAdapters";
 
-export const BLOOM_STATE_STORAGE_KEY = "bloom.localState.v3";
+export const BLOOM_STATE_STORAGE_KEY = "bloom.localState.v4";
 export const BLOOM_LEGACY_STATE_STORAGE_KEYS = [
+  "bloom.localState.v3",
   "bloom.localState.v2",
   "bloom.localState.v1"
 ] as const;
@@ -132,7 +133,7 @@ function serializeBloomLocalState(
   state: BloomLocalState,
   now: Clock
 ): string {
-  const envelope: PersistedBloomEnvelopeV3 = {
+  const envelope: PersistedBloomEnvelopeV4 = {
     version: BLOOM_PERSISTENCE_VERSION,
     savedAt: now().toISOString(),
     state
@@ -365,7 +366,11 @@ async function loadStoredPayload(
       : envelopeResult.state;
   const validationResult = validateAndNormalizeBloomState(
     storedState,
-    envelopeResult.status === "legacy" ? "legacy" : "current"
+    envelopeResult.status === "current"
+      ? "current"
+      : envelopeResult.sourceVersion === 3
+        ? "v3"
+        : "legacy"
   );
 
   if (!validationResult.success) {

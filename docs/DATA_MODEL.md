@@ -8,6 +8,8 @@ Phase 1A defined the entities. Phase 1B includes them in `BloomLocalState` and v
 
 Phase 1C adds a pure onboarding engine and standalone answer/result types under `src/domain/onboarding/`. They are not added to `BloomLocalState` or wired to the legacy onboarding flow.
 
+Phase 1D adds `ProductOnboardingState` to `BloomLocalState` and persistence v4. The complete result is saved independently of plan activation; legacy onboarding and its screens remain in use.
+
 The TypeScript files are the field-level source of truth. Lifecycle unions are not proof that stored input is valid. `bloomProductStateSchema.ts` explicitly validates new persisted records through the existing corruption boundary. Future feature actions must also validate their mutation and route inputs.
 
 The models reuse `UUID` and `ISODateString` from the existing `shared.ts`; both are string aliases, not format validators. [`BehaviorEventSource.ts`](../src/domain/models/BehaviorEventSource.ts) supplies a small shared event-origin union: `{ kind: "manual", logActionId }` or `{ kind: "masturbationSession", sessionId }`. The same origin follows an event across affected systems and retries.
@@ -175,13 +177,27 @@ Recommendation identifiers are `masturbation_tracking`, `content_free`, `reset`,
 
 Phase 1C aligns the three scored dimensions' provisional Phase 1A labels to low/medium/high/uncertain. They had no persisted consumers, so no migration is needed. These concepts remain separate from legacy `PL`, `PP`, `CT`, `FC`, `PatternId`, `QuizResult`, and `RecommendedFirstAction`.
 
-[`BloomOnboardingAnswers` and `BloomOnboardingQuizResult`](../src/domain/onboarding/types.ts) preserve all 12 raw answers, including explicit unknowns and multi-select techniques/safety signals. Results include quiz/scoring versions, dimensions, recommendation, confidence, `resetEligible`, `safetyFlag`, caller-supplied `completedAt`, and internal score/coverage evidence. Duplicated convenience confidence/safety fields are populated from the same computation as the dimensions. The scorer validates complete submissions and copies answer arrays; it never defaults missing answers to zero. Results are suitable for later persistence but are not currently saved by the app.
+[`BloomOnboardingAnswers` and `BloomOnboardingQuizResult`](../src/domain/onboarding/types.ts) preserve all 12 raw answers, including explicit unknowns and multi-select techniques/safety signals. Results include quiz/scoring versions, dimensions, recommendation, confidence, `resetEligible`, `safetyFlag`, caller-supplied `completedAt`, and internal score/coverage evidence. Duplicated convenience confidence/safety fields are populated from the same computation as the dimensions. The scorer validates complete submissions and copies answer arrays; it never defaults missing answers to zero. Phase 1D persists the complete result in the separate product onboarding slice.
 
-The [domain guide](../src/domain/onboarding/README.md) specifies provisional weights, thresholds, high-support gates, and confidence fallback. Q1 and Q12 are excluded from recommendation scoring and confidence. Safety retains reported context without diagnoses or medical interpretation. No journey routing, provider, legacy quiz, or persisted onboarding change is included.
+The [domain guide](../src/domain/onboarding/README.md) specifies provisional weights, thresholds, high-support gates, and confidence fallback. Q1 and Q12 are excluded from recommendation scoring and confidence. Safety retains reported context without diagnoses or medical interpretation. No journey routing, provider, legacy quiz, or legacy persisted onboarding change is included.
+
+## ProductOnboardingState
+
+Source: [`ProductOnboardingState.ts`](../src/domain/models/ProductOnboardingState.ts).
+
+```ts
+type ProductOnboardingState =
+  | { status: "notCompleted"; result: null }
+  | { status: "completed"; result: BloomOnboardingQuizResult };
+```
+
+The fresh default is not completed and has no timestamp or ID. Completed state uses only `result.completedAt`, avoiding a duplicate clock. `saveProductOnboardingResultState` validates and copies the full result, then replaces only this slice. Invalid results return the original state, following existing pure mutation conventions. Legacy onboarding, `activePlan`, Protect, and all feature slices keep their original references. No plan is activated and no new provider action is exposed.
+
+The structural validator in [`validation.ts`](../src/domain/onboarding/validation.ts) accepts the known quiz/scoring versions, exact question/field names, valid raw selections, enums, timestamps, and bounded numeric evidence. Counts are integral and consistent with their declared totals; repeated confidence/safety fields must agree. It does not compare raw answers to derived scores, dimensions, eligibility, or recommendations, and does not call the scorer. Valid historical derived values survive unchanged even if today's algorithm would differ. Raw answers retain their key and selection order for explicit future re-scoring. Malformed or unknown-version results reject the load through the existing corruption boundary; fields are not silently dropped or recomputed.
 
 ## Compatibility With The Running Application
 
-The expanded [`BloomLocalState`](../src/storage/bloomState.ts) remains the persisted runtime authority. All eight legacy slices remain, followed by four new slices:
+The expanded [`BloomLocalState`](../src/storage/bloomState.ts) remains the persisted runtime authority. All eight legacy slices remain, followed by the four feature slices and product onboarding:
 
 ```text
 activePlan
@@ -196,9 +212,10 @@ masturbationTracking
 contentFree
 resetJourney
 urgeControl
+productOnboarding
 ```
 
-[`bloomStateSchema.ts`](../src/storage/bloomStateSchema.ts) now validates version 3. The loader prefers `bloom.localState.v3`, then `bloom.localState.v2`, then `bloom.localState.v1`. A valid v2 envelope or supported raw legacy payload retains its legacy slices after existing normalization and receives fresh defaults for all four new slices, even if the old payload includes similarly named fields. The source key is removed only after the v3 write succeeds. Unknown future versions and corrupt data retain the existing backup/error behavior. Delete-all covers v3, v2, v1, and Bloom corrupt backups.
+[`bloomStateSchema.ts`](../src/storage/bloomStateSchema.ts) now validates version 4. The loader prefers `bloom.localState.v4`, then v3, v2, and v1. A valid v3 envelope preserves all existing legacy and Phase 1B slices through their existing validation rules and adds only the not-completed product onboarding default. Valid v2 envelopes and supported raw legacy payloads preserve the legacy slices and receive safe defaults for all five product slices. No old payload seeds a product onboarding result, even if it contains a similarly named field. Each migration writes directly to v4, removing its source key only after the write succeeds. Unknown future versions and corrupt data retain the existing backup/error behavior. Delete-all covers v4, v3, v2, v1, and Bloom corrupt backups.
 
 Fresh Content-Free is inactive with `bestStreakSeconds: 0`, empty `pastActivations`, and empty `violations`. Fresh Reset is inactive with `durationDays: 15`, `bestCompletedDays: 0`, empty attempts/violations, and no ID, baseline, or assessment. No legacy Reset, Pause, Arousal, Protection, or Check-In record seeds any new entity.
 
@@ -216,7 +233,7 @@ Known differences requiring later explicit work:
 
 ## Runtime Validation and Deferred Behavior
 
-The v3 storage boundary checks record shapes, discriminated lifecycle fields, canonical timestamps, numeric ranges, identity uniqueness, and local history/reference consistency. Invalid new records reject the load and preserve the source payload and backup; they are not silently filtered or converted into different user facts. Existing legacy normalization remains unchanged. Future feature adoption must maintain these invariants:
+The v4 storage boundary checks record shapes, discriminated lifecycle fields, canonical timestamps, numeric ranges, identity uniqueness, and local history/reference consistency. Invalid new records reject the load and preserve the source payload and backup; they are not silently filtered or converted into different user facts. Existing legacy normalization remains unchanged. Future feature adoption must maintain these invariants:
 
 - Stable nonempty identities and valid timestamps with consistent chronology.
 - Finite, nonnegative durations and intervals; progress within the declared day range, ratios from 0 through 1, average erection quality from 1 through 10, and integer session ratings from 1 through 10.

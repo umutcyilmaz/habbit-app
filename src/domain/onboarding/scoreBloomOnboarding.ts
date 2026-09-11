@@ -3,19 +3,14 @@ import type {
   OnboardingRecommendation,
   OnboardingSignalLevel
 } from "../models/OnboardingDimensions";
-import {
-  behaviorFrequencyValues,
-  erectionQualityValues,
-  explicitContentFrequencyValues,
-  masturbationTechniqueValues,
-  reductionDifficultyValues,
-  safetySignalValues,
-  type BehaviorFrequencyAnswer,
-  type BloomOnboardingAnswers,
-  type BloomOnboardingQuizResult,
-  type OnboardingScoreEvidence,
-  type ReductionDifficultyAnswer
+import type {
+  BehaviorFrequencyAnswer,
+  BloomOnboardingAnswers,
+  BloomOnboardingQuizResult,
+  OnboardingScoreEvidence,
+  ReductionDifficultyAnswer
 } from "./types";
+import { validateBloomOnboardingAnswers, validateBloomOnboardingCompletedAt } from "./validation";
 
 type Severity = 0 | 1 | 2 | 3 | 4;
 type Signal = { severity: Severity | null; weight: number };
@@ -38,7 +33,8 @@ export function scoreBloomOnboarding(
   answers: BloomOnboardingAnswers,
   completedAt: string
 ): BloomOnboardingQuizResult {
-  validateInputs(answers, completedAt);
+  answers = validateBloomOnboardingAnswers(answers);
+  completedAt = validateBloomOnboardingCompletedAt(completedAt);
 
   // Q1 is deliberately absent from all scoring and confidence inputs.
   const content = summarize([
@@ -90,11 +86,7 @@ export function scoreBloomOnboarding(
   return {
     quizVersion: 1,
     scoringVersion: 1,
-    answers: {
-      ...answers,
-      masturbationTechniques: [...answers.masturbationTechniques],
-      safetySignals: [...answers.safetySignals]
-    },
+    answers,
     dimensions: { ...scoredDimensions, safetyFlag, recommendationConfidence },
     recommendation,
     recommendationConfidence,
@@ -174,40 +166,4 @@ function getSafetyFlag(signals: BloomOnboardingAnswers["safetySignals"]): Onboar
   // Q12 changes reported context only; it cannot affect any recommendation input.
   if (signals.some((signal) => signal !== "none" && signal !== "unsure")) return "reported";
   return signals.includes("unsure") ? "uncertain" : "noneReported";
-}
-
-function validateInputs(answers: BloomOnboardingAnswers, completedAt: string) {
-  if (typeof answers !== "object" || answers === null || Array.isArray(answers)) {
-    throw new TypeError("Onboarding answers must be a completed answer object.");
-  }
-  const singleAnswers = {
-    explicitContentFrequency: explicitContentFrequencyValues,
-    unplannedContentUse: behaviorFrequencyValues,
-    activityInterruption: behaviorFrequencyValues,
-    contentTriggeredMasturbation: behaviorFrequencyValues,
-    repeatedContentReturn: behaviorFrequencyValues,
-    difficultyReducingContent: reductionDifficultyValues,
-    erectionQuality: erectionQualityValues,
-    erectionMaintenanceDifficulty: behaviorFrequencyValues,
-    techniqueDependency: behaviorFrequencyValues,
-    delayedOrDifficultEjaculation: behaviorFrequencyValues
-  };
-  for (const key of Object.keys(singleAnswers) as Array<keyof typeof singleAnswers>) {
-    const values: readonly unknown[] = singleAnswers[key];
-    if (!values.includes(answers[key])) throw new TypeError(`Invalid or missing onboarding answer: ${key}.`);
-  }
-  validateSelection(answers.masturbationTechniques, masturbationTechniqueValues, "notSure", "masturbationTechniques");
-  validateSelection(answers.safetySignals, safetySignalValues, "none", "safetySignals");
-  const parsedTime = typeof completedAt === "string" ? Date.parse(completedAt) : NaN;
-  if (!Number.isFinite(parsedTime) || new Date(parsedTime).toISOString() !== completedAt) {
-    throw new TypeError("Onboarding completedAt must be a canonical ISO timestamp.");
-  }
-}
-
-function validateSelection(value: unknown, allowed: readonly string[], exclusive: string, field: string) {
-  if (!Array.isArray(value) || value.length === 0 ||
-    !Array.from(value).every((item) => typeof item === "string" && allowed.includes(item)) ||
-    new Set(value).size !== value.length || (value.includes(exclusive) && value.length !== 1)) {
-    throw new TypeError(`Invalid or missing onboarding selection: ${field}.`);
-  }
 }

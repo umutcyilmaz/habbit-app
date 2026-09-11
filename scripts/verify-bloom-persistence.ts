@@ -30,6 +30,7 @@ import {
   type WebStorageWindow
 } from "../src/storage/storageAdapters";
 import { verifyBloomProductPersistence } from "./verify-bloom-product-persistence";
+import { verifyBloomOnboardingPersistence } from "./verify-bloom-onboarding-persistence";
 
 const fixedNow = () => new Date("2026-07-22T10:00:00.000Z");
 
@@ -69,6 +70,7 @@ async function verifyBloomPersistence() {
   await verifyFailedDeletionPreservesActiveState();
   await verifyEarlyDeletionFailureKeepsCurrentEnvelope();
   await verifyBloomProductPersistence();
+  await verifyBloomOnboardingPersistence();
 }
 
 async function verifyAvailableWebStorage() {
@@ -332,6 +334,7 @@ async function verifyPartialCurrentNormalization() {
       savedAt: fixedNow().toISOString(),
       state: {
         onboarding: { completed: true },
+        productOnboarding: defaults.productOnboarding,
         masturbationTracking: defaults.masturbationTracking,
         contentFree: defaults.contentFree,
         resetJourney: defaults.resetJourney,

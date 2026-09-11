@@ -25,14 +25,33 @@ and labels independently of scoring. The result includes a detached raw answer
 snapshot, `quizVersion: 1`, `scoringVersion: 1`, the five dimensions,
 recommendation, confidence, Reset eligibility, safety flag, completion time, and
 internal score/coverage evidence. Recalculation can use the original answers
-instead of trying to reconstruct them from derived levels. Nothing is added to
-the persisted onboarding slice in this phase.
+instead of trying to reconstruct them from derived levels. Phase 1D stores the
+complete result in the new `productOnboarding` slice; legacy `onboarding` remains
+unchanged. Saving a recommendation does not activate it.
 
 A completed submission answers all 12 questions. Unknown answers are explicit;
 missing fields, invalid enums/ratings, empty or duplicate selections, conflicting
 exclusive selections, and invalid timestamps throw `TypeError`. No answer is
 silently defaulted, coerced, or dropped. Q9 `notSure` must stand alone. Q12 `none`
 must stand alone, while `unsure` can accompany a reported concern.
+
+## Persisted historical results
+
+`validation.ts` shares raw-answer and timestamp checks with the scorer and adds
+structural result validation. It never imports or runs the scoring algorithm.
+The stored quiz/scoring versions, exact fields and question IDs, allowed values,
+numeric evidence ranges/counts, and repeated confidence/safety values are checked
+without comparing the result with what today's scorer would produce. Known
+quiz/scoring version 1 results are supported; unfamiliar result versions are
+preserved through the storage corruption strategy pending explicit support.
+
+Derived scores, dimensions, recommendation, confidence, and eligibility are
+historical facts. They are neither silently recalculated nor reconciled with raw
+answers during save/load validation. Raw answer key order, selected values/order,
+and explicit unknowns are retained in detached copies for future explicit
+re-scoring. Missing, extra, or malformed facts are rejected rather than dropped.
+The state mutation stores only the recommendation result, without starting any
+feature, changing `activePlan`, or navigating.
 
 ## Questions and signals
 

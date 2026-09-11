@@ -61,6 +61,7 @@ import {
   normalizeResetJourney,
   normalizeUrgeControl
 } from "./bloomProductStateSchema";
+import { normalizeProductOnboarding } from "./bloomOnboardingSchema";
 
 export {
   isValidBloomDateKey,
@@ -68,7 +69,7 @@ export {
   isValidBloomTime
 } from "./bloomValueValidation";
 
-export const BLOOM_PERSISTENCE_VERSION = 3 as const;
+export const BLOOM_PERSISTENCE_VERSION = 4 as const;
 
 export type PersistedBloomEnvelopeV2 = {
   version: 2;
@@ -77,6 +78,12 @@ export type PersistedBloomEnvelopeV2 = {
 };
 
 export type PersistedBloomEnvelopeV3 = {
+  version: 3;
+  savedAt: string;
+  state: unknown;
+};
+
+export type PersistedBloomEnvelopeV4 = {
   version: typeof BLOOM_PERSISTENCE_VERSION;
   savedAt: string;
   state: unknown;
@@ -89,10 +96,11 @@ export type ParsedPersistedPayload =
 export type PersistedEnvelopeReadResult =
   | {
       status: "current";
-      envelope: PersistedBloomEnvelopeV3;
+      envelope: PersistedBloomEnvelopeV4;
     }
   | {
       status: "legacy";
+      sourceVersion: 2 | 3 | null;
       state: unknown;
     }
   | {
@@ -172,6 +180,7 @@ export function readPersistedEnvelope(value: unknown): PersistedEnvelopeReadResu
   if (!("version" in value)) {
     return {
       status: "legacy",
+      sourceVersion: null,
       state: value
     };
   }
@@ -183,7 +192,11 @@ export function readPersistedEnvelope(value: unknown): PersistedEnvelopeReadResu
     };
   }
 
-  if (value.version !== BLOOM_PERSISTENCE_VERSION && value.version !== 2) {
+  if (
+    value.version !== BLOOM_PERSISTENCE_VERSION &&
+    value.version !== 3 &&
+    value.version !== 2
+  ) {
     return {
       status: "unsupported-version",
       version: value.version
@@ -197,9 +210,10 @@ export function readPersistedEnvelope(value: unknown): PersistedEnvelopeReadResu
     };
   }
 
-  if (value.version === 2) {
+  if (value.version === 2 || value.version === 3) {
     return {
       status: "legacy",
+      sourceVersion: value.version,
       state: value.state
     };
   }
@@ -216,7 +230,7 @@ export function readPersistedEnvelope(value: unknown): PersistedEnvelopeReadResu
 
 export function validateAndNormalizeBloomState(
   value: unknown,
-  mode: "current" | "legacy" = "current"
+  mode: "current" | "v3" | "legacy" = "current"
 ): BloomStateValidationResult {
   try {
     const record = requireRecord(value, "state");
@@ -234,8 +248,8 @@ export function validateAndNormalizeBloomState(
       checkIns: normalizeCheckIns(record.checkIns, defaults.checkIns),
       pause: normalizePause(record.pause, defaults.pause),
       arousalControl: normalizeArousalControl(record.arousalControl, defaults.arousalControl),
-      // Legacy features have different semantics; migration must not infer or
-      // import new product facts, even if a legacy payload contains these keys.
+      // Raw/v2 legacy features have different semantics. V3 already contains
+      // the Phase 1B facts, so migration validates and preserves those slices.
       masturbationTracking:
         mode === "legacy"
           ? defaults.masturbationTracking
@@ -251,7 +265,13 @@ export function validateAndNormalizeBloomState(
       urgeControl:
         mode === "legacy"
           ? defaults.urgeControl
-          : normalizeUrgeControl(record.urgeControl)
+          : normalizeUrgeControl(record.urgeControl),
+      // A new onboarding result cannot be inferred or imported from an older
+      // schema, even if the old payload contains a similarly named property.
+      productOnboarding:
+        mode === "current"
+          ? normalizeProductOnboarding(record.productOnboarding)
+          : defaults.productOnboarding
     };
 
     return {

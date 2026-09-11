@@ -1,9 +1,12 @@
 import type {
   ContentFreeState,
   MasturbationTrackingState,
+  ProductOnboardingState,
   ResetJourney,
   UrgeControlState
 } from "../domain/models";
+import type { BloomOnboardingQuizResult } from "../domain/onboarding/types";
+import { validateBloomOnboardingResult } from "../domain/onboarding/validation";
 import {
   isValidBloomDateKey,
   isValidBloomIsoTimestamp,
@@ -420,6 +423,7 @@ export type BloomLocalState = {
   contentFree: ContentFreeState;
   resetJourney: ResetJourney;
   urgeControl: UrgeControlState;
+  productOnboarding: ProductOnboardingState;
 };
 
 export function createDefaultBloomState(): BloomLocalState {
@@ -487,6 +491,10 @@ export function createDefaultBloomState(): BloomLocalState {
     urgeControl: {
       activeEvent: null,
       records: []
+    },
+    productOnboarding: {
+      status: "notCompleted",
+      result: null
     }
   };
 }
@@ -636,6 +644,26 @@ export function completeTodayResetState(
       completedDates: nextCompletedDates,
       lastCompletedAt: completedAt
     }
+  };
+}
+
+// Saving a result does not accept its recommendation. All legacy and feature
+// slices retain their original references; no plan activation occurs here.
+export function saveProductOnboardingResultState(
+  state: BloomLocalState,
+  result: BloomOnboardingQuizResult
+): BloomLocalState {
+  let validatedResult: BloomOnboardingQuizResult;
+  try {
+    validatedResult = validateBloomOnboardingResult(result);
+  } catch {
+    // Match the existing pure mutation convention: invalid records are a no-op.
+    return state;
+  }
+
+  return {
+    ...state,
+    productOnboarding: { status: "completed", result: validatedResult }
   };
 }
 
