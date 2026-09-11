@@ -5,6 +5,7 @@ import type {
   ContentFreeViolation,
   MasturbationPause,
   MasturbationSession,
+  MasturbationSessionFeedback,
   MasturbationTrackingState,
   PostResetAssessment,
   ResetAttempt,
@@ -66,9 +67,13 @@ function normalizeSession(value: unknown, path: string): MasturbationSession {
   for (const pause of pauses) {
     notBefore(pause.startedAt, identity.startedAt, `${path}.pauses.startedAt`);
   }
-  nonOverlapping(pauses.map((pause) => pause.status === "active"
-    ? { startedAt: pause.startedAt }
-    : pause), `${path}.pauses`);
+  // Array order is lifecycle order. Do not sort malformed persisted pauses
+  // into a valid sequence or allow an active pause before another pause.
+  for (let index = 1; index < pauses.length; index += 1) {
+    const previous = pauses[index - 1]!;
+    ensure(previous.status === "completed", `${path}.pauses`, "requires an active pause to be last");
+    notBefore(pauses[index]!.startedAt, previous.endedAt, `${path}.pauses.startedAt`);
+  }
 
   if (status === "active") {
     absent(record, ["endedAt", "durationSeconds", "erectionQuality", "usedExplicitContent", "endingReason"], path);
@@ -101,6 +106,16 @@ function normalizeSession(value: unknown, path: string): MasturbationSession {
   return {
     ...ended,
     status,
+    ...normalizeMasturbationSessionFeedback(record, path)
+  };
+}
+
+export function normalizeMasturbationSessionFeedback(
+  value: unknown,
+  path = "feedback"
+): MasturbationSessionFeedback {
+  const record = object(value, path);
+  return {
     erectionQuality: erectionQuality(record.erectionQuality, `${path}.erectionQuality`),
     usedExplicitContent: boolean(record.usedExplicitContent, `${path}.usedExplicitContent`),
     endingReason: endingReason(record.endingReason, `${path}.endingReason`)

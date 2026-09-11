@@ -22,6 +22,19 @@ export {
   type StartResetFromBaselineInput,
   type UndoActiveResetViolationInput
 } from "./bloomResetTransitions";
+export {
+  completeMasturbationSessionFeedbackState,
+  discardActiveMasturbationSessionState,
+  endMasturbationPauseState,
+  endMasturbationSessionState,
+  startMasturbationPauseState,
+  startMasturbationSessionState,
+  type CompleteMasturbationSessionFeedbackInput,
+  type EndMasturbationPauseInput,
+  type EndMasturbationSessionInput,
+  type StartMasturbationPauseInput,
+  type StartMasturbationSessionInput
+} from "./bloomMasturbationTransitions";
 import {
   isValidBloomDateKey,
   isValidBloomIsoTimestamp,

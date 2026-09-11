@@ -20,6 +20,8 @@ Phase 1H adds latest-violation undo, with linked Content-Free restoration in the
 
 Phase 1I adds explicit elapsed completion and assessment submission using existing v7 shapes. The restriction ends at 15 full elapsed days; onboarding Tracking is enabled by assessment submission, independently of the readiness answer. No model or migration change is required.
 
+Phase 1J adds the core Masturbation Session lifecycle and atomic session-derived Content-Free effects. Existing v7 shapes, the storage key, and migrations remain unchanged; no UI or legacy flow is connected.
+
 The TypeScript files are the field-level source of truth. Lifecycle unions are not proof that stored input is valid. `bloomProductStateSchema.ts` explicitly validates new persisted records through the existing corruption boundary. Future feature actions must also validate their mutation and route inputs.
 
 The models reuse `UUID` and `ISODateString` from the existing `shared.ts`; both are string aliases, not format validators. [`BehaviorEventSource.ts`](../src/domain/models/BehaviorEventSource.ts) supplies a small shared event-origin union: `{ kind: "manual", logActionId }` or `{ kind: "masturbationSession", sessionId }`. The same origin follows an event across affected systems and retries.
@@ -40,11 +42,28 @@ A session has a stable `id` and `startedAt`. Ended sessions carry `endedAt` and 
 
 Ending reasons are `climaxed`, `stoppedBeforeClimax`, `firmnessDecreased`, `feltAnxious`, `stoppedByChoice`, and `other`. These are descriptive reports, not medical interpretations.
 
-`usedExplicitContent` means intentional explicit-content use during the session. Accidental exposure alone is not `true`. This distinction must be preserved when future session completion derives a Content-Free or Reset violation.
+`usedExplicitContent` means intentional explicit-content use during the session. Accidental exposure alone is not `true`. Feedback completion can derive a Content-Free violation from this value; it does not create a Reset violation.
 
 `pauses` holds the session's optional pauses. An active pause has `status: "active"` and `startedAt`. A completed pause adds `endedAt` and `durationSeconds`. Ended sessions contain only completed pauses: closing the session closes any active pause. An empty array is valid: a normal session with zero pauses can complete. Pause count is derived from the array rather than maintained as another independent value.
 
-The container in [`MasturbationTrackingState.ts`](../src/domain/models/MasturbationTrackingState.ts) has `enabled`, one `currentSession` (active/awaiting feedback or null), and completed `sessions`. Status aliases use `Extract` without duplicating session fields. Fresh and migrated defaults are `{ enabled: false, currentSession: null, sessions: [] }`. Reset blocking is not duplicated here; future actions will derive it from `resetJourney`.
+The container in [`MasturbationTrackingState.ts`](../src/domain/models/MasturbationTrackingState.ts) has `enabled`, one `currentSession` (active/awaiting feedback or null), and completed `sessions`. Status aliases use `Extract` without duplicating session fields. Fresh and migrated defaults are `{ enabled: false, currentSession: null, sessions: [] }`. At most one unfinished session is allowed, including after persistence reload. The start transition reads Reset status directly rather than duplicating its restriction in this container.
+
+### Session transitions
+
+These pure APIs are defined in [`bloomMasturbationTransitions.ts`](../src/storage/bloomMasturbationTransitions.ts) and re-exported from `bloomState.ts`. IDs and canonical timestamps are supplied by the caller; invalid input or lifecycle state returns the original state without partial changes.
+
+| API | Effect and preconditions |
+| --- | --- |
+| `startMasturbationSessionState(state, { sessionId, startedAt })` | Requires enabled Tracking, null `currentSession`, a valid unique ID/start, and `resetJourney.status !== "active"`. Creates an active session with empty pauses and no duration or feedback fields. |
+| `startMasturbationPauseState(state, { startedAt })` | Requires an active session with no active pause. Appends an active pause starting at or after the session start and the previous pause's end. |
+| `endMasturbationPauseState(state, { endedAt })` | Requires the sole active pause to be last, and end at or after its start. Replaces it with a completed pause and derived whole-second duration. |
+| `endMasturbationSessionState(state, { endedAt })` | Requires an active session and end at or after its start and every pause timestamp. Closes an active pause at the same end time and retains the ended session in `currentSession` as `awaiting_feedback`. |
+| `completeMasturbationSessionFeedbackState(state, { feedback, recordedAt, contentFreeViolationId? })` | Requires `awaiting_feedback`, full valid feedback, and canonical `recordedAt >= session.endedAt`. Appends the completed session once, clears `currentSession`, and applies any required Content-Free effect atomically. |
+| `discardActiveMasturbationSessionState(state)` | Clears only an active session. Creates no history, violation, or tombstone; awaiting feedback and completed records cannot be discarded. |
+
+Active session and pause timers derive from timestamps, with no ticking persisted counter or background mutation. Ending stores `floor((endedAt - startedAt) / 1000)` seconds. Session duration includes all pause time; it is never reduced by pause durations. Zero pauses and zero elapsed seconds are valid. Ending the physical session does not append completed history. Awaiting feedback survives close/reload and blocks another start until feedback is saved.
+
+Tracking permission is `enabled`, with no direct onboarding prerequisite. Every persisted `active` Reset blocks new session starts; `assessment_pending` does not independently block them, although onboarding Tracking remains disabled until assessment submission. Completing feedback for an existing session does not require Tracking to remain enabled. Session transitions do not fabricate Reset violations or repair inconsistent cross-feature history. Existing completed sessions are preserved in order, and completed feedback/timestamp editing or deletion remains deferred.
 
 ## ContentFreeState
 
@@ -63,6 +82,12 @@ Content-Free records whether the system is active, the current streak start, bes
 Each `ContentFreeViolation` has `id`, `activationId`, `kind: "intentionalExplicitContent"`, `occurredAt`, `recordedAt`, `source`, and `streakBefore` (the previous streak start and best duration). Its status is either `recorded` or `undone`; undone entries additionally require `undoneAt`.
 
 For a session-derived violation, the source session's stable `id` is the deduplication identity. Retrying completion or processing the same session again must not append another violation or reset the same streak twice. A manual action logging that same known session must reuse its session origin rather than create a second unrelated event. Event IDs alone do not prove source uniqueness.
+
+Phase 1J uses `session.endedAt` as the V1 occurrence anchor when explicit-content feedback affects Content-Free. This identifies the product event; it does not claim that explicit content was first used at that exact instant. The violation uses the supplied feedback `recordedAt`, `{ kind: "masturbationSession", sessionId }`, current activation ID, `kind: "intentionalExplicitContent"`, and `status: "recorded"`.
+
+If `usedExplicitContent` is false, Content-Free is inactive, or the session ended before the current activation began, feedback completes without a Content-Free change. Otherwise a valid unused `contentFreeViolationId` is required, and `session.endedAt >= currentStreakStartedAt`. A duplicate session source in either recorded or undone violations, conflicting ID, contradictory activation state, or unsafe backdated streak event rejects the whole completion; the session remains awaiting feedback.
+
+An applicable completion stores the original streak start and best duration in `streakBefore`, appends one violation, updates best duration with the ended streak's whole elapsed seconds, and sets `currentStreakStartedAt = session.endedAt`. Content-Free stays active with its activation identity/start, past activations, and previous violations preserved. Session completion and Content-Free changes are published as one snapshot. Historical replay and standalone Content-Free logging remain deferred.
 
 Undo corrects the violation log; it does not delete or edit the source session. Source identity remains when a log is undone so retries cannot silently recreate it. Undo is for an accidental logging action, not a rule that intentional content stops counting. Phase 1H restores the original `streakBefore` only for a safely reversible latest event linked to Reset. It never restores a snapshot over later effective violations or another activation. Retained activation boundaries preserve information needed for future historical correction; arbitrary replay remains deferred.
 
@@ -104,7 +129,7 @@ Phase 1G violation behavior, before the current attempt's 15-day period is compl
 | Masturbation with intentional explicit content | Restart at Day 1 once for the event. | Reset an active Content-Free streak once for the event. |
 | Accidental exposure alone | No automatic violation. | No automatic violation. |
 
-The session-start restriction and violation reporting serve different purposes: the future app blocks starting a session while Reset is active but still needs to record behavior that occurred. A violation does not need to fabricate an in-app session.
+The session-start restriction and violation reporting serve different purposes: the new session transition blocks starting while Reset status is active, while the separate Reset violation transition records behavior that occurred. A violation does not fabricate an in-app session, and session feedback does not create a Reset violation.
 
 ### Recording an active Reset violation
 
@@ -138,7 +163,7 @@ Both restored slices are validated before one snapshot is returned. Sequential b
 
 Before 24 hours it reports 0 completed days / Day 1; at 24 hours, 1 / Day 2; at 14 days, 14 / Day 15. At or after 15 full days it reports 15 completed days, Day 15, and `isPeriodComplete: true`. Future start times clamp to zero elapsed progress. `remainingDays` counts full or partial days rounded up; `remainingSeconds` preserves subsecond precision. Finished states report their fixed 15-day completion.
 
-Users do not manually complete days. Calling the selector, validating, loading, or hydrating never changes status, historical best progress, or any stored fact. An elapsed period cannot be extended by a stale `active` status or an unanswered assessment. The application must explicitly call the completion transition to persist its end; session behavior and guards remain deferred.
+Users do not manually complete days. Calling the selector, validating, loading, or hydrating never changes status, historical best progress, or any stored fact. An elapsed period cannot be extended by a stale `active` status or an unanswered assessment. The application must explicitly call the completion transition to persist its end. Session start currently checks the persisted Reset status and remains blocked while it is `active`.
 
 ### Completing the elapsed period
 
@@ -340,4 +365,4 @@ The v7 storage boundary checks record shapes, discriminated lifecycle fields, ca
 - Consistency of attempt history and identity, progress, baseline, completion timestamps, and assessment references.
 - Atomic, acknowledged cross-system effects when one event affects both Reset and Content-Free.
 
-Phase 1I adds elapsed completion and assessment submission with Tracking enablement, using the existing v7 model, key, and migrations. Standalone Content-Free logging, same-day calendar collapse, arbitrary historical replay, session mutations/guards, post-Reset reports and session comparisons, and tracking-based Reset recommendations remain deferred. There is no new backend, authentication, sync metadata, analytics, or AI dependency.
+Phase 1J adds session start, optional pauses, physical end, feedback completion, active-only discard, and atomic Content-Free interaction using existing v7 shapes. New transitions derive canonical whole-second durations; validation retains practical historical duration checks without rewriting old facts. Completed-session editing/deletion, awaiting-feedback deletion, standalone Content-Free logging, same-day calendar collapse, arbitrary historical replay, Urge Control behavior, post-Reset reports/comparisons, and tracking-based Reset recommendations remain deferred. There is no new backend, authentication, sync metadata, analytics, or AI dependency.
