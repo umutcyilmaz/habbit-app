@@ -16,20 +16,20 @@ AsyncStorage is durable local storage. It does not provide application-level enc
 The canonical key is:
 
 ```text
-bloom.localState.v6
+bloom.localState.v7
 ```
 
 Its JSON value is a versioned envelope:
 
 ```ts
-type PersistedBloomEnvelopeV6 = {
-  version: 6;
+type PersistedBloomEnvelopeV7 = {
+  version: 7;
   savedAt: string;
   state: unknown;
 };
 ```
 
-Payloads are parsed as `unknown`, validated section by section, and normalized into `BloomLocalState`. Existing slices retain their normalization/default and unknown-field rules. Current v6 payloads must include the four Phase 1B feature slices plus `productOnboarding`; completed product onboarding requires `planAcceptance`, either null or a valid historical action. Active Reset attempts contain only identity, status, and start time, with no persisted day counter. Malformed new records reject the load without silently removing user facts. Product onboarding uses a closed versioned schema and rejects unknown fields. Important enum, date, array, record, Boolean, and finite-number fields are validated before use.
+Payloads are parsed as `unknown`, validated section by section, and normalized into `BloomLocalState`. Existing slices retain their normalization/default and unknown-field rules. Current v7 payloads must include the four Phase 1B feature slices plus `productOnboarding`; completed product onboarding requires `planAcceptance`, either null or a valid historical action. Active Reset attempts have no persisted day counter. Reset violations require recorded/undone status, with a canonical `undoneAt >= recordedAt` only for undone records. Optional `bestCompletedDaysBefore` is an integer 0–15. Malformed new records reject the load without silently removing user facts. Product onboarding uses a closed versioned schema and rejects unknown fields. Important enum, date, array, record, Boolean, and finite-number fields are validated before use.
 
 Bloom date keys must be real Gregorian dates in exact `YYYY-MM-DD` form. Persisted timestamps, including envelope `savedAt`, must exactly match the canonical form produced by `Date.prototype.toISOString()`:
 
@@ -63,15 +63,21 @@ start is valid and ten valid unique dates remain.
 
 `startResetFromBaselineState` accepts `{ resetBaseline, resetAttemptId, startedAt }` and changes only a valid `baseline_pending` Reset to `active`. It retains the journey ID/history/best progress, copies the validated baseline, and assigns the supplied time to both journey and attempt. Start must be at or after baseline capture; equality is valid. IDs are nonempty, the attempt ID must be new, and prior attempts must end no later than this start. Invalid or repeated starts are exact no-ops. Optional baseline aggregates remain absent when unknown; no session-history calculation or medical interpretation is added. Tracking, Content-Free, onboarding acceptance, Urge Control, and all legacy state stay untouched.
 
-`getResetProgress(resetJourney, now)` derives active progress from `currentAttempt.startedAt` and supplied time, using full 24-hour durations clamped to 0–15 days. Users do not manually complete days. `isPeriodComplete` becomes true at 15 days even if persisted status remains `active`; neither this selector nor loading, validation, or hydration writes completion or best progress. A later explicit lifecycle action will persist the period's end. Historical attempts retain their ended progress, while active attempts reject `completedDays` in v6. [DATA_MODEL.md](../../docs/DATA_MODEL.md#elapsed-progress) details selector output and clock behavior.
+`getResetProgress(resetJourney, now)` derives active progress from `currentAttempt.startedAt` and supplied time, using full 24-hour durations clamped to 0–15 days. Users do not manually complete days. `isPeriodComplete` becomes true at 15 days even if persisted status remains `active`; neither this selector nor loading, validation, or hydration writes completion or best progress. A later explicit lifecycle action will persist the period's end. Historical attempts retain their ended progress, while active attempts reject `completedDays`. [DATA_MODEL.md](../../docs/DATA_MODEL.md#elapsed-progress) details selector output and clock behavior.
 
 `recordActiveResetViolationState(state, { violationId, replacementAttemptId, occurredAt, recordedAt, source, reason, contentFreeViolationId? })` is a pure transition in `bloomResetTransitions.ts`, re-exported from `bloomState.ts`. A valid active journey archives its current attempt with the elapsed completed-day count at `occurredAt`, appends one linked Reset violation, and starts the replacement attempt at that time. The journey keeps its original start, identity, baseline, duration, and existing histories; best completed progress can increase but never decrease. At or after 15 full days at the event time, the entire action is an exact no-op. It does not complete Reset.
 
 Masturbation alone leaves Content-Free unchanged. Intentional-content or combined reasons also leave inactive Content-Free unchanged. When Content-Free is active, a supplied Content-Free violation ID is required: one recorded violation shares the Reset source/times, preserves the original streak start and best duration in `streakBefore`, and restarts the current streak at `occurredAt`. Best streak duration is updated using the ended streak's whole seconds. Content-Free stays active with the same activation identity/start and retained history.
 
-Both effects are built and validated before one snapshot is returned. Canonical event/recording times must satisfy `recordedAt >= occurredAt >= currentAttempt.startedAt`, and an affected Content-Free streak must start no later than the event. Invalid inputs, conflicting IDs, and previously applied source identities are exact no-ops across both slices. Stable manual `logActionId` or session `sessionId` identities prevent replay; Content-Free deduplication retains undone sources. Other product and legacy slices are untouched. No session is created. Undo, standalone Content-Free logging, historical replay, and same-day calendar collapse remain deferred; timezone semantics must precede calendar collapse.
+Both effects are built and validated before one snapshot is returned. Canonical event/recording times must satisfy `recordedAt >= occurredAt >= currentAttempt.startedAt`, and an affected Content-Free streak must start no later than the event. Invalid inputs, conflicting IDs, and previously applied source identities are exact no-ops across both slices. New Reset violations have `status: "recorded"` and capture `bestCompletedDaysBefore`. Stable manual `logActionId` or session `sessionId` identities prevent replay across recorded and undone violations in both systems. Other product and legacy slices are untouched. No session is created. Standalone Content-Free logging, arbitrary replay, and same-day calendar collapse remain deferred; timezone semantics must precede calendar collapse.
 
-Phase 1G uses the existing v6 shapes and key, with no migration change. Like the other pure transitions, violation recording performs no storage write; its complete returned snapshot is persisted through the existing coordinator. Queue, acknowledgement, hydration, and deletion guarantees remain unchanged.
+`undoActiveResetViolationState(state, { violationId, undoneAt })` corrects only a safely reversible latest restart in an active journey. It requires canonical undo time at or after recording, the last effective violation, the last linked restart archive, and a current attempt beginning at that event. It restores the old active attempt, removes the false archive, and retains the Reset violation as an undone tombstone. Prior best comes from the new log's exact snapshot, checked against remaining history and current best; legacy records without one permit undo only when the earlier summary is mathematically provable. Ambiguity is a no-op.
+
+Linked Content-Free undo requires matching source/timestamps, the same active activation, the latest effective violation, an unchanged post-log streak start, and a compatible post-log best. It restores the original `streakBefore` and tombstones the linked event atomically with Reset. No linked record permits Reset-only undo only where activation history proves Content-Free was inactive at recording time; a later unrelated activation is preserved. Masturbation-only undo rejects any unexpected link. [DATA_MODEL.md](../../docs/DATA_MODEL.md#undoing-the-latest-violation) documents exact guards. Both candidate slices validate before publication; no baseline, session, onboarding, or legacy changes occur.
+
+Sequential backwards undo retains all tombstones, even when their intermediate attempt IDs no longer appear in effective history. Effective restarted attempts must reference recorded violations; undone violations cannot retain such an archive. Source uniqueness still covers both statuses. Repeated undo keeps the original `undoneAt`, and stale logging retries cannot recreate the event. Loading, migration, and validation never automatically undo or complete anything.
+
+Phase 1H persists these facts in v7. Like the other pure transitions, undo and violation recording perform no storage write; their complete returned snapshots use the existing coordinator. Queue, acknowledgement, hydration, and deletion guarantees remain unchanged.
 
 Acceptance validation requires an exact marker, canonical `acceptedAt` at or after quiz completion, and an accepted recommendation equal to the stored result. It rejects mismatches without rescoring or rewriting them. Current feature state is not used to infer or invalidate a historical acceptance.
 
@@ -147,9 +153,10 @@ history redirects to the Arousal Control overview.
 
 ## Legacy Migration
 
-The loader checks `bloom.localState.v6` first, followed by these migration sources in order:
+The loader checks `bloom.localState.v7` first, followed by these migration sources in order:
 
 ```text
+bloom.localState.v6
 bloom.localState.v5
 bloom.localState.v4
 bloom.localState.v3
@@ -157,11 +164,11 @@ bloom.localState.v2
 bloom.localState.v1
 ```
 
-Valid v5 envelopes preserve existing state, including onboarding acceptance. Active attempts from v3/v4/v5 retain `startedAt` and drop their obsolete `completedDays` after its old range and best-progress consistency are validated. Historical restarted/completed attempts and `bestCompletedDays` remain unchanged. Existing journey/attempt start times may differ after a historical restart; both are preserved. Migration never invents a baseline, derives active progress, or completes an elapsed period. With no active Reset, v5 migration otherwise preserves the existing structure.
+Valid v6 envelopes preserve existing state and add only `status: "recorded"` to Reset violations. V3–v5 violations receive the same truthful status. These schemas could not record undo or prior-best rollback snapshots, so migration neither invents those facts nor imports later-looking properties as them. V3–v5 active attempts still retain `startedAt` and drop their obsolete `completedDays` after old range and best-progress validation. Historical attempts, best summaries, distinct journey/attempt start times, and onboarding acceptance remain preserved. Migration never undoes an event, invents a baseline, derives progress, or completes an elapsed period.
 
 Valid v4 envelopes still add `planAcceptance: null` to completed onboarding; not-completed state stays unchanged. No acceptance is inferred from enabled Tracking, active Content-Free, or Reset state. Only a later-looking `planAcceptance` property is ignored when validating the old v4 lifecycle; other malformed fields still fail. Valid v3 envelopes preserve all twelve existing slices and add the safe product onboarding default. V2 envelopes and previously supported raw legacy payloads retain legacy normalization and receive safe product defaults. No older feature or quiz data is reinterpreted. Migration dispatch follows the envelope version rather than its key location.
 
-Every migration writes directly to v6 without intermediate historical writes. The source key is removed only after that write succeeds. If the write fails, the source payload stays in place and hydration returns usable validated state with a persistence warning and `needsPersist: true`. Existing serialization, acknowledgement, and generation protections remain in force.
+Every migration writes directly to v7 without intermediate historical writes. The source key is removed only after that write succeeds. If the write fails, the source payload stays in place and hydration returns usable validated state with a persistence warning and `needsPersist: true`. Existing serialization, acknowledgement, and generation protections remain in force.
 
 ## Corrupt and Future Payloads
 
@@ -233,6 +240,7 @@ post-reset accepted state.
 Deletion enumerates only Bloom-owned keys and removes:
 
 ```text
+bloom.localState.v7
 bloom.localState.v6
 bloom.localState.v5
 bloom.localState.v4
@@ -277,7 +285,7 @@ The repository persistence verification script uses only fake web storage and ex
 npm run verify:persistence
 ```
 
-This command also runs the focused product-state, onboarding, plan-acceptance, Reset-baseline, and Reset-violation suites. Reset coverage includes supplied baseline validation, history preservation, repeated-start no-ops, 24-hour progress boundaries, clock skew, v3–v5 active-counter migration, and no automatic completion during loading or selection. Violation coverage checks all three reasons, atomic Content-Free effects and snapshots, source/ID deduplication, elapsed archive progress, the 15-day boundary, unchanged unrelated state, and v6 round trips.
+This command also runs the focused product-state, onboarding, plan-acceptance, Reset-baseline, Reset-violation, and Reset-violation-undo suites. Reset coverage includes supplied baseline validation, history preservation, repeated-start no-ops, 24-hour progress boundaries, clock skew, older-schema migration, and no automatic completion. Violation coverage checks all reasons, atomic Content-Free effects, source/ID deduplication, and the 15-day boundary. Undo coverage includes sequential restoration, tombstones, stale retries, rollback metadata, ambiguous-history rejection, atomic snapshot safety, migration durability, and v7 round trips.
 
 The acknowledgement verifier uses the production mutation runtime, persistence coordinator, domain transforms, envelope reader, and web adapter with delayed/failing synthetic storage clients. It covers exact-write timing, independent rapid-write outcomes, retry without domain replay, Check-In/Reset/Pause/Arousal/Protection idempotency, hydration/deletion blocking and late-success stale-hydration invalidation, storage unavailability, error clearing, stale-token invalidation, and continued unacknowledged system persistence:
 

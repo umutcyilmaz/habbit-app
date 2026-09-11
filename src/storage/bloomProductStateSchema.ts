@@ -208,7 +208,7 @@ function normalizeContentViolation(value: unknown, path: string): ContentFreeVio
 
 export function normalizeResetJourney(
   value: unknown,
-  mode: "current" | "preV6" = "current"
+  mode: "current" | "v6" | "preV6" = "current"
 ): ResetJourney {
   const path = "state.resetJourney";
   const record = object(value, path);
@@ -219,11 +219,12 @@ export function normalizeResetJourney(
     durationDays: choice(record.durationDays, [15], `${path}.durationDays`),
     bestCompletedDays: choice(record.bestCompletedDays, completedDays, `${path}.bestCompletedDays`),
     pastAttempts: list(record.pastAttempts, `${path}.pastAttempts`, (entry, entryPath) => {
-      const attempt = normalizeAttempt(entry, entryPath, mode);
+      const attempt = normalizeAttempt(entry, entryPath, mode === "preV6" ? "preV6" : "current");
       ensure(attempt.status !== "active", entryPath, "cannot contain an active past attempt");
       return attempt;
     }),
-    violations: list(record.violations, `${path}.violations`, normalizeResetViolation)
+    violations: list(record.violations, `${path}.violations`, (entry, entryPath) =>
+      normalizeResetViolation(entry, entryPath, mode === "current" ? "current" : "preV7"))
   };
   let journey: ResetJourney;
   if (status === "inactive" || status === "recommended" || status === "baseline_pending") {
@@ -245,7 +246,7 @@ export function normalizeResetJourney(
       baseline: normalizeResetBaseline(record.baseline, `${path}.baseline`)
     };
     const currentAttemptRecord = object(record.currentAttempt, `${path}.currentAttempt`);
-    const currentAttempt = normalizeAttempt(currentAttemptRecord, `${path}.currentAttempt`, mode);
+    const currentAttempt = normalizeAttempt(currentAttemptRecord, `${path}.currentAttempt`, mode === "preV6" ? "preV6" : "current");
     if (mode === "preV6" && currentAttempt.status === "active") {
       // Preserve the old schema's consistency check without promoting its
       // mutable counter into either live progress or historical summary data.
@@ -318,13 +319,14 @@ function normalizeAttempt(value: unknown, path: string, mode: "current" | "preV6
 
 export function normalizeResetViolation(
   value: unknown,
-  path = "state.resetJourney.violations"
+  path = "state.resetJourney.violations",
+  mode: "current" | "preV7" = "current"
 ): ResetViolation {
   const record = object(value, path);
   const occurredAt = timestamp(record.occurredAt, `${path}.occurredAt`);
   const recordedAt = timestamp(record.recordedAt, `${path}.recordedAt`);
   notBefore(recordedAt, occurredAt, `${path}.recordedAt`);
-  return {
+  const base = {
     id: identityString(record.id, `${path}.id`),
     attemptId: identityString(record.attemptId, `${path}.attemptId`),
     occurredAt,
@@ -332,6 +334,21 @@ export function normalizeResetViolation(
     source: normalizeSource(record.source, `${path}.source`),
     reason: choice(record.reason, ["masturbation", "intentionalExplicitContent", "masturbationWithExplicitContent"], `${path}.reason`)
   };
+  if (mode === "preV7") {
+    // Older schemas could only record violations. Later-looking lifecycle or
+    // rollback fields cannot supply facts that those schemas did not own.
+    return { ...base, status: "recorded" };
+  }
+  const snapshot = optionalField(record, "bestCompletedDaysBefore", path,
+    (entry, entryPath) => choice(entry, completedDays, entryPath));
+  const status = choice(record.status, ["recorded", "undone"], `${path}.status`);
+  if (status === "recorded") {
+    absent(record, ["undoneAt"], path);
+    return { ...base, ...snapshot, status };
+  }
+  const undoneAt = timestamp(record.undoneAt, `${path}.undoneAt`);
+  notBefore(undoneAt, recordedAt, `${path}.undoneAt`);
+  return { ...base, ...snapshot, status, undoneAt };
 }
 
 function validateResetReferences(journey: ResetJourney, path: string) {
@@ -352,7 +369,8 @@ function validateResetReferences(journey: ResetJourney, path: string) {
     // remain validated; the new journey start is not their lower bound.
     if (attempt.status === "restarted") {
       const violation = journey.violations.find((entry) => entry.id === attempt.restartViolationId);
-      ensure(violation?.attemptId === attempt.id, path, "has an inconsistent restart violation reference");
+      ensure(violation?.status === "recorded" && violation.attemptId === attempt.id,
+        path, "has an inconsistent or undone restart violation reference");
     }
   }
   if ("currentAttempt" in journey) {
@@ -362,6 +380,9 @@ function validateResetReferences(journey: ResetJourney, path: string) {
     }
   }
   for (const violation of journey.violations) {
+    // Sequential undo may remove the replacement attempt referenced by an
+    // older tombstone. Tombstones preserve identity, not effective intervals.
+    if (violation.status === "undone") continue;
     const attempt = attempts.find((entry) => entry.id === violation.attemptId);
     ensure(attempt !== undefined, path, "has a violation referencing an unknown attempt");
     within(violation.occurredAt, attemptPeriod(attempt), `${path}.violations.occurredAt`);

@@ -28,6 +28,7 @@ import {
 import type { StorageClient } from "../src/storage/storageAdapters";
 
 const now = () => new Date("2026-07-22T10:00:00.000Z");
+const v6Key = "bloom.localState.v6";
 const v5Key = "bloom.localState.v5";
 const v4Key = "bloom.localState.v4";
 const v3Key = "bloom.localState.v3";
@@ -38,7 +39,7 @@ const legacyKeys = ["activePlan", "onboarding", "tenDayReset", "debug", "protect
 
 export async function verifyBloomProductPersistence() {
   verifyTruthfulDefaults();
-  await verifyPopulatedV6RoundTrips();
+  await verifyPopulatedV7RoundTrips();
   await verifyPriorActiveAttemptMigrations();
   await verifyV2Migration();
   await verifyMigrationWriteFailureAndRetry();
@@ -50,9 +51,9 @@ export async function verifyBloomProductPersistence() {
 }
 
 function verifyTruthfulDefaults() {
-  assert(BLOOM_PERSISTENCE_VERSION === 6, "The current envelope must be version 6.");
-  assert(BLOOM_STATE_STORAGE_KEY === "bloom.localState.v6", "Current writes must use the v6 key.");
-  equal(BLOOM_LEGACY_STATE_STORAGE_KEYS, [v5Key, v4Key, v3Key, v2Key, v1Key], "Migration sources must prefer v5, then v4, then v3, then v2, then v1.");
+  assert(BLOOM_PERSISTENCE_VERSION === 7, "The current envelope must be version 7.");
+  assert(BLOOM_STATE_STORAGE_KEY === "bloom.localState.v7", "Current writes must use the v7 key.");
+  equal(BLOOM_LEGACY_STATE_STORAGE_KEYS, [v6Key, v5Key, v4Key, v3Key, v2Key, v1Key], "Migration sources must prefer v6, then v5, then v4, then v3, then v2, then v1.");
   const first = createDefaultBloomState();
   const second = createDefaultBloomState();
   assertSafeProductDefaults(first, "fresh state");
@@ -63,7 +64,7 @@ function verifyTruthfulDefaults() {
   assertSafeProductDefaults(second, "an independently created default state");
 }
 
-async function verifyPopulatedV6RoundTrips() {
+async function verifyPopulatedV7RoundTrips() {
   const states = createValidLifecycleStates();
   for (const [label, state] of states) {
     const validation = validateAndNormalizeBloomState(state);
@@ -73,16 +74,16 @@ async function verifyPopulatedV6RoundTrips() {
     // above, then persist the canonical shape and require a stable reload.
     const canonicalState = validation.state;
     const canonicalValidation = validateAndNormalizeBloomState(canonicalState);
-    assert(canonicalValidation.success && !canonicalValidation.wasNormalized, `${label}: canonical v6 validation must be stable.`);
+    assert(canonicalValidation.success && !canonicalValidation.wasNormalized, `${label}: canonical v7 validation must be stable.`);
     const client = new ProductTestStorage();
     await persistBloomLocalState(canonicalState, client, now);
     const payload = client.values.get(BLOOM_STATE_STORAGE_KEY);
-    assert(payload !== undefined, `${label}: a v6 envelope must become durable.`);
+    assert(payload !== undefined, `${label}: a v7 envelope must become durable.`);
     const parsed = JSON.parse(payload) as { version: unknown; state: unknown };
-    assert(parsed.version === 6, `${label}: saved envelopes must explicitly declare v6.`);
+    assert(parsed.version === 7, `${label}: saved envelopes must explicitly declare v7.`);
     equal(parsed.state, state, `${label}: saving must preserve the expanded snapshot.`);
     const loaded = await loadBloomLocalState(client, now);
-    assert(loaded.status === "success" && loaded.source === "current" && !loaded.needsPersist, `${label}: durable v6 must reload without migration.`);
+    assert(loaded.status === "success" && loaded.source === "current" && !loaded.needsPersist, `${label}: durable v7 must reload without migration.`);
     equal(loaded.state, state, `${label}: save/load must preserve every lifecycle field.`);
   }
 }
@@ -104,13 +105,13 @@ async function verifyV2Migration() {
     client.values.set(v2Key, raw);
     assert(readPersistedEnvelope(JSON.parse(raw)).status === "legacy", "A valid v2 envelope is a migration source, not a future version.");
     const loaded = await loadBloomLocalState(client, now);
-    assert(loaded.status === "success" && loaded.source === "legacy" && !loaded.needsPersist && loaded.persistenceError === null, `${label}: migration must acknowledge durable v6.`);
+    assert(loaded.status === "success" && loaded.source === "legacy" && !loaded.needsPersist && loaded.persistenceError === null, `${label}: migration must acknowledge durable v7.`);
     equal(pickLegacy(loaded.state), legacy, `${label}: all eight populated canonical legacy slices must survive unchanged.`);
     assertSafeProductDefaults(loaded.state, label);
     assert(!client.values.has(v2Key), `${label}: v2 is removed after successful migration.`);
     const durable = client.values.get(BLOOM_STATE_STORAGE_KEY);
-    assert(durable !== undefined, `${label}: migrated v6 must remain durable.`);
-    equal(JSON.parse(durable), { version: 6, savedAt: now().toISOString(), state: loaded.state }, `${label}: durable migration envelope must match the returned state.`);
+    assert(durable !== undefined, `${label}: migrated v7 must remain durable.`);
+    equal(JSON.parse(durable), { version: 7, savedAt: now().toISOString(), state: loaded.state }, `${label}: durable migration envelope must match the returned state.`);
     const second = await loadBloomLocalState(client, now);
     assert(second.status === "success" && second.source === "current" && !second.needsPersist, `${label}: reload must not repeat migration.`);
     equal(second.state, loaded.state, `${label}: migration must preserve its canonical result on reload.`);
@@ -131,7 +132,7 @@ async function verifyPriorActiveAttemptMigrations() {
     const client = new ProductTestStorage();
     client.values.set(key, envelope(version, previous));
     const loaded = await loadBloomLocalState(client, now);
-    assert(loaded.status === "success" && loaded.source === "legacy" && !loaded.needsPersist, `v${version}: active attempts must migrate directly to v6.`);
+    assert(loaded.status === "success" && loaded.source === "legacy" && !loaded.needsPersist, `v${version}: active attempts must migrate directly to v7.`);
     equal(loaded.state, active, `v${version}: remove only the old active counter, preserving the start times, baseline, historical progress, and all other facts.`);
     assert(loaded.state.resetJourney.status === "active" && !("completedDays" in loaded.state.resetJourney.currentAttempt), `v${version}: migration must retain the active lifecycle without persisting or inventing elapsed progress.`);
     assert(!client.values.has(key) && client.values.has(BLOOM_STATE_STORAGE_KEY), `v${version}: migrated active state must be durable before its source is cleaned.`);
@@ -148,11 +149,11 @@ async function verifyMigrationWriteFailureAndRetry() {
   assert(failed.status === "success" && failed.source === "legacy" && failed.needsPersist && failed.persistenceError !== null, "Failed v2 migration must report usable legacy state with an unacknowledged write.");
   equal(pickLegacy(failed.state), legacy, "Migration write failure must not discard populated legacy data.");
   assertSafeProductDefaults(failed.state, "failed v2 migration");
-  assert(client.values.get(v2Key) === raw && !client.values.has(BLOOM_STATE_STORAGE_KEY), "Failed v6 write must leave original v2 byte-for-byte and no fake durable v6.");
-  assert(!client.operations.includes(`remove:${v2Key}`), "A failed v6 write must not even attempt v2 cleanup.");
+  assert(client.values.get(v2Key) === raw && !client.values.has(BLOOM_STATE_STORAGE_KEY), "Failed v7 write must leave original v2 byte-for-byte and no fake durable v7.");
+  assert(!client.operations.includes(`remove:${v2Key}`), "A failed v7 write must not even attempt v2 cleanup.");
   client.failCurrentWrite = false;
   const retried = await loadBloomLocalState(client, now);
-  assert(retried.status === "success" && !retried.needsPersist && !client.values.has(v2Key), "Retrying migration must eventually save v6 and clean v2.");
+  assert(retried.status === "success" && !retried.needsPersist && !client.values.has(v2Key), "Retrying migration must eventually save v7 and clean v2.");
   equal(pickLegacy(retried.state), legacy, "Migration retry must preserve the same legacy facts.");
 }
 
@@ -164,44 +165,55 @@ async function verifyMigrationDurabilityBeforeCleanup() {
   let settled = false;
   const loading = loadBloomLocalState(client, now).then((result) => { settled = true; return result; });
   await gate.started;
-  assert(!settled && client.values.get(v2Key) === raw && !client.values.has(BLOOM_STATE_STORAGE_KEY), "While the v6 write is unresolved, migration must keep v2 and withhold success.");
-  assert(!client.operations.includes(`remove:${v2Key}`), "Legacy cleanup cannot start before the v6 write settles.");
+  assert(!settled && client.values.get(v2Key) === raw && !client.values.has(BLOOM_STATE_STORAGE_KEY), "While the v7 write is unresolved, migration must keep v2 and withhold success.");
+  assert(!client.operations.includes(`remove:${v2Key}`), "Legacy cleanup cannot start before the v7 write settles.");
   gate.release();
   const loaded = await loading;
   assert(loaded.status === "success" && !loaded.needsPersist, "Migration should acknowledge after the held write completes.");
   const durableIndex = client.operations.indexOf(`durable:${BLOOM_STATE_STORAGE_KEY}`);
   const removalIndex = client.operations.indexOf(`remove:${v2Key}`);
-  assert(durableIndex >= 0 && removalIndex > durableIndex, "v2 cleanup must be ordered strictly after durable v6.");
+  assert(durableIndex >= 0 && removalIndex > durableIndex, "v2 cleanup must be ordered strictly after durable v7.");
 
   const cleanupFailure = new ProductTestStorage();
   cleanupFailure.values.set(v2Key, raw);
   cleanupFailure.failRemovalKey = v2Key;
   const retained = await loadBloomLocalState(cleanupFailure, now);
-  assert(retained.status === "success" && !retained.needsPersist && cleanupFailure.values.get(v2Key) === raw && cleanupFailure.values.has(BLOOM_STATE_STORAGE_KEY), "Cleanup failure must retain both durable v6 and its original v2 fallback.");
+  assert(retained.status === "success" && !retained.needsPersist && cleanupFailure.values.get(v2Key) === raw && cleanupFailure.values.has(BLOOM_STATE_STORAGE_KEY), "Cleanup failure must retain both durable v7 and its original v2 fallback.");
   const reloaded = await loadBloomLocalState(cleanupFailure, now);
-  assert(reloaded.status === "success" && reloaded.source === "current", "A leftover v2 key must not override durable v6 after cleanup failure.");
+  assert(reloaded.status === "success" && reloaded.source === "current", "A leftover v2 key must not override durable v7 after cleanup failure.");
 }
 
 async function verifyStoragePrecedenceAndRawCompatibility() {
   const legacy = pickLegacy(createPopulatedState());
   const current = createPopulatedState();
   current.debug.dateOffsetDays = 30;
+  const v6 = { ...createPopulatedState(), debug: { dateOffsetDays: 29 } };
   const v5 = { ...createPopulatedState(), debug: { dateOffsetDays: 28 } };
   const v4 = { ...createPopulatedState(), debug: { dateOffsetDays: 27 } };
   const v3 = { ...createPopulatedState(), debug: { dateOffsetDays: 25 } };
   const v2 = { ...legacy, debug: { dateOffsetDays: 20 } };
   const v1 = { ...legacy, debug: { dateOffsetDays: 10 } };
   const client = new ProductTestStorage();
-  client.values.set(BLOOM_STATE_STORAGE_KEY, envelope(6, current));
+  client.values.set(BLOOM_STATE_STORAGE_KEY, envelope(7, current));
+  client.values.set(v6Key, envelope(6, v6));
   client.values.set(v5Key, envelope(5, v5));
   client.values.set(v4Key, envelope(4, v4));
   client.values.set(v3Key, envelope(3, v3));
   client.values.set(v2Key, envelope(2, v2));
   client.values.set(v1Key, JSON.stringify(v1));
   const first = await loadBloomLocalState(client, now);
-  assert(first.status === "success" && first.state.debug.dateOffsetDays === 30 && first.source === "current", "v6 must take precedence over v5, v4, v3, v2 and v1.");
-  equal(first.state, current, "v6 precedence must preserve populated new facts.");
-  equal(client.readKeys, [BLOOM_STATE_STORAGE_KEY], "A present v6 payload must prevent fallback reads.");
+  assert(first.status === "success" && first.state.debug.dateOffsetDays === 30 && first.source === "current", "v7 must take precedence over v6, v5, v4, v3, v2 and v1.");
+  equal(first.state, current, "v7 precedence must preserve populated new facts.");
+  equal(client.readKeys, [BLOOM_STATE_STORAGE_KEY], "A present v7 payload must prevent fallback reads.");
+
+  const phase1g = new ProductTestStorage();
+  phase1g.values.set(v6Key, envelope(6, v6));
+  phase1g.values.set(v5Key, envelope(5, v5));
+  phase1g.values.set(v4Key, envelope(4, v4));
+  const migratedV6 = await loadBloomLocalState(phase1g, now);
+  assert(migratedV6.status === "success" && migratedV6.source === "legacy", "A v6 envelope must migrate ahead of v5 and older versions.");
+  equal(migratedV6.state, v6, "v6 migration must preserve all facts and mark existing Reset violations recorded without inventing rollback metadata.");
+  assert(!phase1g.readKeys.includes(v5Key) && !phase1g.readKeys.includes(v4Key), "v6 migration must not read or merge older versions.");
 
   const phase1e = new ProductTestStorage();
   phase1e.values.set(v5Key, envelope(5, v5));
@@ -237,7 +249,7 @@ async function verifyStoragePrecedenceAndRawCompatibility() {
   assert(migrated.status === "success" && migrated.state.debug.dateOffsetDays === 20, "v2 must take precedence over older raw v1.");
   assert(!previous.readKeys.includes(v1Key), "Migration must not merge older v1 facts into valid v2.");
 
-  for (const key of [BLOOM_STATE_STORAGE_KEY, v5Key, v4Key, v3Key, v2Key, v1Key]) {
+  for (const key of [BLOOM_STATE_STORAGE_KEY, v6Key, v5Key, v4Key, v3Key, v2Key, v1Key]) {
     const rawClient = new ProductTestStorage();
     rawClient.values.set(key, JSON.stringify(createPopulatedState()));
     const rawLoaded = await loadBloomLocalState(rawClient, now);
@@ -247,24 +259,24 @@ async function verifyStoragePrecedenceAndRawCompatibility() {
   }
 
   const relocated = new ProductTestStorage();
-  relocated.values.set(v2Key, envelope(6, current));
+  relocated.values.set(v2Key, envelope(7, current));
   const relocation = await loadBloomLocalState(relocated, now);
   assert(relocation.status === "success" && relocation.source === "legacy", "A current envelope in an old key should relocate safely.");
-  equal(relocation.state, current, "Envelope version, not key name, must preserve valid v6 facts during relocation.");
+  equal(relocation.state, current, "Envelope version, not key name, must preserve valid v7 facts during relocation.");
 }
 
 async function verifyAllVersionDeletion() {
   const client = new ProductTestStorage();
-  const removedKeys = [BLOOM_STATE_STORAGE_KEY, v5Key, v4Key, v3Key, v2Key, v1Key, `${BLOOM_CORRUPT_BACKUP_PREFIX}v2`, `${BLOOM_CORRUPT_BACKUP_PREFIX}v3`, `${BLOOM_CORRUPT_BACKUP_PREFIX}v4`, `${BLOOM_CORRUPT_BACKUP_PREFIX}v5`, `${BLOOM_CORRUPT_BACKUP_PREFIX}v6`];
+  const removedKeys = [BLOOM_STATE_STORAGE_KEY, v6Key, v5Key, v4Key, v3Key, v2Key, v1Key, `${BLOOM_CORRUPT_BACKUP_PREFIX}v2`, `${BLOOM_CORRUPT_BACKUP_PREFIX}v3`, `${BLOOM_CORRUPT_BACKUP_PREFIX}v4`, `${BLOOM_CORRUPT_BACKUP_PREFIX}v5`, `${BLOOM_CORRUPT_BACKUP_PREFIX}v6`, `${BLOOM_CORRUPT_BACKUP_PREFIX}v7`];
   for (const key of removedKeys) client.values.set(key, "preserved until deletion");
   client.values.set("another-app", "keep");
   await createBloomStatePersistenceCoordinator(client, now).deleteAll();
-  equal([...client.values.entries()], [["another-app", "keep"]], "Delete-all must remove v1/v2/v3/v4/v5/v6 and every Bloom backup while preserving unrelated keys.");
-  assert(client.operations[client.operations.length - 1] === `remove:${BLOOM_STATE_STORAGE_KEY}`, "Current v6 must be deleted last, preserving existing failure recovery ordering.");
+  equal([...client.values.entries()], [["another-app", "keep"]], "Delete-all must remove v1/v2/v3/v4/v5/v6/v7 and every Bloom backup while preserving unrelated keys.");
+  assert(client.operations[client.operations.length - 1] === `remove:${BLOOM_STATE_STORAGE_KEY}`, "Current v7 must be deleted last, preserving existing failure recovery ordering.");
 }
 
 async function verifyFutureAndMalformedEnvelopePreservation() {
-  for (const key of [BLOOM_STATE_STORAGE_KEY, v5Key, v4Key, v3Key, v2Key, v1Key]) {
+  for (const key of [BLOOM_STATE_STORAGE_KEY, v6Key, v5Key, v4Key, v3Key, v2Key, v1Key]) {
     const client = new ProductTestStorage();
     const raw = envelope(99, { privateFact: "future schema must survive" });
     client.values.set(key, raw);
@@ -274,9 +286,9 @@ async function verifyFutureAndMalformedEnvelopePreservation() {
     assert(client.values.get(key) === raw, "Future bytes must remain untouched at their original key.");
     assertBackup(client, result.backupKey, raw, key);
   }
-  for (const version of [2, 3, 4, 5, 6]) {
+  for (const version of [2, 3, 4, 5, 6, 7]) {
     const client = new ProductTestStorage();
-    const key = version === 2 ? v2Key : version === 3 ? v3Key : version === 4 ? v4Key : version === 5 ? v5Key : BLOOM_STATE_STORAGE_KEY;
+    const key = version === 2 ? v2Key : version === 3 ? v3Key : version === 4 ? v4Key : version === 5 ? v5Key : version === 6 ? v6Key : BLOOM_STATE_STORAGE_KEY;
     const raw = JSON.stringify({ version, savedAt: "2026-02-30T10:00:00.000Z", state: createPopulatedState() });
     client.values.set(key, raw);
     const result = await loadBloomLocalState(client, now);
@@ -384,7 +396,7 @@ async function verifyMalformedProductRecords() {
     assert(client.values.get(BLOOM_STATE_STORAGE_KEY) === raw, `${invalidCase.label}: preserve original bytes, not defaults or a dropped record.`);
     assertBackup(client, result.backupKey, raw, BLOOM_STATE_STORAGE_KEY);
   }
-  console.log(`Bloom v6 product persistence: ${cases.length} malformed-state cases rejected and preserved.`);
+  console.log(`Bloom v7 product persistence: ${cases.length} malformed-state cases rejected and preserved.`);
 }
 
 function createValidLifecycleStates(): Array<[string, BloomLocalState]> {
@@ -452,7 +464,7 @@ export function createPopulatedState(): BloomLocalState {
   state.resetJourney = {
     id: "reset-journey", durationDays: 15, status: "completed", startedAt: "2026-02-01T00:00:00.000Z", bestCompletedDays: 15,
     pastAttempts: [{ id: "attempt-past", status: "restarted", startedAt: "2026-02-01T00:00:00.000Z", endedAt: "2026-02-03T10:10:00.000Z", completedDays: 2, restartViolationId: "reset-violation" }],
-    violations: [{ id: "reset-violation", attemptId: "attempt-past", occurredAt: "2026-02-03T10:10:00.000Z", recordedAt: "2026-02-03T10:11:00.000Z", source: { kind: "masturbationSession", sessionId: "source-session" }, reason: "masturbationWithExplicitContent" }],
+    violations: [{ status: "recorded", id: "reset-violation", attemptId: "attempt-past", occurredAt: "2026-02-03T10:10:00.000Z", recordedAt: "2026-02-03T10:11:00.000Z", source: { kind: "masturbationSession", sessionId: "source-session" }, reason: "masturbationWithExplicitContent" }],
     baseline: { id: "baseline", capturedAt: "2026-01-31T00:00:00.000Z", averageIntervalSeconds: 86400.5, averageErectionQuality: 6.5, explicitContentSessionRatio: 0.25, selfReport: { urgeIntensity: "medium", abilityToPause: "sometimesPossible", spontaneousOrMorningErections: "sometimes" } },
     completedAt: "2026-02-18T10:10:00.000Z",
     currentAttempt: { id: "attempt-current", status: "completed", startedAt: "2026-02-03T10:10:00.000Z", completedAt: "2026-02-18T10:10:00.000Z", completedDays: 15 },
@@ -508,7 +520,29 @@ function pickLegacy(state: BloomLocalState) {
 }
 
 function envelope(version: number, state: unknown) {
-  return JSON.stringify({ version, savedAt: now().toISOString(), state });
+  return JSON.stringify({ version, savedAt: now().toISOString(), state: version >= 3 && version <= 6 ? withoutResetViolationUndoFields(state) : state });
+}
+
+// Older snapshots predate Reset undo. Fixture serialization must not smuggle
+// current status or rollback metadata into historical migration coverage.
+export function withoutResetViolationUndoFields(value: unknown): unknown {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return value;
+  const state = value as Record<string, unknown>;
+  const reset = state.resetJourney;
+  if (typeof reset !== "object" || reset === null || Array.isArray(reset)) return value;
+  const journey = reset as Record<string, unknown>;
+  if (!Array.isArray(journey.violations)) return value;
+  return {
+    ...state,
+    resetJourney: {
+      ...journey,
+      violations: journey.violations.map((entry: unknown) => {
+        if (typeof entry !== "object" || entry === null || Array.isArray(entry)) return entry;
+        const { status: _status, undoneAt: _undoneAt, bestCompletedDaysBefore: _bestBefore, ...record } = entry as Record<string, unknown>;
+        return record;
+      })
+    }
+  };
 }
 
 function replaceAtPath(root: unknown, path: string, value: unknown, remove: boolean) {
@@ -569,7 +603,7 @@ class ProductTestStorage implements StorageClient {
       const held = this.heldWrite;
       this.heldWrite = null;
       if (held !== null) { held.started(); await held.wait; }
-      if (this.failCurrentWrite) throw new Error("Synthetic v6 write failure.");
+      if (this.failCurrentWrite) throw new Error("Synthetic v7 write failure.");
     }
     this.values.set(key, value);
     this.operations.push(`durable:${key}`);

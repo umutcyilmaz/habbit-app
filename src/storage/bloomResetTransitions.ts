@@ -1,7 +1,7 @@
 import type { BehaviorEventSource } from "../domain/models/BehaviorEventSource";
 import type { ContentFreeState } from "../domain/models/ContentFreeState";
 import type { ResetBaseline } from "../domain/models/ResetBaseline";
-import type { ResetJourney, ResetViolation, RestartedResetAttempt } from "../domain/models/ResetJourney";
+import type { ResetCompletedDays, ResetJourney, ResetViolation, RestartedResetAttempt } from "../domain/models/ResetJourney";
 import type { ISODateString, UUID } from "../domain/models/shared";
 import { getResetProgress } from "../domain/reset/getResetProgress";
 import { normalizeContentFree, normalizeResetBaseline, normalizeResetJourney, normalizeResetViolation } from "./bloomProductStateSchema";
@@ -22,6 +22,11 @@ export type RecordActiveResetViolationInput = {
   source: BehaviorEventSource;
   reason: ResetViolation["reason"];
   contentFreeViolationId?: UUID;
+};
+
+export type UndoActiveResetViolationInput = {
+  violationId: UUID;
+  undoneAt: ISODateString;
 };
 
 // Complete preparation and start one attempt using only supplied facts.
@@ -89,9 +94,12 @@ export function recordActiveResetViolationState(
       occurredAt: input.occurredAt,
       recordedAt: input.recordedAt,
       source: input.source,
-      reason: input.reason
+      reason: input.reason,
+      status: "recorded",
+      bestCompletedDaysBefore: reset.bestCompletedDays
     });
     if (reset.violations.some((existing) => existing.id === violation.id ||
+      existing.attemptId === input.replacementAttemptId ||
       sameBehaviorSource(existing.source, violation.source))) return state;
     const { occurredAt, recordedAt, source } = violation;
     if (Date.parse(occurredAt) < Date.parse(reset.currentAttempt.startedAt)) return state;
@@ -155,6 +163,104 @@ export function recordActiveResetViolationState(
   } catch {
     return state;
   }
+}
+
+// Reverse only the latest effective restart. Tombstones keep source identities
+// handled, while the former active attempt resumes from its original start.
+export function undoActiveResetViolationState(
+  state: BloomLocalState,
+  input: UndoActiveResetViolationInput
+): BloomLocalState {
+  const reset = state.resetJourney;
+  if (reset.status !== "active") return state;
+
+  try {
+    if (typeof input !== "object" || input === null || Array.isArray(input)) return state;
+    const keys = Object.keys(input);
+    if (keys.length !== 2 || !keys.includes("violationId") || !keys.includes("undoneAt")) return state;
+    const target = reset.violations.find((violation) => violation.id === input.violationId);
+    if (target === undefined || target.status !== "recorded") return state;
+    normalizeResetJourney(reset);
+    const { undoneAt } = input;
+    if (!isValidBloomIsoTimestamp(undoneAt) || Date.parse(undoneAt) < Date.parse(target.recordedAt)) return state;
+
+    const effective = reset.violations.filter((violation) => violation.status === "recorded");
+    const archived = reset.pastAttempts[reset.pastAttempts.length - 1];
+    if (effective[effective.length - 1] !== target || archived?.status !== "restarted" ||
+      archived.restartViolationId !== target.id || archived.id !== target.attemptId ||
+      archived.endedAt !== target.occurredAt || reset.currentAttempt.startedAt !== target.occurredAt ||
+      effective.some((violation) => violation.attemptId === reset.currentAttempt.id)) return state;
+
+    const pastAttempts = reset.pastAttempts.slice(0, -1);
+    const bestCompletedDays = bestBeforeRestart(reset.bestCompletedDays, pastAttempts, archived, target);
+    if (bestCompletedDays === null) return state;
+
+    // Source linkage is checked even for masturbation-only events. An
+    // unexpected linked Content-Free record makes a Reset-only undo unsafe.
+    let contentFree: ContentFreeState = state.contentFree;
+    normalizeContentFree(contentFree);
+    const linked = contentFree.violations.filter((violation) => sameBehaviorSource(violation.source, target.source));
+    if (target.reason === "masturbation") {
+      if (linked.length !== 0) return state;
+    } else if (linked.length === 0) {
+      // No record is not itself proof that Content-Free was unaffected. Use
+      // activation boundaries to rule out an active program at logging time.
+      // Equality at a boundary is ambiguous, so conservatively reject it.
+      const loggedAt = Date.parse(target.recordedAt);
+      if ((contentFree.status === "active" && Date.parse(contentFree.activatedAt) <= loggedAt) ||
+        contentFree.pastActivations.some((activation) =>
+          Date.parse(activation.startedAt) <= loggedAt && loggedAt <= Date.parse(activation.endedAt))) return state;
+    } else {
+      const violation = linked[0];
+      if (linked.length !== 1 || violation === undefined || violation.status !== "recorded" ||
+        contentFree.status !== "active" || violation.activationId !== contentFree.activationId ||
+        violation.occurredAt !== target.occurredAt || violation.recordedAt !== target.recordedAt ||
+        contentFree.currentStreakStartedAt !== violation.occurredAt ||
+        Date.parse(violation.streakBefore.currentStreakStartedAt) > Date.parse(violation.occurredAt)) return state;
+      const effectiveContent = contentFree.violations.filter((entry) =>
+        entry.status === "recorded" && entry.activationId === violation.activationId);
+      if (effectiveContent[effectiveContent.length - 1] !== violation ||
+        effectiveContent.some((entry) => Date.parse(entry.occurredAt) > Date.parse(violation.occurredAt))) return state;
+      const endedSeconds = Math.floor((Date.parse(violation.occurredAt) - Date.parse(violation.streakBefore.currentStreakStartedAt)) / 1000);
+      if (contentFree.bestStreakSeconds !== Math.max(violation.streakBefore.bestStreakSeconds, endedSeconds)) return state;
+      contentFree = {
+        ...contentFree,
+        currentStreakStartedAt: violation.streakBefore.currentStreakStartedAt,
+        bestStreakSeconds: violation.streakBefore.bestStreakSeconds,
+        violations: contentFree.violations.map((entry) => entry === violation ? { ...entry, status: "undone", undoneAt } : entry)
+      };
+      normalizeContentFree(contentFree);
+    }
+
+    const resetJourney: ResetJourney = {
+      ...reset,
+      bestCompletedDays,
+      pastAttempts,
+      currentAttempt: { id: archived.id, status: "active", startedAt: archived.startedAt },
+      violations: reset.violations.map((violation) => violation === target ? { ...violation, status: "undone", undoneAt } : violation)
+    };
+    normalizeResetJourney(resetJourney);
+    return { ...state, resetJourney, contentFree };
+  } catch {
+    return state;
+  }
+}
+
+function bestBeforeRestart(
+  currentBest: ResetCompletedDays,
+  remaining: ResetJourney["pastAttempts"],
+  archived: RestartedResetAttempt,
+  violation: ResetViolation
+): ResetCompletedDays | null {
+  const historicalBest = remaining.reduce<ResetCompletedDays>((best, attempt) =>
+    attempt.completedDays > best ? attempt.completedDays : best, 0);
+  const prior = violation.bestCompletedDaysBefore;
+  if (prior !== undefined) {
+    return prior >= historicalBest && currentBest === Math.max(prior, archived.completedDays) ? prior : null;
+  }
+  // Legacy records lack a snapshot. If the archived attempt tied a best that
+  // remaining history cannot explain, the prior summary is unknowable.
+  return currentBest > archived.completedDays || currentBest === historicalBest ? currentBest : null;
 }
 
 function sameBehaviorSource(left: BehaviorEventSource, right: BehaviorEventSource): boolean {

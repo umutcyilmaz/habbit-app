@@ -6,7 +6,7 @@ import type { ISODateString, UUID } from "./shared";
 export type IncompleteResetDays = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14;
 export type ResetCompletedDays = IncompleteResetDays | 15;
 
-export type ResetViolation = {
+type ResetViolationRecord = {
   id: UUID;
   attemptId: UUID;
   occurredAt: ISODateString;
@@ -15,7 +15,16 @@ export type ResetViolation = {
   // A combined event restarts Reset once; its source also identifies the
   // Content-Free violation if Content-Free is active.
   reason: "masturbation" | "intentionalExplicitContent" | "masturbationWithExplicitContent";
+  // Prior best may include a historical summary not represented by attempts.
+  // New logs capture it exactly; older migrated records leave it unknown.
+  bestCompletedDaysBefore?: ResetCompletedDays;
 };
+
+export type ResetViolation = ResetViolationRecord &
+  (
+    | { status: "recorded" }
+    | { status: "undone"; undoneAt: ISODateString }
+  );
 
 type ResetAttemptIdentity = {
   id: UUID;

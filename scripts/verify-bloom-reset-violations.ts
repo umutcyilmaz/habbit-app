@@ -17,13 +17,13 @@ const reasons = ["masturbation", "intentionalExplicitContent", "masturbationWith
 type ViolationInput = Parameters<typeof recordActiveResetViolationState>[1];
 
 export async function verifyBloomResetViolations() {
-  assert(BLOOM_PERSISTENCE_VERSION === 6 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v6", "Writing existing Reset/Content-Free violation shapes must retain persistence v6 and its key.");
+  assert(BLOOM_PERSISTENCE_VERSION === 7 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v7", "Recorded Reset violations must use canonical v7 persistence and its key.");
   await verifyAllReasonTransitions();
   verifyProgressAndStreakBoundaries();
   verifyDeduplicationAndSameDayEvents();
   const rejected = verifyAtomicRejections();
   const corrupted = await verifyMalformedLinkedRecords();
-  console.log(`Bloom Reset violation verification passed (${rejected} rejected atomic transitions; ${corrupted} malformed linked-record cases; all reasons/source kinds, elapsed boundaries, source deduplication, and v6 round trips).`);
+  console.log(`Bloom Reset violation verification passed (${rejected} rejected atomic transitions; ${corrupted} malformed linked-record cases; all reasons/source kinds, elapsed boundaries, source deduplication, and v7 round trips).`);
 }
 
 async function verifyAllReasonTransitions() {
@@ -45,7 +45,8 @@ async function verifyAllReasonTransitions() {
           };
           equal(updated.resetJourney.pastAttempts, [...reset.pastAttempts, archived], "Restart must append one elapsed-time archive while preserving all prior completed/restarted attempts.");
           equal(updated.resetJourney.violations, [...reset.violations, {
-            id: input.violationId, attemptId: reset.currentAttempt.id, occurredAt, recordedAt, source, reason
+            id: input.violationId, attemptId: reset.currentAttempt.id, occurredAt, recordedAt, source, reason,
+            status: "recorded", bestCompletedDaysBefore: reset.bestCompletedDays
           }], "Restart must append exactly one violation with the original attempt and shared behavior identity.");
           equal(updated.resetJourney.currentAttempt, { id: input.replacementAttemptId, status: "active", startedAt: occurredAt }, "Replacement attempts persist identity and event start time without an active progress counter.");
           assert(!("completedDays" in updated.resetJourney.currentAttempt), "A new active attempt must never gain a persisted completed-day counter.");
@@ -87,8 +88,8 @@ async function verifyAllReasonTransitions() {
           const client = new ViolationTestStorage();
           await persistBloomLocalState(updated, client, now);
           const loaded = await loadBloomLocalState(client, now);
-          assert(loaded.status === "success" && loaded.source === "current" && loaded.state.resetJourney.status === "active", "Produced v6 violation state must reload as active without completion or migration.");
-          equal(loaded.state, updated, "Reset archives, shared sources, Content-Free snapshots, and unrelated facts must survive v6 round trip.");
+          assert(loaded.status === "success" && loaded.source === "current" && loaded.state.resetJourney.status === "active", "Produced v7 violation state must reload as active without completion or migration.");
+          equal(loaded.state, updated, "Reset archives, shared sources, Content-Free snapshots, and unrelated facts must survive v7 round trip.");
           assert(recordActiveResetViolationState(loaded.state, input) === loaded.state, "Source deduplication must survive persistence and reload.");
         }
       }
@@ -280,7 +281,7 @@ async function verifyMalformedLinkedRecords() {
   return cases.length + 4;
 }
 
-function createActiveState(retainedHistory: boolean, contentActive: boolean): BloomLocalState {
+export function createActiveState(retainedHistory: boolean, contentActive: boolean): BloomLocalState {
   const state = createPopulatedState();
   const previous = state.resetJourney;
   assert(previous.status === "completed" && state.contentFree.status === "active", "Populated historical fixture required.");
@@ -320,7 +321,7 @@ function acceptedOnboarding(): Extract<BloomLocalState["productOnboarding"], { s
   return { status: "completed", result, planAcceptance: { acceptedAt: "2026-08-01T10:01:00.000Z", recommendation: result.recommendation } };
 }
 
-function createInput(reason: ResetViolation["reason"], source: BehaviorEventSource = sourceFor("manual", "new-manual-event")): ViolationInput {
+export function createInput(reason: ResetViolation["reason"], source: BehaviorEventSource = sourceFor("manual", "new-manual-event")): ViolationInput {
   return { violationId: "new-reset-violation", replacementAttemptId: "replacement-attempt", occurredAt, recordedAt, source, reason, ...(reason === "masturbation" ? {} : { contentFreeViolationId: "new-content-violation" }) };
 }
 
@@ -343,7 +344,7 @@ function replaceAtPath(root: unknown, path: string, value: unknown, remove: bool
 
 async function assertCorruptPreserved(state: BloomLocalState, label: string) {
   assert(!validateAndNormalizeBloomState(state).success, `${label}: malformed linked records must fail direct validation rather than be repaired.`);
-  const raw = JSON.stringify({ version: 6, savedAt: now().toISOString(), state });
+  const raw = JSON.stringify({ version: 7, savedAt: now().toISOString(), state });
   const client = new ViolationTestStorage();
   client.values.set(BLOOM_STATE_STORAGE_KEY, raw);
   const loaded = await loadBloomLocalState(client, now);

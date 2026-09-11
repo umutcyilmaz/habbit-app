@@ -14,8 +14,10 @@ export {
 export {
   recordActiveResetViolationState,
   startResetFromBaselineState,
+  undoActiveResetViolationState,
   type RecordActiveResetViolationInput,
-  type StartResetFromBaselineInput
+  type StartResetFromBaselineInput,
+  type UndoActiveResetViolationInput
 } from "./bloomResetTransitions";
 import {
   isValidBloomDateKey,

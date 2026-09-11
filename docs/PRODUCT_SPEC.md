@@ -16,6 +16,8 @@ Phase 1F completes the supplied pre-reset baseline and starts the 15-day attempt
 
 Phase 1G records an active Reset violation and restarts its attempt, atomically restarting an active Content-Free streak when intentional explicit content is involved. It writes existing v6 shapes; the persistence version and migrations remain unchanged.
 
+Phase 1H corrects the latest mistaken Reset violation through explicit atomic undo. V7 persistence retains recorded/undone Reset violations and prior-best rollback data for new logs. No screen, navigation, or legacy behavior changes.
+
 The Expo Router architecture and local-first approach remain technical constraints. Older inventories in [ARCHITECTURE.md](ARCHITECTURE.md) and product references in [DECISIONS.md](DECISIONS.md) describe earlier stages; they do not require a new flow to depend on Protect. Existing navigation remains unchanged in this phase.
 
 ## Product Summary
@@ -64,7 +66,7 @@ Its state records whether it is active, the current streak start, best streak, a
 - Undo corrects a mistaken log. It does not erase a Masturbation Session or create an event claiming the opposite behavior.
 - A violation originating from a Masturbation Session retains that session's identity so future mutation logic can deduplicate it. Standalone logs retain their own stable identity.
 
-Phase 1G applies Content-Free violations only as part of the active Reset transition. Intentional explicit content restarts the current streak while Content-Free stays active, preserving its activation and history. The ended streak can increase the best duration, and the record retains the previous streak start and original best duration for later correction. Standalone Content-Free logging, undo, and historical replay remain deferred. Repeated source identities are rejected; same-day calendar collapse is deferred until timezone semantics are modeled.
+Phase 1G applies Content-Free violations only as part of the active Reset transition. Intentional explicit content restarts the current streak while Content-Free stays active, preserving its activation and history. The ended streak can increase the best duration, and the record retains the previous streak start and original best duration. Phase 1H uses that snapshot only when safely undoing the linked latest Reset event; both violations remain as undone history. Standalone Content-Free logging and arbitrary historical replay remain deferred. Recorded and undone source identities prevent stale retries; same-day calendar collapse awaits timezone semantics.
 
 ## 15-Day Reset
 
@@ -98,13 +100,23 @@ A valid violation archives the old attempt with its elapsed completed-day count 
 
 Masturbation alone leaves Content-Free unchanged. Content-involved events affect Content-Free only when it is already active: one violation shares the Reset event's source identity, and the streak restarts without a new activation. All required IDs and timestamps are supplied explicitly. Invalid input, conflicting IDs, a repeated source identity, or an event before the current attempt or affected Content-Free streak start leaves the entire state unchanged. Reset and Content-Free changes form one atomic snapshot; the transition itself does not write storage.
 
-Reporting behavior does not create a Masturbation Session or implement its future start guard. Source identity (`logActionId` for manual events or `sessionId` for session events) prevents applying the same behavior twice, including retries with new record IDs. Undo remains a later explicit transition.
+Reporting behavior does not create a Masturbation Session or implement its future start guard. Source identity (`logActionId` for manual events or `sessionId` for session events) prevents applying the same behavior twice, including retries with new record IDs after undo.
+
+### Correcting a mistaken violation
+
+Explicit undo restores the previous active Reset attempt with its original ID and start time, removes the false restart archive, and keeps the violation as an undone tombstone. It preserves the journey's identity/start, baseline, earlier history, and onboarding acceptance. Elapsed progress again uses the restored attempt start; no session, baseline, or completion is created.
+
+Undo is limited to the latest effective restart with a provable relationship to the current attempt. New logs capture prior best progress so rollback can retain historical summaries that are not represented by individual attempts. Older records without that fact can be undone only when the previous best is uniquely recoverable; ambiguous cases are no-ops.
+
+Masturbation-only undo leaves Content-Free unchanged. For a linked content event, Content-Free must still have the same active activation and the target must remain its latest effective streak break. Both streak fields are restored from the original snapshot, and both violation records become undone in one transaction. If Content-Free was unaffected, a later unrelated activation remains unchanged. Missing or contradictory links, later effective activity, or a changed activation reject the entire undo. Full safeguards are in [DATA_MODEL.md](DATA_MODEL.md#undoing-the-latest-violation).
+
+Newer events can be undone first, then earlier events when both systems remain safely reversible. Repeating undo preserves the first undo timestamp; a stale retry cannot reapply an undone source. A genuinely new behavior needs a new source identity. Arbitrary history editing and replay remain outside this phase.
 
 Reset starts only when its baseline is completed. The caller supplies the baseline, attempt ID, and one start timestamp used for both journey and attempt. Repeating the start is a no-op. Existing history and best progress are preserved, while Content-Free, Tracking, onboarding acceptance, and legacy systems remain unchanged.
 
 Progress advances with elapsed time even when the app is closed. Each day is a full 24 hours from the current attempt's start; users do not complete days manually. Before 24 hours progress is 0 completed days / Day 1, at 24 hours it is 1 / Day 2, and at 15 full days it is 15 completed days with the period complete. Progress clamps safely between 0 and 15. Local calendar dates and timezone/DST changes do not affect these durations.
 
-The selector reports period completion without changing persisted status. Loading, hydration, and validation do not automatically complete Reset. Reaching 15 elapsed days ends the period even if `active` has not yet been replaced by a later lifecycle action. Completion/post-assessment transitions, undo, session guards, and Tracking access changes remain outside Phase 1G.
+The selector reports period completion without changing persisted status. Loading, hydration, validation, and migration do not automatically complete or undo Reset. Reaching 15 elapsed days ends the period even if `active` has not yet been replaced by a later lifecycle action. Completion/post-assessment transitions, session guards, and Tracking access changes remain outside Phase 1H.
 
 ## Reset Baseline and Post-Reset Assessment
 
@@ -181,10 +193,10 @@ Initial acceptance requires an inactive Reset and no unfinished session; non-tra
 | Protection-dependent journey decisions | Protect is deferred and is not required by new flows. Existing decisions still run until routing is deliberately changed. |
 | Separate Pause and Arousal Control drafts/logs | Normal Masturbation Sessions with optional timed pauses, plus the separate acute Urge Control tool. No automatic reinterpretation of legacy records. |
 | Existing Arousal flow can start without a Reset restriction | The future Masturbation Session start guard applies during active Reset. No existing start action changes in Phase 1B. |
-| Content-Free supports initial activation and atomic streak updates from active Reset violations | Standalone logging, undo/correction, historical replay, and same-day calendar collapse remain deferred. |
-| Transitional `BloomLocalState` and version-6 persistence | V3–v5 active attempts lose only their obsolete live day counter. Historical data and earlier onboarding migration rules remain preserved. |
+| Content-Free supports initial activation, linked Reset violations, and latest-event undo | Standalone logging, arbitrary historical replay, and same-day calendar collapse remain deferred. |
+| Transitional `BloomLocalState` and version-7 persistence | Old Reset violations become recorded without invented undo or rollback facts. Earlier active-counter and onboarding migrations remain supported. |
 | Five current tabs and `/reset/ten-day`, `/pause`, and Arousal routes | Keep Expo Router and all working routes now; new navigation is outside Phase 1B. |
 
 ## Out of Scope for the Transitional Foundation
 
-No UI redesign, Figma implementation, new screens, deleted flows, Protect changes, legacy onboarding replacement, navigation changes, session mutations or blocking, standalone Content-Free logging, violation undo, Reset completion/post-assessment transitions, post-Reset Tracking enablement, tracking-based Reset recommendations, backend, authentication, analytics, AI, or speculative framework is part of Phase 1G. Further phases require a separate task.
+No UI redesign, Figma implementation, new screens, deleted flows, Protect changes, legacy onboarding replacement, navigation changes, session mutations or blocking, standalone Content-Free logging, arbitrary history editing, Reset completion/post-assessment transitions, post-Reset Tracking enablement, tracking-based Reset recommendations, backend, authentication, analytics, AI, or speculative framework is part of Phase 1H. Further phases require a separate task.

@@ -10,19 +10,19 @@ import {
 } from "../src/storage/bloomStatePersistence";
 import { BLOOM_PERSISTENCE_VERSION, validateAndNormalizeBloomState } from "../src/storage/bloomStateSchema";
 import type { StorageClient } from "../src/storage/storageAdapters";
-import { createPopulatedState } from "./verify-bloom-product-persistence";
+import { createPopulatedState, withoutResetViolationUndoFields } from "./verify-bloom-product-persistence";
 
 const startedAt = "2026-09-01T12:00:00.000Z";
 const capturedAt = "2026-09-01T11:59:00.000Z";
 const now = () => new Date("2026-09-30T12:00:00.000Z");
-const historicalKeys = ["bloom.localState.v5", "bloom.localState.v4", "bloom.localState.v3", "bloom.localState.v2", "bloom.localState.v1"] as const;
-const v5Key = historicalKeys[0];
+const historicalKeys = ["bloom.localState.v6", "bloom.localState.v5", "bloom.localState.v4", "bloom.localState.v3", "bloom.localState.v2", "bloom.localState.v1"] as const;
+const v5Key = historicalKeys[1];
 const daySeconds = 86400;
 type StartInput = Parameters<typeof startResetFromBaselineState>[1];
 
 export async function verifyBloomResetBaseline() {
-  assert(BLOOM_PERSISTENCE_VERSION === 6 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v6", "Elapsed Reset attempts must use canonical v6 persistence.");
-  equal(BLOOM_LEGACY_STATE_STORAGE_KEYS, historicalKeys, "Migration must prefer v5 through v1 in descending order.");
+  assert(BLOOM_PERSISTENCE_VERSION === 7 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v7", "Elapsed Reset attempts must use canonical v7 persistence.");
+  equal(BLOOM_LEGACY_STATE_STORAGE_KEYS, historicalKeys, "Migration must prefer v6 through v1 in descending order.");
   verifyBaselineStart();
   const rejectedStarts = verifyRejectedStarts();
   verifyElapsedProgress();
@@ -31,7 +31,7 @@ export async function verifyBloomResetBaseline() {
   await verifyMigrationDurability();
   const corruptCases = await verifyCorruptResetPreservation();
   await verifyDeletionAndFuturePreservation();
-  console.log(`Bloom Reset baseline verification passed (${rejectedStarts} rejected starts; ${corruptCases} corrupt Reset cases; elapsed-time boundaries, unchanged histories, no automatic completion, and v3–v6 migration).`);
+  console.log(`Bloom Reset baseline verification passed (${rejectedStarts} rejected starts; ${corruptCases} corrupt Reset cases; elapsed-time boundaries, unchanged histories, no automatic completion, and v3–v7 migration).`);
 }
 
 function verifyBaselineStart() {
@@ -171,7 +171,7 @@ async function verifyNoAutomaticCompletion() {
   const progress = getResetProgress(loaded.state.resetJourney, now().toISOString());
   assert(progress?.isPeriodComplete === true && progress.completedDays === 15, "An unchanged active persisted journey may truthfully report elapsed completion.");
   assert(client.values.get(BLOOM_STATE_STORAGE_KEY) === raw && JSON.stringify(active) === original, "Validation, loading, and selection must not rewrite state on elapsed completion.");
-  assert(!("completedDays" in loaded.state.resetJourney.currentAttempt), "Current v6 persistence must not recreate an active completed-day field.");
+  assert(!("completedDays" in loaded.state.resetJourney.currentAttempt), "Current v7 persistence must not recreate an active completed-day field.");
 }
 
 async function verifyV3ThroughV5Migration() {
@@ -184,7 +184,7 @@ async function verifyV3ThroughV5Migration() {
       const key = `bloom.localState.v${version}`;
       client.values.set(key, envelope(version, stored));
       const loaded = await loadBloomLocalState(client, now);
-      assert(loaded.status === "success" && loaded.source === "legacy" && !loaded.needsPersist, `v${version}: active historical state must migrate directly to durable v6.`);
+      assert(loaded.status === "success" && loaded.source === "legacy" && !loaded.needsPersist, `v${version}: active historical state must migrate directly to durable v7.`);
       equal(loaded.state, expected, `v${version}: migration must preserve all established version-specific facts while removing only the old active counter.`);
       assert(loaded.state.resetJourney.status === "active", "Migration after many elapsed days must not auto-complete Reset.");
       assert(!("completedDays" in loaded.state.resetJourney.currentAttempt), "Migrated current attempts must not retain the stale active counter.");
@@ -193,7 +193,7 @@ async function verifyV3ThroughV5Migration() {
       assert(loaded.state.resetJourney.bestCompletedDays === 15, "Migration must preserve historical best progress rather than infer it from elapsed time.");
       const atStart = getResetProgress(loaded.state.resetJourney, loaded.state.resetJourney.currentAttempt.startedAt);
       assert(atStart?.completedDays === 0, "Neither stale active counters nor historical best progress may drive current elapsed progress.");
-      assert(!client.values.has(key) && client.values.has(BLOOM_STATE_STORAGE_KEY), "Successful migration must retain durable v6 and clean its source.");
+      assert(!client.values.has(key) && client.values.has(BLOOM_STATE_STORAGE_KEY), "Successful migration must retain durable v7 and clean its source.");
     }
   }
   for (const state of [createDefaultBloomState(), createBaselinePendingState(true), createPopulatedState()]) {
@@ -212,9 +212,9 @@ async function verifyMigrationDurability() {
   failedClient.values.set(v5Key, raw);
   failedClient.failCurrentWrite = true;
   const failed = await loadBloomLocalState(failedClient, now);
-  assert(failed.status === "success" && failed.source === "legacy" && failed.needsPersist && failed.persistenceError !== null, "Failed v6 migration must retain usable original state with an unacknowledged write.");
+  assert(failed.status === "success" && failed.source === "legacy" && failed.needsPersist && failed.persistenceError !== null, "Failed v7 migration must retain usable original state with an unacknowledged write.");
   equal(failed.state, expected, "Failed migration must not discard baseline, historical progress, or unrelated data.");
-  assert(failedClient.values.get(v5Key) === raw && !failedClient.values.has(BLOOM_STATE_STORAGE_KEY) && !failedClient.operations.includes(`remove:${v5Key}`), "A failed v6 write must retain byte-exact v5 source and never attempt cleanup.");
+  assert(failedClient.values.get(v5Key) === raw && !failedClient.values.has(BLOOM_STATE_STORAGE_KEY) && !failedClient.operations.includes(`remove:${v5Key}`), "A failed v7 write must retain byte-exact v5 source and never attempt cleanup.");
   failedClient.failCurrentWrite = false;
   const retried = await loadBloomLocalState(failedClient, now);
   assert(retried.status === "success" && !retried.needsPersist && !failedClient.values.has(v5Key), "A later retry must durably migrate and clean the preserved v5 source.");
@@ -224,18 +224,18 @@ async function verifyMigrationDurability() {
   let settled = false;
   const loading = loadBloomLocalState(heldClient, now).then((result) => { settled = true; return result; });
   await held.started;
-  assert(!settled && heldClient.values.get(v5Key) === raw && !heldClient.values.has(BLOOM_STATE_STORAGE_KEY), "Pending v6 persistence must retain v5 and leave migration unresolved.");
-  assert(!heldClient.operations.includes(`remove:${v5Key}`), "Source cleanup must wait for durable v6.");
+  assert(!settled && heldClient.values.get(v5Key) === raw && !heldClient.values.has(BLOOM_STATE_STORAGE_KEY), "Pending v7 persistence must retain v5 and leave migration unresolved.");
+  assert(!heldClient.operations.includes(`remove:${v5Key}`), "Source cleanup must wait for durable v7.");
   held.release();
   await loading;
-  assert(heldClient.operations.indexOf(`remove:${v5Key}`) > heldClient.operations.indexOf(`durable:${BLOOM_STATE_STORAGE_KEY}`), "Successful migration must remove its source strictly after durable v6 acknowledgement.");
+  assert(heldClient.operations.indexOf(`remove:${v5Key}`) > heldClient.operations.indexOf(`durable:${BLOOM_STATE_STORAGE_KEY}`), "Successful migration must remove its source strictly after durable v7 acknowledgement.");
   const cleanupClient = new ResetTestStorage();
   cleanupClient.values.set(v5Key, raw);
   cleanupClient.failRemovalKey = v5Key;
   const cleanup = await loadBloomLocalState(cleanupClient, now);
-  assert(cleanup.status === "success" && !cleanup.needsPersist && cleanupClient.values.get(v5Key) === raw && cleanupClient.values.has(BLOOM_STATE_STORAGE_KEY), "Cleanup failure must retain durable v6 and the untouched old source.");
+  assert(cleanup.status === "success" && !cleanup.needsPersist && cleanupClient.values.get(v5Key) === raw && cleanupClient.values.has(BLOOM_STATE_STORAGE_KEY), "Cleanup failure must retain durable v7 and the untouched old source.");
   const reloaded = await loadBloomLocalState(cleanupClient, now);
-  assert(reloaded.status === "success" && reloaded.source === "current", "A leftover old key must not override durable v6.");
+  assert(reloaded.status === "success" && reloaded.source === "current", "A leftover old key must not override durable v7.");
 }
 
 async function verifyCorruptResetPreservation() {
@@ -264,7 +264,7 @@ async function verifyCorruptResetPreservation() {
     // Non-finite values cannot be represented in JSON; their direct validation
     // and mutation rejection are checked separately from persisted null values.
     if (typeof value === "number" && !Number.isFinite(value)) continue;
-    await assertCorruptPreserved(envelope(6, malformed), BLOOM_STATE_STORAGE_KEY, label);
+    await assertCorruptPreserved(envelope(7, malformed), BLOOM_STATE_STORAGE_KEY, label);
     count++;
   }
   for (const version of [3, 4, 5] as const) {
@@ -283,7 +283,7 @@ async function verifyDeletionAndFuturePreservation() {
   for (const key of [BLOOM_STATE_STORAGE_KEY, ...historicalKeys, `${BLOOM_CORRUPT_BACKUP_PREFIX}old`, `${BLOOM_CORRUPT_BACKUP_PREFIX}current`]) client.values.set(key, "remove");
   client.values.set("unrelated", "retain");
   await createBloomStatePersistenceCoordinator(client, now).deleteAll();
-  equal([...client.values.entries()], [["unrelated", "retain"]], "Delete-all must remove every v1–v6 key and Bloom corrupt backup without touching unrelated storage.");
+  equal([...client.values.entries()], [["unrelated", "retain"]], "Delete-all must remove every v1–v7 key and Bloom corrupt backup without touching unrelated storage.");
   assert(client.operations[client.operations.length - 1] === `remove:${BLOOM_STATE_STORAGE_KEY}`, "Current-key-last deletion lifecycle ordering must remain intact.");
   for (const key of [BLOOM_STATE_STORAGE_KEY, ...historicalKeys]) {
     const futureClient = new ResetTestStorage();
@@ -376,7 +376,7 @@ function invalidBaselineCases(): Array<[string, string, unknown, boolean?]> {
 }
 
 function clone<T>(value: T): T { return JSON.parse(JSON.stringify(value)) as T; }
-function envelope(version: number, state: unknown) { return JSON.stringify({ version, savedAt: now().toISOString(), state }); }
+function envelope(version: number, state: unknown) { return JSON.stringify({ version, savedAt: now().toISOString(), state: version >= 3 && version <= 6 ? withoutResetViolationUndoFields(state) : state }); }
 
 function replaceAtPath(root: unknown, path: string, value: unknown, remove: boolean) {
   const keys = path.split(".");
@@ -432,7 +432,7 @@ class ResetTestStorage implements StorageClient {
       const held = this.heldWrite;
       this.heldWrite = null;
       if (held !== null) { held.started(); await held.wait; }
-      if (this.failCurrentWrite) throw new Error("Synthetic v6 migration write failure.");
+      if (this.failCurrentWrite) throw new Error("Synthetic v7 migration write failure.");
     }
     this.values.set(key, value);
     this.operations.push(`durable:${key}`);
