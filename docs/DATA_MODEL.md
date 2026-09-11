@@ -12,7 +12,9 @@ Phase 1D adds `ProductOnboardingState` to `BloomLocalState` and persistence v4. 
 
 Phase 1E adds an explicit, idempotent acceptance transition and persists its historical marker in v5. It prepares the starting product state without starting the Reset restriction or changing legacy flows.
 
-Phase 1F adds baseline completion/start and pure elapsed-time Reset progress. Persistence v6 removes the mutable active-attempt day counter. No UI, legacy flow, violation, completion, or post-assessment behavior changes.
+Phase 1F adds baseline completion/start and pure elapsed-time Reset progress. Persistence v6 removes the mutable active-attempt day counter. That phase added no UI, legacy flow, violation, completion, or post-assessment behavior changes.
+
+Phase 1G adds active Reset violation/restart and linked Content-Free streak changes as one pure transition. It uses existing v6 models and persistence, with no schema or migration change.
 
 The TypeScript files are the field-level source of truth. Lifecycle unions are not proof that stored input is valid. `bloomProductStateSchema.ts` explicitly validates new persisted records through the existing corruption boundary. Future feature actions must also validate their mutation and route inputs.
 
@@ -58,7 +60,7 @@ Each `ContentFreeViolation` has `id`, `activationId`, `kind: "intentionalExplici
 
 For a session-derived violation, the source session's stable `id` is the deduplication identity. Retrying completion or processing the same session again must not append another violation or reset the same streak twice. A manual action logging that same known session must reuse its session origin rather than create a second unrelated event. Event IDs alone do not prove source uniqueness.
 
-Undo corrects the violation log; it does not delete or edit the source session. Keep source identity when a log is undone so replay cannot silently recreate it. Undo is for an accidental logging action, not a rule that intentional content stops counting. Future mutation logic must reconcile streak state with the corrected history. It must not restore an old `streakBefore` over later violations or a later activation. Retained activation boundaries allow historical best-streak recomputation without joining periods when Content-Free was inactive. Deduplication, undo transitions, and streak calculations are not implemented in Phase 1A.
+Undo corrects the violation log; it does not delete or edit the source session. Keep source identity when a log is undone so replay cannot silently recreate it. Undo is for an accidental logging action, not a rule that intentional content stops counting. Future mutation logic must reconcile streak state with the corrected history. It must not restore an old `streakBefore` over later violations or a later activation. Retained activation boundaries allow historical best-streak recomputation without joining periods when Content-Free was inactive. Phase 1G preserves the original `streakBefore` values while applying source deduplication and an active streak update linked to Reset; undo and arbitrary historical replay remain deferred.
 
 Content-Free can coexist with normal Masturbation Tracking or Reset. It is independent of Protect.
 
@@ -87,7 +89,7 @@ Each `ResetViolation` has `id`, `attemptId`, `occurredAt`, `recordedAt`, the sha
 
 `completedAt` means the 15-day Reset ended, not the assessment submission time. The assessment has its own timestamp. `assessment_pending` must not extend the Reset restriction: tracking becomes available after the 15 days even if the assessment remains unanswered or readiness is negative.
 
-Future violation behavior:
+Phase 1G violation behavior, before the current attempt's 15-day period is complete:
 
 | Event during active Reset | Reset effect | Content-Free effect |
 | --- | --- | --- |
@@ -98,13 +100,25 @@ Future violation behavior:
 
 The session-start restriction and violation reporting serve different purposes: the future app blocks starting a session while Reset is active but still needs to record behavior that occurred. A violation does not need to fabricate an in-app session.
 
+### Recording an active Reset violation
+
+[`recordActiveResetViolationState`](../src/storage/bloomResetTransitions.ts), also exported from `bloomState.ts`, accepts `{ violationId, replacementAttemptId, occurredAt, recordedAt, source, reason, contentFreeViolationId? }`. Time and identities come from the caller. The source is either `{ kind: "manual", logActionId }` or `{ kind: "masturbationSession", sessionId }`; the same source is retained on both records when the event affects both systems.
+
+The source journey must be valid and `active`. Timestamps are canonical, `recordedAt >= occurredAt`, and `occurredAt >= currentAttempt.startedAt`. `getResetProgress(resetJourney, occurredAt)` must report fewer than 15 completed days. At or after the 15-day boundary the entire transition returns the original state, without restarting Reset or changing Content-Free. The event time controls this boundary, rather than when the event is recorded; no completion or assessment transition runs.
+
+The old attempt is appended to `pastAttempts` as `restarted`, retaining its ID/start and adding `endedAt: occurredAt`, derived `completedDays` (0–14), and `restartViolationId: violationId`. Exactly one Reset violation references that old attempt. The replacement is `{ id: replacementAttemptId, status: "active", startedAt: occurredAt }`, with no persisted live day count. The journey remains active and retains its ID, original `startedAt`, baseline, duration, and history. `bestCompletedDays` becomes the maximum of its previous value and the archived attempt's derived progress.
+
+For `masturbation`, Content-Free retains its original reference. For either content-involved reason, inactive Content-Free is also unchanged. If Content-Free is active, `contentFreeViolationId` is required and `occurredAt >= currentStreakStartedAt`. The new recorded Content-Free violation retains the activation ID and exactly the same source/times as the Reset violation. Its `streakBefore` stores the original current streak start and original best duration before either is updated. The ended streak duration is floored to nonnegative whole seconds; `bestStreakSeconds` becomes the maximum of that duration and the existing best. `currentStreakStartedAt` becomes `occurredAt`. Status stays active; activation identity/start, past activations, and prior violations are preserved.
+
+Invalid or conflicting IDs, malformed source/reason/time, impossible chronology, or a previously applied source identity return the original state without partial effects. Reset source deduplication spans the journey's violation history; an affected Content-Free violation cannot duplicate an existing source, including an undone entry. Retries cannot create another attempt even with new supplied record IDs. Distinct source events on the same calendar day remain distinct; calendar-day collapse awaits timezone semantics. No standalone Content-Free logger, undo, historical replay, session creation/blocking, or Tracking enablement is added. Product onboarding, Masturbation Tracking, Urge Control, and every legacy slice retain their references.
+
 ### Elapsed progress
 
 [`getResetProgress(resetJourney, now)`](../src/domain/reset/getResetProgress.ts) is pure and requires an explicit canonical ISO timestamp. It returns `{ completedDays, currentDay, isPeriodComplete, remainingDays, remainingSeconds }`, or null for unstarted journeys or invalid timestamps. Active progress uses `currentAttempt.startedAt`, never the original journey start or historical best progress. Days are full 24-hour durations; local midnight, timezone changes, and app-open events do not advance them.
 
 Before 24 hours it reports 0 completed days / Day 1; at 24 hours, 1 / Day 2; at 14 days, 14 / Day 15. At or after 15 full days it reports 15 completed days, Day 15, and `isPeriodComplete: true`. Future start times clamp to zero elapsed progress. `remainingDays` counts full or partial days rounded up; `remainingSeconds` preserves subsecond precision. Finished states report their fixed 15-day completion.
 
-Users do not manually complete days. Calling the selector, validating, loading, or hydrating never changes status, historical best progress, or any stored fact. An elapsed period cannot be extended by a stale `active` status or an unanswered assessment. A later explicit transition will record its end; completion, violation/restart, session guards, and Tracking enablement remain deferred.
+Users do not manually complete days. Calling the selector, validating, loading, or hydrating never changes status, historical best progress, or any stored fact. An elapsed period cannot be extended by a stale `active` status or an unanswered assessment. A later explicit transition will record its end; completion, undo, session guards, and Tracking enablement remain deferred.
 
 ## ResetBaseline
 
@@ -290,4 +304,4 @@ The v6 storage boundary checks record shapes, discriminated lifecycle fields, ca
 - Consistency of attempt history and identity, progress, baseline, completion timestamps, and assessment references.
 - Atomic, acknowledged cross-system effects when one event affects both Reset and Content-Free.
 
-Phase 1F adds baseline start and elapsed Reset progress to the earlier persistence and acceptance foundation. Streak calculations, session mutations, undo/restart operations, completion/post-assessment transitions, and tracking access guards remain deferred. There is no new backend, authentication, sync metadata, analytics, or AI dependency.
+Phase 1G adds active Reset restart and linked Content-Free streak updates to the existing foundation. The transition produces existing v6 shapes, so the persistence version/key and migration behavior remain unchanged. Standalone Content-Free logging, same-day calendar collapse, historical replay, session mutations, undo, completion/post-assessment transitions, and tracking access guards remain deferred. There is no new backend, authentication, sync metadata, analytics, or AI dependency.

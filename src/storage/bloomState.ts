@@ -12,7 +12,9 @@ export {
   type ProductOnboardingAcceptanceInput
 } from "./bloomProductOnboardingTransitions";
 export {
+  recordActiveResetViolationState,
   startResetFromBaselineState,
+  type RecordActiveResetViolationInput,
   type StartResetFromBaselineInput
 } from "./bloomResetTransitions";
 import {

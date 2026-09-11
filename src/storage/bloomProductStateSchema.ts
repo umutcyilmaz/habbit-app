@@ -316,7 +316,10 @@ function normalizeAttempt(value: unknown, path: string, mode: "current" | "preV6
   };
 }
 
-function normalizeResetViolation(value: unknown, path: string): ResetViolation {
+export function normalizeResetViolation(
+  value: unknown,
+  path = "state.resetJourney.violations"
+): ResetViolation {
   const record = object(value, path);
   const occurredAt = timestamp(record.occurredAt, `${path}.occurredAt`);
   const recordedAt = timestamp(record.recordedAt, `${path}.recordedAt`);
