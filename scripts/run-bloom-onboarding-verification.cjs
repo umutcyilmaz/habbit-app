@@ -1,0 +1,58 @@
+const { mkdtempSync, rmSync } = require("node:fs");
+const { tmpdir } = require("node:os");
+const { join, resolve } = require("node:path");
+const { spawnSync } = require("node:child_process");
+
+const projectRoot = resolve(__dirname, "..");
+const outputDirectory = mkdtempSync(join(tmpdir(), "bloom-onboarding-verification-"));
+
+function runCommand(command, arguments_) {
+  const result = spawnSync(command, arguments_, {
+    cwd: projectRoot,
+    stdio: "inherit"
+  });
+
+  if (result.error) {
+    console.error("Bloom onboarding verification could not start.");
+    return 1;
+  }
+
+  return result.status ?? 1;
+}
+
+function runVerification() {
+  const typescriptCompiler = require.resolve("typescript/bin/tsc");
+  const compileStatus = runCommand(process.execPath, [
+    typescriptCompiler,
+    "scripts/verify-bloom-onboarding.ts",
+    "--outDir",
+    outputDirectory,
+    "--module",
+    "commonjs",
+    "--moduleResolution",
+    "node",
+    "--target",
+    "ES2020",
+    "--esModuleInterop",
+    "--skipLibCheck",
+    "--strict",
+    "--noUncheckedIndexedAccess",
+    "--exactOptionalPropertyTypes",
+    "--pretty",
+    "false"
+  ]);
+
+  if (compileStatus !== 0) {
+    return compileStatus;
+  }
+
+  return runCommand(process.execPath, [
+    join(outputDirectory, "scripts", "verify-bloom-onboarding.js")
+  ]);
+}
+
+try {
+  process.exitCode = runVerification();
+} finally {
+  rmSync(outputDirectory, { recursive: true, force: true });
+}

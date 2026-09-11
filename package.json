@@ -15,6 +15,7 @@
     "verify:persistence": "node scripts/run-bloom-persistence-verification.cjs",
     "verify:persistence-acknowledgement": "node scripts/run-bloom-persistence-acknowledgement-verification.cjs",
     "verify:quiz": "node scripts/run-bloom-quiz-verification.cjs",
+    "verify:onboarding": "node scripts/run-bloom-onboarding-verification.cjs",
     "verify:journey": "node scripts/run-bloom-journey-verification.cjs",
     "verify:protection-reset": "node scripts/run-bloom-protection-reset-verification.cjs",
     "verify:guided-flows": "node scripts/run-bloom-guided-flows-verification.cjs",

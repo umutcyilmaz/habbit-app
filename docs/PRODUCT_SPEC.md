@@ -6,6 +6,8 @@ This document is the source of truth for Bloom's new product model. It supersede
 
 Phase 1A introduced independent TypeScript models. Phase 1B adds their state containers alongside all legacy `BloomLocalState` slices and upgrades validated local persistence to v3. Migration adds only inactive/empty new defaults; it does not reinterpret legacy user behavior. Existing routes, screens, shared components, onboarding scoring, journey routing, and durable acknowledgement behavior remain in place. The new slices have no feature mutation APIs or UI yet.
 
+Phase 1C adds a separate pure onboarding quiz/scoring engine under `src/domain/onboarding/`. It returns a starting hypothesis and preserves raw answers; it does not replace the legacy quiz, persist new onboarding results, route users, or start features.
+
 The Expo Router architecture and local-first approach remain technical constraints. Older inventories in [ARCHITECTURE.md](ARCHITECTURE.md) and product references in [DECISIONS.md](DECISIONS.md) describe earlier stages; they do not require a new flow to depend on Protect. Existing navigation remains unchanged in this phase.
 
 ## Product Summary
@@ -118,9 +120,9 @@ Triggers include boredom, stress, loneliness, sleeplessness/nighttime, sexual de
 
 Optional second-line actions are putting the phone in another room, doing another task, or messaging a support person. This is a record of a user's choice, not authorization for the app to contact someone automatically.
 
-## Future Onboarding Model
+## Onboarding Starting Hypothesis
 
-Onboarding should conceptually describe five dimensions:
+The new onboarding engine describes five dimensions:
 
 - `contentDysregulation`
 - `erectionResponseConcern`
@@ -128,19 +130,19 @@ Onboarding should conceptually describe five dimensions:
 - `safetyFlag`
 - `recommendationConfidence`
 
-These are target dimensions, not aliases for existing PL/PP/CT/FC scores. The current scoring engine, quiz questions, results, and persisted onboarding data remain unchanged in Phase 1A. No conversion or new scoring algorithm is introduced.
+These are not aliases for existing PL/PP/CT/FC scores. The legacy engine, quiz screens, results, and persisted onboarding data remain unchanged. The separate 12-question quiz uses provisional, deterministic scoring documented in [the onboarding domain guide](../src/domain/onboarding/README.md).
 
-The future recommendation identifiers are `masturbation_tracking`, `content_free`, `reset`, and `reset_and_content_free`. Low, medium, or uncertain recommendation confidence should prefer Masturbation Tracking first so real behavioral data can be collected.
+The recommendation identifiers are `masturbation_tracking`, `content_free`, `reset`, and `reset_and_content_free`. The first three dimensions use low/medium/high, with uncertain for insufficient known inputs. Low, medium, or uncertain recommendation confidence returns Masturbation Tracking first so real behavioral data can be collected.
 
-| Content dysregulation | Erection/stimulation concern | Conceptual recommendation |
+| Content dysregulation | Reset eligibility | Candidate recommendation |
 | --- | --- | --- |
-| Low | Low | `masturbation_tracking` |
-| High | Low | `content_free` |
-| Low | Significant | `reset` |
-| High | Significant | `reset_and_content_free` |
-| Any | Any | Prefer `masturbation_tracking` when recommendation confidence is low, medium, or uncertain; collect real behavioral data first. |
+| Not high | No | `masturbation_tracking` |
+| High | No | `content_free` |
+| Not high | Yes | `reset` |
+| High | Yes | `reset_and_content_free` |
+| Any | Any | Return `masturbation_tracking` when recommendation confidence is low, medium, or uncertain. |
 
-This table is a direction for future work, not executable routing or a validated assessment. Meanings and thresholds of low, high, and significant remain to be specified. Frequency alone must not define a problem. Safety flags carry reported context without inventing diagnoses or a new safety-routing policy.
+Reset eligibility requires **both** high erection-response concern and high stimulation pattern. Content dysregulation uses Q2–Q6, with stronger weights for Q4/Q6 and at least two strong signals for high. Q6 never-tried is unknown, not zero. Q7/Q8/Q11 inform response concern; Q10 dependency outweighs Q9 technique choices. Techniques alone never trigger Reset. Q1 frequency is context only; Q12 safety changes reported context only. Neither affects recommendation confidence or Reset eligibility. These thresholds are product heuristics, not a diagnosis, problem score, medical explanation, or validated assessment. No route or feature action is invoked.
 
 ## Compatibility Gaps Intentionally Retained
 
@@ -157,4 +159,4 @@ This table is a direction for future work, not executable routing or a validated
 
 ## Out of Scope for the Transitional Foundation
 
-No UI redesign, Figma implementation, new screens, deleted flows, Protect changes, onboarding scoring replacement, navigation changes, new feature mutations, backend, authentication, analytics, AI, or speculative framework is part of Phase 1B. Further phases require a separate task.
+No UI redesign, Figma implementation, new screens, deleted flows, Protect changes, legacy onboarding replacement, navigation changes, new feature mutations, tracking-based Reset recommendations, backend, authentication, analytics, AI, or speculative framework is part of Phase 1C. Further phases require a separate task.

@@ -6,6 +6,8 @@
 
 Phase 1A defined the entities. Phase 1B includes them in `BloomLocalState` and version-3 persisted JSON alongside every legacy slice. The provider hydrates and saves the expanded snapshot through its existing lifecycle; no new feature actions, onboarding scoring, navigation, or screens are introduced.
 
+Phase 1C adds a pure onboarding engine and standalone answer/result types under `src/domain/onboarding/`. They are not added to `BloomLocalState` or wired to the legacy onboarding flow.
+
 The TypeScript files are the field-level source of truth. Lifecycle unions are not proof that stored input is valid. `bloomProductStateSchema.ts` explicitly validates new persisted records through the existing corruption boundary. Future feature actions must also validate their mutation and route inputs.
 
 The models reuse `UUID` and `ISODateString` from the existing `shared.ts`; both are string aliases, not format validators. [`BehaviorEventSource.ts`](../src/domain/models/BehaviorEventSource.ts) supplies a small shared event-origin union: `{ kind: "manual", logActionId }` or `{ kind: "masturbationSession", sessionId }`. The same origin follows an event across affected systems and retries.
@@ -157,21 +159,25 @@ A selected support-person action is only a recorded choice; the model does not s
 
 The container in [`UrgeControlState.ts`](../src/domain/models/UrgeControlState.ts) holds one active event or null and completed `records`, using `Extract` aliases. Fresh and migrated defaults are `{ activeEvent: null, records: [] }`. No Urge Control actions are exposed yet.
 
-## Future Onboarding Boundary
+## Onboarding Domain Boundary
 
-[`OnboardingDimensions.ts`](../src/domain/models/OnboardingDimensions.ts) defines a separate qualitative type for the future onboarding result:
+[`OnboardingDimensions.ts`](../src/domain/models/OnboardingDimensions.ts) defines the separate qualitative dimensions used by the new pure engine:
 
 | Dimension | Values |
 | --- | --- |
-| `contentDysregulation` | `low`, `moderate`, `high`, `uncertain` |
-| `erectionResponseConcern` | `low`, `significant`, `uncertain` |
-| `stimulationPattern` | `flexible`, `specificStimulationReliance`, `uncertain` |
+| `contentDysregulation` | `low`, `medium`, `high`, `uncertain` |
+| `erectionResponseConcern` | `low`, `medium`, `high`, `uncertain` |
+| `stimulationPattern` | `low`, `medium`, `high`, `uncertain` |
 | `safetyFlag` | `noneReported`, `reported`, `uncertain` |
 | `recommendationConfidence` | `low`, `medium`, `high`, `uncertain` |
 
-Future recommendation identifiers are `masturbation_tracking`, `content_free`, `reset`, and `reset_and_content_free`. The routing interpretation is defined in [PRODUCT_SPEC.md](PRODUCT_SPEC.md). Low, medium, or uncertain recommendation confidence should prefer Masturbation Tracking first so real behavioral data can be collected. Frequency alone must not define a problem.
+Recommendation identifiers are `masturbation_tracking`, `content_free`, `reset`, and `reset_and_content_free`. The candidate rules are defined in [PRODUCT_SPEC.md](PRODUCT_SPEC.md); no routing is implemented. Reset eligibility requires both response concern and stimulation pattern high. Low, medium, or uncertain recommendation confidence returns Masturbation Tracking first so real behavioral data can be collected. Frequency alone must not define a problem.
 
-These concepts are not aliases for legacy `PL`, `PP`, `CT`, `FC`, `PatternId`, or `RecommendedFirstAction`. Their qualitative labels are product vocabulary, not calibrated measurements or medical categories. This phase does not choose score thresholds, define medical interpretations, replace `QuizResult`, implement a new scoring engine, or change journey routing.
+Phase 1C aligns the three scored dimensions' provisional Phase 1A labels to low/medium/high/uncertain. They had no persisted consumers, so no migration is needed. These concepts remain separate from legacy `PL`, `PP`, `CT`, `FC`, `PatternId`, `QuizResult`, and `RecommendedFirstAction`.
+
+[`BloomOnboardingAnswers` and `BloomOnboardingQuizResult`](../src/domain/onboarding/types.ts) preserve all 12 raw answers, including explicit unknowns and multi-select techniques/safety signals. Results include quiz/scoring versions, dimensions, recommendation, confidence, `resetEligible`, `safetyFlag`, caller-supplied `completedAt`, and internal score/coverage evidence. Duplicated convenience confidence/safety fields are populated from the same computation as the dimensions. The scorer validates complete submissions and copies answer arrays; it never defaults missing answers to zero. Results are suitable for later persistence but are not currently saved by the app.
+
+The [domain guide](../src/domain/onboarding/README.md) specifies provisional weights, thresholds, high-support gates, and confidence fallback. Q1 and Q12 are excluded from recommendation scoring and confidence. Safety retains reported context without diagnoses or medical interpretation. No journey routing, provider, legacy quiz, or persisted onboarding change is included.
 
 ## Compatibility With The Running Application
 
