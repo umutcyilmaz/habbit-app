@@ -1,10 +1,10 @@
 # Product Spec
 
-## Authority and Phase 1A Scope
+## Authority and Transitional Scope
 
 This document is the source of truth for Bloom's new product model. It supersedes older descriptions of Protection, 10-Day Reset, and standalone Arousal Control as the primary product path. [DATA_MODEL.md](DATA_MODEL.md) defines the corresponding domain boundary.
 
-Phase 1A updates product documentation and introduces independent TypeScript models only. The running app still implements the older model. Existing routes, screens, shared components, onboarding scoring, `BloomLocalState`, storage validation, durable persistence acknowledgements, and verification tooling remain in place. New types are not persisted or wired into those flows yet.
+Phase 1A introduced independent TypeScript models. Phase 1B adds their state containers alongside all legacy `BloomLocalState` slices and upgrades validated local persistence to v3. Migration adds only inactive/empty new defaults; it does not reinterpret legacy user behavior. Existing routes, screens, shared components, onboarding scoring, journey routing, and durable acknowledgement behavior remain in place. The new slices have no feature mutation APIs or UI yet.
 
 The Expo Router architecture and local-first approach remain technical constraints. Older inventories in [ARCHITECTURE.md](ARCHITECTURE.md) and product references in [DECISIONS.md](DECISIONS.md) describe earlier stages; they do not require a new flow to depend on Protect. Existing navigation remains unchanged in this phase.
 
@@ -150,11 +150,11 @@ This table is a direction for future work, not executable routing or a validated
 | `TenDayResetState`, 10 completed dates, and daily completion actions | 15-day journey with attempts, violations, baseline, and assessment; calculation and migration are deferred. |
 | Protection-dependent journey decisions | Protect is deferred and is not required by new flows. Existing decisions still run until routing is deliberately changed. |
 | Separate Pause and Arousal Control drafts/logs | Normal Masturbation Sessions with optional timed pauses, plus the separate acute Urge Control tool. No automatic reinterpretation of legacy records. |
-| Existing Arousal flow can start without a Reset restriction | The future Masturbation Session start guard applies during active Reset. No existing start action changes in Phase 1A. |
-| No Content-Free state or violation relationship | Add independent Content-Free behavior and deduplication in a later phase. |
-| Legacy `BloomLocalState` and version-2 normalization | New models remain outside persisted state until explicit validation, migration, deletion, and acknowledgement integration are designed. |
-| Five current tabs and `/reset/ten-day`, `/pause`, and Arousal routes | Keep Expo Router and all working routes now; new navigation is outside Phase 1A. |
+| Existing Arousal flow can start without a Reset restriction | The future Masturbation Session start guard applies during active Reset. No existing start action changes in Phase 1B. |
+| Content-Free state is persisted without feature actions | Add independent Content-Free behavior and deduplication in a later phase. |
+| Transitional `BloomLocalState` and version-3 persistence | All legacy slices remain alongside the four new validated slices. v2/raw migration preserves legacy semantics and starts the new slices inactive/empty. Feature mutations and cross-system effects are deferred. |
+| Five current tabs and `/reset/ten-day`, `/pause`, and Arousal routes | Keep Expo Router and all working routes now; new navigation is outside Phase 1B. |
 
-## Out of Scope for Phase 1A
+## Out of Scope for the Transitional Foundation
 
-No UI redesign, Figma implementation, new screens, deleted flows, Protect changes, onboarding scoring replacement, navigation changes, persistence migration, backend, authentication, analytics, AI, or speculative framework is part of this phase. Phase 1B requires a separate task.
+No UI redesign, Figma implementation, new screens, deleted flows, Protect changes, onboarding scoring replacement, navigation changes, new feature mutations, backend, authentication, analytics, AI, or speculative framework is part of Phase 1B. Further phases require a separate task.

@@ -1,3 +1,9 @@
+import type {
+  ContentFreeState,
+  MasturbationTrackingState,
+  ResetJourney,
+  UrgeControlState
+} from "../domain/models";
 import {
   isValidBloomDateKey,
   isValidBloomIsoTimestamp,
@@ -410,6 +416,10 @@ export type BloomLocalState = {
   checkIns: BloomCheckInState;
   pause: PauseState;
   arousalControl: ArousalControlState;
+  masturbationTracking: MasturbationTrackingState;
+  contentFree: ContentFreeState;
+  resetJourney: ResetJourney;
+  urgeControl: UrgeControlState;
 };
 
 export function createDefaultBloomState(): BloomLocalState {
@@ -455,6 +465,28 @@ export function createDefaultBloomState(): BloomLocalState {
     arousalControl: {
       draft: null,
       logs: []
+    },
+    masturbationTracking: {
+      enabled: false,
+      currentSession: null,
+      sessions: []
+    },
+    contentFree: {
+      status: "inactive",
+      bestStreakSeconds: 0,
+      pastActivations: [],
+      violations: []
+    },
+    resetJourney: {
+      status: "inactive",
+      durationDays: 15,
+      bestCompletedDays: 0,
+      pastAttempts: [],
+      violations: []
+    },
+    urgeControl: {
+      activeEvent: null,
+      records: []
     }
   };
 }

@@ -14,6 +14,7 @@ import {
   persistBloomLocalState
 } from "../src/storage/bloomStatePersistence";
 import {
+  BLOOM_PERSISTENCE_VERSION,
   isValidBloomDateKey,
   isValidBloomIsoTimestamp,
   readPersistedEnvelope,
@@ -28,6 +29,7 @@ import {
   type WebStorage,
   type WebStorageWindow
 } from "../src/storage/storageAdapters";
+import { verifyBloomProductPersistence } from "./verify-bloom-product-persistence";
 
 const fixedNow = () => new Date("2026-07-22T10:00:00.000Z");
 
@@ -66,6 +68,7 @@ async function verifyBloomPersistence() {
   await verifyConcurrentDeletionDeduplication();
   await verifyFailedDeletionPreservesActiveState();
   await verifyEarlyDeletionFailureKeepsCurrentEnvelope();
+  await verifyBloomProductPersistence();
 }
 
 async function verifyAvailableWebStorage() {
@@ -236,7 +239,7 @@ function verifyStrictIsoTimestamps() {
   );
   assert(
     readPersistedEnvelope({
-      version: 2,
+      version: BLOOM_PERSISTENCE_VERSION,
       savedAt: validTimestamp,
       state: createDefaultBloomState()
     }).status === "current",
@@ -250,11 +253,11 @@ function verifyStrictIsoTimestamps() {
     );
     assert(
       readPersistedEnvelope({
-        version: 2,
+        version: BLOOM_PERSISTENCE_VERSION,
         savedAt: timestamp,
         state: createDefaultBloomState()
       }).status === "invalid",
-      `${timestamp} should invalidate a version 2 envelope.`
+      `${timestamp} should invalidate a current envelope.`
     );
   }
 }
@@ -313,26 +316,33 @@ async function verifyCurrentEnvelope() {
   await persistBloomLocalState(state, client, fixedNow);
   const result = await loadBloomLocalState(client, fixedNow);
 
-  assert(result.status === "success", "A version 2 envelope should load.");
-  assert(result.source === "current", "A version 2 envelope should report current source.");
-  assert(!result.needsPersist, "A canonical version 2 envelope should not migrate again.");
+  assert(result.status === "success", "A current envelope should load.");
+  assert(result.source === "current", "A current envelope should report current source.");
+  assert(!result.needsPersist, "A canonical current envelope should not migrate again.");
   assert(result.state.debug.dateOffsetDays === 3, "Current values should survive hydration.");
 }
 
 async function verifyPartialCurrentNormalization() {
   const client = new TestStorageClient();
+  const defaults = createDefaultBloomState();
   await client.setItem(
     BLOOM_STATE_STORAGE_KEY,
     JSON.stringify({
-      version: 2,
+      version: BLOOM_PERSISTENCE_VERSION,
       savedAt: fixedNow().toISOString(),
-      state: { onboarding: { completed: true } }
+      state: {
+        onboarding: { completed: true },
+        masturbationTracking: defaults.masturbationTracking,
+        contentFree: defaults.contentFree,
+        resetJourney: defaults.resetJourney,
+        urgeControl: defaults.urgeControl
+      }
     })
   );
 
   const result = await loadBloomLocalState(client, fixedNow);
 
-  assert(result.status === "success", "A partial version 2 state should normalize safely.");
+  assert(result.status === "success", "Partial legacy slices in current state should normalize safely.");
   assert(result.state.onboarding.completed, "Valid partial current data should survive.");
   assert(result.needsPersist, "Normalized current data should request a canonical rewrite.");
 }

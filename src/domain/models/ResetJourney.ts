@@ -43,7 +43,6 @@ export type CompletedResetAttempt = ResetAttemptIdentity & {
 export type ResetAttempt = ActiveResetAttempt | RestartedResetAttempt | CompletedResetAttempt;
 
 type ResetJourneyHistory = {
-  id: UUID;
   durationDays: 15;
   bestCompletedDays: ResetCompletedDays;
   // The current attempt is separate; restarting archives it without losing progress.
@@ -52,6 +51,7 @@ type ResetJourneyHistory = {
 };
 
 type StartedResetJourney = {
+  id: UUID;
   startedAt: ISODateString;
   baseline: ResetBaseline;
 };
@@ -67,8 +67,8 @@ type FinishedResetJourney = StartedResetJourney & {
 export type ResetJourney = ResetJourneyHistory &
   (
     | { status: "inactive" }
-    | { status: "recommended" }
-    | { status: "baseline_pending" }
+    | { status: "recommended"; id: UUID }
+    | { status: "baseline_pending"; id: UUID }
     | (StartedResetJourney & {
         status: "active";
         currentAttempt: ActiveResetAttempt;

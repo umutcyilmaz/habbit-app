@@ -16,20 +16,20 @@ AsyncStorage is durable local storage. It does not provide application-level enc
 The canonical key is:
 
 ```text
-bloom.localState.v2
+bloom.localState.v3
 ```
 
 Its JSON value is a versioned envelope:
 
 ```ts
-type PersistedBloomEnvelopeV2 = {
-  version: 2;
+type PersistedBloomEnvelopeV3 = {
+  version: 3;
   savedAt: string;
   state: unknown;
 };
 ```
 
-Payloads are parsed as `unknown`, validated section by section, and normalized into `BloomLocalState`. Unknown object fields are ignored. Missing supported fields receive current defaults. Important enum, date, array, record, Boolean, and finite-number fields are validated before use.
+Payloads are parsed as `unknown`, validated section by section, and normalized into `BloomLocalState`. Unknown object fields are ignored. Existing legacy fields retain their normalization/default rules. Current v3 payloads must include all four new slices; malformed new records reject the load without silently removing user facts. Important enum, date, array, record, Boolean, and finite-number fields are validated before use.
 
 Bloom date keys must be real Gregorian dates in exact `YYYY-MM-DD` form. Persisted timestamps, including envelope `savedAt`, must exactly match the canonical form produced by `Date.prototype.toISOString()`:
 
@@ -46,10 +46,16 @@ Legacy `isEnabled: true` normalizes to `active`; `false` normalizes to `off`.
 Valid setup timestamps, windows, in-app pause preferences, and supported night
 times are preserved. The legacy Boolean is not retained as a second authority.
 
-Reset `startedAt` is canonicalized to a valid date key, including older valid
+Legacy 10-Day Reset `startedAt` is canonicalized to a valid date key, including older valid
 ISO timestamps. Reset completion dates are filtered to real date keys,
 deduplicated, sorted, and capped at ten. A program is terminal only when its
 start is valid and ten valid unique dates remain.
+
+## Transitional Product State
+
+`masturbationTracking`, `contentFree`, `resetJourney`, and `urgeControl` are persisted alongside all legacy state. Tracking defaults to disabled with no current session/history; Content-Free is inactive with zero best streak and no history; Reset is inactive for 15 days with zero progress, no identity, attempts, violations, baseline, or assessment; Urge Control has no active event or records. These slices have no new feature actions or UI yet.
+
+`bloomProductStateSchema.ts` validates the new unions, canonical timestamps, finite numeric ranges, explicit enums/Booleans, source identities, and record/history relationships. The entire payload is preserved as corrupt if a new record is malformed. It does not recompute streaks, infer medical facts, prove elapsed Reset days, or implement feature transitions.
 
 ## Canonical Guided-Flow Records
 
@@ -121,13 +127,14 @@ history redirects to the Arousal Control overview.
 
 ## Legacy Migration
 
-The loader checks `bloom.localState.v2` first, followed by the legacy key:
+The loader checks `bloom.localState.v3` first, followed by these migration sources in order:
 
 ```text
+bloom.localState.v2
 bloom.localState.v1
 ```
 
-A valid legacy payload is normalized and written as a version 2 envelope. The legacy key is removed only after that write succeeds. If the write fails, the legacy payload stays in place and hydration returns the valid in-memory state with a persistence warning so a later write can retry safely.
+Valid v2 envelopes and previously supported raw legacy payloads are normalized using the legacy rules and written as version 3. Their four new slices always receive fresh defaults; old product state is never reinterpreted as new activity, even if similarly named new fields are present. The legacy key is removed only after that write succeeds. If the write fails, the legacy payload stays in place and hydration returns the valid in-memory state with a persistence warning so a later write can retry safely.
 
 ## Corrupt and Future Payloads
 
@@ -199,6 +206,7 @@ post-reset accepted state.
 Deletion enumerates only Bloom-owned keys and removes:
 
 ```text
+bloom.localState.v3
 bloom.localState.v2
 bloom.localState.v1
 bloom.localState.corrupt.*

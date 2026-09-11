@@ -4,12 +4,15 @@ import {
   parsePersistedPayload,
   readPersistedEnvelope,
   validateAndNormalizeBloomState,
-  type PersistedBloomEnvelopeV2
+  type PersistedBloomEnvelopeV3
 } from "./bloomStateSchema";
 import type { StorageClient } from "./storageAdapters";
 
-export const BLOOM_STATE_STORAGE_KEY = "bloom.localState.v2";
-export const BLOOM_LEGACY_STATE_STORAGE_KEYS = ["bloom.localState.v1"] as const;
+export const BLOOM_STATE_STORAGE_KEY = "bloom.localState.v3";
+export const BLOOM_LEGACY_STATE_STORAGE_KEYS = [
+  "bloom.localState.v2",
+  "bloom.localState.v1"
+] as const;
 export const BLOOM_CORRUPT_BACKUP_PREFIX = "bloom.localState.corrupt.";
 
 export type BloomStateLoadResult =
@@ -129,7 +132,7 @@ function serializeBloomLocalState(
   state: BloomLocalState,
   now: Clock
 ): string {
-  const envelope: PersistedBloomEnvelopeV2 = {
+  const envelope: PersistedBloomEnvelopeV3 = {
     version: BLOOM_PERSISTENCE_VERSION,
     savedAt: now().toISOString(),
     state
@@ -360,7 +363,10 @@ async function loadStoredPayload(
     envelopeResult.status === "current"
       ? envelopeResult.envelope.state
       : envelopeResult.state;
-  const validationResult = validateAndNormalizeBloomState(storedState);
+  const validationResult = validateAndNormalizeBloomState(
+    storedState,
+    envelopeResult.status === "legacy" ? "legacy" : "current"
+  );
 
   if (!validationResult.success) {
     return createCorruptResult(

@@ -59,6 +59,7 @@ import {
   loadBloomLocalState
 } from "../src/storage/bloomStatePersistence";
 import {
+  BLOOM_PERSISTENCE_VERSION,
   readPersistedEnvelope,
   validateAndNormalizeBloomState
 } from "../src/storage/bloomStateSchema";
@@ -1373,7 +1374,7 @@ async function verifyArousalSavedRequiresExactDurableLog() {
   });
   const harness = createHarness(initialState, 5);
   const initialPayload = JSON.stringify({
-    version: 2,
+    version: BLOOM_PERSISTENCE_VERSION,
     savedAt: fixedNow().toISOString(),
     state: initialState
   });
@@ -1948,7 +1949,7 @@ async function verifyFailedDeletionPreservesRetryToken() {
   harness.client.prime(
     BLOOM_STATE_STORAGE_KEY,
     JSON.stringify({
-      version: 2,
+      version: BLOOM_PERSISTENCE_VERSION,
       savedAt: "2026-08-02T12:00:00.000Z",
       state: createDefaultBloomState()
     })
@@ -2279,7 +2280,7 @@ async function verifyDeletionHydrationTimeoutRecovery() {
       preservedOffset
     );
     const preservedPayload = JSON.stringify({
-      version: 2,
+      version: BLOOM_PERSISTENCE_VERSION,
       savedAt: fixedNow().toISOString(),
       state: preservedState
     });

@@ -1152,7 +1152,7 @@ async function verifyCrossStateRules() {
         }
       ]
     }
-  });
+  }, "legacy");
   assert(
     legacyResult.success &&
       legacyResult.state.arousalControl.draft?.id.startsWith("arousal-") ===

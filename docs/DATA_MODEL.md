@@ -1,12 +1,12 @@
 # Data Model
 
-## Phase 1A Boundary
+## Transitional State Boundary
 
 [PRODUCT_SPEC.md](PRODUCT_SPEC.md) defines Bloom's new product direction: Masturbation Tracking, Content-Free, and a 15-Day Reset, with Urge Control as acute support. This document describes the new domain boundary under `src/domain/models/`. These types are independent of React, screens, routing, and storage adapters.
 
-Phase 1A adds types and documentation only. The new entities are not yet part of `BloomLocalState`, persisted JSON, provider actions, onboarding scoring, or navigation. The existing application continues to run its legacy flows.
+Phase 1A defined the entities. Phase 1B includes them in `BloomLocalState` and version-3 persisted JSON alongside every legacy slice. The provider hydrates and saves the expanded snapshot through its existing lifecycle; no new feature actions, onboarding scoring, navigation, or screens are introduced.
 
-The TypeScript files are the field-level source of truth. Lifecycle unions describe which fields belong to each state; they are not runtime validation or proof that stored input is valid. Future adoption must add validation at mutation, storage, and route boundaries before using external values as these types.
+The TypeScript files are the field-level source of truth. Lifecycle unions are not proof that stored input is valid. `bloomProductStateSchema.ts` explicitly validates new persisted records through the existing corruption boundary. Future feature actions must also validate their mutation and route inputs.
 
 The models reuse `UUID` and `ISODateString` from the existing `shared.ts`; both are string aliases, not format validators. [`BehaviorEventSource.ts`](../src/domain/models/BehaviorEventSource.ts) supplies a small shared event-origin union: `{ kind: "manual", logActionId }` or `{ kind: "masturbationSession", sessionId }`. The same origin follows an event across affected systems and retries.
 
@@ -29,6 +29,8 @@ Ending reasons are `climaxed`, `stoppedBeforeClimax`, `firmnessDecreased`, `felt
 `usedExplicitContent` means intentional explicit-content use during the session. Accidental exposure alone is not `true`. This distinction must be preserved when future session completion derives a Content-Free or Reset violation.
 
 `pauses` holds the session's optional pauses. An active pause has `status: "active"` and `startedAt`. A completed pause adds `endedAt` and `durationSeconds`. Ended sessions contain only completed pauses: closing the session closes any active pause. An empty array is valid: a normal session with zero pauses can complete. Pause count is derived from the array rather than maintained as another independent value.
+
+The container in [`MasturbationTrackingState.ts`](../src/domain/models/MasturbationTrackingState.ts) has `enabled`, one `currentSession` (active/awaiting feedback or null), and completed `sessions`. Status aliases use `Extract` without duplicating session fields. Fresh and migrated defaults are `{ enabled: false, currentSession: null, sessions: [] }`. Reset blocking is not duplicated here; future actions will derive it from `resetJourney`.
 
 ## ContentFreeState
 
@@ -67,7 +69,7 @@ The new Reset is a 15-day journey. It is distinct from the legacy `TenDayResetSt
 | `assessment_pending` | The 15-day attempt has ended and `completedAt` is present; assessment is still outstanding. |
 | `completed` | The post-reset assessment has been recorded. |
 
-All journey states have `id`, `durationDays: 15`, `bestCompletedDays` (0 through 15), `pastAttempts`, and `violations`. Started states additionally contain `startedAt`, the captured `baseline`, and `currentAttempt`. Both `assessment_pending` and `completed` require `bestCompletedDays: 15`. The `completed` state adds `assessment`.
+All journey states have `durationDays: 15`, `bestCompletedDays` (0 through 15), `pastAttempts`, and `violations`. Inactive state has no identity; `id` is required from `recommended` or `baseline_pending` onward. This is the minimal Phase 1B correction needed to avoid inventing a journey ID at installation. Started states additionally contain `startedAt`, the captured `baseline`, and `currentAttempt`. Both `assessment_pending` and `completed` require `bestCompletedDays: 15`. The `completed` state adds `assessment`.
 
 An attempt has its own stable `id` and `startedAt`. An active attempt carries `completedDays` from 0 through 14. A restarted attempt retains that progress with `endedAt` and `restartViolationId`. A completed attempt has `completedDays: 15` and `completedAt`. `pastAttempts` contains prior restarted/completed attempts and excludes `currentAttempt`. Attempt count can be derived from this history; it is not a separate counter.
 
@@ -153,6 +155,8 @@ An event has a stable `id` and `startedAt`. Its lifecycle union distinguishes `a
 
 A selected support-person action is only a recorded choice; the model does not send a message or require a messaging integration. No durations, timers, technique execution, or UI are implemented here.
 
+The container in [`UrgeControlState.ts`](../src/domain/models/UrgeControlState.ts) holds one active event or null and completed `records`, using `Extract` aliases. Fresh and migrated defaults are `{ activeEvent: null, records: [] }`. No Urge Control actions are exposed yet.
+
 ## Future Onboarding Boundary
 
 [`OnboardingDimensions.ts`](../src/domain/models/OnboardingDimensions.ts) defines a separate qualitative type for the future onboarding result:
@@ -171,7 +175,7 @@ These concepts are not aliases for legacy `PL`, `PP`, `CT`, `FC`, `PatternId`, o
 
 ## Compatibility With The Running Application
 
-The existing [`BloomLocalState`](../src/storage/bloomState.ts) remains the persisted runtime authority with these slices:
+The expanded [`BloomLocalState`](../src/storage/bloomState.ts) remains the persisted runtime authority. All eight legacy slices remain, followed by four new slices:
 
 ```text
 activePlan
@@ -182,9 +186,15 @@ protection
 checkIns
 pause
 arousalControl
+masturbationTracking
+contentFree
+resetJourney
+urgeControl
 ```
 
-[`bloomStateSchema.ts`](../src/storage/bloomStateSchema.ts) remains version 2 and validates/normalizes those existing slices. New entity fields must not simply be added to serialized state: current normalization reconstructs the old shape. No schema version, key, migration, adapter, or deletion behavior changes in Phase 1A.
+[`bloomStateSchema.ts`](../src/storage/bloomStateSchema.ts) now validates version 3. The loader prefers `bloom.localState.v3`, then `bloom.localState.v2`, then `bloom.localState.v1`. A valid v2 envelope or supported raw legacy payload retains its legacy slices after existing normalization and receives fresh defaults for all four new slices, even if the old payload includes similarly named fields. The source key is removed only after the v3 write succeeds. Unknown future versions and corrupt data retain the existing backup/error behavior. Delete-all covers v3, v2, v1, and Bloom corrupt backups.
+
+Fresh Content-Free is inactive with `bestStreakSeconds: 0`, empty `pastActivations`, and empty `violations`. Fresh Reset is inactive with `durationDays: 15`, `bestCompletedDays: 0`, empty attempts/violations, and no ID, baseline, or assessment. No legacy Reset, Pause, Arousal, Protection, or Check-In record seeds any new entity.
 
 [`BloomLocalStateProvider.tsx`](../src/app/providers/BloomLocalStateProvider.tsx) retains accepted state for active interaction and durable state for saved/history/journey claims. Future adoption must preserve exact write acknowledgement, retry causality, generation ownership, safe hydration, and durable deletion; a type declaration is not a save acknowledgement.
 
@@ -198,9 +208,9 @@ Known differences requiring later explicit work:
 - The current journey may require Protection and proceeds toward separate Arousal Practice. Protect remains implemented but is deferred for new flows.
 - The existing five tabs and `/reset/ten-day`, `/pause`, and `/exercises/arousal-control` routes remain unchanged.
 
-## Future Runtime Validation
+## Runtime Validation and Deferred Behavior
 
-Before these types are accepted from forms, imported data, persisted JSON, or route parameters, future boundary validation must establish:
+The v3 storage boundary checks record shapes, discriminated lifecycle fields, canonical timestamps, numeric ranges, identity uniqueness, and local history/reference consistency. Invalid new records reject the load and preserve the source payload and backup; they are not silently filtered or converted into different user facts. Existing legacy normalization remains unchanged. Future feature adoption must maintain these invariants:
 
 - Stable nonempty identities and valid timestamps with consistent chronology.
 - Finite, nonnegative durations and intervals; progress within the declared day range, ratios from 0 through 1, average erection quality from 1 through 10, and integer session ratings from 1 through 10.
@@ -209,4 +219,4 @@ Before these types are accepted from forms, imported data, persisted JSON, or ro
 - Consistency of attempt history and identity, progress, baseline, completion timestamps, and assessment references.
 - Atomic, acknowledged cross-system effects when one event affects both Reset and Content-Free.
 
-No validators or transition functions for the new entities are added in Phase 1A. The established local-first persistence and runtime-validation approach remains in place. There is no new backend, authentication, sync metadata, analytics, or AI dependency.
+Phase 1B adds persistence validation, not new transition functions. Streak/day calculations, session mutations, undo/restart operations, cross-system effects, and tracking access guards remain deferred. There is no new backend, authentication, sync metadata, analytics, or AI dependency.

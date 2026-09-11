@@ -55,6 +55,12 @@ import {
   isValidBloomIsoTimestamp,
   isValidBloomTime
 } from "./bloomValueValidation";
+import {
+  normalizeContentFree,
+  normalizeMasturbationTracking,
+  normalizeResetJourney,
+  normalizeUrgeControl
+} from "./bloomProductStateSchema";
 
 export {
   isValidBloomDateKey,
@@ -62,9 +68,15 @@ export {
   isValidBloomTime
 } from "./bloomValueValidation";
 
-export const BLOOM_PERSISTENCE_VERSION = 2 as const;
+export const BLOOM_PERSISTENCE_VERSION = 3 as const;
 
 export type PersistedBloomEnvelopeV2 = {
+  version: 2;
+  savedAt: string;
+  state: unknown;
+};
+
+export type PersistedBloomEnvelopeV3 = {
   version: typeof BLOOM_PERSISTENCE_VERSION;
   savedAt: string;
   state: unknown;
@@ -77,7 +89,7 @@ export type ParsedPersistedPayload =
 export type PersistedEnvelopeReadResult =
   | {
       status: "current";
-      envelope: PersistedBloomEnvelopeV2;
+      envelope: PersistedBloomEnvelopeV3;
     }
   | {
       status: "legacy";
@@ -171,7 +183,7 @@ export function readPersistedEnvelope(value: unknown): PersistedEnvelopeReadResu
     };
   }
 
-  if (value.version !== BLOOM_PERSISTENCE_VERSION) {
+  if (value.version !== BLOOM_PERSISTENCE_VERSION && value.version !== 2) {
     return {
       status: "unsupported-version",
       version: value.version
@@ -181,7 +193,14 @@ export function readPersistedEnvelope(value: unknown): PersistedEnvelopeReadResu
   if (!isValidBloomIsoTimestamp(value.savedAt) || !("state" in value)) {
     return {
       status: "invalid",
-      error: "Persisted Bloom data has an invalid version 2 envelope."
+      error: `Persisted Bloom data has an invalid version ${value.version} envelope.`
+    };
+  }
+
+  if (value.version === 2) {
+    return {
+      status: "legacy",
+      state: value.state
     };
   }
 
@@ -195,7 +214,10 @@ export function readPersistedEnvelope(value: unknown): PersistedEnvelopeReadResu
   };
 }
 
-export function validateAndNormalizeBloomState(value: unknown): BloomStateValidationResult {
+export function validateAndNormalizeBloomState(
+  value: unknown,
+  mode: "current" | "legacy" = "current"
+): BloomStateValidationResult {
   try {
     const record = requireRecord(value, "state");
     const defaults = createDefaultBloomState();
@@ -211,7 +233,25 @@ export function validateAndNormalizeBloomState(value: unknown): BloomStateValida
       protection: normalizeProtection(record.protection, defaults.protection),
       checkIns: normalizeCheckIns(record.checkIns, defaults.checkIns),
       pause: normalizePause(record.pause, defaults.pause),
-      arousalControl: normalizeArousalControl(record.arousalControl, defaults.arousalControl)
+      arousalControl: normalizeArousalControl(record.arousalControl, defaults.arousalControl),
+      // Legacy features have different semantics; migration must not infer or
+      // import new product facts, even if a legacy payload contains these keys.
+      masturbationTracking:
+        mode === "legacy"
+          ? defaults.masturbationTracking
+          : normalizeMasturbationTracking(record.masturbationTracking),
+      contentFree:
+        mode === "legacy"
+          ? defaults.contentFree
+          : normalizeContentFree(record.contentFree),
+      resetJourney:
+        mode === "legacy"
+          ? defaults.resetJourney
+          : normalizeResetJourney(record.resetJourney),
+      urgeControl:
+        mode === "legacy"
+          ? defaults.urgeControl
+          : normalizeUrgeControl(record.urgeControl)
     };
 
     return {

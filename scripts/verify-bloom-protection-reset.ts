@@ -215,7 +215,7 @@ function verifyLegacyEnabledProtectionMigration() {
       preferredWindow: "night",
       adultContentPauseEnabled: true
     }
-  });
+  }, "legacy");
 
   assert(result.success, "A valid legacy Protection object should normalize.");
   assert(
@@ -239,7 +239,7 @@ function verifyLegacyContradictoryProtectionMigration() {
       preferredWindow: "evening",
       adultContentPauseEnabled: true
     }
-  });
+  }, "legacy");
 
   assert(result.success, "A contradictory legacy Protection object should normalize.");
   assert(
@@ -444,7 +444,7 @@ function verifyLegacyResetMigration() {
       ],
       lastCompletedAt: completionTimestamp
     }
-  });
+  }, "legacy");
 
   assert(result.success, "Legacy Reset state should normalize.");
   assert(
@@ -531,17 +531,17 @@ function verifyCrossFeatureActionContract() {
 function verifyInvalidProtectionValuesRejected() {
   const invalidStatus = validateAndNormalizeBloomState({
     protection: { status: "running" }
-  });
+  }, "legacy");
   const invalidLevel = validateAndNormalizeBloomState({
     protection: { status: "active", level: "maximum" }
-  });
+  }, "legacy");
   const invalidTime = validateAndNormalizeBloomState({
     protection: {
       status: "active",
       preferredWindow: "night",
       nightStartTime: "25:00"
     }
-  });
+  }, "legacy");
   const state = completedState("setupProtection");
   const invalidMutation = configureProtectionState(
     state,
