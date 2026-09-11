@@ -206,7 +206,10 @@ function normalizeContentViolation(value: unknown, path: string): ContentFreeVio
   return { ...base, status, undoneAt };
 }
 
-export function normalizeResetJourney(value: unknown): ResetJourney {
+export function normalizeResetJourney(
+  value: unknown,
+  mode: "current" | "preV6" = "current"
+): ResetJourney {
   const path = "state.resetJourney";
   const record = object(value, path);
   const status = choice(record.status,
@@ -216,7 +219,7 @@ export function normalizeResetJourney(value: unknown): ResetJourney {
     durationDays: choice(record.durationDays, [15], `${path}.durationDays`),
     bestCompletedDays: choice(record.bestCompletedDays, completedDays, `${path}.bestCompletedDays`),
     pastAttempts: list(record.pastAttempts, `${path}.pastAttempts`, (entry, entryPath) => {
-      const attempt = normalizeAttempt(entry, entryPath);
+      const attempt = normalizeAttempt(entry, entryPath, mode);
       ensure(attempt.status !== "active", entryPath, "cannot contain an active past attempt");
       return attempt;
     }),
@@ -239,10 +242,19 @@ export function normalizeResetJourney(value: unknown): ResetJourney {
       ...history,
       id: identityString(record.id, `${path}.id`),
       startedAt: timestamp(record.startedAt, `${path}.startedAt`),
-      baseline: normalizeBaseline(record.baseline, `${path}.baseline`)
+      baseline: normalizeResetBaseline(record.baseline, `${path}.baseline`)
     };
-    const currentAttempt = normalizeAttempt(record.currentAttempt, `${path}.currentAttempt`);
+    const currentAttemptRecord = object(record.currentAttempt, `${path}.currentAttempt`);
+    const currentAttempt = normalizeAttempt(currentAttemptRecord, `${path}.currentAttempt`, mode);
+    if (mode === "preV6" && currentAttempt.status === "active") {
+      // Preserve the old schema's consistency check without promoting its
+      // mutable counter into either live progress or historical summary data.
+      const priorProgress = choice(currentAttemptRecord.completedDays, incompleteDays, `${path}.currentAttempt.completedDays`);
+      ensure(history.bestCompletedDays >= priorProgress, path, "cannot lose previously completed progress");
+    }
     notBefore(started.startedAt, started.baseline.capturedAt, `${path}.startedAt`);
+    // Earlier persisted journeys can include a restart after the original
+    // journey start. Preserve both timestamps instead of rewriting history.
     notBefore(currentAttempt.startedAt, started.startedAt, `${path}.currentAttempt.startedAt`);
     if (status === "active") {
       absent(record, ["completedAt", "assessment"], path);
@@ -270,7 +282,7 @@ export function normalizeResetJourney(value: unknown): ResetJourney {
   return journey;
 }
 
-function normalizeAttempt(value: unknown, path: string): ResetAttempt {
+function normalizeAttempt(value: unknown, path: string, mode: "current" | "preV6"): ResetAttempt {
   const record = object(value, path);
   const status = choice(record.status, ["active", "restarted", "completed"], `${path}.status`);
   const identity = {
@@ -283,12 +295,19 @@ function normalizeAttempt(value: unknown, path: string): ResetAttempt {
     notBefore(completedAt, identity.startedAt, `${path}.completedAt`);
     return { ...identity, status, completedAt, completedDays: choice(record.completedDays, [15], `${path}.completedDays`) };
   }
-  const progress = choice(record.completedDays, incompleteDays, `${path}.completedDays`);
   absent(record, ["completedAt"], path);
   if (status === "active") {
     absent(record, ["endedAt", "restartViolationId"], path);
-    return { ...identity, status, completedDays: progress };
+    if (mode === "preV6") {
+      // Validate the old schema's counter, then discard it. Live progress is
+      // derived only from startedAt and an explicit caller-provided clock.
+      choice(record.completedDays, incompleteDays, `${path}.completedDays`);
+    } else {
+      absent(record, ["completedDays"], path);
+    }
+    return { ...identity, status };
   }
+  const progress = choice(record.completedDays, incompleteDays, `${path}.completedDays`);
   const endedAt = timestamp(record.endedAt, `${path}.endedAt`);
   notBefore(endedAt, identity.startedAt, `${path}.endedAt`);
   return {
@@ -322,8 +341,12 @@ function validateResetReferences(journey: ResetJourney, path: string) {
   uniqueSources(journey.violations, `${path}.violations`);
   nonOverlapping(attempts.map(attemptPeriod), `${path}.attempts`);
   for (const attempt of attempts) {
-    ensure(journey.bestCompletedDays >= attempt.completedDays, path, "cannot lose previously completed progress");
-    if ("startedAt" in journey) notBefore(attempt.startedAt, journey.startedAt, `${path}.attempts.startedAt`);
+    if (attempt.status !== "active") {
+      ensure(journey.bestCompletedDays >= attempt.completedDays, path, "cannot lose previously completed progress");
+    }
+    // Preserved attempts may predate a newly started journey. Their own
+    // chronology, lack of overlap, and ordering before the current attempt
+    // remain validated; the new journey start is not their lower bound.
     if (attempt.status === "restarted") {
       const violation = journey.violations.find((entry) => entry.id === attempt.restartViolationId);
       ensure(violation?.attemptId === attempt.id, path, "has an inconsistent restart violation reference");
@@ -349,7 +372,10 @@ function attemptPeriod(attempt: ResetAttempt): { startedAt: string; endedAt?: st
   };
 }
 
-function normalizeBaseline(value: unknown, path: string): ResetBaseline {
+export function normalizeResetBaseline(
+  value: unknown,
+  path = "state.resetJourney.baseline"
+): ResetBaseline {
   const record = object(value, path);
   const selfReport = object(record.selfReport, `${path}.selfReport`);
   return {

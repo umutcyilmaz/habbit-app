@@ -11,6 +11,10 @@ export {
   acceptProductOnboardingRecommendationState,
   type ProductOnboardingAcceptanceInput
 } from "./bloomProductOnboardingTransitions";
+export {
+  startResetFromBaselineState,
+  type StartResetFromBaselineInput
+} from "./bloomResetTransitions";
 import {
   isValidBloomDateKey,
   isValidBloomIsoTimestamp,

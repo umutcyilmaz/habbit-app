@@ -12,6 +12,8 @@ Phase 1D adds `ProductOnboardingState` to `BloomLocalState` and persistence v4. 
 
 Phase 1E adds an explicit, idempotent acceptance transition and persists its historical marker in v5. It prepares the starting product state without starting the Reset restriction or changing legacy flows.
 
+Phase 1F adds baseline completion/start and pure elapsed-time Reset progress. Persistence v6 removes the mutable active-attempt day counter. No UI, legacy flow, violation, completion, or post-assessment behavior changes.
+
 The TypeScript files are the field-level source of truth. Lifecycle unions are not proof that stored input is valid. `bloomProductStateSchema.ts` explicitly validates new persisted records through the existing corruption boundary. Future feature actions must also validate their mutation and route inputs.
 
 The models reuse `UUID` and `ISODateString` from the existing `shared.ts`; both are string aliases, not format validators. [`BehaviorEventSource.ts`](../src/domain/models/BehaviorEventSource.ts) supplies a small shared event-origin union: `{ kind: "manual", logActionId }` or `{ kind: "masturbationSession", sessionId }`. The same origin follows an event across affected systems and retries.
@@ -71,13 +73,13 @@ The new Reset is a 15-day journey. It is distinct from the legacy `TenDayResetSt
 | `inactive` | No Reset is underway or recommended. |
 | `recommended` | Reset has been suggested; the user has not begun preparation. |
 | `baseline_pending` | A pre-reset baseline still needs to be captured. |
-| `active` | The current 15-day attempt is underway; starting a Masturbation Session is blocked. |
+| `active` | An attempt has started; elapsed time determines whether its 15-day period remains underway. Persisting its end is a later explicit action. |
 | `assessment_pending` | The 15-day attempt has ended and `completedAt` is present; assessment is still outstanding. |
 | `completed` | The post-reset assessment has been recorded. |
 
 All journey states have `durationDays: 15`, `bestCompletedDays` (0 through 15), `pastAttempts`, and `violations`. Inactive state has no identity; `id` is required from `recommended` or `baseline_pending` onward. This is the minimal Phase 1B correction needed to avoid inventing a journey ID at installation. Started states additionally contain `startedAt`, the captured `baseline`, and `currentAttempt`. Both `assessment_pending` and `completed` require `bestCompletedDays: 15`. The `completed` state adds `assessment`.
 
-An attempt has its own stable `id` and `startedAt`. An active attempt carries `completedDays` from 0 through 14. A restarted attempt retains that progress with `endedAt` and `restartViolationId`. A completed attempt has `completedDays: 15` and `completedAt`. `pastAttempts` contains prior restarted/completed attempts and excludes `currentAttempt`. Attempt count can be derived from this history; it is not a separate counter.
+An active attempt contains only `{ id, status: "active", startedAt }`. Its progress is derived from elapsed time and is never persisted as a mutable day counter. A restarted attempt retains historical `completedDays` from 0 through 14 with `endedAt` and `restartViolationId`. A completed attempt has `completedDays: 15` and `completedAt`. `pastAttempts` contains prior restarted/completed attempts and excludes `currentAttempt`. Attempt count can be derived from this history; it is not a separate counter. `bestCompletedDays` preserves historical best progress; it is not a cache of the active attempt's live progress.
 
 A restart begins a new attempt at Day 1, with zero completed days, while retaining the journey's baseline and history. Preserve best progress across attempts; it is not a measure of medical improvement.
 
@@ -96,7 +98,13 @@ Future violation behavior:
 
 The session-start restriction and violation reporting serve different purposes: the future app blocks starting a session while Reset is active but still needs to record behavior that occurred. A violation does not need to fabricate an in-app session.
 
-This phase does not implement expiry, attempts, restarts, progress calculations, cross-system updates, or access guards. Calendar-day versus elapsed-day arithmetic, timezone handling, and day-boundary behavior remain decisions for that implementation phase. No type establishes that 15 real days have passed.
+### Elapsed progress
+
+[`getResetProgress(resetJourney, now)`](../src/domain/reset/getResetProgress.ts) is pure and requires an explicit canonical ISO timestamp. It returns `{ completedDays, currentDay, isPeriodComplete, remainingDays, remainingSeconds }`, or null for unstarted journeys or invalid timestamps. Active progress uses `currentAttempt.startedAt`, never the original journey start or historical best progress. Days are full 24-hour durations; local midnight, timezone changes, and app-open events do not advance them.
+
+Before 24 hours it reports 0 completed days / Day 1; at 24 hours, 1 / Day 2; at 14 days, 14 / Day 15. At or after 15 full days it reports 15 completed days, Day 15, and `isPeriodComplete: true`. Future start times clamp to zero elapsed progress. `remainingDays` counts full or partial days rounded up; `remainingSeconds` preserves subsecond precision. Finished states report their fixed 15-day completion.
+
+Users do not manually complete days. Calling the selector, validating, loading, or hydrating never changes status, historical best progress, or any stored fact. An elapsed period cannot be extended by a stale `active` status or an unanswered assessment. A later explicit transition will record its end; completion, violation/restart, session guards, and Tracking enablement remain deferred.
 
 ## ResetBaseline
 
@@ -119,6 +127,14 @@ Unknown or unavailable aggregates remain absent. Missing data is not zero; a kno
 | `spontaneousOrMorningErections` | `often`, `sometimes`, `rarely`, `notSure`, `preferNotToSay` |
 
 These are subjective observations without diagnostic labels, medical thresholds, or claims of recovery. Aggregation windows, minimum sample sizes, and calculation rules are deferred.
+
+### Starting from a baseline
+
+[`startResetFromBaselineState`](../src/storage/bloomResetTransitions.ts), also exported from `bloomState.ts`, accepts `{ resetBaseline, resetAttemptId, startedAt }`. It requires a valid `baseline_pending` journey, a nonempty attempt ID not already in history, and canonical timestamps with `startedAt >= resetBaseline.capturedAt`; equality is allowed. It validates and copies the supplied baseline. Unknown aggregates remain absent, and no session-history aggregates are calculated.
+
+The transition changes only `resetJourney` to `active`, preserving its ID, 15-day duration, best progress, attempts, and violations. It attaches the baseline and sets both journey and new active attempt `startedAt` to the single supplied time. Historical attempts may precede this new journey start; their periods must still be non-overlapping and end no later than the new attempt. Older migrated journeys can retain an earlier journey start from before a restart; validation preserves `baseline.capturedAt <= journey.startedAt <= currentAttempt.startedAt` without rewriting timestamps.
+
+Invalid inputs, partially started source shapes, and every status other than `baseline_pending` return the original state. Repeating a start cannot replace the baseline, attempt, or journey identity. Onboarding acceptance, Tracking, Content-Free, Urge Control, and every legacy slice retain their original references. Starting Reset neither enables Tracking nor changes a Content-Free activation already underway.
 
 ## PostResetAssessment
 
@@ -219,7 +235,7 @@ The structural validator in [`validation.ts`](../src/domain/onboarding/validatio
 
 All paths require a completed, valid result with null acceptance, an inactive Reset journey, and no unfinished masturbation session. Non-tracking recommendations additionally require Tracking already disabled, preventing acceptance from turning off an existing system. Tracking acceptance may retain an already-enabled setting. Content-Free must be inactive only when this action activates it; otherwise its existing state is untouched. New activation IDs cannot repeat a past activation ID, and activation time cannot overlap past activation boundaries. Histories, best streak/progress, and unchanged slice references are preserved.
 
-Reset preparation adds only its journey ID and `baseline_pending` status to the preserved 15-day history. It creates no `startedAt`, baseline, attempt, completion, or assessment. The restriction begins only after baseline completion in a later phase; enabling Tracking after Reset is also deferred. Content-Free starts its activation and streak at `acceptedAt`, without a violation or masturbation restriction. Urge Control and every legacy slice are unchanged.
+Reset preparation adds only its journey ID and `baseline_pending` status to the preserved 15-day history. Acceptance creates no `startedAt`, baseline, attempt, completion, or assessment. The period begins through the separate Phase 1F baseline transition; enabling Tracking after Reset is deferred. Content-Free starts its activation and streak at `acceptedAt`, without a violation or masturbation restriction. Urge Control and every legacy slice are unchanged.
 
 The transition returns one atomic snapshot containing the product changes and `{ acceptedAt, recommendation }` acceptance. Invalid inputs or conflicting state return the original state. Repeated acceptance returns the original accepted state before inspecting new inputs, preventing duplicate identities or replacement timestamps. The saved scoring result remains the same historical object and is never rescored.
 
@@ -245,7 +261,9 @@ urgeControl
 productOnboarding
 ```
 
-[`bloomStateSchema.ts`](../src/storage/bloomStateSchema.ts) now validates version 5. The loader prefers `bloom.localState.v5`, then v4, v3, v2, and v1. V4 preserves all existing slices and results, adding only `planAcceptance: null` to completed onboarding; not-completed state stays unchanged. Acceptance is never inferred from feature state or imported from a later-looking v4 field. V3 preserves legacy and Phase 1B slices and adds the not-completed product onboarding default. V2 and supported raw legacy payloads retain the legacy slices and receive safe defaults for all five product slices. Each migration writes directly to v5, removing its source key only after the write succeeds. Corrupt/future payload preservation and lifecycle guarantees remain intact. Delete-all covers v1–v5 and Bloom corrupt backups.
+[`bloomStateSchema.ts`](../src/storage/bloomStateSchema.ts) now validates version 6. The loader prefers `bloom.localState.v6`, then v5, v4, v3, v2, and v1. V5 preserves all valid state, including onboarding acceptance, and removes only the obsolete active-attempt `completedDays` field after validating its old shape. V3/v4 active attempts receive the same correction. Existing start times, historical attempt counts, and best progress remain unchanged; migration neither derives progress nor completes an elapsed period. With no active Reset, v5 migration otherwise retains the existing structure.
+
+V4 still adds only `planAcceptance: null` to completed onboarding; not-completed state stays unchanged. Acceptance is never inferred from feature state or imported from a later-looking v4 field. V3 preserves legacy and Phase 1B slices and adds the not-completed onboarding default. V2 and supported raw legacy payloads retain the legacy slices and receive safe product defaults. Each migration writes directly to v6, removing its source key only after the write succeeds. Failed writes preserve the source. Corrupt/future payload preservation and lifecycle guarantees remain intact. Delete-all covers v1–v6 and Bloom corrupt backups.
 
 Fresh Content-Free is inactive with `bestStreakSeconds: 0`, empty `pastActivations`, and empty `violations`. Fresh Reset is inactive with `durationDays: 15`, `bestCompletedDays: 0`, empty attempts/violations, and no ID, baseline, or assessment. No legacy Reset, Pause, Arousal, Protection, or Check-In record seeds any new entity.
 
@@ -263,7 +281,7 @@ Known differences requiring later explicit work:
 
 ## Runtime Validation and Deferred Behavior
 
-The v5 storage boundary checks record shapes, discriminated lifecycle fields, canonical timestamps, numeric ranges, identity uniqueness, and local history/reference consistency. Invalid new records reject the load and preserve the source payload and backup; they are not silently filtered or converted into different user facts. Existing legacy normalization remains unchanged. Future feature adoption must maintain these invariants:
+The v6 storage boundary checks record shapes, discriminated lifecycle fields, canonical timestamps, numeric ranges, identity uniqueness, and local history/reference consistency. Active attempts reject persisted `completedDays`; restarted and completed attempts retain their historical counts. Invalid new records reject the load and preserve the source payload and backup; they are not silently filtered or converted into different user facts. Existing legacy normalization remains unchanged. Future feature adoption must maintain these invariants:
 
 - Stable nonempty identities and valid timestamps with consistent chronology.
 - Finite, nonnegative durations and intervals; progress within the declared day range, ratios from 0 through 1, average erection quality from 1 through 10, and integer session ratings from 1 through 10.
@@ -272,4 +290,4 @@ The v5 storage boundary checks record shapes, discriminated lifecycle fields, ca
 - Consistency of attempt history and identity, progress, baseline, completion timestamps, and assessment references.
 - Atomic, acknowledged cross-system effects when one event affects both Reset and Content-Free.
 
-Phase 1B adds persistence validation, not new transition functions. Streak/day calculations, session mutations, undo/restart operations, cross-system effects, and tracking access guards remain deferred. There is no new backend, authentication, sync metadata, analytics, or AI dependency.
+Phase 1F adds baseline start and elapsed Reset progress to the earlier persistence and acceptance foundation. Streak calculations, session mutations, undo/restart operations, completion/post-assessment transitions, and tracking access guards remain deferred. There is no new backend, authentication, sync metadata, analytics, or AI dependency.

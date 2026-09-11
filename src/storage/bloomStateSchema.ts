@@ -69,7 +69,7 @@ export {
   isValidBloomTime
 } from "./bloomValueValidation";
 
-export const BLOOM_PERSISTENCE_VERSION = 5 as const;
+export const BLOOM_PERSISTENCE_VERSION = 6 as const;
 
 export type PersistedBloomEnvelopeV2 = {
   version: 2;
@@ -90,6 +90,12 @@ export type PersistedBloomEnvelopeV4 = {
 };
 
 export type PersistedBloomEnvelopeV5 = {
+  version: 5;
+  savedAt: string;
+  state: unknown;
+};
+
+export type PersistedBloomEnvelopeV6 = {
   version: typeof BLOOM_PERSISTENCE_VERSION;
   savedAt: string;
   state: unknown;
@@ -102,11 +108,11 @@ export type ParsedPersistedPayload =
 export type PersistedEnvelopeReadResult =
   | {
       status: "current";
-      envelope: PersistedBloomEnvelopeV5;
+      envelope: PersistedBloomEnvelopeV6;
     }
   | {
       status: "legacy";
-      sourceVersion: 2 | 3 | 4 | null;
+      sourceVersion: 2 | 3 | 4 | 5 | null;
       state: unknown;
     }
   | {
@@ -200,6 +206,7 @@ export function readPersistedEnvelope(value: unknown): PersistedEnvelopeReadResu
 
   if (
     value.version !== BLOOM_PERSISTENCE_VERSION &&
+    value.version !== 5 &&
     value.version !== 4 &&
     value.version !== 3 &&
     value.version !== 2
@@ -217,7 +224,7 @@ export function readPersistedEnvelope(value: unknown): PersistedEnvelopeReadResu
     };
   }
 
-  if (value.version === 2 || value.version === 3 || value.version === 4) {
+  if (value.version === 2 || value.version === 3 || value.version === 4 || value.version === 5) {
     return {
       status: "legacy",
       sourceVersion: value.version,
@@ -237,7 +244,7 @@ export function readPersistedEnvelope(value: unknown): PersistedEnvelopeReadResu
 
 export function validateAndNormalizeBloomState(
   value: unknown,
-  mode: "current" | "v4" | "v3" | "legacy" = "current"
+  mode: "current" | "v5" | "v4" | "v3" | "legacy" = "current"
 ): BloomStateValidationResult {
   try {
     const record = requireRecord(value, "state");
@@ -268,16 +275,16 @@ export function validateAndNormalizeBloomState(
       resetJourney:
         mode === "legacy"
           ? defaults.resetJourney
-          : normalizeResetJourney(record.resetJourney),
+          : normalizeResetJourney(record.resetJourney, mode === "current" ? "current" : "preV6"),
       urgeControl:
         mode === "legacy"
           ? defaults.urgeControl
           : normalizeUrgeControl(record.urgeControl),
-      // V4 owns onboarding results but never acceptance. V3 and older schemas
-      // cannot supply either fact, even if similarly named properties exist.
+      // V5 owns results and acceptance. V4 owns results but never acceptance.
+      // V3 and older cannot supply either fact, even with similarly named fields.
       productOnboarding:
-        mode === "current" || mode === "v4"
-          ? normalizeProductOnboarding(record.productOnboarding, mode)
+        mode === "current" || mode === "v5" || mode === "v4"
+          ? normalizeProductOnboarding(record.productOnboarding, mode === "v4" ? "v4" : "current")
           : defaults.productOnboarding
     };
 

@@ -24,7 +24,7 @@ type ResetAttemptIdentity = {
 
 export type ActiveResetAttempt = ResetAttemptIdentity & {
   status: "active";
-  completedDays: IncompleteResetDays;
+  // Live progress is derived from startedAt and an explicit current time.
 };
 
 export type RestartedResetAttempt = ResetAttemptIdentity & {
@@ -52,6 +52,8 @@ type ResetJourneyHistory = {
 
 type StartedResetJourney = {
   id: UUID;
+  // New baseline starts match currentAttempt.startedAt. Historical restarted
+  // journeys may retain their earlier start; live progress uses the attempt.
   startedAt: ISODateString;
   baseline: ResetBaseline;
 };
@@ -62,8 +64,9 @@ type FinishedResetJourney = StartedResetJourney & {
   currentAttempt: CompletedResetAttempt;
 };
 
-// Only active restricts starting a session. At 15 days, assessment_pending
-// records the restriction's end; unfinished assessment cannot extend it.
+// The active period lasts 15 elapsed days from the current attempt's start.
+// A later action records assessment_pending; a stale active status or pending
+// assessment cannot extend the period. Session guards are not implemented yet.
 export type ResetJourney = ResetJourneyHistory &
   (
     | { status: "inactive" }

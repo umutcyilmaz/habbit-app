@@ -12,6 +12,8 @@ Phase 1D persists that complete result in `productOnboarding` alongside legacy o
 
 Phase 1E adds explicit recommendation acceptance as a pure state transition, with a persisted v5 acceptance marker. It remains separate from saving the quiz result and is not connected to screens, providers, or routing.
 
+Phase 1F completes the supplied pre-reset baseline and starts the 15-day attempt through a pure transition. Progress derives from elapsed time; persistence v6 removes the active day counter. No screens, providers, routes, or legacy behavior are connected or changed.
+
 The Expo Router architecture and local-first approach remain technical constraints. Older inventories in [ARCHITECTURE.md](ARCHITECTURE.md) and product references in [DECISIONS.md](DECISIONS.md) describe earlier stages; they do not require a new flow to depend on Protect. Existing navigation remains unchanged in this phase.
 
 ## Product Summary
@@ -71,7 +73,7 @@ The target Reset lasts **15 days**, replacing the old conceptual 10-Day Reset. I
 | `inactive` | No Reset is underway or being prepared. |
 | `recommended` | Reset has been suggested but has not started. |
 | `baseline_pending` | A pre-reset baseline is being prepared; Reset has not started. |
-| `active` | The current 15-day attempt is underway. Starting a Masturbation Session is blocked. |
+| `active` | An attempt has started. Elapsed time determines whether its 15-day period is still underway; a later explicit action records its end. |
 | `assessment_pending` | The 15-day Reset period has ended; the post-reset assessment has not been submitted. |
 | `completed` | The Reset period has ended and its post-reset assessment is recorded. |
 
@@ -90,13 +92,19 @@ The intended end-of-reset flow offers the assessment, then returns to Masturbati
 
 Blocking the in-app start action does not imply masturbation outside the app cannot happen. The future model must still allow reporting that behavior and applying the appropriate restart rule. A combined behavior event must not create two Reset restarts or duplicate Content-Free violations.
 
-This phase does not implement day arithmetic, start guards, restarts, or tracking access changes. Whether day boundaries use elapsed time or local calendar days, including timezone/DST behavior, must be resolved with future calculation and validation work rather than implied by these types.
+Reset starts only when its baseline is completed. The caller supplies the baseline, attempt ID, and one start timestamp used for both journey and attempt. Repeating the start is a no-op. Existing history and best progress are preserved, while Content-Free, Tracking, onboarding acceptance, and legacy systems remain unchanged.
+
+Progress advances with elapsed time even when the app is closed. Each day is a full 24 hours from the current attempt's start; users do not complete days manually. Before 24 hours progress is 0 completed days / Day 1, at 24 hours it is 1 / Day 2, and at 15 full days it is 15 completed days with the period complete. Progress clamps safely between 0 and 15. Local calendar dates and timezone/DST changes do not affect these durations.
+
+The selector reports period completion without changing persisted status. Loading, hydration, and validation do not automatically complete Reset. Reaching 15 elapsed days ends the period even if `active` has not yet been replaced by a later lifecycle action. Completion/post-assessment transitions, session guards, violations/restarts, and Tracking access changes are outside Phase 1F.
 
 ## Reset Baseline and Post-Reset Assessment
 
 **ResetBaseline** is a snapshot of available pre-reset information. It can retain average interval between sessions, average self-reported erection quality, and the proportion of sessions with intentional explicit content. Unknown aggregates remain absent; no observations is not equivalent to a measured zero.
 
 The baseline also supports self-reports about urge intensity, ability to pause or delay acting, and perceived spontaneous or morning erections. Unknown or declined responses must not be interpreted as the absence of a concern.
+
+A user starting directly from onboarding may supply only these self-reports, an ID, and capture time. Phase 1F validates known aggregates without computing them from session history. Tracking-off periods and observation windows must be modeled before that calculation can be trustworthy. The start timestamp must be at or after capture time; timestamps are not rewritten.
 
 **PostResetAssessment** records perceived changes in urge intensity, ability to pause, spontaneous erections, and overall sexual response, plus readiness to restart tracking. These are subjective answers, not clinical outcomes or evidence that Reset caused a change. Readiness never gates tracking access.
 
@@ -161,14 +169,14 @@ Initial acceptance requires an inactive Reset and no unfinished session; non-tra
 | Existing implementation | Target model / later work |
 | --- | --- |
 | `pornLoop`, `pressurePattern`, `controlTiming`, and legacy quiz recommendations | New dimensions, confidence, and four recommendation identifiers; scoring replacement is deferred. |
-| `TenDayResetState`, 10 completed dates, and daily completion actions | 15-day journey with attempts, violations, baseline, and assessment; calculation and migration are deferred. |
+| `TenDayResetState`, 10 completed dates, and daily completion actions | The new 15-day journey starts from a baseline and derives elapsed progress. Legacy daily actions remain separate. |
 | Protection-dependent journey decisions | Protect is deferred and is not required by new flows. Existing decisions still run until routing is deliberately changed. |
 | Separate Pause and Arousal Control drafts/logs | Normal Masturbation Sessions with optional timed pauses, plus the separate acute Urge Control tool. No automatic reinterpretation of legacy records. |
 | Existing Arousal flow can start without a Reset restriction | The future Masturbation Session start guard applies during active Reset. No existing start action changes in Phase 1B. |
 | Content-Free supports initial activation through explicit plan acceptance | Violation, correction, and streak calculations remain deferred. |
-| Transitional `BloomLocalState` and version-5 persistence | V4 results gain null acceptance without inference from feature state. Older migrations remain supported, preserving their existing facts and safe defaults. |
+| Transitional `BloomLocalState` and version-6 persistence | V3–v5 active attempts lose only their obsolete live day counter. Historical data and earlier onboarding migration rules remain preserved. |
 | Five current tabs and `/reset/ten-day`, `/pause`, and Arousal routes | Keep Expo Router and all working routes now; new navigation is outside Phase 1B. |
 
 ## Out of Scope for the Transitional Foundation
 
-No UI redesign, Figma implementation, new screens, deleted flows, Protect changes, legacy onboarding replacement, navigation changes, Reset baseline completion/restriction start, session or violation mutations, post-Reset Tracking enablement, tracking-based Reset recommendations, backend, authentication, analytics, AI, or speculative framework is part of Phase 1E. Further phases require a separate task.
+No UI redesign, Figma implementation, new screens, deleted flows, Protect changes, legacy onboarding replacement, navigation changes, session or violation mutations, Reset completion/post-assessment transitions, post-Reset Tracking enablement, tracking-based Reset recommendations, backend, authentication, analytics, AI, or speculative framework is part of Phase 1F. Further phases require a separate task.

@@ -16,20 +16,20 @@ AsyncStorage is durable local storage. It does not provide application-level enc
 The canonical key is:
 
 ```text
-bloom.localState.v5
+bloom.localState.v6
 ```
 
 Its JSON value is a versioned envelope:
 
 ```ts
-type PersistedBloomEnvelopeV5 = {
-  version: 5;
+type PersistedBloomEnvelopeV6 = {
+  version: 6;
   savedAt: string;
   state: unknown;
 };
 ```
 
-Payloads are parsed as `unknown`, validated section by section, and normalized into `BloomLocalState`. Existing slices retain their normalization/default and unknown-field rules. Current v5 payloads must include the four Phase 1B feature slices plus `productOnboarding`; completed product onboarding requires `planAcceptance`, either null or a valid historical action. Malformed new records reject the load without silently removing user facts. Product onboarding uses a closed versioned schema and rejects unknown fields. Important enum, date, array, record, Boolean, and finite-number fields are validated before use.
+Payloads are parsed as `unknown`, validated section by section, and normalized into `BloomLocalState`. Existing slices retain their normalization/default and unknown-field rules. Current v6 payloads must include the four Phase 1B feature slices plus `productOnboarding`; completed product onboarding requires `planAcceptance`, either null or a valid historical action. Active Reset attempts contain only identity, status, and start time, with no persisted day counter. Malformed new records reject the load without silently removing user facts. Product onboarding uses a closed versioned schema and rejects unknown fields. Important enum, date, array, record, Boolean, and finite-number fields are validated before use.
 
 Bloom date keys must be real Gregorian dates in exact `YYYY-MM-DD` form. Persisted timestamps, including envelope `savedAt`, must exactly match the canonical form produced by `Date.prototype.toISOString()`:
 
@@ -53,13 +53,17 @@ start is valid and ten valid unique dates remain.
 
 ## Transitional Product State
 
-`masturbationTracking`, `contentFree`, `resetJourney`, and `urgeControl` are persisted alongside all legacy state. Tracking defaults to disabled with no current session/history; Content-Free is inactive with zero best streak and no history; Reset is inactive for 15 days with zero progress, no identity, attempts, violations, baseline, or assessment; Urge Control has no active event or records. Explicit onboarding acceptance can prepare the starting product state; independent feature mutations and UI remain deferred.
+`masturbationTracking`, `contentFree`, `resetJourney`, and `urgeControl` are persisted alongside all legacy state. Tracking defaults to disabled with no current session/history; Content-Free is inactive with zero best streak and no history; Reset is inactive for 15 days with zero progress, no identity, attempts, violations, baseline, or assessment; Urge Control has no active event or records. Explicit onboarding acceptance can prepare the starting product state, and baseline completion can start Reset. Other feature mutations and UI remain deferred.
 
 `bloomProductStateSchema.ts` validates the new unions, canonical timestamps, finite numeric ranges, explicit enums/Booleans, source identities, and record/history relationships. The entire payload is preserved as corrupt if a new record is malformed. It does not recompute streaks, infer medical facts, prove elapsed Reset days, or implement feature transitions.
 
 `productOnboarding` defaults to `{ status: "notCompleted", result: null }`. Completed state contains the full versioned result and a null-or-recorded `planAcceptance`. The result retains raw answers, derived dimensions/recommendation/confidence/eligibility/safety, completion timestamp, and internal evidence. The separate acceptance action owns only `acceptedAt` and the accepted recommendation. The pure save mutation records a result with null acceptance, changes no feature or legacy state, and refuses invalid input or overwriting an accepted result.
 
 `acceptProductOnboardingRecommendationState` is a separate pure transition using supplied time and only the IDs required by the stored recommendation. It records acceptance and atomically enables Tracking, activates Content-Free, prepares Reset in `baseline_pending`, or prepares Reset plus activates Content-Free. Reset has no start time, baseline, or attempt yet; Tracking remains disabled for non-tracking recommendations. Conflicts are exact no-ops; histories, best values, and unrelated systems are preserved. Retries cannot replace the original marker or identities. [DATA_MODEL.md](../../docs/DATA_MODEL.md#explicit-acceptance) defines the initial-state preconditions. The transition itself performs no storage write; its returned snapshot uses the existing persistence coordinator when saved.
+
+`startResetFromBaselineState` accepts `{ resetBaseline, resetAttemptId, startedAt }` and changes only a valid `baseline_pending` Reset to `active`. It retains the journey ID/history/best progress, copies the validated baseline, and assigns the supplied time to both journey and attempt. Start must be at or after baseline capture; equality is valid. IDs are nonempty, the attempt ID must be new, and prior attempts must end no later than this start. Invalid or repeated starts are exact no-ops. Optional baseline aggregates remain absent when unknown; no session-history calculation or medical interpretation is added. Tracking, Content-Free, onboarding acceptance, Urge Control, and all legacy state stay untouched.
+
+`getResetProgress(resetJourney, now)` derives active progress from `currentAttempt.startedAt` and supplied time, using full 24-hour durations clamped to 0–15 days. Users do not manually complete days. `isPeriodComplete` becomes true at 15 days even if persisted status remains `active`; neither this selector nor loading, validation, or hydration writes completion or best progress. A later explicit lifecycle action will persist the period's end. Historical attempts retain their ended progress, while active attempts reject `completedDays` in v6. [DATA_MODEL.md](../../docs/DATA_MODEL.md#elapsed-progress) details selector output and clock behavior.
 
 Acceptance validation requires an exact marker, canonical `acceptedAt` at or after quiz completion, and an accepted recommendation equal to the stored result. It rejects mismatches without rescoring or rewriting them. Current feature state is not used to infer or invalidate a historical acceptance.
 
@@ -135,18 +139,21 @@ history redirects to the Arousal Control overview.
 
 ## Legacy Migration
 
-The loader checks `bloom.localState.v5` first, followed by these migration sources in order:
+The loader checks `bloom.localState.v6` first, followed by these migration sources in order:
 
 ```text
+bloom.localState.v5
 bloom.localState.v4
 bloom.localState.v3
 bloom.localState.v2
 bloom.localState.v1
 ```
 
-Valid v4 envelopes preserve every existing slice/result and add `planAcceptance: null` to completed onboarding; not-completed state stays unchanged. No acceptance is inferred from enabled Tracking, active Content-Free, or Reset state. Only a later-looking `planAcceptance` property is ignored when validating the old v4 lifecycle; other malformed fields still fail. Valid v3 envelopes preserve all twelve existing slices and add the safe product onboarding default. V2 envelopes and previously supported raw legacy payloads retain legacy normalization and receive safe product defaults. No older feature or quiz data is reinterpreted. Migration dispatch follows the envelope version rather than its key location.
+Valid v5 envelopes preserve existing state, including onboarding acceptance. Active attempts from v3/v4/v5 retain `startedAt` and drop their obsolete `completedDays` after its old range and best-progress consistency are validated. Historical restarted/completed attempts and `bestCompletedDays` remain unchanged. Existing journey/attempt start times may differ after a historical restart; both are preserved. Migration never invents a baseline, derives active progress, or completes an elapsed period. With no active Reset, v5 migration otherwise preserves the existing structure.
 
-Every migration writes directly to v5 without intermediate historical writes. The source key is removed only after that write succeeds. If the write fails, the source payload stays in place and hydration returns usable validated state with a persistence warning and `needsPersist: true`. Existing serialization, acknowledgement, and generation protections remain in force.
+Valid v4 envelopes still add `planAcceptance: null` to completed onboarding; not-completed state stays unchanged. No acceptance is inferred from enabled Tracking, active Content-Free, or Reset state. Only a later-looking `planAcceptance` property is ignored when validating the old v4 lifecycle; other malformed fields still fail. Valid v3 envelopes preserve all twelve existing slices and add the safe product onboarding default. V2 envelopes and previously supported raw legacy payloads retain legacy normalization and receive safe product defaults. No older feature or quiz data is reinterpreted. Migration dispatch follows the envelope version rather than its key location.
+
+Every migration writes directly to v6 without intermediate historical writes. The source key is removed only after that write succeeds. If the write fails, the source payload stays in place and hydration returns usable validated state with a persistence warning and `needsPersist: true`. Existing serialization, acknowledgement, and generation protections remain in force.
 
 ## Corrupt and Future Payloads
 
@@ -218,6 +225,7 @@ post-reset accepted state.
 Deletion enumerates only Bloom-owned keys and removes:
 
 ```text
+bloom.localState.v6
 bloom.localState.v5
 bloom.localState.v4
 bloom.localState.v3
@@ -260,6 +268,8 @@ The repository persistence verification script uses only fake web storage and ex
 ```sh
 npm run verify:persistence
 ```
+
+This command also runs the focused product-state, onboarding, plan-acceptance, and Reset-baseline suites. Reset coverage includes supplied baseline validation, history preservation, repeated-start no-ops, 24-hour progress boundaries, clock skew, v3–v5 active-counter migration, and no automatic completion during loading or selection.
 
 The acknowledgement verifier uses the production mutation runtime, persistence coordinator, domain transforms, envelope reader, and web adapter with delayed/failing synthetic storage clients. It covers exact-write timing, independent rapid-write outcomes, retry without domain replay, Check-In/Reset/Pause/Arousal/Protection idempotency, hydration/deletion blocking and late-success stale-hydration invalidation, storage unavailability, error clearing, stale-token invalidation, and continued unacknowledged system persistence:
 
