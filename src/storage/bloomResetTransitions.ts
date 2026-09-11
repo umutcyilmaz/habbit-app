@@ -1,10 +1,18 @@
 import type { BehaviorEventSource } from "../domain/models/BehaviorEventSource";
 import type { ContentFreeState } from "../domain/models/ContentFreeState";
+import type { PostResetAssessment } from "../domain/models/PostResetAssessment";
 import type { ResetBaseline } from "../domain/models/ResetBaseline";
 import type { ResetCompletedDays, ResetJourney, ResetViolation, RestartedResetAttempt } from "../domain/models/ResetJourney";
 import type { ISODateString, UUID } from "../domain/models/shared";
 import { getResetProgress } from "../domain/reset/getResetProgress";
-import { normalizeContentFree, normalizeResetBaseline, normalizeResetJourney, normalizeResetViolation } from "./bloomProductStateSchema";
+import {
+  normalizeContentFree,
+  normalizeMasturbationTracking,
+  normalizePostResetAssessment,
+  normalizeResetBaseline,
+  normalizeResetJourney,
+  normalizeResetViolation
+} from "./bloomProductStateSchema";
 import type { BloomLocalState } from "./bloomState";
 import { isValidBloomIsoTimestamp } from "./bloomValueValidation";
 
@@ -27,6 +35,10 @@ export type RecordActiveResetViolationInput = {
 export type UndoActiveResetViolationInput = {
   violationId: UUID;
   undoneAt: ISODateString;
+};
+
+export type CompleteElapsedResetPeriodInput = {
+  observedAt: ISODateString;
 };
 
 // Complete preparation and start one attempt using only supplied facts.
@@ -241,6 +253,74 @@ export function undoActiveResetViolationState(
     };
     normalizeResetJourney(resetJourney);
     return { ...state, resetJourney, contentFree };
+  } catch {
+    return state;
+  }
+}
+
+// Persist an elapsed period's actual end, independently of when it is observed.
+// Selectors and hydration never call this transition automatically.
+export function completeElapsedResetPeriodState(
+  state: BloomLocalState,
+  input: CompleteElapsedResetPeriodInput
+): BloomLocalState {
+  const reset = state.resetJourney;
+  if (reset.status !== "active") return state;
+
+  try {
+    normalizeResetJourney(reset);
+    if (typeof input !== "object" || input === null || Array.isArray(input)) return state;
+    const keys = Object.keys(input);
+    if (keys.length !== 1 || !keys.includes("observedAt")) return state;
+    const progress = getResetProgress(reset, input.observedAt);
+    if (progress === null || !progress.isPeriodComplete || progress.completedDays !== 15) return state;
+    const periodCompletedAt = new Date(
+      Date.parse(reset.currentAttempt.startedAt) + reset.durationDays * 24 * 60 * 60 * 1000
+    ).toISOString();
+    const resetJourney: ResetJourney = {
+      ...reset,
+      status: "assessment_pending",
+      bestCompletedDays: 15,
+      completedAt: periodCompletedAt,
+      currentAttempt: {
+        id: reset.currentAttempt.id,
+        status: "completed",
+        startedAt: reset.currentAttempt.startedAt,
+        completedAt: periodCompletedAt,
+        completedDays: 15
+      }
+    };
+    normalizeResetJourney(resetJourney);
+    return { ...state, resetJourney };
+  } catch {
+    return state;
+  }
+}
+
+// Readiness is descriptive. Any valid assessment finishes this lifecycle and
+// enables Tracking, without creating or replacing session history.
+export function completePostResetAssessmentState(
+  state: BloomLocalState,
+  assessment: PostResetAssessment
+): BloomLocalState {
+  const reset = state.resetJourney;
+  if (reset.status !== "assessment_pending") return state;
+
+  try {
+    normalizeResetJourney(reset);
+    const tracking = state.masturbationTracking;
+    if (tracking.currentSession !== null) return state;
+    normalizeMasturbationTracking(tracking);
+    const captured = normalizePostResetAssessment(assessment);
+    if (captured.resetJourneyId !== reset.id || captured.resetAttemptId !== reset.currentAttempt.id ||
+      captured.baselineId !== reset.baseline.id || Date.parse(captured.completedAt) < Date.parse(reset.completedAt)) return state;
+    const resetJourney: ResetJourney = { ...reset, status: "completed", assessment: captured };
+    normalizeResetJourney(resetJourney);
+    return {
+      ...state,
+      resetJourney,
+      masturbationTracking: tracking.enabled ? tracking : { ...tracking, enabled: true }
+    };
   } catch {
     return state;
   }

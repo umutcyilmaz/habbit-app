@@ -18,6 +18,8 @@ Phase 1G records an active Reset violation and restarts its attempt, atomically 
 
 Phase 1H corrects the latest mistaken Reset violation through explicit atomic undo. V7 persistence retains recorded/undone Reset violations and prior-best rollback data for new logs. No screen, navigation, or legacy behavior changes.
 
+Phase 1I explicitly records elapsed Reset completion and the post-reset assessment. The assessment submission enables Masturbation Tracking in the onboarding Reset flow. These transitions use existing v7 shapes without changing persistence, migrations, UI, navigation, or legacy behavior.
+
 The Expo Router architecture and local-first approach remain technical constraints. Older inventories in [ARCHITECTURE.md](ARCHITECTURE.md) and product references in [DECISIONS.md](DECISIONS.md) describe earlier stages; they do not require a new flow to depend on Protect. Existing navigation remains unchanged in this phase.
 
 ## Product Summary
@@ -77,13 +79,13 @@ The target Reset lasts **15 days**, replacing the old conceptual 10-Day Reset. I
 | `inactive` | No Reset is underway or being prepared. |
 | `recommended` | Reset has been suggested but has not started. |
 | `baseline_pending` | A pre-reset baseline is being prepared; Reset has not started. |
-| `active` | An attempt has started. Elapsed time determines whether its 15-day period is still underway; a later explicit action records its end. |
-| `assessment_pending` | The 15-day Reset period has ended; the post-reset assessment has not been submitted. |
-| `completed` | The Reset period has ended and its post-reset assessment is recorded. |
+| `active` | An attempt has started. Elapsed time determines whether its 15-day period is still underway; explicit completion records its end. |
+| `assessment_pending` | The 15-day Reset period has ended; assessment is outstanding and Tracking remains disabled in the onboarding Reset flow. |
+| `completed` | The assessment is recorded and its submission has enabled Tracking. |
 
 A journey retains its start, current attempt, best completed progress, violations, pre-reset baseline snapshot, and completion timestamp. Restarting changes the attempt rather than rewriting the original baseline or forgetting prior violations.
 
-The intended end-of-reset flow offers the assessment, then returns to Masturbation Tracking. **The restriction ends after 15 days.** An unanswered assessment or a readiness answer must not extend it. Tracking is therefore available in `assessment_pending` as well as `completed`. This is the Phase 1A interpretation of assessment timing; readiness is feedback, not an access flag.
+**The behavioral restriction ends after 15 full 24-hour days.** Assessment does not extend that period. In the onboarding Reset flow, Tracking remains disabled in `assessment_pending` and becomes enabled when the assessment is submitted. Every valid readiness answer (`ready`, `notReady`, or `notSure`) enables Tracking; readiness describes the user's experience and does not decide permission.
 
 ### Restart Rules
 
@@ -94,7 +96,7 @@ The intended end-of-reset flow offers the assessment, then returns to Masturbati
 | Masturbation with intentional explicit-content use | Restart from Day 1 once for the event. | Restart the streak once for the event. |
 | Accidental explicit-content exposure alone | Does not automatically restart. | Does not automatically restart. |
 
-These restart rules apply only while the current attempt's 15-day period is incomplete at the event's `occurredAt`. At or after 15 full elapsed days, the entire violation transition is a no-op, even if persisted status is still `active`. A later completion action will record the period's end; a late violation cannot extend it.
+These restart rules apply only while the current attempt's 15-day period is incomplete at the event's `occurredAt`. At or after 15 full elapsed days, the entire violation transition is a no-op, even if persisted status is still `active`. Explicit completion records the period's end; a late violation cannot extend it.
 
 A valid violation archives the old attempt with its elapsed completed-day count (0–14), appends one linked violation, and starts a new attempt at the event time. The same journey remains active with its original journey start, baseline, previous attempts, and violations. Best Reset progress becomes the greater of the existing best and the archived attempt's progress. No onboarding or baseline step is repeated.
 
@@ -116,7 +118,9 @@ Reset starts only when its baseline is completed. The caller supplies the baseli
 
 Progress advances with elapsed time even when the app is closed. Each day is a full 24 hours from the current attempt's start; users do not complete days manually. Before 24 hours progress is 0 completed days / Day 1, at 24 hours it is 1 / Day 2, and at 15 full days it is 15 completed days with the period complete. Progress clamps safely between 0 and 15. Local calendar dates and timezone/DST changes do not affect these durations.
 
-The selector reports period completion without changing persisted status. Loading, hydration, validation, and migration do not automatically complete or undo Reset. Reaching 15 elapsed days ends the period even if `active` has not yet been replaced by a later lifecycle action. Completion/post-assessment transitions, session guards, and Tracking access changes remain outside Phase 1H.
+The selector reports period completion without changing persisted status. Loading, hydration, validation, and migration do not automatically complete or undo Reset. An explicit completion transition accepts a supplied observation time at or after the boundary and moves `active` to `assessment_pending`. Journey and final attempt `completedAt` equal the current attempt's start plus exactly 15 full days, even when completion is observed later. A September 1, 10:00 start ends September 16, 10:00 even if the next observation is September 18.
+
+Elapsed completion preserves the journey's original start, baseline, prior attempts, violations/tombstones, and independent Content-Free state. The final completed attempt remains `currentAttempt`, and best progress becomes 15. It creates no assessment or session and leaves Tracking unchanged, so onboarding Tracking remains disabled. Invalid or early observation times and repeated completion calls are no-ops.
 
 ## Reset Baseline and Post-Reset Assessment
 
@@ -127,6 +131,10 @@ The baseline also supports self-reports about urge intensity, ability to pause o
 A user starting directly from onboarding may supply only these self-reports, an ID, and capture time. Phase 1F validates known aggregates without computing them from session history. Tracking-off periods and observation windows must be modeled before that calculation can be trustworthy. The start timestamp must be at or after capture time; timestamps are not rewritten.
 
 **PostResetAssessment** records perceived changes in urge intensity, ability to pause, spontaneous erections, and overall sexual response, plus readiness to restart tracking. These are subjective answers, not clinical outcomes or evidence that Reset caused a change. Readiness never gates tracking access.
+
+A valid assessment submission moves `assessment_pending` to `completed`, stores the supplied answers, and enables Tracking for every readiness value. It must identify the same journey, final attempt, and baseline, with a canonical submission time at or after the Reset period ended. An unexpected unfinished session makes the whole action a no-op. Session history, Reset history, Content-Free, onboarding, and legacy state are preserved. Repeated submissions cannot replace the stored assessment or change either completion timestamp.
+
+Baseline/assessment reports, future post-Reset session comparisons, and tracking-based Reset recommendations remain deferred. This phase generates no report, comparison score, medical interpretation, or session.
 
 No numeric score thresholds, diagnosis, guaranteed benefit, or medical interpretation is defined here.
 
@@ -180,7 +188,7 @@ Reset eligibility requires **both** high erection-response concern and high stim
 
 Saving this record changes only `productOnboarding`. It does not change legacy onboarding or `activePlan`, enable Masturbation Tracking, activate Content-Free, start Reset, create a baseline or activation, or alter Urge Control or Protect. Once accepted, saves cannot overwrite the result and erase its acceptance; retakes remain future work.
 
-Explicit acceptance records the stored recommendation and caller-supplied `acceptedAt`, then prepares its starting state. Tracking acceptance enables Tracking without creating a session. Content-Free acceptance activates Content-Free immediately with a supplied activation ID and starts its streak. Reset acceptance creates a supplied journey ID in `baseline_pending`, with no start time, baseline, or attempt: the 15-day restriction has not begun. Combined acceptance prepares Reset and activates Content-Free atomically. Tracking remains disabled for Content-Free and Reset starting strategies; a later post-Reset transition will enable it.
+Explicit acceptance records the stored recommendation and caller-supplied `acceptedAt`, then prepares its starting state. Tracking acceptance enables Tracking without creating a session. Content-Free acceptance activates Content-Free immediately with a supplied activation ID and starts its streak. Reset acceptance creates a supplied journey ID in `baseline_pending`, with no start time, baseline, or attempt: the 15-day restriction has not begun. Combined acceptance prepares Reset and activates Content-Free atomically. Tracking remains disabled for Content-Free and Reset starting strategies. For the onboarding Reset path, assessment submission enables it after the elapsed period ends.
 
 Initial acceptance requires an inactive Reset and no unfinished session; non-tracking recommendations also require disabled Tracking. Active Content-Free cannot be replaced by a new activation. Existing histories and best values are retained, and unrelated active Content-Free remains unchanged. Invalid input or conflicting state is a no-op. Repeating acceptance retains the original time and identities. Full preconditions are specified in [DATA_MODEL.md](DATA_MODEL.md#explicit-acceptance). No legacy flow, UI, or route is changed.
 
@@ -199,4 +207,4 @@ Initial acceptance requires an inactive Reset and no unfinished session; non-tra
 
 ## Out of Scope for the Transitional Foundation
 
-No UI redesign, Figma implementation, new screens, deleted flows, Protect changes, legacy onboarding replacement, navigation changes, session mutations or blocking, standalone Content-Free logging, arbitrary history editing, Reset completion/post-assessment transitions, post-Reset Tracking enablement, tracking-based Reset recommendations, backend, authentication, analytics, AI, or speculative framework is part of Phase 1H. Further phases require a separate task.
+No UI redesign, Figma implementation, new screens, deleted flows, Protect changes, legacy onboarding replacement, navigation changes, session mutations or blocking, standalone Content-Free logging, arbitrary history editing, post-Reset report generation or session comparison, tracking-based Reset recommendations, backend, authentication, analytics, AI, or speculative framework is part of Phase 1I. Further phases require a separate task.

@@ -12,9 +12,12 @@ export {
   type ProductOnboardingAcceptanceInput
 } from "./bloomProductOnboardingTransitions";
 export {
+  completeElapsedResetPeriodState,
+  completePostResetAssessmentState,
   recordActiveResetViolationState,
   startResetFromBaselineState,
   undoActiveResetViolationState,
+  type CompleteElapsedResetPeriodInput,
   type RecordActiveResetViolationInput,
   type StartResetFromBaselineInput,
   type UndoActiveResetViolationInput

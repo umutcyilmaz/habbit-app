@@ -271,7 +271,7 @@ export function normalizeResetJourney(
         absent(record, ["assessment"], path);
         journey = { ...finished, status };
       } else {
-        const assessment = normalizeAssessment(record.assessment, `${path}.assessment`);
+        const assessment = normalizePostResetAssessment(record.assessment, `${path}.assessment`);
         ensure(assessment.resetJourneyId === started.id && assessment.resetAttemptId === currentAttempt.id &&
           assessment.baselineId === started.baseline.id, path, "has inconsistent assessment references");
         notBefore(assessment.completedAt, completedAt, `${path}.assessment.completedAt`);
@@ -417,7 +417,10 @@ export function normalizeResetBaseline(
   };
 }
 
-function normalizeAssessment(value: unknown, path: string): PostResetAssessment {
+export function normalizePostResetAssessment(
+  value: unknown,
+  path = "state.resetJourney.assessment"
+): PostResetAssessment {
   const record = object(value, path);
   return {
     id: identityString(record.id, `${path}.id`),
