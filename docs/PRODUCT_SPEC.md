@@ -28,7 +28,9 @@ Phase 1L adds completed-session feedback editing and deletion, atomically reconc
 
 Phase 1M adds the pure Urge Control lifecycle and timestamp-derived resume progress. Existing models, v7 persistence, migrations, UI, navigation, and legacy flows remain unchanged.
 
-Phase 1N adds manual Tracking controls and shared product-policy selectors. Session starts and standalone Content-Free logging use the effective Reset restriction at their event time. Existing models, v7 persistence, UI, providers, navigation, and legacy flows remain unchanged; Home priority is deferred.
+Phase 1N adds manual Tracking controls and shared product-policy selectors. Session starts and standalone Content-Free logging use the effective Reset restriction at their event time. Existing models, v7 persistence, UI, providers, navigation, and legacy flows remain unchanged; Home integration is deferred.
+
+Phase 1O adds the separate pure Home read model for the new product. It selects semantic action priority and tracker order from current product facts without changing UI, providers, navigation, legacy Today/next-action behavior, or v7 persistence.
 
 The Expo Router architecture and local-first approach remain technical constraints. Older inventories in [ARCHITECTURE.md](ARCHITECTURE.md) and product references in [DECISIONS.md](DECISIONS.md) describe earlier stages; they do not require a new flow to depend on Protect. Existing navigation remains unchanged in this phase.
 
@@ -232,6 +234,18 @@ Explicit acceptance records the stored recommendation and caller-supplied `accep
 
 Initial acceptance requires an inactive Reset and no unfinished session; non-tracking recommendations also require disabled Tracking. Active Content-Free cannot be replaced by a new activation. Existing histories and best values are retained, and unrelated active Content-Free remains unchanged. Invalid input or conflicting state is a no-op. Repeating acceptance retains the original time and identities. Full preconditions are specified in [DATA_MODEL.md](DATA_MODEL.md#explicit-acceptance). No legacy flow, UI, or route is changed.
 
+## New Product Home Priority
+
+The new Home engine is a pure read model using explicit time and the five new product slices. It composes existing availability/progress selectors and returns semantic action IDs and tracker facts, with no presentation copy, routes, state writes, generated time/identity, or automatic lifecycle advancement. The existing legacy `getNextBloomAction` remains unchanged and separate.
+
+Priority is deterministic: unfinished Masturbation Session or awaiting feedback first; then active Urge Control resume; elapsed-but-still-active Reset completion; pending assessment; pending baseline; effectively active Reset; unaccepted stored onboarding recommendation; recommended Reset; and finally the primary tracker's action. Pending session work wins even when other feature states conflict. Urge Control resume includes its existing stage. Reset preparation is not an active restriction, and assessment does not extend the restriction.
+
+Exactly at/after Day 15, an active Reset requests `recordResetElapsedCompletion` before normal tracker actions. This asks a later integration layer to persist the existing completion transition; reading Home never invokes it. Onboarding recommendations are returned as stored without rescoring. An unaccepted onboarding recommendation wins over a recommended Reset, while `productOnboarding: notCompleted` alone does not force an action or onboarding gate.
+
+Current feature state determines tracker roles independently of legacy `activePlan` or an old recommendation. Enabled Tracking is primary; active Content-Free is secondary when both exist, or primary when Tracking is disabled. Tracker summaries remain available beneath a higher-priority Reset or unfinished-flow action. With no higher-priority item, startable Tracking offers `startMasturbationSession`, Content-Free alone offers `viewContentFree`, and otherwise no primary action is required. Inactive Urge Control remains available as optional support rather than becoming a default task.
+
+The exact output and action payloads are defined in [DATA_MODEL.md](DATA_MODEL.md#new-product-home-read-model). Quick-action presentation, navigation mapping, Home/Today UI, provider wiring, onboarding routing, and replacement of the legacy engine remain deferred.
+
 ## Compatibility Gaps Intentionally Retained
 
 | Existing implementation | Target model / later work |
@@ -247,4 +261,4 @@ Initial acceptance requires an inactive Reset and no unfinished session; non-tra
 
 ## Out of Scope for the Transitional Foundation
 
-No UI redesign, Figma implementation, new screens, deleted flows, Protect changes, legacy onboarding replacement, provider wiring, navigation/Today/Home-priority changes, session timestamp/duration/pause editing, active/awaiting-session correction or deletion, Reset history rewriting, Reset violations from session feedback, completed Urge Control editing/deletion/undo, arbitrary historical replay, same-day calendar collapse, post-Reset reports/comparisons, tracking-based Reset recommendations, backend, authentication, analytics, AI, or speculative framework is part of Phase 1N. Further phases require a separate task.
+No UI redesign, Figma implementation, new screens, deleted flows, Protect changes, legacy onboarding replacement, provider wiring, navigation/Today/Home integration, legacy next-action replacement, session timestamp/duration/pause editing, active/awaiting-session correction or deletion, Reset history rewriting, Reset violations from session feedback, completed Urge Control editing/deletion/undo, arbitrary historical replay, same-day calendar collapse, post-Reset reports/comparisons, tracking-based Reset recommendations, backend, authentication, analytics, AI, or speculative framework is part of Phase 1O. Further phases require a separate task.

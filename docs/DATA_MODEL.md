@@ -30,6 +30,8 @@ Phase 1M adds the pure Urge Control lifecycle and resume/progress selector using
 
 Phase 1N adds manual Tracking controls and shared effective Reset-restriction/Tracking-availability selectors. Relevant existing transitions evaluate Reset policy at event time; models, schema, v7 persistence, migrations, and UI remain unchanged.
 
+Phase 1O adds a pure new-product Home read model that composes those selectors into semantic action priority and tracker order. It changes no persisted model/schema, storage version/key, migration, UI, provider, navigation, or legacy next-action behavior.
+
 The TypeScript files are the field-level source of truth. Lifecycle unions are not proof that stored input is valid. `bloomProductStateSchema.ts` explicitly validates new persisted records through the existing corruption boundary. Future feature actions must also validate their mutation and route inputs.
 
 The models reuse `UUID` and `ISODateString` from the existing `shared.ts`; both are string aliases, not format validators. [`BehaviorEventSource.ts`](../src/domain/models/BehaviorEventSource.ts) supplies a small shared event-origin union: `{ kind: "manual", logActionId }` or `{ kind: "masturbationSession", sessionId }`. The same origin follows an event across affected systems and retries.
@@ -429,6 +431,34 @@ The transition returns one atomic snapshot containing the product changes and `{
 
 `bloomOnboardingSchema.ts` requires acceptance to be null or an exact marker with valid time and a recommendation equal to the stored result. Mismatches are rejected, not repaired. Acceptance validation does not require current feature state to still match the initial plan: the marker records a past user action, not a second current-plan authority.
 
+## New Product Home Read Model
+
+[`getBloomHomeReadModel(state, at)`](../src/domain/home/getBloomHomeReadModel.ts) accepts only the structural product slices `masturbationTracking`, `contentFree`, `resetJourney`, `urgeControl`, and `productOnboarding`, plus an explicit canonical timestamp. It returns `{ primaryAction, primaryTracker, secondaryTracker, trackingAvailability, urgeControlProgress, urgeControlAvailable: true }`, or null when required time-based facts cannot safely be determined.
+
+It composes `getMasturbationTrackingAvailability`, `getContentFreeProgress`, and `getUrgeControlProgress`, reusing `trackingAvailability.resetRestriction` instead of calculating parallel Reset policy. Required selector results are read before choosing priority; invalid time or unreadable required progress yields no partial model. `urgeControlProgress` is null when there is no active event. The module reads plain domain state, with no legacy slices, `activePlan`, React, storage, navigation, presentation copy, generated IDs/times, or mutation.
+
+`primaryAction` is a discriminated union using `id`, or null. The first applicable action wins in this order:
+
+| Condition | Action `id` | Payload |
+| --- | --- | --- |
+| Active current session | `resumeMasturbationSession` | `sessionId` |
+| Current session awaiting feedback | `finishMasturbationSessionFeedback` | `sessionId` |
+| Active Urge Control event | `resumeUrgeControl` | `eventId`, selector `stage` |
+| Active Reset whose period has elapsed | `recordResetElapsedCompletion` | `journeyId`, `attemptId`, existing `progress` |
+| Reset assessment pending | `completeResetAssessment` | `journeyId`, `attemptId` |
+| Reset baseline pending | `completeResetBaseline` | `journeyId` |
+| Active Reset still effectively restricted | `viewActiveReset` | `journeyId`, `attemptId`, existing `progress` |
+| Completed product onboarding with null acceptance | `reviewStartingRecommendation` | Stored `recommendation` |
+| Reset recommended | `reviewResetRecommendation` | `journeyId` |
+| Primary Tracking tracker can start | `startMasturbationSession` | None |
+| Content-Free is the primary tracker | `viewContentFree` | None |
+
+Unfinished session work has priority even over conflicting feature states, with active Urge Control next. Exactly at/after 15 elapsed days, still-active Reset requests explicit completion persistence, not an active-restriction view or session-start action. It never calls `completeElapsedResetPeriodState`. An assessment action does not assert continued restriction; baseline pending does not assert Reset has started. The stored onboarding recommendation is never rescored and takes precedence over recommended Reset. Not-completed product onboarding alone generates no action, preserving the migration boundary until later entry/routing integration.
+
+Tracker summaries use `kind` as their discriminant: `{ kind: "masturbationTracking", availability, completedSessionCount }` or `{ kind: "contentFree", progress }`, where Content-Free progress is the existing active result. Enabled Tracking is always primary; active Content-Free then becomes secondary. With Tracking disabled, active Content-Free becomes primary and secondary is null. With neither enabled/active, both trackers are null. These roles follow current feature facts, never legacy plan identity or recommendation ownership.
+
+Trackers are composed independently of the highest-priority action, so active Content-Free remains represented during Reset and other unfinished flows. Availability remains the exact shared read model; no contradictory session-start action is offered while its blockers apply. If no priority or tracker action applies, `primaryAction` is null. `urgeControlAvailable: true` exposes optional support without inventing a default start-Urge action. No derived action, tracker role, or progress is persisted. Both engines coexist: [`getNextBloomAction.ts`](../src/domain/journey/getNextBloomAction.ts) and its legacy presentation/Today behavior remain unchanged. Quick-action presentation, navigation mapping, and UI/provider integration are deferred.
+
 ## Compatibility With The Running Application
 
 The expanded [`BloomLocalState`](../src/storage/bloomState.ts) remains the persisted runtime authority. All eight legacy slices remain, followed by the four feature slices and product onboarding:
@@ -478,4 +508,4 @@ The v7 storage boundary checks record shapes, discriminated lifecycle fields, ca
 - Consistency of attempt history and identity, progress, baseline, completion timestamps, and assessment references.
 - Atomic, acknowledged cross-system effects when one event affects both Reset and Content-Free.
 
-Phase 1N adds manual Tracking controls and pure product policy using existing v7 shapes. Disabled Tracking with unfinished work remains valid; toggles never delete it, and no toggle history or derived policy is persisted. Session times, durations, and pause history remain immutable. Home priority, provider/UI wiring, active/awaiting-session correction, awaiting-feedback deletion, Reset history rewriting, completed Urge Control editing/deletion/undo, same-day calendar collapse, arbitrary historical replay, post-Reset reports/comparisons, and tracking-based Reset recommendations remain deferred. There is no new backend, authentication, sync metadata, analytics, or AI dependency.
+Phase 1O adds pure Home priority and tracker composition using existing v7 shapes; none of the derived output is persisted. Disabled Tracking with unfinished work remains valid, and session times, durations, and pause history remain immutable. Home/Today integration, legacy next-action replacement, provider/UI wiring, active/awaiting-session correction, awaiting-feedback deletion, Reset history rewriting, completed Urge Control editing/deletion/undo, same-day calendar collapse, arbitrary historical replay, post-Reset reports/comparisons, and tracking-based Reset recommendations remain deferred. There is no new backend, authentication, sync metadata, analytics, or AI dependency.
