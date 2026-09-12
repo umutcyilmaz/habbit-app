@@ -45,6 +45,12 @@ export {
   type RecordManualContentFreeViolationInput,
   type UndoManualContentFreeViolationInput
 } from "./bloomContentFreeTransitions";
+export {
+  deleteCompletedMasturbationSessionState,
+  editCompletedMasturbationSessionFeedbackState,
+  type DeleteCompletedMasturbationSessionInput,
+  type EditCompletedMasturbationSessionFeedbackInput
+} from "./bloomMasturbationCorrections";
 import {
   isValidBloomDateKey,
   isValidBloomIsoTimestamp,

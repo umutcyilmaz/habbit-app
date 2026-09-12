@@ -24,6 +24,8 @@ Phase 1J adds the pure Masturbation Session lifecycle: start, optional pause/res
 
 Phase 1K adds standalone Content-Free activation, deactivation, manual intentional-content logging, latest safe manual undo, and pure streak progress. The existing v7 model/key, migrations, UI, navigation, and legacy flows remain unchanged.
 
+Phase 1L adds completed-session feedback editing and deletion, atomically reconciling safely reversible session-derived Content-Free effects. Session timing and pause history are immutable. Existing v7 shapes and persistence remain unchanged; historical replay and UI integration are outside this phase.
+
 The Expo Router architecture and local-first approach remain technical constraints. Older inventories in [ARCHITECTURE.md](ARCHITECTURE.md) and product references in [DECISIONS.md](DECISIONS.md) describe earlier stages; they do not require a new flow to depend on Protect. Existing navigation remains unchanged in this phase.
 
 ## Product Summary
@@ -60,9 +62,15 @@ Pause is optional. A session with no pauses is valid. Each pause can retain its 
 
 At most one unfinished session is allowed. Starting requires enabled Tracking and no current session; an `active` Reset blocks starting. No direct onboarding check is required. The active timer derives from its start timestamp even across app close/background, with no ticking persisted counter. Ended durations use whole nonnegative elapsed seconds and include pause time. Only one pause may be active, and ending the session closes that pause at the session end time.
 
-Physical end produces `awaiting_feedback`, which survives reload and continues to block another start. Full feedback appends the session once to completed history and clears the unfinished slot; it can finish even if Tracking was subsequently disabled. Existing history is preserved. Active-only discard clears the unfinished slot without any history record or event. Awaiting feedback cannot be discarded, and completed editing/deletion remains deferred.
+Physical end produces `awaiting_feedback`, which survives reload and continues to block another start. Full feedback appends the session once to completed history and clears the unfinished slot; it can finish even if Tracking was subsequently disabled. Existing history is preserved. Active-only discard clears the unfinished slot without any history record or event. Awaiting feedback cannot be discarded.
 
 `usedExplicitContent` means intentional use during the session. Accidental exposure alone does not set it to true. Explicit-content feedback may atomically complete the session and break an applicable active Content-Free streak. The source is the same session ID, including for retry protection; no Reset violation is created from session feedback in this phase.
+
+Completed sessions allow feedback replacement (`erectionQuality`, `usedExplicitContent`, and `endingReason`) or deletion, even when Tracking is disabled. Their identity, start/end times, duration, and pause timestamps/history cannot be edited in MVP. Correction actions never edit or delete the active/awaiting current session, change Tracking permission, or change another session. Identical feedback and repeated deletion are no-ops.
+
+Quality/reason-only edits leave Content-Free unchanged. Changing explicit-content feedback reconciles any session-derived Content-Free effect in the same transaction. A false-to-true change outside all known activation periods changes feedback only. Inside the current activation it requires a safe event at the session end; inserting before later effective streak activity or into a completed past activation is refused until historical replay exists. A true-to-false change safely restores the linked event's prior streak snapshot and retains its identity as an undone record. Reapplying that same corrected event reuses its existing identity and event anchor only when the restored snapshot is still current.
+
+Deletion removes the completed session from history and atomically undoes a linked recorded Content-Free effect only when safely reversible. An already-undone linked event remains as a tombstone; deletion does not overwrite its correction time. Later effective activity, a changed activation, or required historical recalculation rejects the whole correction. Any Reset violation or tombstone with the session source blocks explicit-content changes and deletion; quality/reason-only edits remain allowed. Session corrections never rewrite Reset history or use standalone manual Content-Free undo.
 
 ## Content-Free
 
@@ -73,7 +81,7 @@ Its state records whether it is active, the current streak start, best streak, a
 - Intentional explicit-content use breaks an active Content-Free streak.
 - Masturbation without intentional explicit content does not break Content-Free.
 - Accidental exposure does not automatically count as a violation.
-- Undo corrects a mistaken log. It does not erase a Masturbation Session or create an event claiming the opposite behavior.
+- Standalone undo corrects a mistaken log without erasing a Masturbation Session. Session feedback edits and deletion own their derived event corrections atomically.
 - A violation originating from a Masturbation Session retains that session's identity for deduplication. Standalone logs retain their own stable identity.
 
 Phase 1G introduced Content-Free violations as part of the active Reset transition. Intentional explicit content restarts the current streak while Content-Free stays active, preserving its activation and history. The ended streak can increase the best duration, and the record retains the previous streak start and original best duration. Phase 1H uses that snapshot only when safely undoing the linked latest Reset event; both violations remain as undone history. Recorded and undone source identities prevent stale retries; arbitrary historical replay and same-day calendar collapse remain deferred.
@@ -219,10 +227,10 @@ Initial acceptance requires an inactive Reset and no unfinished session; non-tra
 | Protection-dependent journey decisions | Protect is deferred and is not required by new flows. Existing decisions still run until routing is deliberately changed. |
 | Separate Pause and Arousal Control drafts/logs | Normal Masturbation Sessions with optional timed pauses, plus the separate acute Urge Control tool. No automatic reinterpretation of legacy records. |
 | Existing Arousal flow can start without a Reset restriction | The new Masturbation Session start transition blocks active Reset; existing legacy start actions remain unchanged. |
-| Content-Free supports manual activation/deactivation, standalone logging/undo, Reset-linked events, session-derived violations, and timestamp progress | Session-derived correction, arbitrary historical replay, and same-day calendar collapse remain deferred. |
+| Content-Free supports manual activation/deactivation, standalone logging/undo, Reset-linked events, session-derived violations/corrections, and timestamp progress | Arbitrary historical replay, completed-activation recalculation, and same-day calendar collapse remain deferred. |
 | Transitional `BloomLocalState` and version-7 persistence | Old Reset violations become recorded without invented undo or rollback facts. Earlier active-counter and onboarding migrations remain supported. |
 | Five current tabs and `/reset/ten-day`, `/pause`, and Arousal routes | Keep Expo Router and all working routes now; new navigation is outside Phase 1B. |
 
 ## Out of Scope for the Transitional Foundation
 
-No UI redesign, Figma implementation, new screens, deleted flows, Protect changes, legacy onboarding replacement, navigation changes, completed-session editing/deletion, awaiting-feedback deletion, session-derived Content-Free undo, Reset violations from session feedback, Urge Control behavior, arbitrary history editing, same-day calendar collapse, post-Reset reports/comparisons, tracking-based Reset recommendations, backend, authentication, analytics, AI, or speculative framework is part of Phase 1K. Further phases require a separate task.
+No UI redesign, Figma implementation, new screens, deleted flows, Protect changes, legacy onboarding replacement, navigation changes, session timestamp/duration/pause editing, active/awaiting-session correction or deletion, Reset history rewriting, Reset violations from session feedback, Urge Control behavior, arbitrary historical replay, same-day calendar collapse, post-Reset reports/comparisons, tracking-based Reset recommendations, backend, authentication, analytics, AI, or speculative framework is part of Phase 1L. Further phases require a separate task.

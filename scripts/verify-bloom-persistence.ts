@@ -38,6 +38,7 @@ import { verifyBloomResetViolationUndo } from "./verify-bloom-reset-violation-un
 import { verifyBloomResetCompletion } from "./verify-bloom-reset-completion";
 import { verifyBloomMasturbationSessions } from "./verify-bloom-masturbation-sessions";
 import { verifyBloomContentFree } from "./verify-bloom-content-free";
+import { verifyBloomSessionCorrections } from "./verify-bloom-session-corrections";
 
 const fixedNow = () => new Date("2026-07-22T10:00:00.000Z");
 
@@ -85,6 +86,7 @@ async function verifyBloomPersistence() {
   await verifyBloomResetCompletion();
   await verifyBloomMasturbationSessions();
   await verifyBloomContentFree();
+  await verifyBloomSessionCorrections();
 }
 
 async function verifyAvailableWebStorage() {
