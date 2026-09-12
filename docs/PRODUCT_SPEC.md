@@ -26,6 +26,8 @@ Phase 1K adds standalone Content-Free activation, deactivation, manual intention
 
 Phase 1L adds completed-session feedback editing and deletion, atomically reconciling safely reversible session-derived Content-Free effects. Session timing and pause history are immutable. Existing v7 shapes and persistence remain unchanged; historical replay and UI integration are outside this phase.
 
+Phase 1M adds the pure Urge Control lifecycle and timestamp-derived resume progress. Existing models, v7 persistence, migrations, UI, navigation, and legacy flows remain unchanged.
+
 The Expo Router architecture and local-first approach remain technical constraints. Older inventories in [ARCHITECTURE.md](ARCHITECTURE.md) and product references in [DECISIONS.md](DECISIONS.md) describe earlier stages; they do not require a new flow to depend on Protect. Existing navigation remains unchanged in this phase.
 
 ## Product Summary
@@ -166,11 +168,15 @@ No numeric score thresholds, diagnosis, guaranteed benefit, or medical interpret
 
 ## Urge Control
 
-Urge Control provides acute support:
+Urge Control is optional acute support that creates a brief moment to choose. It does not aim to eliminate sexual desire, diagnose behavior, guarantee prevention or urge reduction, or assign success/failure.
 
 Urge starts → short interrupt → coping technique → phone-away period → outcome → trigger → optional second-line action.
 
-An **UrgeControlEvent** records its identity, start/completion, technique, outcome, trigger, and optional second-line action. Its data can represent progress before completion. Exact durations and screen sequencing are future flow work.
+An **UrgeControlEvent** records its identity, start/completion, intermediate timestamps, technique, outcome, trigger, and optional second-line action. Only one event may be active, including across app close/reload. Resume progress derives from retained facts; loading never expires, completes, or discards an event automatically.
+
+Starting does not require Tracking, Content-Free, Reset, or onboarding permission. It remains available during active Reset and never changes those systems, creates a session/pause, or records a violation. Sexual desire as a trigger is not explicit-content use.
+
+The interrupt must be completed before technique selection. The technique may change until the phone-away period starts, then remains fixed. Phone-away start/end use actual supplied times in order; the domain enforces neither an exact interrupt duration nor an exact two-minute waiting period. Elapsed values use whole nonnegative timestamp-derived seconds without persisted ticking counters.
 
 Techniques:
 
@@ -180,11 +186,13 @@ Techniques:
 - `urgeSurfing`
 - `personalReminder`
 
-Outcomes include reduced, still strong, unchanged, or stronger urges. A completed event means the interaction was recorded; it does not require the urge to have decreased.
+Outcomes include reduced, still strong, unchanged, or stronger urges. Outcome follows the ended phone-away period, and trigger follows outcome. Both answers may be corrected before completion; identical answers are no-ops. A completed event means the interaction was recorded; it does not require the urge to have decreased.
 
 Triggers include boredom, stress, loneliness, sleeplessness/nighttime, sexual desire, automatic habit, and not being sure. Sexual desire by itself is not a diagnosis or failure.
 
-Optional second-line actions are putting the phone in another room, doing another task, or messaging a support person. This is a record of a user's choice, not authorization for the app to contact someone automatically.
+Optional second-line actions are putting the phone in another room, doing another task, or messaging a support person. They are available after `stillStrong`, `stronger`, or `unchanged`, and never required to finish. Changing the active outcome to `reduced` clears a prior second-line choice. Recording a choice performs no device control, messaging, scheduling, notification, or other external action.
+
+Completion requires interrupt, technique, phone-away start/end, outcome, and trigger. It appends the event once to completed history and clears the active slot. Discard clears only the active event without creating history or a tombstone. Completed events remain append-only; editing, deletion, and undo of those records are deferred.
 
 ## Onboarding Starting Hypothesis
 
@@ -233,4 +241,4 @@ Initial acceptance requires an inactive Reset and no unfinished session; non-tra
 
 ## Out of Scope for the Transitional Foundation
 
-No UI redesign, Figma implementation, new screens, deleted flows, Protect changes, legacy onboarding replacement, navigation changes, session timestamp/duration/pause editing, active/awaiting-session correction or deletion, Reset history rewriting, Reset violations from session feedback, Urge Control behavior, arbitrary historical replay, same-day calendar collapse, post-Reset reports/comparisons, tracking-based Reset recommendations, backend, authentication, analytics, AI, or speculative framework is part of Phase 1L. Further phases require a separate task.
+No UI redesign, Figma implementation, new screens, deleted flows, Protect changes, legacy onboarding replacement, navigation/Today/Home-priority changes, session timestamp/duration/pause editing, active/awaiting-session correction or deletion, Reset history rewriting, Reset violations from session feedback, completed Urge Control editing/deletion/undo, arbitrary historical replay, same-day calendar collapse, post-Reset reports/comparisons, tracking-based Reset recommendations, backend, authentication, analytics, AI, or speculative framework is part of Phase 1M. Further phases require a separate task.

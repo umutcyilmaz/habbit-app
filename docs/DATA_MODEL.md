@@ -26,6 +26,8 @@ Phase 1K adds standalone Content-Free activation/deactivation, manual violations
 
 Phase 1L adds completed-session feedback edits and deletion with atomic session-derived Content-Free reconciliation. These pure corrections use existing v7 shapes without adding session tombstones or editing timing/pause history.
 
+Phase 1M adds the pure Urge Control lifecycle and resume/progress selector using existing v7 event/container shapes. It changes no model, schema, persistence version/key, migration, UI, or legacy flow.
+
 The TypeScript files are the field-level source of truth. Lifecycle unions are not proof that stored input is valid. `bloomProductStateSchema.ts` explicitly validates new persisted records through the existing corruption boundary. Future feature actions must also validate their mutation and route inputs.
 
 The models reuse `UUID` and `ISODateString` from the existing `shared.ts`; both are string aliases, not format validators. [`BehaviorEventSource.ts`](../src/domain/models/BehaviorEventSource.ts) supplies a small shared event-origin union: `{ kind: "manual", logActionId }` or `{ kind: "masturbationSession", sessionId }`. The same origin follows an event across affected systems and retries.
@@ -281,7 +283,7 @@ These facts support later descriptive reports; no clinical interpretation is der
 
 Source: [`UrgeControlEvent.ts`](../src/domain/models/UrgeControlEvent.ts).
 
-Urge Control is acute support, independent of a tracked masturbation session. Its event can represent this progression:
+Urge Control is optional acute support for a brief choice moment, independent of Tracking, Content-Free, Reset, and onboarding. It does not diagnose, promise urge reduction, or assign success/failure. Its event follows this progression:
 
 1. Urge begins.
 2. A short interrupt.
@@ -300,9 +302,46 @@ An event has a stable `id` and `startedAt`. Its lifecycle union distinguishes `a
 | Trigger | `boredom`, `stress`, `loneliness`, `sleeplessnessNighttime`, `sexualDesire`, `habitAutomatic`, `notSure` |
 | Optional second-line action | `putPhoneInAnotherRoom`, `doAnotherTask`, `messageSupportPerson` |
 
-A selected support-person action is only a recorded choice; the model does not send a message or require a messaging integration. No durations, timers, technique execution, or UI are implemented here.
+A selected second-line action is only a recorded choice; it does not send a message, control the phone, schedule anything, or execute a technique. It is allowed after `stillStrong`, `stronger`, or `unchanged`; completion never requires it. Changing an active outcome to `reduced` clears a prior choice. No external action or UI is implemented here.
 
-The container in [`UrgeControlState.ts`](../src/domain/models/UrgeControlState.ts) holds one active event or null and completed `records`, using `Extract` aliases. Fresh and migrated defaults are `{ activeEvent: null, records: [] }`. No Urge Control actions are exposed yet.
+The container in [`UrgeControlState.ts`](../src/domain/models/UrgeControlState.ts) holds one active event or null and completed `records`, using `Extract` aliases. Fresh and migrated defaults are `{ activeEvent: null, records: [] }`. The active event survives app close/reload without automatic expiry, completion, or cancellation. Completed records are append-only in this phase; editing, deletion, and undo remain deferred.
+
+### Urge Control transitions
+
+The ten pure APIs in [`bloomUrgeControlTransitions.ts`](../src/storage/bloomUrgeControlTransitions.ts) are re-exported from `bloomState.ts`. Every identity and canonical timestamp is caller-supplied. Invalid input, wrong lifecycle, unsafe chronology, and repeated completed steps return the original state without partial changes. All actions preserve every slice except `urgeControl`, including during active Reset or a Masturbation Session.
+
+| API | Effect and preconditions |
+| --- | --- |
+| `startUrgeControlEventState(state, { eventId, startedAt })` | Requires no active event, a valid event ID absent from completed records, and canonical start. Creates only `{ id, status: "active", startedAt }`; other features and onboarding impose no prerequisite. |
+| `completeUrgeControlInterruptState(state, { completedAt })` | Requires an active event with no completed interrupt and `completedAt >= event.startedAt`. Stores the actual interrupt completion time once. |
+| `selectUrgeControlTechniqueState(state, { technique })` | Requires a completed interrupt and no phone-away start. Records or replaces a valid technique; selecting the current choice is a no-op. |
+| `startUrgeControlPhoneAwayState(state, { startedAt })` | Requires completed interrupt, technique, no prior phone-away start, and `startedAt >= interruptCompletedAt`. Stores only that start fact. |
+| `endUrgeControlPhoneAwayState(state, { endedAt })` | Requires phone-away start, no prior end, and `endedAt >= phoneAwayStartedAt`. Retains the actual end rather than a target-duration timestamp. |
+| `recordUrgeControlOutcomeState(state, { outcome })` | Requires the completed phone-away step. Sets or corrects a valid descriptive outcome before completion, clearing `secondLineAction` when changing to `reduced`. |
+| `recordUrgeControlTriggerState(state, { trigger })` | Requires outcome. Sets or corrects a valid supplied trigger; no trigger is inferred. |
+| `selectUrgeControlSecondLineActionState(state, { action })` | Requires a non-reduced outcome. Records an optional valid choice with no external side effect. |
+| `completeUrgeControlEventState(state, { completedAt })` | Requires interrupt, technique, phone-away start/end, outcome, and trigger, with `completedAt >= phoneAwayEndedAt` and event start. Appends the completed event once with all retained facts and clears `activeEvent`. |
+| `discardActiveUrgeControlEventState(state)` | Clears only an existing active event. Creates no completed record or tombstone and leaves completed history untouched. |
+
+Technique becomes immutable once phone-away starts. Outcome and trigger remain correctable while active; identical valid choices are no-ops. New transitions require the full ordered prerequisites for the resulting stage, including all earlier guided steps. Neither interrupt nor phone-away has an exact enforced duration, and later/earlier returns never fabricate timestamps. Completion retains identity, actual times, answers, and optional second-line choice; a non-reduced outcome may complete without escalation.
+
+Existing persistence validation remains compatible with older valid active/completed records whose optional intermediate fields lack the new guided ordering. It still rejects malformed chronology and duplicate IDs. New transitions do not silently repair those historical facts or invent missing times; an explicitly supplied missing step may proceed only when the resulting event has valid ordered prerequisites. No background mutation, session, pause, violation, Tracking permission change, or Reset progress change is derived from an Urge Control event.
+
+### Urge Control progress
+
+[`getUrgeControlProgress(urgeControl, now)`](../src/domain/urgeControl/getUrgeControlProgress.ts) is a pure domain selector with an explicit canonical clock. It returns null without an active event or for invalid time, and otherwise derives `{ stage, elapsedEventSeconds, phoneAwayElapsedSeconds? }` from existing facts:
+
+| First missing fact | Stage |
+| --- | --- |
+| Interrupt completion | `interrupt` |
+| Technique | `technique` |
+| Phone-away start | `phoneAwayReady` |
+| Phone-away end | `phoneAwayActive` |
+| Outcome | `outcome` |
+| Trigger | `trigger` |
+| No required fact is missing | `readyToComplete` |
+
+Elapsed event seconds are `max(0, floor((now - event.startedAt) / 1000))`. Phone-away seconds are absent until its start, then use `max(0, floor(((phoneAwayEndedAt ?? now) - phoneAwayStartedAt) / 1000))`; ending freezes that interval. A clock before the relevant start clamps display duration to zero. Reading progress never persists ticking counters, changes stages in storage, or automatically completes/discards an event.
 
 ## Onboarding Domain Boundary
 
@@ -415,4 +454,4 @@ The v7 storage boundary checks record shapes, discriminated lifecycle fields, ca
 - Consistency of attempt history and identity, progress, baseline, completion timestamps, and assessment references.
 - Atomic, acknowledged cross-system effects when one event affects both Reset and Content-Free.
 
-Phase 1L adds completed feedback editing/deletion and safely reversible session-derived Content-Free correction using existing v7 shapes. Session times, durations, and pause history remain immutable; historical values are not arithmetically normalized. Active/awaiting-session correction, awaiting-feedback deletion, Reset history rewriting, same-day calendar collapse, arbitrary historical replay, Urge Control behavior, post-Reset reports/comparisons, and tracking-based Reset recommendations remain deferred. There is no new backend, authentication, sync metadata, analytics, or AI dependency.
+Phase 1M adds the ordered Urge Control lifecycle and timestamp-derived progress using existing v7 shapes. Historical optional-step compatibility remains intact; no new timestamp or duration is inferred. Session times, durations, and pause history remain immutable. Active/awaiting-session correction, awaiting-feedback deletion, Reset history rewriting, completed Urge Control editing/deletion/undo, same-day calendar collapse, arbitrary historical replay, post-Reset reports/comparisons, and tracking-based Reset recommendations remain deferred. There is no new backend, authentication, sync metadata, analytics, or AI dependency.
