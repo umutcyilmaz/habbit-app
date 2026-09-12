@@ -1,7 +1,7 @@
 import type { BloomProductFlowIntent } from "../flows/mapBloomHomeActionToFlowIntent";
 
-// Reserved new-product paths. These are planned contracts, not registered Expo
-// routes: feature screens and their route entries are outside Phase 1R.
+// Session start/resume/feedback have registered route entries. All other
+// new-product paths remain reserved contracts until their features exist.
 export const bloomProductRoutePaths = {
   masturbationSessionStart: "/bloom/masturbation-session/start",
   masturbationSessionResume: "/bloom/masturbation-session/resume",
@@ -70,9 +70,21 @@ export type BloomProductRouteTarget =
       params?: never;
     };
 
-// Keep deferred resolution distinct from an executable router href. A later
-// phase must implement/register the destination before adding navigation.
-export type BloomProductRouteDestination = {
-  status: "featurePending";
-  destination: BloomProductRouteTarget;
-};
+export type BloomProductReadyRouteTarget = Extract<
+  BloomProductRouteTarget,
+  {
+    pathname:
+      | typeof bloomProductRoutePaths.masturbationSessionStart
+      | typeof bloomProductRoutePaths.masturbationSessionResume
+      | typeof bloomProductRoutePaths.masturbationSessionFeedback;
+  }
+>;
+
+// Readiness is correlated with the target: deferred feature paths cannot be
+// represented as ready destinations, even when constructed outside the mapper.
+export type BloomProductRouteDestination =
+  | { status: "ready"; destination: BloomProductReadyRouteTarget }
+  | {
+      status: "featurePending";
+      destination: Exclude<BloomProductRouteTarget, BloomProductReadyRouteTarget>;
+    };

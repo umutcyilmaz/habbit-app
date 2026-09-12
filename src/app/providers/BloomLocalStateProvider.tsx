@@ -92,6 +92,7 @@ export type BloomLocalDataDeletionRequest = {
 type BloomLocalStateContextValue = {
   state: BloomLocalState;
   durableState: BloomLocalState;
+  getAcceptedState: () => BloomLocalState;
   productActions: BloomProductAcknowledgedActions;
   isLoading: boolean;
   hasHydrated: boolean;
@@ -391,6 +392,10 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
       mutationRuntime.retryPersistence(token),
     [mutationRuntime]
   );
+
+  // Event-time reads must observe accepted runtime truth, including changes
+  // committed before React has rendered the next context snapshot.
+  const getAcceptedState = useCallback(() => mutationRuntime.getState(), [mutationRuntime]);
 
   const productActions = useMemo(
     () =>
@@ -725,6 +730,7 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
     () => ({
       state,
       durableState,
+      getAcceptedState,
       productActions,
       isLoading,
       hasHydrated,
@@ -786,6 +792,7 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
       editCompletedArousalLog,
       finishBloomLocalDataReset,
       hasHydrated,
+      getAcceptedState,
       hydrationError,
       hydrationStatus,
       isLoading,

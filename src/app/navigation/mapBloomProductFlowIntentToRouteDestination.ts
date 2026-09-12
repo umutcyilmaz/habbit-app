@@ -8,7 +8,15 @@ import {
 export function mapBloomProductFlowIntentToRouteDestination(
   intent: BloomProductFlowIntent
 ): BloomProductRouteDestination {
-  return { status: "featurePending", destination: mapRouteTarget(intent) };
+  const destination = mapRouteTarget(intent);
+  switch (destination.pathname) {
+    case bloomProductRoutePaths.masturbationSessionStart:
+    case bloomProductRoutePaths.masturbationSessionResume:
+    case bloomProductRoutePaths.masturbationSessionFeedback:
+      return { status: "ready", destination };
+    default:
+      return { status: "featurePending", destination };
+  }
 }
 
 function mapRouteTarget(intent: BloomProductFlowIntent): BloomProductRouteTarget {

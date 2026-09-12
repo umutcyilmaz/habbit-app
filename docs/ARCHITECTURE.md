@@ -204,31 +204,41 @@ The flow layer preallocates possible cross-feature IDs without reading state or 
 
 Mapping an intent does not execute a command, advance Reset, or navigate. The separation remains domain Home selector → semantic action → application intent → future route integration. The flow factory and mapping have no React, provider state capture, route paths, or navigation dependency. Provider, command facade, pure transitions, runtime, legacy APIs/`getNextBloomAction`, and v7 persistence remain unchanged. Screens, Home wiring, routes, presentation, and legacy cutover are outside Phase 1Q.
 
-## React Flow Adapter and Planned Product Routes
+## React Flow Adapter and Product Routes
 
 Phase 1R adds [`useBloomProductFlowActions()`](../src/app/flows/useBloomProductFlowActions.ts) as a thin React adapter. It obtains only `productActions` from `useBloomLocalState()` and memoizes `createBloomProductFlowActions({ productActions })` with that object as its sole dependency. Stable product commands therefore retain a stable grouped flow-actions object. The hook reads no product state, runs no selectors or navigation, and creates no IDs/timestamps outside the Phase 1Q factory. It preserves `Promise<BloomPersistedMutationResult>` and does not expand provider context or responsibilities.
 
-[`bloomProductRoutes.ts`](../src/app/navigation/bloomProductRoutes.ts) exports `bloomProductRoutePaths` and typed targets in the separate `/bloom/...` namespace. Targets discriminate on `pathname` and carry only the corresponding `params`, omitted for session start and Content-Free. [`mapBloomProductFlowIntentToRouteDestination(intent)`](../src/app/navigation/mapBloomProductFlowIntentToRouteDestination.ts) resolves every `BloomProductFlowIntent` explicitly and exhaustively to `BloomProductRouteDestination`, currently `{ status: "featurePending", destination: BloomProductRouteTarget }`. These are planned destinations, not registered Expo Router hrefs:
+[`bloomProductRoutes.ts`](../src/app/navigation/bloomProductRoutes.ts) exports `bloomProductRoutePaths` and typed targets in the separate `/bloom/...` namespace. Targets discriminate on `pathname` and carry only the corresponding `params`, omitted for session start and Content-Free. [`mapBloomProductFlowIntentToRouteDestination(intent)`](../src/app/navigation/mapBloomProductFlowIntentToRouteDestination.ts) resolves every `BloomProductFlowIntent` explicitly and exhaustively to `BloomProductRouteDestination`. Phase 1S makes the three Masturbation Session destinations `ready`; the other eight remain `featurePending`. The discriminated union correlates each status with its allowed target paths.
 
-| Flow intent | Planned path | Parameters |
-| --- | --- | --- |
-| `masturbationSession`, `mode: "start"` | `/bloom/masturbation-session/start` | None |
-| `masturbationSession`, `mode: "resume"` | `/bloom/masturbation-session/resume` | `sessionId` |
-| `masturbationSessionFeedback` | `/bloom/masturbation-session/feedback` | `sessionId` |
-| `urgeControl`, `mode: "resume"` | `/bloom/urge-control/resume` | `eventId`, `stage` |
-| `resetCompletion` | `/bloom/reset/completion` | `journeyId`, `attemptId` |
-| `resetAssessment` | `/bloom/reset/assessment` | `journeyId`, `attemptId` |
-| `resetBaseline` | `/bloom/reset/baseline` | `journeyId` |
-| `resetProgress` | `/bloom/reset/progress` | `journeyId`, `attemptId` |
-| `startingRecommendation` | `/bloom/starting-recommendation` | `recommendation` |
-| `resetRecommendation` | `/bloom/reset/recommendation` | `journeyId` |
-| `contentFree` | `/bloom/content-free` | None |
+| Flow intent | Path | Parameters | Status |
+| --- | --- | --- | --- |
+| `masturbationSession`, `mode: "start"` | `/bloom/masturbation-session/start` | None | `ready` |
+| `masturbationSession`, `mode: "resume"` | `/bloom/masturbation-session/resume` | `sessionId` | `ready` |
+| `masturbationSessionFeedback` | `/bloom/masturbation-session/feedback` | `sessionId` | `ready` |
+| `urgeControl`, `mode: "resume"` | `/bloom/urge-control/resume` | `eventId`, `stage` | `featurePending` |
+| `resetCompletion` | `/bloom/reset/completion` | `journeyId`, `attemptId` | `featurePending` |
+| `resetAssessment` | `/bloom/reset/assessment` | `journeyId`, `attemptId` | `featurePending` |
+| `resetBaseline` | `/bloom/reset/baseline` | `journeyId` | `featurePending` |
+| `resetProgress` | `/bloom/reset/progress` | `journeyId`, `attemptId` | `featurePending` |
+| `startingRecommendation` | `/bloom/starting-recommendation` | `recommendation` | `featurePending` |
+| `resetRecommendation` | `/bloom/reset/recommendation` | `journeyId` | `featurePending` |
+| `contentFree` | `/bloom/content-free` | None | `featurePending` |
 
 Stable identity fields are preserved. Derived Reset `progress` is intentionally omitted from route parameters; future feature screens must derive current progress from canonical state. Urge stage and recommendation parameters are hints, not authority to override canonical records or policy. The mapper reads no state or selectors, mutates nothing, and performs no navigation. It stays separate from the Phase 1Q Home-action-to-flow-intent mapper.
 
-Business commands use the React flow hook → flow factory → `productActions` → existing transition/runtime boundary. Navigation preparation follows Home action → semantic flow intent → typed destination → future router execution. Product screens cannot be implemented within Phase 1R's scope, so every new destination is explicitly `featurePending`: no empty route entry files, fake feature screens, navigation executor, or new Expo Router import is added. Actual route registration and a thin Expo Router execution adapter belong with later feature integration; planned targets must not be treated as navigable hrefs before then.
+Business commands use the React flow hook → flow factory → `productActions` → existing transition/runtime boundary. Navigation preparation follows Home action → semantic flow intent → typed destination. The thin [`navigateBloomProductFlow(router, intent, method = "push")`](../src/app/navigation/navigateBloomProductFlow.ts) adapter maps an intent and calls `router.push` or `router.replace` only for `ready` destinations, returning whether it executed navigation. It evaluates no selectors and performs no mutation. Home remains unwired; the adapter is used by explicit session feature transitions only. Deferred destinations have no route entry or placeholder screen.
 
-The focused `verify-bloom-product-react-flows.ts` and `verify-bloom-product-routes.ts` suites run through `verify:persistence`, covering hook delegation/memoization, exhaustive mapping, retained identity/hint fields, deliberate omission of derived progress, and integration boundaries. Provider, flow factory, domain, persistence version 7 / `bloom.localState.v7`, and legacy routes/`getNextBloomAction` remain unchanged. No Home/Today wiring, root-entry change, automatic redirect, or legacy cutover is added.
+The focused `verify-bloom-product-react-flows.ts` and `verify-bloom-product-routes.ts` suites run through `verify:persistence`, covering hook delegation/memoization, exhaustive mapping, retained identity/hint fields, deliberate omission of derived progress, readiness, execution refusal for pending routes, and thin route entries. Flow factory, domain, persistence version 7 / `bloom.localState.v7`, and legacy routes/`getNextBloomAction` remain unchanged. No Home/Today wiring, root-entry change, state-driven automatic redirect, or legacy cutover is added.
+
+## First Executable Product Slice: Masturbation Session
+
+Phase 1S implements [`src/features/masturbation-tracking/`](../src/features/masturbation-tracking/README.md) behind three thin Expo Router entries. Start requires an explicit button press, so mounting, rerendering, Strict Mode, and route refocus do not create sessions. Existing unfinished work is offered first; the existing availability selector and product transitions retain Tracking enablement and elapsed Reset restriction policy.
+
+The active route displays total elapsed time, including optional pauses, and exposes pause, resume, and end. End advances to feedback after durable acknowledgement. Feedback collects the existing integer 1–10 rating, intentional explicit-content boolean, and ending reason; durable completion returns to the existing Today route. All writes use `useBloomProductFlowActions()`. The feature never generates persisted IDs/timestamps, calculates persisted duration, or reconciles Content-Free itself.
+
+The pure route view helper rejects missing, repeated, blank, and mismatched `sessionId` parameters. Before every session command, the local controller rechecks the exact route ID and expected current status against the runtime's canonical accepted state. The provider exposes a stable read-only `getAcceptedState()` accessor so event handlers see accepted changes even before the next React render. A matching completed record can be displayed but cannot receive active-session or feedback commands.
+
+The controller coordinates only in-flight operations and retains the existing `BloomPersistedMutationResult`. It deduplicates repeated presses, advances routes only after `ok` durable receipts, and retries accepted failures with `retryPersistedMutation(retryToken)` rather than replaying a flow. The shared navigation guard blocks removal while saving. Accepted-but-unsaved state is shown with save feedback and retry; it is never labeled durably complete. The display clock and feedback choices remain local UI state. `verify-bloom-masturbation-feature.ts`, included in `verify:persistence`, covers lifecycle, restart recovery, stale identities, acknowledgement, retry, and feature wiring.
 
 ## Routing Approach
 

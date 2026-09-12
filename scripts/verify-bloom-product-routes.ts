@@ -1,13 +1,32 @@
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 
 import type { BloomProductFlowIntent } from "../src/app/flows/mapBloomHomeActionToFlowIntent";
 import {
   bloomProductRoutePaths,
+  type BloomProductRouteDestination,
   type BloomProductRouteTarget
 } from "../src/app/navigation/bloomProductRoutes";
 import { mapBloomProductFlowIntentToRouteDestination } from "../src/app/navigation/mapBloomProductFlowIntentToRouteDestination";
+import { navigateBloomProductFlow } from "../src/app/navigation/navigateBloomProductFlow";
+
+type Assert<Condition extends true> = Condition;
+type Equal<Left, Right> =
+  (<Value>() => Value extends Left ? 1 : 2) extends
+  (<Value>() => Value extends Right ? 1 : 2) ? true : false;
+type SessionRoutePath =
+  | typeof bloomProductRoutePaths.masturbationSessionStart
+  | typeof bloomProductRoutePaths.masturbationSessionResume
+  | typeof bloomProductRoutePaths.masturbationSessionFeedback;
+type ReadyRouteContract = Assert<Equal<
+  Extract<BloomProductRouteDestination, { status: "ready" }>["destination"]["pathname"],
+  SessionRoutePath
+>>;
+type PendingRouteContract = Assert<Equal<
+  Extract<BloomProductRouteDestination, { status: "featurePending" }>["destination"]["pathname"],
+  Exclude<BloomProductRouteTarget["pathname"], SessionRoutePath>
+>>;
 
 type FlowIntentKey<Intent extends BloomProductFlowIntent> =
   Intent extends { mode: infer Mode extends string }
@@ -18,6 +37,9 @@ type RouteCases = {
   [Intent in BloomProductFlowIntent as FlowIntentKey<Intent>]: {
     intent: Intent;
     target: BloomProductRouteTarget;
+    status: Intent["flow"] extends "masturbationSession" | "masturbationSessionFeedback"
+      ? "ready"
+      : "featurePending";
   };
 };
 
@@ -32,10 +54,12 @@ const progress = {
 // Keys include modes so adding a new mode also requires a new typed fixture.
 const cases = {
   "masturbationSession:start": {
+    status: "ready",
     intent: { flow: "masturbationSession", mode: "start" },
     target: { pathname: "/bloom/masturbation-session/start" }
   },
   "masturbationSession:resume": {
+    status: "ready",
     intent: {
       flow: "masturbationSession",
       mode: "resume",
@@ -47,6 +71,7 @@ const cases = {
     }
   },
   masturbationSessionFeedback: {
+    status: "ready",
     intent: {
       flow: "masturbationSessionFeedback",
       sessionId: "route-feedback-session"
@@ -57,6 +82,7 @@ const cases = {
     }
   },
   "urgeControl:resume": {
+    status: "featurePending",
     intent: {
       flow: "urgeControl",
       mode: "resume",
@@ -69,6 +95,7 @@ const cases = {
     }
   },
   resetCompletion: {
+    status: "featurePending",
     intent: {
       flow: "resetCompletion",
       journeyId: "route-elapsed-journey",
@@ -90,6 +117,7 @@ const cases = {
     }
   },
   resetAssessment: {
+    status: "featurePending",
     intent: {
       flow: "resetAssessment",
       journeyId: "route-assessment-journey",
@@ -104,6 +132,7 @@ const cases = {
     }
   },
   resetBaseline: {
+    status: "featurePending",
     intent: { flow: "resetBaseline", journeyId: "route-baseline-journey" },
     target: {
       pathname: "/bloom/reset/baseline",
@@ -111,6 +140,7 @@ const cases = {
     }
   },
   resetProgress: {
+    status: "featurePending",
     intent: {
       flow: "resetProgress",
       journeyId: "route-active-journey",
@@ -126,6 +156,7 @@ const cases = {
     }
   },
   startingRecommendation: {
+    status: "featurePending",
     intent: {
       flow: "startingRecommendation",
       recommendation: "reset_and_content_free"
@@ -136,6 +167,7 @@ const cases = {
     }
   },
   resetRecommendation: {
+    status: "featurePending",
     intent: { flow: "resetRecommendation", journeyId: "route-recommendation" },
     target: {
       pathname: "/bloom/reset/recommendation",
@@ -143,6 +175,7 @@ const cases = {
     }
   },
   contentFree: {
+    status: "featurePending",
     intent: { flow: "contentFree" },
     target: { pathname: "/bloom/content-free" }
   }
@@ -157,10 +190,10 @@ export function verifyBloomProductRoutes() {
     const destination = mapBloomProductFlowIntentToRouteDestination(intent);
     assert(
       isDeepStrictEqual(destination, {
-        status: "featurePending",
+        status: testCase.status,
         destination: testCase.target
       }),
-      `${intent.flow} must resolve to its exact deferred pathname and params.`
+      `${intent.flow} must resolve to its exact readiness, pathname, and params.`
     );
     assert(
       isDeepStrictEqual(
@@ -171,7 +204,7 @@ export function verifyBloomProductRoutes() {
     );
     assert(
       !("pathname" in destination) && !("params" in destination),
-      "A feature-pending result must not masquerade as an executable router target."
+      "Route resolution must keep readiness explicit around its router target."
     );
     if ("params" in destination.destination) {
       assert(
@@ -184,10 +217,38 @@ export function verifyBloomProductRoutes() {
   }
 
   verifyProgressIsNotRouteIdentity();
+  verifyNavigationExecution();
   verifyNamespaceAndDependencies();
   console.log(
-    "Bloom product-route verification passed (all 11 flow variants, exact deferred destinations, omitted derived progress, purity, and legacy isolation)."
+    "Bloom product-route verification passed (three ready session routes, eight pending destinations, navigation execution, omitted derived progress, and legacy isolation)."
   );
+}
+
+function verifyNavigationExecution() {
+  for (const testCase of Object.values(cases)) {
+    for (const method of [undefined, "push", "replace"] as const) {
+      const calls: Array<{ method: "push" | "replace"; target: unknown }> = [];
+      const router: Parameters<typeof navigateBloomProductFlow>[0] = {
+        push: (target) => calls.push({ method: "push", target }),
+        replace: (target) => calls.push({ method: "replace", target })
+      };
+      const before = JSON.stringify(testCase.intent);
+      mapBloomProductFlowIntentToRouteDestination(testCase.intent);
+      assert(calls.length === 0, "Pure route mapping must never invoke a router.");
+      const navigated = navigateBloomProductFlow(router, testCase.intent, method);
+      assert(
+        navigated === (testCase.status === "ready") &&
+          isDeepStrictEqual(calls, testCase.status === "ready"
+            ? [{ method: method ?? "push", target: testCase.target }]
+            : []),
+        "Navigation must call the exact requested router method once for ready routes and refuse every pending route."
+      );
+      assert(
+        JSON.stringify(testCase.intent) === before,
+        "Navigation execution must not modify its semantic intent or domain facts."
+      );
+    }
+  }
 }
 
 function verifyProgressIsNotRouteIdentity() {
@@ -236,12 +297,30 @@ function verifyNamespaceAndDependencies() {
         [...paths].sort(),
         Object.values(cases).map((testCase) => testCase.target.pathname).sort()
       ),
-    "The central contract must expose exactly the unique planned Bloom namespace paths."
+    "The central contract must expose exactly the unique Bloom namespace paths."
   );
   assert(
-    !existsSync(resolve("app/bloom")),
-    "Feature-pending destinations must not be filled with placeholder route screens."
+    isDeepStrictEqual(readdirSync(resolve("app/bloom")).sort(), ["masturbation-session"]) &&
+      isDeepStrictEqual(
+        readdirSync(resolve("app/bloom/masturbation-session")).sort(),
+        ["feedback.tsx", "resume.tsx", "start.tsx"]
+      ),
+    "Exactly the three ready session routes must exist; other Bloom features remain deferred."
   );
+  for (const name of ["start", "resume", "feedback"]) {
+    const entry = readFileSync(
+      resolve(`app/bloom/masturbation-session/${name}.tsx`),
+      "utf8"
+    );
+    assert(
+      /from\s+["'][^"']*src\/features\/masturbation-tracking\//.test(entry) &&
+        /export\s+(?:default\s+\w+|\{[^}]*\bas\s+default\b[^}]*\})/.test(entry) &&
+        (!/\bfunction\b/.test(entry) ||
+          /export\s+default\s+function\s+\w+\(\)\s*\{\s*return\s+<\w+\s*\/>;\s*\}\s*$/.test(entry)) &&
+        !/\b(?:const|let|useEffect|useState|router|productActions|flowActions|AsyncStorage)\b/.test(entry),
+      `${name} must remain a thin route entry delegating to its real session feature.`
+    );
+  }
   for (const file of [
     "src/app/navigation/bloomProductRoutes.ts",
     "src/app/navigation/mapBloomProductFlowIntentToRouteDestination.ts"
@@ -256,13 +335,32 @@ function verifyNamespaceAndDependencies() {
     );
     assert(
       !/expo-router|["']react["']|AsyncStorage|\brequire\s*\(|\bimport\s*\(|router\.(?:push|replace)|navigation\.navigate|applyAcknowledgedMutation|saveBloomLocalState|persistBloomLocalState/.test(source),
-      "The deferred contract and pure mapper must not navigate, mutate, or access React/storage."
+      "The route contract and pure mapper must not navigate, mutate, or access React/storage."
     );
     assert(
       !/get(?:BloomHomeReadModel|ResetRestrictionStatus|MasturbationTrackingAvailability|ContentFreeProgress|UrgeControlProgress)\s*\(|Date\.now\s*\(|new\s+Date\s*\(|Math\.random\s*\(/.test(source),
       "Route resolution must not evaluate selectors or generate new domain facts."
     );
   }
+
+  const adapter = readFileSync(
+    resolve("src/app/navigation/navigateBloomProductFlow.ts"),
+    "utf8"
+  );
+  const adapterImports = Array.from(adapter.matchAll(
+    /import\s+(type\s+)?[\s\S]*?\sfrom\s+["']([^"']+)["']/g
+  ));
+  assert(
+    adapterImports.some((match) => match[1] !== undefined && match[2] === "expo-router") &&
+      adapterImports.filter((match) => match[1] === undefined).every(
+        (match) => match[2] === "./mapBloomProductFlowIntentToRouteDestination"
+      ),
+    "The thin adapter must use Expo Router types and only the pure mapper at runtime."
+  );
+  assert(
+    !/AsyncStorage|applyAcknowledgedMutation|saveBloomLocalState|persistBloomLocalState|productActions|flowActions|useEffect|Date\.now\s*\(|new\s+Date\s*\(|Math\.random\s*\(|get(?:BloomHomeReadModel|ResetRestrictionStatus|MasturbationTrackingAvailability|ContentFreeProgress|UrgeControlProgress)\s*\(/.test(adapter),
+    "The navigation adapter must not mutate state, evaluate policy, or generate application facts."
+  );
 
   for (const file of [
     "app/index.tsx",
