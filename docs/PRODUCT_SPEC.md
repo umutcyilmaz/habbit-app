@@ -22,6 +22,8 @@ Phase 1I explicitly records elapsed Reset completion and the post-reset assessme
 
 Phase 1J adds the pure Masturbation Session lifecycle: start, optional pause/resume, physical end, feedback completion, and active-only discard. Explicit-content feedback applies the required Content-Free change atomically. The v7 schema/key and existing flows remain unchanged.
 
+Phase 1K adds standalone Content-Free activation, deactivation, manual intentional-content logging, latest safe manual undo, and pure streak progress. The existing v7 model/key, migrations, UI, navigation, and legacy flows remain unchanged.
+
 The Expo Router architecture and local-first approach remain technical constraints. Older inventories in [ARCHITECTURE.md](ARCHITECTURE.md) and product references in [DECISIONS.md](DECISIONS.md) describe earlier stages; they do not require a new flow to depend on Protect. Existing navigation remains unchanged in this phase.
 
 ## Product Summary
@@ -74,9 +76,17 @@ Its state records whether it is active, the current streak start, best streak, a
 - Undo corrects a mistaken log. It does not erase a Masturbation Session or create an event claiming the opposite behavior.
 - A violation originating from a Masturbation Session retains that session's identity for deduplication. Standalone logs retain their own stable identity.
 
-Phase 1G introduced Content-Free violations as part of the active Reset transition. Intentional explicit content restarts the current streak while Content-Free stays active, preserving its activation and history. The ended streak can increase the best duration, and the record retains the previous streak start and original best duration. Phase 1H uses that snapshot only when safely undoing the linked latest Reset event; both violations remain as undone history. Standalone Content-Free logging and arbitrary historical replay remain deferred. Recorded and undone source identities prevent stale retries; same-day calendar collapse awaits timezone semantics.
+Phase 1G introduced Content-Free violations as part of the active Reset transition. Intentional explicit content restarts the current streak while Content-Free stays active, preserving its activation and history. The ended streak can increase the best duration, and the record retains the previous streak start and original best duration. Phase 1H uses that snapshot only when safely undoing the linked latest Reset event; both violations remain as undone history. Recorded and undone source identities prevent stale retries; arbitrary historical replay and same-day calendar collapse remain deferred.
 
 Phase 1J also applies Content-Free at session feedback completion. `session.endedAt` is the V1 event anchor, not a claim about the exact first instant of explicit-content use; feedback supplies the later recording time. If Content-Free is inactive or its current activation began after the session ended, the session completes without affecting it. Otherwise intentional-content feedback requires a violation ID and atomically appends one session-sourced violation, preserves the original streak snapshot, updates best duration, and restarts the streak at session end. Content-Free remains active with its activation/history retained. A missing ID, existing recorded or undone source, or unsafe event before the current streak start leaves both systems unchanged.
+
+Content-Free can also be enabled or disabled manually, independently of Tracking and Reset. Disabling records the completed activation and retains best streak and all violations. Reactivation uses a new identity/time and starts a separate streak after the previous activation ended. It does not merge periods or erase history.
+
+Standalone manual logs represent intentional explicit-content use and use a stable `logActionId`. An occurrence can be recorded later if it falls within the current effective streak; the new streak starts at occurrence time. Earlier historical insertion is rejected. While Reset status is `active`, manual Content-Free logging is blocked: the atomic Reset violation path must handle that event. Activation/deactivation themselves do not change Reset.
+
+Standalone undo corrects only the latest safely reversible manual event in the same active activation. It restores the prior streak snapshot and retains an undone tombstone, keeping its source consumed against stale retries. Session-derived and Reset-linked events cannot be undone by this action. Later effective activity or a changed activation causes a no-op; arbitrary history editing remains deferred.
+
+Progress derives from timestamps in whole nonnegative seconds and full 24-hour days without ticking stored counters. Effective best includes a growing current streak even before a later event persists that duration. Only recorded violations count toward `hasEffectiveViolation`; corrected mistakes alone do not count as a real streak break. Inactive state has historical best without a fabricated current streak. Distinct events on one date are not collapsed until timezone/calendar semantics are modeled.
 
 ## 15-Day Reset
 
@@ -209,10 +219,10 @@ Initial acceptance requires an inactive Reset and no unfinished session; non-tra
 | Protection-dependent journey decisions | Protect is deferred and is not required by new flows. Existing decisions still run until routing is deliberately changed. |
 | Separate Pause and Arousal Control drafts/logs | Normal Masturbation Sessions with optional timed pauses, plus the separate acute Urge Control tool. No automatic reinterpretation of legacy records. |
 | Existing Arousal flow can start without a Reset restriction | The new Masturbation Session start transition blocks active Reset; existing legacy start actions remain unchanged. |
-| Content-Free supports initial activation, linked Reset violations/undo, and session-derived violations | Standalone logging, arbitrary historical replay, and same-day calendar collapse remain deferred. |
+| Content-Free supports manual activation/deactivation, standalone logging/undo, Reset-linked events, session-derived violations, and timestamp progress | Session-derived correction, arbitrary historical replay, and same-day calendar collapse remain deferred. |
 | Transitional `BloomLocalState` and version-7 persistence | Old Reset violations become recorded without invented undo or rollback facts. Earlier active-counter and onboarding migrations remain supported. |
 | Five current tabs and `/reset/ten-day`, `/pause`, and Arousal routes | Keep Expo Router and all working routes now; new navigation is outside Phase 1B. |
 
 ## Out of Scope for the Transitional Foundation
 
-No UI redesign, Figma implementation, new screens, deleted flows, Protect changes, legacy onboarding replacement, navigation changes, completed-session editing/deletion, awaiting-feedback deletion, Reset violations from session feedback, Urge Control behavior, standalone Content-Free logging, arbitrary history editing, post-Reset reports/comparisons, tracking-based Reset recommendations, backend, authentication, analytics, AI, or speculative framework is part of Phase 1J. Further phases require a separate task.
+No UI redesign, Figma implementation, new screens, deleted flows, Protect changes, legacy onboarding replacement, navigation changes, completed-session editing/deletion, awaiting-feedback deletion, session-derived Content-Free undo, Reset violations from session feedback, Urge Control behavior, arbitrary history editing, same-day calendar collapse, post-Reset reports/comparisons, tracking-based Reset recommendations, backend, authentication, analytics, AI, or speculative framework is part of Phase 1K. Further phases require a separate task.

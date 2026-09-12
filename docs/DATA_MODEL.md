@@ -22,6 +22,8 @@ Phase 1I adds explicit elapsed completion and assessment submission using existi
 
 Phase 1J adds the core Masturbation Session lifecycle and atomic session-derived Content-Free effects. Existing v7 shapes, the storage key, and migrations remain unchanged; no UI or legacy flow is connected.
 
+Phase 1K adds standalone Content-Free activation/deactivation, manual violations, latest standalone undo, and timestamp-derived progress. It uses existing v7 shapes without changing models, migrations, UI, or legacy flows.
+
 The TypeScript files are the field-level source of truth. Lifecycle unions are not proof that stored input is valid. `bloomProductStateSchema.ts` explicitly validates new persisted records through the existing corruption boundary. Future feature actions must also validate their mutation and route inputs.
 
 The models reuse `UUID` and `ISODateString` from the existing `shared.ts`; both are string aliases, not format validators. [`BehaviorEventSource.ts`](../src/domain/models/BehaviorEventSource.ts) supplies a small shared event-origin union: `{ kind: "manual", logActionId }` or `{ kind: "masturbationSession", sessionId }`. The same origin follows an event across affected systems and retries.
@@ -74,7 +76,7 @@ Content-Free records whether the system is active, the current streak start, bes
 | Fields | Meaning |
 | --- | --- |
 | `status` | `inactive` or `active`. |
-| `bestStreakSeconds` | Best known streak duration, retained in either state. |
+| `bestStreakSeconds` | Historical best from ended/interrupted streaks, retained in either state. Growing current progress is included by the selector. |
 | `pastActivations` | Completed activation periods with `id`, `startedAt`, and `endedAt`. |
 | `violations` | Recorded and undone intentional-content events. |
 | `activationId`, `activatedAt`, `currentStreakStartedAt` | Present only while active; distinguish this activation from its current streak. |
@@ -87,11 +89,36 @@ Phase 1J uses `session.endedAt` as the V1 occurrence anchor when explicit-conten
 
 If `usedExplicitContent` is false, Content-Free is inactive, or the session ended before the current activation began, feedback completes without a Content-Free change. Otherwise a valid unused `contentFreeViolationId` is required, and `session.endedAt >= currentStreakStartedAt`. A duplicate session source in either recorded or undone violations, conflicting ID, contradictory activation state, or unsafe backdated streak event rejects the whole completion; the session remains awaiting feedback.
 
-An applicable completion stores the original streak start and best duration in `streakBefore`, appends one violation, updates best duration with the ended streak's whole elapsed seconds, and sets `currentStreakStartedAt = session.endedAt`. Content-Free stays active with its activation identity/start, past activations, and previous violations preserved. Session completion and Content-Free changes are published as one snapshot. Historical replay and standalone Content-Free logging remain deferred.
+An applicable completion stores the original streak start and best duration in `streakBefore`, appends one violation, updates best duration with the ended streak's whole elapsed seconds, and sets `currentStreakStartedAt = session.endedAt`. Content-Free stays active with its activation identity/start, past activations, and previous violations preserved. Session completion and Content-Free changes are published as one snapshot. Historical replay remains deferred; session-derived violations cannot be undone through the standalone manual API.
 
 Undo corrects the violation log; it does not delete or edit the source session. Source identity remains when a log is undone so retries cannot silently recreate it. Undo is for an accidental logging action, not a rule that intentional content stops counting. Phase 1H restores the original `streakBefore` only for a safely reversible latest event linked to Reset. It never restores a snapshot over later effective violations or another activation. Retained activation boundaries preserve information needed for future historical correction; arbitrary replay remains deferred.
 
 Content-Free can coexist with normal Masturbation Tracking or Reset. It is independent of Protect.
+
+### Standalone Content-Free transitions
+
+The four pure APIs in [`bloomContentFreeTransitions.ts`](../src/storage/bloomContentFreeTransitions.ts) are re-exported from `bloomState.ts`. IDs and canonical timestamps are caller-supplied. Invalid input, conflicting identities, unsafe chronology, and wrong-lifecycle calls return the original state.
+
+| API | Effect and preconditions |
+| --- | --- |
+| `activateContentFreeState(state, { activationId, activatedAt })` | Requires inactive state and a new activation identity, including current/past activation IDs, violation activation references, and violation record IDs. The start must be at or after the latest past activation end. Starts a new streak without erasing best/history or creating a violation. |
+| `deactivateContentFreeState(state, { endedAt })` | Requires active state and end at or after activation and current streak starts. Updates best with the current streak's whole elapsed seconds, appends `{ id: activationId, startedAt: activatedAt, endedAt }`, and becomes inactive with all history retained. |
+| `recordManualContentFreeViolationState(state, { violationId, logActionId, occurredAt, recordedAt })` | Requires active Content-Free and Reset status other than `active`. Appends an intentional-content violation with source `{ kind: "manual", logActionId }`, preserves `streakBefore`, updates best, and restarts the streak at `occurredAt` while remaining active. |
+| `undoManualContentFreeViolationState(state, { violationId, undoneAt })` | Restores `streakBefore` only for a safely reversible latest recorded standalone manual violation in the current active activation. Retains the record/source as an undone tombstone. |
+
+Activation and deactivation preserve Tracking, Reset, onboarding, and all other slices even while Reset is active. Reactivation requires a fresh activation ID and begins a separate period; histories are appended without sorting, merging periods, or deleting earlier facts. Retrying activation while active or deactivation while inactive is a no-op.
+
+Manual occurrence time must be at or after both activation and current effective streak starts, with `recordedAt >= occurredAt`. Backdating within the current streak is allowed: a Wednesday event recorded Friday starts the new streak on Wednesday. Inserting an event before the current streak requires historical replay and is rejected. A valid event captures the original streak start/best, updates best with the ended streak's whole nonnegative seconds, and preserves activation identity/history. IDs and manual source identities cannot duplicate recorded or undone Content-Free violations. Distinct source events on the same date remain distinct.
+
+Standalone manual logging is blocked for every persisted `active` Reset. Those content events must use `recordActiveResetViolationState` so both systems change atomically. Standalone undo rejects session sources and any manual source linked to a recorded or undone Reset violation; corrections belong to their owning transaction. Session-derived correction remains deferred.
+
+Manual undo requires canonical `undoneAt >= recordedAt`, the same active activation, the target as its latest effective recorded streak break, and `currentStreakStartedAt === target.occurredAt`. Current best must equal `max(streakBefore.bestStreakSeconds, endedStreakSeconds)`, and the snapshot cannot restore the streak start before any remaining effective event in that activation. Later effective activity, changed activation, or ambiguous snapshot restoration returns the original state. A successful undo restores both `streakBefore` fields, changes only that violation to `undone` with the supplied time, and preserves unrelated records. Repeated undo retains the first `undoneAt`; the consumed `logActionId` prevents stale logging retries. These standalone actions never mutate Reset or Tracking.
+
+### Content-Free progress
+
+[`getContentFreeProgress(contentFree, now)`](../src/domain/contentFree/getContentFreeProgress.ts) is a pure domain selector, with explicit canonical time and no storage write. Active results contain `{ status: "active", currentStreakSeconds, currentCompletedDays, effectiveBestStreakSeconds, hasEffectiveViolation }`. Current seconds are `max(0, floor((now - currentStreakStartedAt) / 1000))`; completed days are `floor(currentStreakSeconds / 86400)`. Effective best is the maximum of persisted historical best and the growing current streak.
+
+Inactive results contain `{ status: "inactive", effectiveBestStreakSeconds, hasEffectiveViolation }`, retaining historical best and omitting current-streak fields. `hasEffectiveViolation` counts recorded events across all activation history; undone-only history is false. Invalid current time returns null, and a clock before the current streak start clamps to zero. No ticking counter, best update, or derived flag is persisted as time passes. Same-local-day collapse and arbitrary historical replay remain deferred.
 
 ## ResetJourney
 
@@ -365,4 +392,4 @@ The v7 storage boundary checks record shapes, discriminated lifecycle fields, ca
 - Consistency of attempt history and identity, progress, baseline, completion timestamps, and assessment references.
 - Atomic, acknowledged cross-system effects when one event affects both Reset and Content-Free.
 
-Phase 1J adds session start, optional pauses, physical end, feedback completion, active-only discard, and atomic Content-Free interaction using existing v7 shapes. New transitions derive canonical whole-second durations; validation retains practical historical duration checks without rewriting old facts. Completed-session editing/deletion, awaiting-feedback deletion, standalone Content-Free logging, same-day calendar collapse, arbitrary historical replay, Urge Control behavior, post-Reset reports/comparisons, and tracking-based Reset recommendations remain deferred. There is no new backend, authentication, sync metadata, analytics, or AI dependency.
+Phase 1K adds standalone Content-Free lifecycle actions and pure progress using existing v7 shapes. New actions derive canonical whole-second durations; validation retains practical historical checks without recomputing old best values or rewriting facts. Completed-session editing/deletion, awaiting-feedback deletion, session-derived Content-Free undo, same-day calendar collapse, arbitrary historical replay, Urge Control behavior, post-Reset reports/comparisons, and tracking-based Reset recommendations remain deferred. There is no new backend, authentication, sync metadata, analytics, or AI dependency.

@@ -35,6 +35,16 @@ export {
   type StartMasturbationPauseInput,
   type StartMasturbationSessionInput
 } from "./bloomMasturbationTransitions";
+export {
+  activateContentFreeState,
+  deactivateContentFreeState,
+  recordManualContentFreeViolationState,
+  undoManualContentFreeViolationState,
+  type ActivateContentFreeInput,
+  type DeactivateContentFreeInput,
+  type RecordManualContentFreeViolationInput,
+  type UndoManualContentFreeViolationInput
+} from "./bloomContentFreeTransitions";
 import {
   isValidBloomDateKey,
   isValidBloomIsoTimestamp,
