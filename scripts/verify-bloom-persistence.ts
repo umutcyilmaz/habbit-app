@@ -42,6 +42,7 @@ import { verifyBloomSessionCorrections } from "./verify-bloom-session-correction
 import { verifyBloomUrgeControl } from "./verify-bloom-urge-control";
 import { verifyBloomProductPolicy } from "./verify-bloom-product-policy";
 import { verifyBloomHome } from "./verify-bloom-home";
+import { verifyBloomProductActions } from "./verify-bloom-product-actions";
 
 const fixedNow = () => new Date("2026-07-22T10:00:00.000Z");
 
@@ -93,6 +94,7 @@ async function verifyBloomPersistence() {
   await verifyBloomUrgeControl();
   await verifyBloomProductPolicy();
   await verifyBloomHome();
+  await verifyBloomProductActions();
 }
 
 async function verifyAvailableWebStorage() {

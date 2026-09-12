@@ -83,6 +83,9 @@ src/
       appConfig.ts
     providers/
       AppProviders.tsx
+      BloomLocalStateProvider.tsx
+      bloomLocalStateAcknowledgedActions.ts
+      bloomProductAcknowledgedActions.ts
   constants/
     copy.ts
     navigation.ts
@@ -148,6 +151,26 @@ Storage:
 - Repositories should return typed models and handle persistence details.
 - Deletion should be implemented as a first-class storage capability, not a later utility.
 
+## New Product Application Actions
+
+Phase 1P exposes `useBloomLocalState().productActions` as the application command API for the new product. [`createBloomProductAcknowledgedActions({ applyAcknowledgedMutation })`](../src/app/providers/bloomProductAcknowledgedActions.ts) wraps existing pure transitions without adding business prevalidation, scoring, reconciliation, timers, or navigation. The exported `BloomProductAcknowledgedActions` type is `ReturnType<typeof createBloomProductAcknowledgedActions>` and is used by the provider context rather than duplicating nested signatures.
+
+[`BloomLocalStateProvider`](../src/app/providers/BloomLocalStateProvider.tsx) constructs the grouped object with `useMemo`, keyed by its acknowledged mutation dependency, and includes it in the memoized context. Its object identity remains stable while that dependency is stable. Each command calls the transition inside `applyAcknowledgedMutation(currentState => ...)`, so rapid commands use the latest accepted runtime state rather than a captured React state snapshot. Inputs, including IDs and timestamps, pass through unchanged; future flow controllers supply them.
+
+| Group under `productActions` | Commands |
+| --- | --- |
+| `onboarding` | `saveProductOnboardingResult`, `acceptRecommendation` |
+| `reset` | `startFromBaseline`, `recordViolation`, `undoViolation`, `completeElapsed`, `completeAssessment` |
+| `tracking` | `enable`, `disable` |
+| `tracking.session` | `start`, `startPause`, `endPause`, `end`, `completeFeedback`, `discardActive` |
+| `tracking.corrections` | `editFeedback`, `deleteSession` |
+| `contentFree` | `activate`, `deactivate`, `recordManualViolation`, `undoManualViolation` |
+| `urgeControl` | `start`, `completeInterrupt`, `selectTechnique`, `startPhoneAway`, `endPhoneAway`, `recordOutcome`, `recordTrigger`, `selectSecondLineAction`, `complete`, `discardActive` |
+
+Every command returns `Promise<BloomPersistedMutationResult>` through the existing acknowledged mutation runtime. Pure transitions remain the authority for allowed state changes. The runtime accepts a changed snapshot immediately and reports successful persistence only after its exact write succeeds; it retains existing retry, hydration, deletion, and accepted/durable projection behavior. A transition returning the original state retains the runtime's `invalidSession` rejection without a forced write or invented success. The factory has no direct storage access. [Storage documentation](../src/storage/README.md#product-application-actions) details this boundary.
+
+Commands and queries stay separate. The provider continues exposing `state`, `durableState`, and the existing persistence retry API; pure Home, availability, restriction, and progress selectors remain outside `productActions`. No Home read model or ticking clock is installed in the provider. Future consumers can call product commands and compose state with selectors separately. The new factory coexists with `createBloomLocalStateAcknowledgedActions` and all legacy provider methods; no legacy onboarding, Pause, Arousal Control, Protection, Reset, or Check-In behavior is replaced. UI, Today, navigation, and route mapping remain unchanged. This is application wiring only, with no v7 persisted model, schema, key, or migration change.
+
 ## Routing Approach
 
 Use Expo Router.
@@ -197,9 +220,9 @@ Do not add backend storage in the foundation phase.
 
 Current storage implementation:
 
-- `src/storage/storageClient.ts` defines a placeholder `StorageClient` interface.
-- No storage package is installed yet.
-- `src/storage/README.md` documents local-first direction, deletion requirements, and sensitive analytics constraints.
+- `src/storage/storageClient.ts` defines the `StorageClient` boundary, with React Native AsyncStorage, guarded web storage, and explicit memory adapters.
+- Validated state uses the `bloom.localState.v7` envelope. The existing mutation runtime and serialized persistence coordinator own acknowledged writes, retries, hydration, and deletion.
+- `src/storage/README.md` documents the current persistence lifecycle and privacy constraints; product commands reuse it without a second storage path.
 
 ## Validation Approach
 

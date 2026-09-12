@@ -54,6 +54,10 @@ import {
 import { pauseRoundDurationSeconds } from "../../shared/runtime/e2eMode";
 import { createBloomLocalStateAcknowledgedActions } from "./bloomLocalStateAcknowledgedActions";
 import {
+  createBloomProductAcknowledgedActions,
+  type BloomProductAcknowledgedActions
+} from "./bloomProductAcknowledgedActions";
+import {
   createBloomLocalStateMutationRuntime,
   type BloomMutationRuntimeHydrationStatus,
   type BloomPersistedMutationResult,
@@ -88,6 +92,7 @@ export type BloomLocalDataDeletionRequest = {
 type BloomLocalStateContextValue = {
   state: BloomLocalState;
   durableState: BloomLocalState;
+  productActions: BloomProductAcknowledgedActions;
   isLoading: boolean;
   hasHydrated: boolean;
   hydrationStatus: BloomHydrationStatus;
@@ -385,6 +390,14 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
     (token: BloomPersistenceRetryToken) =>
       mutationRuntime.retryPersistence(token),
     [mutationRuntime]
+  );
+
+  const productActions = useMemo(
+    () =>
+      createBloomProductAcknowledgedActions({
+        applyAcknowledgedMutation: applyAcknowledgedStateMutation
+      }),
+    [applyAcknowledgedStateMutation]
   );
 
   const {
@@ -712,6 +725,7 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
     () => ({
       state,
       durableState,
+      productActions,
       isLoading,
       hasHydrated,
       hydrationStatus,
@@ -776,6 +790,7 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
       hydrationStatus,
       isLoading,
       persistenceError,
+      productActions,
       pauseProtection,
       recordProtectionPause,
       resumeArousalSession,
