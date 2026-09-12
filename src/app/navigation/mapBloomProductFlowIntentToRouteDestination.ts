@@ -13,6 +13,7 @@ export function mapBloomProductFlowIntentToRouteDestination(
     case bloomProductRoutePaths.masturbationSessionStart:
     case bloomProductRoutePaths.masturbationSessionResume:
     case bloomProductRoutePaths.masturbationSessionFeedback:
+    case bloomProductRoutePaths.contentFree:
       return { status: "ready", destination };
     default:
       return { status: "featurePending", destination };

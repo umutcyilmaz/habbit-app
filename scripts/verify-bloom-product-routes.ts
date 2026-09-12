@@ -15,17 +15,18 @@ type Assert<Condition extends true> = Condition;
 type Equal<Left, Right> =
   (<Value>() => Value extends Left ? 1 : 2) extends
   (<Value>() => Value extends Right ? 1 : 2) ? true : false;
-type SessionRoutePath =
+type ReadyRoutePath =
   | typeof bloomProductRoutePaths.masturbationSessionStart
   | typeof bloomProductRoutePaths.masturbationSessionResume
-  | typeof bloomProductRoutePaths.masturbationSessionFeedback;
+  | typeof bloomProductRoutePaths.masturbationSessionFeedback
+  | typeof bloomProductRoutePaths.contentFree;
 type ReadyRouteContract = Assert<Equal<
   Extract<BloomProductRouteDestination, { status: "ready" }>["destination"]["pathname"],
-  SessionRoutePath
+  ReadyRoutePath
 >>;
 type PendingRouteContract = Assert<Equal<
   Extract<BloomProductRouteDestination, { status: "featurePending" }>["destination"]["pathname"],
-  Exclude<BloomProductRouteTarget["pathname"], SessionRoutePath>
+  Exclude<BloomProductRouteTarget["pathname"], ReadyRoutePath>
 >>;
 
 type FlowIntentKey<Intent extends BloomProductFlowIntent> =
@@ -37,7 +38,7 @@ type RouteCases = {
   [Intent in BloomProductFlowIntent as FlowIntentKey<Intent>]: {
     intent: Intent;
     target: BloomProductRouteTarget;
-    status: Intent["flow"] extends "masturbationSession" | "masturbationSessionFeedback"
+    status: Intent["flow"] extends "masturbationSession" | "masturbationSessionFeedback" | "contentFree"
       ? "ready"
       : "featurePending";
   };
@@ -175,7 +176,7 @@ const cases = {
     }
   },
   contentFree: {
-    status: "featurePending",
+    status: "ready",
     intent: { flow: "contentFree" },
     target: { pathname: "/bloom/content-free" }
   }
@@ -220,7 +221,7 @@ export function verifyBloomProductRoutes() {
   verifyNavigationExecution();
   verifyNamespaceAndDependencies();
   console.log(
-    "Bloom product-route verification passed (three ready session routes, eight pending destinations, navigation execution, omitted derived progress, and legacy isolation)."
+    "Bloom product-route verification passed (three ready session routes, ready Content-Free, seven pending destinations, navigation execution, and legacy isolation)."
   );
 }
 
@@ -300,25 +301,30 @@ function verifyNamespaceAndDependencies() {
     "The central contract must expose exactly the unique Bloom namespace paths."
   );
   assert(
-    isDeepStrictEqual(readdirSync(resolve("app/bloom")).sort(), ["masturbation-session"]) &&
+    isDeepStrictEqual(readdirSync(resolve("app/bloom")).sort(), ["content-free.tsx", "masturbation-session"]) &&
       isDeepStrictEqual(
         readdirSync(resolve("app/bloom/masturbation-session")).sort(),
         ["feedback.tsx", "resume.tsx", "start.tsx"]
       ),
-    "Exactly the three ready session routes must exist; other Bloom features remain deferred."
+    "Exactly the session and Content-Free routes must exist; other Bloom features remain deferred."
   );
-  for (const name of ["start", "resume", "feedback"]) {
+  for (const [file, feature] of [
+    ["app/bloom/masturbation-session/start.tsx", "masturbation-tracking"],
+    ["app/bloom/masturbation-session/resume.tsx", "masturbation-tracking"],
+    ["app/bloom/masturbation-session/feedback.tsx", "masturbation-tracking"],
+    ["app/bloom/content-free.tsx", "content-free"]
+  ] as const) {
     const entry = readFileSync(
-      resolve(`app/bloom/masturbation-session/${name}.tsx`),
+      resolve(file),
       "utf8"
     );
     assert(
-      /from\s+["'][^"']*src\/features\/masturbation-tracking\//.test(entry) &&
+      new RegExp(`from\\s+["'][^"']*src/features/${feature}/`).test(entry) &&
         /export\s+(?:default\s+\w+|\{[^}]*\bas\s+default\b[^}]*\})/.test(entry) &&
         (!/\bfunction\b/.test(entry) ||
           /export\s+default\s+function\s+\w+\(\)\s*\{\s*return\s+<\w+\s*\/>;\s*\}\s*$/.test(entry)) &&
         !/\b(?:const|let|useEffect|useState|router|productActions|flowActions|AsyncStorage)\b/.test(entry),
-      `${name} must remain a thin route entry delegating to its real session feature.`
+      `${file} must remain a thin route entry delegating to its real feature.`
     );
   }
   for (const file of [

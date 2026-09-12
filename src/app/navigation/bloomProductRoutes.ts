@@ -1,7 +1,7 @@
 import type { BloomProductFlowIntent } from "../flows/mapBloomHomeActionToFlowIntent";
 
-// Session start/resume/feedback have registered route entries. All other
-// new-product paths remain reserved contracts until their features exist.
+// Session start/resume/feedback and Content-Free have registered route entries.
+// Other new-product paths remain reserved contracts until their features exist.
 export const bloomProductRoutePaths = {
   masturbationSessionStart: "/bloom/masturbation-session/start",
   masturbationSessionResume: "/bloom/masturbation-session/resume",
@@ -76,7 +76,8 @@ export type BloomProductReadyRouteTarget = Extract<
     pathname:
       | typeof bloomProductRoutePaths.masturbationSessionStart
       | typeof bloomProductRoutePaths.masturbationSessionResume
-      | typeof bloomProductRoutePaths.masturbationSessionFeedback;
+      | typeof bloomProductRoutePaths.masturbationSessionFeedback
+      | typeof bloomProductRoutePaths.contentFree;
   }
 >;
 
