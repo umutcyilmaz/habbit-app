@@ -28,6 +28,8 @@ Phase 1L adds completed-session feedback edits and deletion with atomic session-
 
 Phase 1M adds the pure Urge Control lifecycle and resume/progress selector using existing v7 event/container shapes. It changes no model, schema, persistence version/key, migration, UI, or legacy flow.
 
+Phase 1N adds manual Tracking controls and shared effective Reset-restriction/Tracking-availability selectors. Relevant existing transitions evaluate Reset policy at event time; models, schema, v7 persistence, migrations, and UI remain unchanged.
+
 The TypeScript files are the field-level source of truth. Lifecycle unions are not proof that stored input is valid. `bloomProductStateSchema.ts` explicitly validates new persisted records through the existing corruption boundary. Future feature actions must also validate their mutation and route inputs.
 
 The models reuse `UUID` and `ISODateString` from the existing `shared.ts`; both are string aliases, not format validators. [`BehaviorEventSource.ts`](../src/domain/models/BehaviorEventSource.ts) supplies a small shared event-origin union: `{ kind: "manual", logActionId }` or `{ kind: "masturbationSession", sessionId }`. The same origin follows an event across affected systems and retries.
@@ -52,7 +54,13 @@ Ending reasons are `climaxed`, `stoppedBeforeClimax`, `firmnessDecreased`, `felt
 
 `pauses` holds the session's optional pauses. An active pause has `status: "active"` and `startedAt`. A completed pause adds `endedAt` and `durationSeconds`. Ended sessions contain only completed pauses: closing the session closes any active pause. An empty array is valid: a normal session with zero pauses can complete. Pause count is derived from the array rather than maintained as another independent value.
 
-The container in [`MasturbationTrackingState.ts`](../src/domain/models/MasturbationTrackingState.ts) has `enabled`, one `currentSession` (active/awaiting feedback or null), and completed `sessions`. Status aliases use `Extract` without duplicating session fields. Fresh and migrated defaults are `{ enabled: false, currentSession: null, sessions: [] }`. At most one unfinished session is allowed, including after persistence reload. The start transition reads Reset status directly rather than duplicating its restriction in this container.
+The container in [`MasturbationTrackingState.ts`](../src/domain/models/MasturbationTrackingState.ts) has `enabled`, one `currentSession` (active/awaiting feedback or null), and completed `sessions`. Status aliases use `Extract` without duplicating session fields. Fresh and migrated defaults are `{ enabled: false, currentSession: null, sessions: [] }`. At most one unfinished session is allowed, including after persistence reload. The start transition uses shared effective Reset policy rather than persisting another restriction flag in this container.
+
+### Manual Tracking controls
+
+[`bloomMasturbationTrackingTransitions.ts`](../src/storage/bloomMasturbationTrackingTransitions.ts) defines `enableMasturbationTrackingState(state)` and `disableMasturbationTrackingState(state)`, re-exported from `bloomState.ts`. They change only the existing `enabled` Boolean and preserve `currentSession`, completed sessions, and every other slice. No timestamps, IDs, toggle history, or audit metadata are added. Invalid state and calls that already match the requested value are exact no-ops.
+
+Manual enable explicitly allows Reset `inactive`, `recommended`, and `completed`, while rejecting `baseline_pending`, `active`, and `assessment_pending`. An elapsed but still-active Reset remains blocked for manual enable so the toggle cannot bypass the assessment lifecycle. Future statuses must be handled explicitly. Disable is allowed regardless of Reset lifecycle and never discards unfinished work: `enabled: false` with an active or awaiting-feedback session is intentionally valid. Existing actions can still end that session, complete feedback, or explicitly discard an active physical session; no new session can start while disabled.
 
 ### Session transitions
 
@@ -60,7 +68,7 @@ These pure APIs are defined in [`bloomMasturbationTransitions.ts`](../src/storag
 
 | API | Effect and preconditions |
 | --- | --- |
-| `startMasturbationSessionState(state, { sessionId, startedAt })` | Requires enabled Tracking, null `currentSession`, a valid unique ID/start, and `resetJourney.status !== "active"`. Creates an active session with empty pauses and no duration or feedback fields. |
+| `startMasturbationSessionState(state, { sessionId, startedAt })` | Requires enabled Tracking, null `currentSession`, a valid unique ID/start, and no effective Reset restriction at `startedAt`. Creates an active session with empty pauses and no duration or feedback fields. |
 | `startMasturbationPauseState(state, { startedAt })` | Requires an active session with no active pause. Appends an active pause starting at or after the session start and the previous pause's end. |
 | `endMasturbationPauseState(state, { endedAt })` | Requires the sole active pause to be last, and end at or after its start. Replaces it with a completed pause and derived whole-second duration. |
 | `endMasturbationSessionState(state, { endedAt })` | Requires an active session and end at or after its start and every pause timestamp. Closes an active pause at the same end time and retains the ended session in `currentSession` as `awaiting_feedback`. |
@@ -69,7 +77,7 @@ These pure APIs are defined in [`bloomMasturbationTransitions.ts`](../src/storag
 
 Active session and pause timers derive from timestamps, with no ticking persisted counter or background mutation. Ending stores `floor((endedAt - startedAt) / 1000)` seconds. Session duration includes all pause time; it is never reduced by pause durations. Zero pauses and zero elapsed seconds are valid. Ending the physical session does not append completed history. Awaiting feedback survives close/reload and blocks another start until feedback is saved.
 
-Tracking permission is `enabled`, with no direct onboarding prerequisite. Every persisted `active` Reset blocks new session starts; `assessment_pending` does not independently block them, although onboarding Tracking remains disabled until assessment submission. Completing feedback for an existing session does not require Tracking to remain enabled. Session transitions do not fabricate Reset violations or repair inconsistent cross-feature history. Existing completed sessions are preserved in order; separate correction APIs own completed feedback edits and deletion.
+Tracking permission is `enabled`, with no direct onboarding prerequisite. Effective Reset restriction at the supplied session `startedAt` blocks new starts before 15 elapsed days; exactly at/after the current attempt's boundary, stale persisted `active` status alone does not block them. Onboarding Tracking still remains disabled until assessment submission. Session start never advances Reset. Completing feedback for an existing session does not require Tracking to remain enabled. Session transitions do not fabricate Reset violations or repair inconsistent cross-feature history. Existing completed sessions are preserved in order; separate correction APIs own completed feedback edits and deletion.
 
 ### Completed-session corrections
 
@@ -128,14 +136,14 @@ The four pure APIs in [`bloomContentFreeTransitions.ts`](../src/storage/bloomCon
 | --- | --- |
 | `activateContentFreeState(state, { activationId, activatedAt })` | Requires inactive state and a new activation identity, including current/past activation IDs, violation activation references, and violation record IDs. The start must be at or after the latest past activation end. Starts a new streak without erasing best/history or creating a violation. |
 | `deactivateContentFreeState(state, { endedAt })` | Requires active state and end at or after activation and current streak starts. Updates best with the current streak's whole elapsed seconds, appends `{ id: activationId, startedAt: activatedAt, endedAt }`, and becomes inactive with all history retained. |
-| `recordManualContentFreeViolationState(state, { violationId, logActionId, occurredAt, recordedAt })` | Requires active Content-Free and Reset status other than `active`. Appends an intentional-content violation with source `{ kind: "manual", logActionId }`, preserves `streakBefore`, updates best, and restarts the streak at `occurredAt` while remaining active. |
+| `recordManualContentFreeViolationState(state, { violationId, logActionId, occurredAt, recordedAt })` | Requires active Content-Free and no effective Reset restriction at `occurredAt`. Appends an intentional-content violation with source `{ kind: "manual", logActionId }`, preserves `streakBefore`, updates best, and restarts the streak at `occurredAt` while remaining active. |
 | `undoManualContentFreeViolationState(state, { violationId, undoneAt })` | Restores `streakBefore` only for a safely reversible latest recorded standalone manual violation in the current active activation. Retains the record/source as an undone tombstone. |
 
 Activation and deactivation preserve Tracking, Reset, onboarding, and all other slices even while Reset is active. Reactivation requires a fresh activation ID and begins a separate period; histories are appended without sorting, merging periods, or deleting earlier facts. Retrying activation while active or deactivation while inactive is a no-op.
 
 Manual occurrence time must be at or after both activation and current effective streak starts, with `recordedAt >= occurredAt`. Backdating within the current streak is allowed: a Wednesday event recorded Friday starts the new streak on Wednesday. Inserting an event before the current streak requires historical replay and is rejected. A valid event captures the original streak start/best, updates best with the ended streak's whole nonnegative seconds, and preserves activation identity/history. IDs and manual source identities cannot duplicate recorded or undone Content-Free violations. Distinct source events on the same date remain distinct.
 
-Standalone manual logging is blocked for every persisted `active` Reset. Those content events must use `recordActiveResetViolationState` so both systems change atomically. Standalone undo rejects session sources and any manual source linked to a recorded or undone Reset violation; corrections belong to their owning transaction. Completed-session corrections own safely reversible session-derived changes.
+Standalone manual logging uses shared effective Reset restriction at `occurredAt`, never recording time or an internal clock. Before the current attempt's 15-day boundary, content events must use `recordActiveResetViolationState` so both systems change atomically. At/after that boundary, standalone logging may proceed under its existing Content-Free guards even when Reset remains `active`; it never completes or mutates Reset. The Reset violation transition remains a no-op at/after the boundary. Standalone undo rejects session sources and any manual source linked to a recorded or undone Reset violation; corrections belong to their owning transaction. Completed-session corrections own safely reversible session-derived changes.
 
 Manual undo requires canonical `undoneAt >= recordedAt`, the same active activation, the target as its latest effective recorded streak break, and `currentStreakStartedAt === target.occurredAt`. Current best must equal `max(streakBefore.bestStreakSeconds, endedStreakSeconds)`, and the snapshot cannot restore the streak start before any remaining effective event in that activation. Later effective activity, changed activation, or ambiguous snapshot restoration returns the original state. A successful undo restores both `streakBefore` fields, changes only that violation to `undone` with the supplied time, and preserves unrelated records. Repeated undo retains the first `undoneAt`; the consumed `logActionId` prevents stale logging retries. These standalone actions never mutate Reset or Tracking.
 
@@ -181,7 +189,7 @@ Phase 1G violation behavior, before the current attempt's 15-day period is compl
 | Masturbation with intentional explicit content | Restart at Day 1 once for the event. | Reset an active Content-Free streak once for the event. |
 | Accidental exposure alone | No automatic violation. | No automatic violation. |
 
-The session-start restriction and violation reporting serve different purposes: the new session transition blocks starting while Reset status is active, while the separate Reset violation transition records behavior that occurred. A violation does not fabricate an in-app session, and session feedback does not create a Reset violation.
+The session-start restriction and violation reporting serve different purposes: the new session transition checks effective restriction at its supplied start time, while the separate Reset violation transition records behavior that occurred during the current attempt's incomplete period. A violation does not fabricate an in-app session, and session feedback does not create a Reset violation.
 
 ### Recording an active Reset violation
 
@@ -215,7 +223,23 @@ Both restored slices are validated before one snapshot is returned. Sequential b
 
 Before 24 hours it reports 0 completed days / Day 1; at 24 hours, 1 / Day 2; at 14 days, 14 / Day 15. At or after 15 full days it reports 15 completed days, Day 15, and `isPeriodComplete: true`. Future start times clamp to zero elapsed progress. `remainingDays` counts full or partial days rounded up; `remainingSeconds` preserves subsecond precision. Finished states report their fixed 15-day completion.
 
-Users do not manually complete days. Calling the selector, validating, loading, or hydrating never changes status, historical best progress, or any stored fact. An elapsed period cannot be extended by a stale `active` status or an unanswered assessment. The application must explicitly call the completion transition to persist its end. Session start currently checks the persisted Reset status and remains blocked while it is `active`.
+Users do not manually complete days. Calling the selector, validating, loading, or hydrating never changes status, historical best progress, or any stored fact. An elapsed period cannot be extended by a stale `active` status or an unanswered assessment. The application must explicitly call the completion transition to persist its end. Session starts and standalone Content-Free logging use shared effective restriction at their supplied event times.
+
+### Product policy read models
+
+[`getResetRestrictionStatus(resetJourney, at)`](../src/domain/productPolicy/getResetRestrictionStatus.ts) returns `{ isRestrictionActive, isElapsedPeriodComplete, needsCompletionTransition, progress }`, or null for an invalid canonical time or progress that cannot safely be determined. For active Reset it reuses `getResetProgress` from the current attempt start, including existing clock clamping; `progress` is that `ResetProgress`. Flags describe the currently active lifecycle, so non-active states return false for all three and `progress: null`, even when the journey is already completed.
+
+| Reset at supplied event time | `isRestrictionActive` | `isElapsedPeriodComplete` | `needsCompletionTransition` |
+| --- | --- | --- | --- |
+| Status other than `active` | false | false | false |
+| Active, fewer than 15 elapsed days | true | false | false |
+| Active, exactly 15 elapsed days or later | false | true | true |
+
+`needsCompletionTransition` reports that the elapsed period ended while its lifecycle is still active. It never invokes `completeElapsedResetPeriodState`, writes state, or enables Tracking. Manual enable separately follows persisted Reset lifecycle; behavioral restriction follows elapsed event time.
+
+[`getMasturbationTrackingAvailability(state, at)`](../src/domain/productPolicy/getMasturbationTrackingAvailability.ts) returns `{ enabled, currentSessionStatus, canStartSession, blockReason, resetRestriction }`, with the shared policy result included. `currentSessionStatus` is `none`, `active`, or `awaiting_feedback`. Start-block precedence is `trackingDisabled`, then `activeSession`, then `awaitingFeedback`, then `resetRestriction`, otherwise null. `canStartSession` is true only for the null case: enabled Tracking, no unfinished session, and no effective restriction. Invalid time or policy returns null rather than guessing a capability.
+
+An elapsed active Reset can report `needsCompletionTransition: true` while availability still reports `trackingDisabled`, as in the normal onboarding assessment path. These selectors accept plain models/state and produce facts only, with no React, storage, routing, provider, or Home-priority behavior. Reads never persist derived fields or automatically advance a lifecycle.
 
 ### Completing the elapsed period
 
@@ -454,4 +478,4 @@ The v7 storage boundary checks record shapes, discriminated lifecycle fields, ca
 - Consistency of attempt history and identity, progress, baseline, completion timestamps, and assessment references.
 - Atomic, acknowledged cross-system effects when one event affects both Reset and Content-Free.
 
-Phase 1M adds the ordered Urge Control lifecycle and timestamp-derived progress using existing v7 shapes. Historical optional-step compatibility remains intact; no new timestamp or duration is inferred. Session times, durations, and pause history remain immutable. Active/awaiting-session correction, awaiting-feedback deletion, Reset history rewriting, completed Urge Control editing/deletion/undo, same-day calendar collapse, arbitrary historical replay, post-Reset reports/comparisons, and tracking-based Reset recommendations remain deferred. There is no new backend, authentication, sync metadata, analytics, or AI dependency.
+Phase 1N adds manual Tracking controls and pure product policy using existing v7 shapes. Disabled Tracking with unfinished work remains valid; toggles never delete it, and no toggle history or derived policy is persisted. Session times, durations, and pause history remain immutable. Home priority, provider/UI wiring, active/awaiting-session correction, awaiting-feedback deletion, Reset history rewriting, completed Urge Control editing/deletion/undo, same-day calendar collapse, arbitrary historical replay, post-Reset reports/comparisons, and tracking-based Reset recommendations remain deferred. There is no new backend, authentication, sync metadata, analytics, or AI dependency.

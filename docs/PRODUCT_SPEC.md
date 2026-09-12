@@ -28,6 +28,8 @@ Phase 1L adds completed-session feedback editing and deletion, atomically reconc
 
 Phase 1M adds the pure Urge Control lifecycle and timestamp-derived resume progress. Existing models, v7 persistence, migrations, UI, navigation, and legacy flows remain unchanged.
 
+Phase 1N adds manual Tracking controls and shared product-policy selectors. Session starts and standalone Content-Free logging use the effective Reset restriction at their event time. Existing models, v7 persistence, UI, providers, navigation, and legacy flows remain unchanged; Home priority is deferred.
+
 The Expo Router architecture and local-first approach remain technical constraints. Older inventories in [ARCHITECTURE.md](ARCHITECTURE.md) and product references in [DECISIONS.md](DECISIONS.md) describe earlier stages; they do not require a new flow to depend on Protect. Existing navigation remains unchanged in this phase.
 
 ## Product Summary
@@ -62,7 +64,9 @@ Ending reasons can include climax, stopping before climax, decreased firmness, a
 
 Pause is optional. A session with no pauses is valid. Each pause can retain its own timing; pause count comes from the pauses rather than a second independent counter. Pause/arousal-control is a tool inside the session, not a prerequisite or a separate program to complete first.
 
-At most one unfinished session is allowed. Starting requires enabled Tracking and no current session; an `active` Reset blocks starting. No direct onboarding check is required. The active timer derives from its start timestamp even across app close/background, with no ticking persisted counter. Ended durations use whole nonnegative elapsed seconds and include pause time. Only one pause may be active, and ending the session closes that pause at the session end time.
+At most one unfinished session is allowed. Starting requires enabled Tracking, no current session, and no effective Reset restriction at the supplied session start time. Exactly 15 full days after the current Reset attempt began, persisted `active` status alone no longer blocks starting. No direct onboarding check is required. The active timer derives from its start timestamp even across app close/background, with no ticking persisted counter. Ended durations use whole nonnegative elapsed seconds and include pause time. Only one pause may be active, and ending the session closes that pause at the session end time.
+
+Tracking may be manually enabled or disabled without deleting history or changing another feature. Disabling preserves an active session or awaiting feedback so existing lifecycle actions can still end, finish, or explicitly discard the active physical session. It blocks new sessions. Manual enable is allowed only with Reset `inactive`, `recommended`, or `completed`; `baseline_pending`, `active`, and `assessment_pending` reject it, even after an active attempt's 15 days have elapsed. This lifecycle rule preserves the onboarding assessment path and is separate from the elapsed behavioral restriction.
 
 Physical end produces `awaiting_feedback`, which survives reload and continues to block another start. Full feedback appends the session once to completed history and clears the unfinished slot; it can finish even if Tracking was subsequently disabled. Existing history is preserved. Active-only discard clears the unfinished slot without any history record or event. Awaiting feedback cannot be discarded.
 
@@ -92,7 +96,7 @@ Phase 1J also applies Content-Free at session feedback completion. `session.ende
 
 Content-Free can also be enabled or disabled manually, independently of Tracking and Reset. Disabling records the completed activation and retains best streak and all violations. Reactivation uses a new identity/time and starts a separate streak after the previous activation ended. It does not merge periods or erase history.
 
-Standalone manual logs represent intentional explicit-content use and use a stable `logActionId`. An occurrence can be recorded later if it falls within the current effective streak; the new streak starts at occurrence time. Earlier historical insertion is rejected. While Reset status is `active`, manual Content-Free logging is blocked: the atomic Reset violation path must handle that event. Activation/deactivation themselves do not change Reset.
+Standalone manual logs represent intentional explicit-content use and use a stable `logActionId`. An occurrence can be recorded later if it falls within the current effective streak; the new streak starts at occurrence time. Earlier historical insertion is rejected. While Reset is effectively restricted at `occurredAt`, standalone logging is blocked so the atomic Reset violation path owns that event. At or after the current attempt's 15-day boundary, standalone logging may proceed under its Content-Free guards even if persisted Reset remains `active`. Logging and activation/deactivation never advance Reset automatically.
 
 Standalone undo corrects only the latest safely reversible manual event in the same active activation. It restores the prior streak snapshot and retains an undone tombstone, keeping its source consumed against stale retries. Session-derived and Reset-linked events cannot be undone by this action. Later effective activity or a changed activation causes a no-op; arbitrary history editing remains deferred.
 
@@ -130,7 +134,7 @@ A valid violation archives the old attempt with its elapsed completed-day count 
 
 Masturbation alone leaves Content-Free unchanged. Content-involved events affect Content-Free only when it is already active: one violation shares the Reset event's source identity, and the streak restarts without a new activation. All required IDs and timestamps are supplied explicitly. Invalid input, conflicting IDs, a repeated source identity, or an event before the current attempt or affected Content-Free streak start leaves the entire state unchanged. Reset and Content-Free changes form one atomic snapshot; the transition itself does not write storage.
 
-Reporting a Reset violation does not create a Masturbation Session. The separate session start transition blocks while Reset status is `active`. Source identity (`logActionId` for manual events or `sessionId` for session events) prevents applying the same behavior twice, including retries with new record IDs after undo.
+Reporting a Reset violation does not create a Masturbation Session. The separate session start transition checks effective Reset restriction at its supplied `startedAt`. Source identity (`logActionId` for manual events or `sessionId` for session events) prevents applying the same behavior twice, including retries with new record IDs after undo.
 
 ### Correcting a mistaken violation
 
@@ -146,7 +150,9 @@ Reset starts only when its baseline is completed. The caller supplies the baseli
 
 Progress advances with elapsed time even when the app is closed. Each day is a full 24 hours from the current attempt's start; users do not complete days manually. Before 24 hours progress is 0 completed days / Day 1, at 24 hours it is 1 / Day 2, and at 15 full days it is 15 completed days with the period complete. Progress clamps safely between 0 and 15. Local calendar dates and timezone/DST changes do not affect these durations.
 
-The selector reports period completion without changing persisted status. Loading, hydration, validation, and migration do not automatically complete or undo Reset. An explicit completion transition accepts a supplied observation time at or after the boundary and moves `active` to `assessment_pending`. Journey and final attempt `completedAt` equal the current attempt's start plus exactly 15 full days, even when completion is observed later. A September 1, 10:00 start ends September 16, 10:00 even if the next observation is September 18.
+The selector reports period completion without changing persisted status. Loading, hydration, validation, and migration do not automatically complete or undo Reset. Shared product policy distinguishes effective restriction from a pending completion transition: after 15 days an `active` journey needs that explicit transition while imposing no continued behavioral restriction. An explicit completion transition accepts a supplied observation time at or after the boundary and moves `active` to `assessment_pending`. Journey and final attempt `completedAt` equal the current attempt's start plus exactly 15 full days, even when completion is observed later. A September 1, 10:00 start ends September 16, 10:00 even if the next observation is September 18.
+
+Tracking availability is a pure read model. Its deterministic start-block precedence is `trackingDisabled`, `activeSession`, `awaitingFeedback`, then `resetRestriction`; otherwise starting is allowed. In the normal onboarding Reset path, disabled Tracking remains the blocker after Day 15 until assessment completion. These selectors supply facts and capabilities without choosing Home cards, actions, routes, or screen copy, and without writing state.
 
 Elapsed completion preserves the journey's original start, baseline, prior attempts, violations/tombstones, and independent Content-Free state. The final completed attempt remains `currentAttempt`, and best progress becomes 15. It creates no assessment or session and leaves Tracking unchanged, so onboarding Tracking remains disabled. Invalid or early observation times and repeated completion calls are no-ops.
 
@@ -234,11 +240,11 @@ Initial acceptance requires an inactive Reset and no unfinished session; non-tra
 | `TenDayResetState`, 10 completed dates, and daily completion actions | The new 15-day journey starts from a baseline and derives elapsed progress. Legacy daily actions remain separate. |
 | Protection-dependent journey decisions | Protect is deferred and is not required by new flows. Existing decisions still run until routing is deliberately changed. |
 | Separate Pause and Arousal Control drafts/logs | Normal Masturbation Sessions with optional timed pauses, plus the separate acute Urge Control tool. No automatic reinterpretation of legacy records. |
-| Existing Arousal flow can start without a Reset restriction | The new Masturbation Session start transition blocks active Reset; existing legacy start actions remain unchanged. |
+| Existing Arousal flow can start without a Reset restriction | The new Masturbation Session start transition checks effective Reset restriction at event time; existing legacy start actions remain unchanged. |
 | Content-Free supports manual activation/deactivation, standalone logging/undo, Reset-linked events, session-derived violations/corrections, and timestamp progress | Arbitrary historical replay, completed-activation recalculation, and same-day calendar collapse remain deferred. |
 | Transitional `BloomLocalState` and version-7 persistence | Old Reset violations become recorded without invented undo or rollback facts. Earlier active-counter and onboarding migrations remain supported. |
 | Five current tabs and `/reset/ten-day`, `/pause`, and Arousal routes | Keep Expo Router and all working routes now; new navigation is outside Phase 1B. |
 
 ## Out of Scope for the Transitional Foundation
 
-No UI redesign, Figma implementation, new screens, deleted flows, Protect changes, legacy onboarding replacement, navigation/Today/Home-priority changes, session timestamp/duration/pause editing, active/awaiting-session correction or deletion, Reset history rewriting, Reset violations from session feedback, completed Urge Control editing/deletion/undo, arbitrary historical replay, same-day calendar collapse, post-Reset reports/comparisons, tracking-based Reset recommendations, backend, authentication, analytics, AI, or speculative framework is part of Phase 1M. Further phases require a separate task.
+No UI redesign, Figma implementation, new screens, deleted flows, Protect changes, legacy onboarding replacement, provider wiring, navigation/Today/Home-priority changes, session timestamp/duration/pause editing, active/awaiting-session correction or deletion, Reset history rewriting, Reset violations from session feedback, completed Urge Control editing/deletion/undo, arbitrary historical replay, same-day calendar collapse, post-Reset reports/comparisons, tracking-based Reset recommendations, backend, authentication, analytics, AI, or speculative framework is part of Phase 1N. Further phases require a separate task.

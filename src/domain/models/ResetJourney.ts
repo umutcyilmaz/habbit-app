@@ -75,8 +75,8 @@ type FinishedResetJourney = StartedResetJourney & {
 
 // The active period lasts 15 elapsed days from the current attempt's start.
 // A later action records assessment_pending; a stale active status or pending
-// assessment cannot extend the period. New session starts check persisted status
-// and remain blocked while it is active.
+// assessment cannot extend the period. New session starts use effective Reset
+// restriction at their supplied start time, based on the current attempt.
 export type ResetJourney = ResetJourneyHistory &
   (
     | { status: "inactive" }

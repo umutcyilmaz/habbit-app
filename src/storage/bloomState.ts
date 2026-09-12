@@ -52,6 +52,10 @@ export {
   type EditCompletedMasturbationSessionFeedbackInput
 } from "./bloomMasturbationCorrections";
 export {
+  enableMasturbationTrackingState,
+  disableMasturbationTrackingState
+} from "./bloomMasturbationTrackingTransitions";
+export {
   startUrgeControlEventState,
   completeUrgeControlInterruptState,
   selectUrgeControlTechniqueState,

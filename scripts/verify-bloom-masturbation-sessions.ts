@@ -55,7 +55,7 @@ async function verifyStartAndPersistence() {
   assert(startMasturbationSessionState(ready, { sessionId, startedAt }) !== ready, "Tracking enabled is sufficient permission without directly requiring onboarding.");
   for (const reset of nonActiveResetStates()) {
     const state = { ...ready, resetJourney: reset };
-    assert(startMasturbationSessionState(state, { sessionId, startedAt }) !== state, `${reset.status}: only active Reset blocks starting when tracking is enabled.`);
+    assert(startMasturbationSessionState(state, { sessionId, startedAt }) !== state, `${reset.status}: a non-active Reset has no effective restriction blocking enabled Tracking.`);
   }
 }
 
@@ -249,7 +249,7 @@ function verifyInvalidTransitions() {
   const resumed = endMasturbationPauseState(paused, { endedAt: pauseEnd });
   const awaiting = endMasturbationSessionState(resumed, { endedAt });
   reject(startMasturbationSessionState, { ...ready, masturbationTracking: { ...ready.masturbationTracking, enabled: false } }, { sessionId, startedAt }, "disabled tracking blocks start");
-  reject(startMasturbationSessionState, { ...ready, resetJourney: createActiveState(false, true).resetJourney }, { sessionId, startedAt }, "active Reset blocks start, without deriving a permission override from its elapsed time");
+  reject(startMasturbationSessionState, { ...ready, resetJourney: createActiveState(false, true).resetJourney }, { sessionId, startedAt: "2026-09-07T12:00:00.000Z" }, "an incomplete effective Reset restriction blocks session start at the supplied event time");
   for (const state of [active, awaiting]) reject(startMasturbationSessionState, state, { sessionId: "second-session", startedAt }, "one unfinished session maximum");
   reject(startMasturbationSessionState, ready, { sessionId: "source-session", startedAt }, "session identity already belongs to completed history");
   for (const id of [undefined, "", " ", null, 17]) reject(startMasturbationSessionState, ready, { sessionId: id, startedAt }, "invalid session identity");

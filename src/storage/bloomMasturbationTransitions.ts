@@ -2,6 +2,7 @@ import type { ContentFreeState } from "../domain/models/ContentFreeState";
 import type { CompletedMasturbationPause, MasturbationSessionFeedback } from "../domain/models/MasturbationSession";
 import type { CompletedMasturbationSession, MasturbationTrackingState } from "../domain/models/MasturbationTrackingState";
 import type { ISODateString, UUID } from "../domain/models/shared";
+import { getMasturbationTrackingAvailability } from "../domain/productPolicy/getMasturbationTrackingAvailability";
 import {
   normalizeContentFree,
   normalizeMasturbationSessionFeedback,
@@ -26,10 +27,11 @@ export function startMasturbationSessionState(
   input: StartMasturbationSessionInput
 ): BloomLocalState {
   const tracking = state.masturbationTracking;
-  if (tracking.enabled !== true || tracking.currentSession !== null || state.resetJourney.status === "active") return state;
   try {
     normalizeMasturbationTracking(tracking);
     if (!hasFields(input, ["sessionId", "startedAt"])) return state;
+    const availability = getMasturbationTrackingAvailability(state, input.startedAt);
+    if (availability === null || !availability.canStartSession) return state;
     const masturbationTracking: MasturbationTrackingState = {
       ...tracking,
       currentSession: { id: input.sessionId, status: "active", startedAt: input.startedAt, pauses: [] }

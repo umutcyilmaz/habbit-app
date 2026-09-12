@@ -1,5 +1,6 @@
 import type { ContentFreeState } from "../domain/models/ContentFreeState";
 import type { ISODateString, UUID } from "../domain/models/shared";
+import { getResetRestrictionStatus } from "../domain/productPolicy/getResetRestrictionStatus";
 import { normalizeContentFree, normalizeResetJourney } from "./bloomProductStateSchema";
 import type { BloomLocalState } from "./bloomState";
 import { isValidBloomIsoTimestamp } from "./bloomValueValidation";
@@ -60,17 +61,20 @@ export function deactivateContentFreeState(state: BloomLocalState, input: Deacti
 }
 
 // This API always means intentional explicit-content use, with a manual origin.
-// During active Reset, the existing atomic Reset violation transaction owns it.
+// While Reset restricts behavior at occurredAt, its atomic violation transaction
+// owns the event. A completed elapsed period needs no Reset restart.
 export function recordManualContentFreeViolationState(
   state: BloomLocalState,
   input: RecordManualContentFreeViolationInput
 ): BloomLocalState {
   const content = state.contentFree;
-  if (content.status !== "active" || state.resetJourney.status === "active") return state;
+  if (content.status !== "active") return state;
   try {
     normalizeContentFree(content);
     if (!hasFields(input, ["violationId", "logActionId", "occurredAt", "recordedAt"]) ||
       !isValidBloomIsoTimestamp(input.occurredAt) || !isValidBloomIsoTimestamp(input.recordedAt)) return state;
+    const restriction = getResetRestrictionStatus(state.resetJourney, input.occurredAt);
+    if (restriction === null || restriction.isRestrictionActive) return state;
     if (Date.parse(input.recordedAt) < Date.parse(input.occurredAt) ||
       Date.parse(input.occurredAt) < Date.parse(content.activatedAt) ||
       Date.parse(input.occurredAt) < Date.parse(content.currentStreakStartedAt) ||

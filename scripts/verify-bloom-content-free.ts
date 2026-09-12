@@ -195,7 +195,7 @@ function verifyTransactionOwnership() {
   const standalone = recordManualContentFreeViolationState(makeActive(false), manualInput());
   const unrelatedReset = { ...standalone, resetJourney: activeReset.resetJourney };
   const corrected = undoManualContentFreeViolationState(unrelatedReset, { violationId: "standalone-violation", undoneAt });
-  assert(corrected !== unrelatedReset && corrected.resetJourney === unrelatedReset.resetJourney, "An unrelated active Reset must not block correction of a genuinely standalone event; only recording new explicit behavior requires the atomic Reset path.");
+  assert(corrected !== unrelatedReset && corrected.resetJourney === unrelatedReset.resetJourney, "An unrelated active Reset must not block correction of a genuinely standalone event; new explicit behavior during an effective restriction requires the atomic Reset path.");
   const sameString = makeActive(false);
   assert(sameString.contentFree.status === "active", "Active fixture required.");
   sameString.contentFree.violations.push({
@@ -245,7 +245,7 @@ function verifyRejectedTransitions() {
   reject(deactivateContentFreeState, active, { endedAt: "2026-10-01T10:00:00.749Z" }, "deactivation cannot precede activation or effective streak start");
   reject(deactivateContentFreeState, recorded, { endedAt: "2026-10-03T10:00:00.248Z" }, "deactivation cannot precede the latest streak start");
   reject(recordManualContentFreeViolationState, inactive, manualInput(), "manual violation requires active Content-Free");
-  reject(recordManualContentFreeViolationState, { ...active, resetJourney: createActiveState(false, true).resetJourney }, manualInput(), "active Reset requires the atomic Reset violation path, even if its elapsed period is complete");
+  reject(recordManualContentFreeViolationState, createActiveState(false, true), { ...manualInput(), occurredAt: "2026-09-07T12:00:00.000Z" }, "an incomplete Reset at occurrence time requires the atomic path even when recorded after the elapsed boundary");
   reject(recordManualContentFreeViolationState, active, { ...manualInput(), source: { kind: "masturbationSession", sessionId: "injected" } }, "manual API must not accept caller-supplied arbitrary source");
   reject(recordManualContentFreeViolationState, active, { ...manualInput(), reason: "accidentalExposure" }, "standalone manual API only represents intentional explicit-content behavior");
   reject(recordManualContentFreeViolationState, active, { ...manualInput(), occurredAt: "2026-10-01T10:00:00.749Z" }, "event before activation/current streak needs historical replay");
