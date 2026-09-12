@@ -84,6 +84,10 @@ src/
     flows/
       bloomProductFlowActions.ts
       mapBloomHomeActionToFlowIntent.ts
+      useBloomProductFlowActions.ts
+    navigation/
+      bloomProductRoutes.ts
+      mapBloomProductFlowIntentToRouteDestination.ts
     providers/
       AppProviders.tsx
       BloomLocalStateProvider.tsx
@@ -199,6 +203,32 @@ The flow layer preallocates possible cross-feature IDs without reading state or 
 | `viewContentFree` | `contentFree` | None |
 
 Mapping an intent does not execute a command, advance Reset, or navigate. The separation remains domain Home selector → semantic action → application intent → future route integration. The flow factory and mapping have no React, provider state capture, route paths, or navigation dependency. Provider, command facade, pure transitions, runtime, legacy APIs/`getNextBloomAction`, and v7 persistence remain unchanged. Screens, Home wiring, routes, presentation, and legacy cutover are outside Phase 1Q.
+
+## React Flow Adapter and Planned Product Routes
+
+Phase 1R adds [`useBloomProductFlowActions()`](../src/app/flows/useBloomProductFlowActions.ts) as a thin React adapter. It obtains only `productActions` from `useBloomLocalState()` and memoizes `createBloomProductFlowActions({ productActions })` with that object as its sole dependency. Stable product commands therefore retain a stable grouped flow-actions object. The hook reads no product state, runs no selectors or navigation, and creates no IDs/timestamps outside the Phase 1Q factory. It preserves `Promise<BloomPersistedMutationResult>` and does not expand provider context or responsibilities.
+
+[`bloomProductRoutes.ts`](../src/app/navigation/bloomProductRoutes.ts) exports `bloomProductRoutePaths` and typed targets in the separate `/bloom/...` namespace. Targets discriminate on `pathname` and carry only the corresponding `params`, omitted for session start and Content-Free. [`mapBloomProductFlowIntentToRouteDestination(intent)`](../src/app/navigation/mapBloomProductFlowIntentToRouteDestination.ts) resolves every `BloomProductFlowIntent` explicitly and exhaustively to `BloomProductRouteDestination`, currently `{ status: "featurePending", destination: BloomProductRouteTarget }`. These are planned destinations, not registered Expo Router hrefs:
+
+| Flow intent | Planned path | Parameters |
+| --- | --- | --- |
+| `masturbationSession`, `mode: "start"` | `/bloom/masturbation-session/start` | None |
+| `masturbationSession`, `mode: "resume"` | `/bloom/masturbation-session/resume` | `sessionId` |
+| `masturbationSessionFeedback` | `/bloom/masturbation-session/feedback` | `sessionId` |
+| `urgeControl`, `mode: "resume"` | `/bloom/urge-control/resume` | `eventId`, `stage` |
+| `resetCompletion` | `/bloom/reset/completion` | `journeyId`, `attemptId` |
+| `resetAssessment` | `/bloom/reset/assessment` | `journeyId`, `attemptId` |
+| `resetBaseline` | `/bloom/reset/baseline` | `journeyId` |
+| `resetProgress` | `/bloom/reset/progress` | `journeyId`, `attemptId` |
+| `startingRecommendation` | `/bloom/starting-recommendation` | `recommendation` |
+| `resetRecommendation` | `/bloom/reset/recommendation` | `journeyId` |
+| `contentFree` | `/bloom/content-free` | None |
+
+Stable identity fields are preserved. Derived Reset `progress` is intentionally omitted from route parameters; future feature screens must derive current progress from canonical state. Urge stage and recommendation parameters are hints, not authority to override canonical records or policy. The mapper reads no state or selectors, mutates nothing, and performs no navigation. It stays separate from the Phase 1Q Home-action-to-flow-intent mapper.
+
+Business commands use the React flow hook → flow factory → `productActions` → existing transition/runtime boundary. Navigation preparation follows Home action → semantic flow intent → typed destination → future router execution. Product screens cannot be implemented within Phase 1R's scope, so every new destination is explicitly `featurePending`: no empty route entry files, fake feature screens, navigation executor, or new Expo Router import is added. Actual route registration and a thin Expo Router execution adapter belong with later feature integration; planned targets must not be treated as navigable hrefs before then.
+
+The focused `verify-bloom-product-react-flows.ts` and `verify-bloom-product-routes.ts` suites run through `verify:persistence`, covering hook delegation/memoization, exhaustive mapping, retained identity/hint fields, deliberate omission of derived progress, and integration boundaries. Provider, flow factory, domain, persistence version 7 / `bloom.localState.v7`, and legacy routes/`getNextBloomAction` remain unchanged. No Home/Today wiring, root-entry change, automatic redirect, or legacy cutover is added.
 
 ## Routing Approach
 
