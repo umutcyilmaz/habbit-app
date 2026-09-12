@@ -1,6 +1,6 @@
 # Content-Free
 
-Phase 1T is the second executable new-product slice, reached through `/bloom/content-free`. Its route entry only renders `screens/ContentFreeScreen.tsx`. Home/Today remains unwired; explicit route testing or `navigateBloomProductFlow(router, { flow: "contentFree" })` can enter it. The three Masturbation Session routes remain ready. Reset, Urge Control, and recommendation routes remain deferred.
+Phase 1T is the second executable new-product slice, reached through `/bloom/content-free`. Its route entry only renders `screens/ContentFreeScreen.tsx`. Home/Today remains unwired; explicit route testing or `navigateBloomProductFlow(router, { flow: "contentFree" })` can enter it. The three Masturbation Session routes remain ready. Phase 1U adds the [core Reset routes](../reset/PRODUCT_RESET.md); Urge Control and recommendation routes remain deferred.
 
 The route stays open through inactive → active → inactive and later reactivation. Each change uses the existing flow API:
 

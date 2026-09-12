@@ -19,7 +19,11 @@ type ReadyRoutePath =
   | typeof bloomProductRoutePaths.masturbationSessionStart
   | typeof bloomProductRoutePaths.masturbationSessionResume
   | typeof bloomProductRoutePaths.masturbationSessionFeedback
-  | typeof bloomProductRoutePaths.contentFree;
+  | typeof bloomProductRoutePaths.contentFree
+  | typeof bloomProductRoutePaths.resetBaseline
+  | typeof bloomProductRoutePaths.resetProgress
+  | typeof bloomProductRoutePaths.resetCompletion
+  | typeof bloomProductRoutePaths.resetAssessment;
 type ReadyRouteContract = Assert<Equal<
   Extract<BloomProductRouteDestination, { status: "ready" }>["destination"]["pathname"],
   ReadyRoutePath
@@ -38,7 +42,14 @@ type RouteCases = {
   [Intent in BloomProductFlowIntent as FlowIntentKey<Intent>]: {
     intent: Intent;
     target: BloomProductRouteTarget;
-    status: Intent["flow"] extends "masturbationSession" | "masturbationSessionFeedback" | "contentFree"
+    status: Intent["flow"] extends
+      | "masturbationSession"
+      | "masturbationSessionFeedback"
+      | "contentFree"
+      | "resetBaseline"
+      | "resetProgress"
+      | "resetCompletion"
+      | "resetAssessment"
       ? "ready"
       : "featurePending";
   };
@@ -96,7 +107,7 @@ const cases = {
     }
   },
   resetCompletion: {
-    status: "featurePending",
+    status: "ready",
     intent: {
       flow: "resetCompletion",
       journeyId: "route-elapsed-journey",
@@ -118,7 +129,7 @@ const cases = {
     }
   },
   resetAssessment: {
-    status: "featurePending",
+    status: "ready",
     intent: {
       flow: "resetAssessment",
       journeyId: "route-assessment-journey",
@@ -133,7 +144,7 @@ const cases = {
     }
   },
   resetBaseline: {
-    status: "featurePending",
+    status: "ready",
     intent: { flow: "resetBaseline", journeyId: "route-baseline-journey" },
     target: {
       pathname: "/bloom/reset/baseline",
@@ -141,7 +152,7 @@ const cases = {
     }
   },
   resetProgress: {
-    status: "featurePending",
+    status: "ready",
     intent: {
       flow: "resetProgress",
       journeyId: "route-active-journey",
@@ -221,7 +232,7 @@ export function verifyBloomProductRoutes() {
   verifyNavigationExecution();
   verifyNamespaceAndDependencies();
   console.log(
-    "Bloom product-route verification passed (three ready session routes, ready Content-Free, seven pending destinations, navigation execution, and legacy isolation)."
+    "Bloom product-route verification passed (eight ready session/Content-Free/Reset routes, three pending destinations, navigation execution, and legacy isolation)."
   );
 }
 
@@ -301,18 +312,26 @@ function verifyNamespaceAndDependencies() {
     "The central contract must expose exactly the unique Bloom namespace paths."
   );
   assert(
-    isDeepStrictEqual(readdirSync(resolve("app/bloom")).sort(), ["content-free.tsx", "masturbation-session"]) &&
+    isDeepStrictEqual(readdirSync(resolve("app/bloom")).sort(), ["content-free.tsx", "masturbation-session", "reset"]) &&
       isDeepStrictEqual(
         readdirSync(resolve("app/bloom/masturbation-session")).sort(),
         ["feedback.tsx", "resume.tsx", "start.tsx"]
+      ) &&
+      isDeepStrictEqual(
+        readdirSync(resolve("app/bloom/reset")).sort(),
+        ["assessment.tsx", "baseline.tsx", "completion.tsx", "progress.tsx"]
       ),
-    "Exactly the session and Content-Free routes must exist; other Bloom features remain deferred."
+    "Exactly the session, Content-Free, and core Reset routes must exist; recommendation and Urge Control routes remain deferred."
   );
   for (const [file, feature] of [
     ["app/bloom/masturbation-session/start.tsx", "masturbation-tracking"],
     ["app/bloom/masturbation-session/resume.tsx", "masturbation-tracking"],
     ["app/bloom/masturbation-session/feedback.tsx", "masturbation-tracking"],
-    ["app/bloom/content-free.tsx", "content-free"]
+    ["app/bloom/content-free.tsx", "content-free"],
+    ["app/bloom/reset/baseline.tsx", "reset"],
+    ["app/bloom/reset/progress.tsx", "reset"],
+    ["app/bloom/reset/completion.tsx", "reset"],
+    ["app/bloom/reset/assessment.tsx", "reset"]
   ] as const) {
     const entry = readFileSync(
       resolve(file),
