@@ -254,31 +254,52 @@ This transition changes only `resetJourney`. It creates no assessment and preser
 
 Source: [`ResetBaseline.ts`](../src/domain/models/ResetBaseline.ts).
 
-A `ResetBaseline` has `id`, `capturedAt`, optional observed aggregates, and a required `selfReport` object. It is captured before Reset and preserves the starting context rather than reading changing tracking aggregates later.
+A `ResetBaseline` has `id`, canonical `capturedAt`, optional observed Tracking aggregates, and a required `selfReport`. It belongs to the journey and remains fixed through every attempt restart, undo, and completion. Phase 1W separates `CurrentResetBaselineSelfReport` from `LegacyResetBaselineSelfReport`; persisted `ResetBaseline.selfReport` accepts either, while current start and feature APIs accept only the current type.
 
-Optional observed aggregates are:
+| Current self-report field | Meaning | Values |
+| --- | --- | --- |
+| `erectionDecline` | Noticed erection decline | `clear`, `mild`, `none`, `notSure` |
+| `needsStrongerOrFasterStimulation` | Need stronger or faster stimulation for the same arousal | `clearly`, `somewhat`, `no` |
+| `climaxTakesLonger` | Climax takes longer than before | `clearly`, `somewhat`, `no`, `notSure` |
+| `difficultyArousingWithoutExplicitContent` | Difficulty becoming aroused without intentional explicit sexual content | `yes`, `sometimes`, `no`, `notTried` |
 
-- `averageIntervalSeconds`: average interval between tracked masturbation sessions, when known.
-- `averageErectionQuality`: average of available session reports, when known.
-- `explicitContentSessionRatio`: the fraction of applicable sessions reporting intentional explicit-content use, when known.
+The second question intentionally has no `notSure` answer. All four answers are required and start unanswered in the current form. These are descriptive facts only; no score, diagnosis, risk level, eligibility rule, or causal conclusion is derived.
 
-Unknown or unavailable aggregates remain absent. Missing data is not zero; a known ratio of zero is meaningful and differs from having no observations. An average erection-quality value may be fractional even though a completed session's rating is an integer from 1 through 10.
+The following exact three-field shape remains historical compatibility only:
 
-| Self-report field | Values |
+| Legacy self-report field | Values |
 | --- | --- |
 | `urgeIntensity` | `low`, `medium`, `high`, `notSure`, `preferNotToSay` |
 | `abilityToPause` | `difficult`, `sometimesPossible`, `manageable`, `notSure`, `preferNotToSay` |
 | `spontaneousOrMorningErections` | `often`, `sometimes`, `rarely`, `notSure`, `preferNotToSay` |
 
-These are subjective observations without diagnostic labels, medical thresholds, or claims of recovery. Aggregation windows, minimum sample sizes, and calculation rules are deferred.
+`normalizeResetBaseline` structurally distinguishes exact current and exact legacy field sets. It rejects mixed, partial, extra-field, and unsupported-answer shapes. No discriminator is stored, no answer is mapped or fabricated, and valid old baseline JSON remains unchanged. A baseline being legacy does not itself require normalization writeback. Old active/completed journeys and historical `PostResetAssessment.baselineId` references remain valid under the same lifecycle and reference checks. Aggregate range/finite-number validation remains in place. Persistence stays v7 / `bloom.localState.v7`.
 
-### Starting from a baseline
+### Canonical Tracking snapshot
 
-[`startResetFromBaselineState`](../src/storage/bloomResetTransitions.ts), also exported from `bloomState.ts`, accepts `{ resetBaseline, resetAttemptId, startedAt }`. It requires a valid `baseline_pending` journey, a nonempty attempt ID not already in history, and canonical timestamps with `startedAt >= resetBaseline.capturedAt`; equality is allowed. It validates and copies the supplied baseline. Unknown aggregates remain absent, and no session-history aggregates are calculated.
+[`getResetTrackingSnapshot(tracking, capturedAt)`](../src/domain/reset/getResetTrackingSnapshot.ts) is the pure canonical helper. It receives `MasturbationTrackingState` and an explicit canonical capture timestamp, returns optional aggregate fields, and returns null for an invalid capture time. It never reads a wall clock or changes its input.
 
-The transition changes only `resetJourney` to `active`, preserving its ID, 15-day duration, best progress, attempts, and violations. It attaches the baseline and sets both journey and new active attempt `startedAt` to the single supplied time. Historical attempts may precede this new journey start; their periods must still be non-overlapping and end no later than the new attempt. Older migrated journeys can retain an earlier journey start from before a restart; validation preserves `baseline.capturedAt <= journey.startedAt <= currentAttempt.startedAt` without rewriting timestamps.
+Eligible observations are all completed history sessions whose `endedAt <= capturedAt`, including equality. Future-ended sessions and the unfinished `currentSession` never contribute. Tracking's enabled/disabled setting does not affect historical eligibility. No rolling window or current-session feedback is inferred.
 
-Invalid inputs, partially started source shapes, and every status other than `baseline_pending` return the original state. Repeating a start cannot replace the baseline, attempt, or journey identity. Onboarding acceptance, Tracking, Content-Free, Urge Control, and every legacy slice retain their original references. Starting Reset neither enables Tracking nor changes a Content-Free activation already underway.
+For `n` eligible sessions, sorted by `startedAt` ascending:
+
+| Aggregate | Formula | Availability |
+| --- | --- | --- |
+| `averageErectionQuality` | Sum of `erectionQuality` / `n` | Present when `n >= 1` |
+| `explicitContentSessionRatio` | Count with `usedExplicitContent === true` / `n` | Present when `n >= 1` |
+| `averageIntervalSeconds` | Sum of consecutive start-to-start millisecond differences / `1000` / `(n - 1)` | Present when `n >= 2` |
+
+Useful numeric precision is retained without storage rounding. Input array order does not affect chronological interval calculation. With no eligible sessions all fields are absent; with one, only the interval is absent. Missing means unavailable, not zero: an observed explicit-content ratio of zero remains zero. Short intervals and other observations carry no interpretation or recommendation.
+
+### Starting from current answers
+
+[`startResetFromBaselineState`](../src/storage/bloomResetTransitions.ts), also exported from `bloomState.ts`, accepts exactly `{ resetBaselineId, capturedAt, selfReport, resetAttemptId, startedAt }`. `selfReport` must be the current four-question shape. Full baselines and caller-calculated aggregate fields are not accepted. The flow's `reset.startFromBaseline(selfReport)` captures one operation Date, generates the baseline/attempt identities, and supplies the same canonical timestamp for `capturedAt` and `startedAt`.
+
+The pure transition requires a valid `baseline_pending` journey, a nonempty new attempt identity, and canonical `startedAt >= capturedAt`; equality is allowed. It invokes the snapshot helper against the current accepted Tracking state using `capturedAt` as the cutoff, constructs and validates the baseline, and copies the self-report. IDs and timestamps remain explicit flow/caller facts. Derivation occurs once in the accepted start; persistence retry writes that accepted snapshot without replaying start or recapturing history.
+
+The transition changes only `resetJourney` to `active`, preserving its ID, 15-day duration, best progress, attempts, and violations. It attaches the new baseline and uses `startedAt` for both journey and current attempt. Historical attempts must remain non-overlapping and end no later than the new attempt. Older journeys retain `baseline.capturedAt <= journey.startedAt <= currentAttempt.startedAt` without timestamp rewrites.
+
+Invalid inputs, partially started source shapes, and every status other than `baseline_pending` return the original state. Repeated/stale starts cannot replace baseline, attempt, or journey identity. Tracking, Content-Free, onboarding acceptance, Urge Control, and every legacy slice retain their original references. Later Tracking changes and Reset restart/undo/completion never recapture the baseline. UI supplies only four semantic answers and performs no aggregate calculation, scoring, identity creation, or mutation-time generation.
 
 ## Historical PostResetAssessment
 

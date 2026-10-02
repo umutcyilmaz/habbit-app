@@ -206,7 +206,7 @@ function commandCases(): CommandCase[] {
   const saved = saveProductOnboardingResultState(blank, result);
   const acceptance = { acceptedAt: shift(at, -60_000), resetJourneyId: "caller-reset-journey", contentFreeActivationId: "caller-content-activation" };
   const accepted = acceptProductOnboardingRecommendationState(saved, acceptance);
-  const baselineInput = { resetBaseline: { id: "caller-baseline", capturedAt: shift(at, -1_000), averageErectionQuality: 6.5, selfReport: { urgeIntensity: "notSure" as const, abilityToPause: "preferNotToSay" as const, spontaneousOrMorningErections: "sometimes" as const } }, resetAttemptId: "caller-reset-attempt", startedAt: at };
+  const baselineInput = { resetBaselineId: "caller-baseline", capturedAt: shift(at, -1_000), selfReport: { erectionDecline: "notSure" as const, needsStrongerOrFasterStimulation: "no" as const, climaxTakesLonger: "somewhat" as const, difficultyArousingWithoutExplicitContent: "sometimes" as const }, resetAttemptId: "caller-reset-attempt", startedAt: at };
   const resetActive = startResetFromBaselineState(accepted, baselineInput);
   const violationInput = { violationId: "caller-reset-violation", replacementAttemptId: "caller-replacement-attempt", occurredAt: shift(at, 3 * day + 234), recordedAt: shift(at, 3 * day + 1_345), source: { kind: "manual" as const, logActionId: "caller-reset-source" }, reason: "masturbationWithExplicitContent" as const, contentFreeViolationId: "caller-linked-content-violation" };
   const violated = recordActiveResetViolationState(resetActive, violationInput);

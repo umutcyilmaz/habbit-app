@@ -1,12 +1,12 @@
 import type { BloomProductFlowActions } from "../../app/flows/bloomProductFlowActions";
 import type { BloomPersistedMutationResult, BloomPersistenceRetryToken } from "../../app/providers/bloomLocalStateMutationRuntime";
-import type { ResetBaseline } from "../../domain/models/ResetBaseline";
+import type { CurrentResetBaselineSelfReport } from "../../domain/models/ResetBaseline";
 import type { ResetJourney, ResetViolation } from "../../domain/models/ResetJourney";
 import type { ISODateString } from "../../domain/models/shared";
 import type { BloomLocalState } from "../../storage/bloomState";
 import { getLatestResetUndoCandidate, getResetRouteView, type ResetRouteInput } from "./resetView";
 
-export type ResetBaselineAnswers = ResetBaseline["selfReport"];
+export type ResetBaselineAnswers = CurrentResetBaselineSelfReport;
 export type ResetOperation = "startFromBaseline" | "recordViolation" | "undoViolation" | "completeElapsed";
 export type ResetOperationSnapshot = {
   busy: boolean;
@@ -98,7 +98,7 @@ export function createResetController(options: Options) {
       return () => { listeners.delete(listener); };
     },
     startFromBaseline: (selfReport: ResetBaselineAnswers, expectedReset: ResetJourney) => run(
-      "startFromBaseline", expectedReset, () => options.flowActions.reset.startFromBaseline({ selfReport })
+      "startFromBaseline", expectedReset, () => options.flowActions.reset.startFromBaseline(selfReport)
     ),
     recordViolation: (reason: ResetViolation["reason"], expectedReset: ResetJourney) => run(
       "recordViolation", expectedReset, () => options.flowActions.reset.recordViolation({ reason, source: { kind: "manual" } })

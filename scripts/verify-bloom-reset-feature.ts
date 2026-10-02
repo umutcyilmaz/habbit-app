@@ -10,7 +10,8 @@ import { createBloomLocalStateMutationRuntime } from "../src/app/providers/bloom
 import { getResetProgress } from "../src/domain/reset/getResetProgress";
 import { getResetRestrictionStatus } from "../src/domain/productPolicy/getResetRestrictionStatus";
 import { getMasturbationTrackingAvailability } from "../src/domain/productPolicy/getMasturbationTrackingAvailability";
-import type { ResetBaseline, ResetJourney, ResetViolation } from "../src/domain/models";
+import type { ResetJourney, ResetViolation } from "../src/domain/models";
+import type { CurrentResetBaselineSelfReport } from "../src/domain/models/ResetBaseline";
 import { createDefaultBloomState, type BloomLocalState } from "../src/storage/bloomState";
 import {
   BLOOM_STATE_STORAGE_KEY, loadBloomLocalState, persistBloomLocalState,
@@ -28,8 +29,9 @@ import {
 const startedAt = "2026-11-01T12:00:00.123Z";
 const day = 86400000;
 const ts: typeof import("typescript") = createRequire(resolve("package.json"))("typescript");
-const selfReport: ResetBaseline["selfReport"] = {
-  urgeIntensity: "preferNotToSay", abilityToPause: "sometimesPossible", spontaneousOrMorningErections: "notSure"
+const selfReport: CurrentResetBaselineSelfReport = {
+  erectionDecline: "notSure", needsStrongerOrFasterStimulation: "somewhat",
+  climaxTakesLonger: "notSure", difficultyArousingWithoutExplicitContent: "notTried"
 };
 
 export async function verifyBloomResetFeature() {
@@ -60,8 +62,11 @@ async function verifyLifecycle() {
   assert(active.resetJourney.status === "active", "Explicit baseline submit must accept the active journey through the flow API.");
   const firstAttempt = active.resetJourney.currentAttempt;
   equal(active.resetJourney.baseline.selfReport, selfReport, "The exact nonmedical self-report values must remain unchanged.");
-  equal(Object.keys(active.resetJourney.baseline).sort(), ["capturedAt", "id", "selfReport"],
-    "The feature must omit unknown aggregates rather than compute or fill historical observations.");
+  equal(active.resetJourney.baseline, {
+    id: "reset-baseline-reset-feature-1", capturedAt: startedAt, selfReport,
+    averageIntervalSeconds: 0, averageErectionQuality: 8.5, explicitContentSessionRatio: 1 / 6
+  }, "Four feature answers must reach the authoritative start, which captures existing completed history even when Tracking is disabled.");
+  const acceptedBaseline = active.resetJourney.baseline;
   assert(active.resetJourney.startedAt === startedAt && firstAttempt.startedAt === startedAt &&
     active.resetJourney.baseline.capturedAt === startedAt && h.persisted.length === 0 && h.runtime.getDurableState() === initial,
   "Baseline flow facts must use one clock; accepted start must not navigate before durable success.");
@@ -81,6 +86,8 @@ async function verifyLifecycle() {
   const restarted = h.runtime.getState();
   assert(restarted.resetJourney.status === "active" && restarted.contentFree.status === "active",
     "Combined explicit-content reporting must atomically restart active Reset and retain active Content-Free.");
+  assert(restarted.resetJourney.baseline === acceptedBaseline,
+    "A replacement attempt must retain the exact accepted baseline and never recapture answers or Tracking history.");
   const event = restarted.resetJourney.violations[0];
   assert(event?.source.kind === "manual" && event.reason === "masturbationWithExplicitContent" &&
     event.attemptId === firstAttempt.id && restarted.resetJourney.currentAttempt.id !== firstAttempt.id,
@@ -108,6 +115,7 @@ async function verifyLifecycle() {
   assert(restored.resetJourney.status === "active" && restored.contentFree.status === "active" &&
     restored.resetJourney.currentAttempt.id === firstAttempt.id && restored.resetJourney.currentAttempt.startedAt === firstAttempt.startedAt,
   "Canonical Reset undo must restore the original attempt identity/start.");
+  assert(restored.resetJourney.baseline === acceptedBaseline, "Undo must preserve the original baseline snapshot by reference.");
   assert(restored.resetJourney.violations[0]?.status === "undone" &&
     restored.contentFree.violations.find((record) => record.id === linked.id)?.status === "undone" &&
     active.contentFree.status === "active" && restored.contentFree.currentStreakStartedAt === active.contentFree.currentStreakStartedAt &&
@@ -135,6 +143,7 @@ async function verifyLifecycle() {
   "The transition must complete directly at the true 15-day boundary, not the later observation clock; navigation must wait.");
   assert(!("assessment" in finished.resetJourney) && !finished.masturbationTracking.enabled,
     "Completing Reset must not fabricate an assessment or change a manually disabled Tracking preference.");
+  assert(finished.resetJourney.baseline === acceptedBaseline, "Direct completion must preserve the original baseline snapshot by reference.");
   await failAndRetry(h, completion, 5);
   assert(h.persisted[3]?.reset === finished.resetJourney && h.persisted[3]?.operation === "completeElapsed",
     "Durable elapsed completion must expose the same completed journey for Today navigation.");
@@ -167,10 +176,29 @@ async function failAndRetry(
 }
 
 async function verifyReasonsAndTrackingPreferences() {
-  const baseline = createHarness();
+  const baselineState = baselinePendingState();
+  baselineState.masturbationTracking.sessions.push({
+    id: "after-baseline-capture", status: "completed", startedAt: shift(startedAt, 60_000),
+    endedAt: shift(startedAt, 120_000), durationSeconds: 60, pauses: [],
+    erectionQuality: 2, usedExplicitContent: false, endingReason: "stoppedByChoice"
+  });
+  const baseline = createHarness(baselineState);
   const start = baseline.controller.startFromBaseline(selfReport, baseline.initialState.resetJourney);
   assert(start !== null, "Baseline retry fixture must submit explicitly.");
+  const acceptedStart = baseline.runtime.getState().resetJourney;
+  assert(acceptedStart.status === "active", "The start retry fixture must accept one baseline before persistence settles.");
+  const originalBaseline = acceptedStart.baseline;
+  equal(originalBaseline, {
+    id: "reset-baseline-reset-feature-1", capturedAt: startedAt, selfReport,
+    averageIntervalSeconds: 0, averageErectionQuality: 8.5, explicitContentSessionRatio: 1 / 6
+  }, "The accepted baseline must use capturedAt to exclude a completed session ending later than capture.");
+  baseline.setTime(shift(startedAt, day));
   await failAndRetry(baseline, start, 0);
+  const retried = baseline.runtime.getDurableState().resetJourney;
+  assert(retried.status === "active" && retried.baseline === originalBaseline,
+    "Retry after the future session's end must save the original accepted snapshot without recalculating aggregates or capture time.");
+  equal(baseline.counts(), { clockCalls: 1, idCalls: 2, mutationCalls: 1 },
+    "Baseline retry must perform no additional command, clock read, ID generation, or baseline capture.");
   for (const reason of ["masturbation", "intentionalExplicitContent", "masturbationWithExplicitContent"] as const) {
     const state = createActiveState(false, true);
     assert(state.resetJourney.status === "active", "Active reason fixture required.");
@@ -375,7 +403,7 @@ async function verifyHookWiring() {
     saveState: "loading" | "unavailable" | "saving" | "saved" | "unconfirmed";
     recoveryTarget: "progress" | "today" | null; canContinue: boolean; canOpenCompletion: boolean;
     actions: {
-      startFromBaseline: (answers: ResetBaseline["selfReport"]) => void;
+      startFromBaseline: (answers: CurrentResetBaselineSelfReport) => void;
       recordViolation: (reason: ResetViolation["reason"]) => void; undoViolation: (id: string) => void;
       completeElapsed: () => void;
       retry: () => void; continueAfterSave: () => void; continueToCompletion: () => void; close: () => void;
@@ -583,6 +611,8 @@ function verifySourceAndForms() {
   }
   assert(!/Date\.|new Date|useEffect|setInterval|averageIntervalSeconds|averageErectionQuality|explicitContentSessionRatio/.test(screen),
     "Reset screens must not create timestamps, mount writes, or ad-hoc baseline aggregates.");
+  assert(!/urgeIntensity|abilityToPause|spontaneousOrMorningErections/.test(screen + hook + controller),
+    "No current Reset feature path may construct or offer retired historical answers.");
   assert(!/flowActions\.contentFree|recordManualViolation|undoManualViolation|streakBefore|currentStreakStartedAt|masturbationTracking\.enabled\s*=/.test(screen + hook + controller),
     "One Reset command must own linked Content-Free effects without feature-level policy writes or Tracking preference changes.");
   assert(hook.includes("getState: getAcceptedState") && hook.includes("useBloomProductFlowActions") &&
@@ -602,7 +632,7 @@ function verifySourceAndForms() {
   const definitions = parsed.statements.flatMap((node) => {
     if (ts.isFunctionDeclaration(node) && formNames.includes(node.name?.text ?? "")) return [`export ${node.getText(parsed)}`];
     if (ts.isVariableStatement(node) && node.declarationList.declarations.some((declaration) =>
-      ["uncertainChoices", "violationReasons"].includes(declaration.name.getText(parsed)))) return [node.getText(parsed)];
+      ["violationReasons"].includes(declaration.name.getText(parsed)))) return [node.getText(parsed)];
     return [];
   }).join("\n");
   const compileForms = (hooks: ReturnType<typeof createControlledHooks>) => {
@@ -620,9 +650,10 @@ function verifySourceAndForms() {
     return module.exports;
   };
   verifyAnswerForm("ResetBaselineForm", "baseline", {
-    urgeIntensity: ["low", "medium", "high", "notSure", "preferNotToSay"],
-    abilityToPause: ["difficult", "sometimesPossible", "manageable", "notSure", "preferNotToSay"],
-    spontaneousOrMorningErections: ["often", "sometimes", "rarely", "notSure", "preferNotToSay"]
+    erectionDecline: ["clear", "mild", "none", "notSure"],
+    needsStrongerOrFasterStimulation: ["clearly", "somewhat", "no"],
+    climaxTakesLonger: ["clearly", "somewhat", "no", "notSure"],
+    difficultyArousingWithoutExplicitContent: ["yes", "sometimes", "no", "notTried"]
   }, selfReport, compileForms);
 
   const hooks = createControlledHooks();
@@ -701,10 +732,23 @@ function verifyAnswerForm(
   let tree = render();
   render();
   assert(submissions.length === 0, "Rendering a baseline form must never submit.");
+  equal(findFormElements(tree).filter((element) => element.props.accessibilityRole === "radiogroup").map((element) => element.props.accessibilityLabel), [
+    "Ereksiyonunda bir düşüş fark ediyor musun?",
+    "Aynı seviyede uyarılmak için daha sert ya da daha hızlı yapman gerekiyor mu?",
+    "Boşalmak eskisine göre daha mı uzun sürüyor?",
+    "İçerik olmadan uyarılmakta zorlanıyor musun?"
+  ], "The current form must present exactly the four product questions in order.");
+  const labels: Record<string, readonly string[]> = {
+    erectionDecline: ["Evet, belirgin", "Evet, hafif", "Hayır", "Emin değilim"],
+    needsStrongerOrFasterStimulation: ["Evet, belirgin", "Biraz", "Hayır"],
+    climaxTakesLonger: ["Evet, belirgin", "Biraz", "Hayır", "Emin değilim"],
+    difficultyArousingWithoutExplicitContent: ["Evet", "Bazen", "Hayır", "Denemedim"]
+  };
   for (const [field, expected] of Object.entries(options)) {
     const choices = findFormElements(tree).filter((element) => String(element.props.testID).startsWith(`bloom.reset.${prefix}.${field}.`));
     equal(choices.map((element) => String(element.props.testID).split(".").pop()), expected,
-      "Every self-report field must expose exactly its canonical domain values, including uncertainty/nonresponse.");
+      "Every self-report field must expose exactly its canonical domain values, with no notSure option for Q2.");
+    equal(choices.map((element) => element.props.children), labels[field], "Each canonical semantic answer must retain the exact product label.");
     assert(choices.every((element) => (element.props.accessibilityState as { checked: boolean }).checked === false),
       "Self-report choices must start unanswered rather than preselecting a derived/default answer.");
   }
@@ -715,14 +759,50 @@ function verifyAnswerForm(
   for (const [field, value] of Object.entries(values)) {
     pressForm(tree, `bloom.reset.${prefix}.${field}.${value}`);
     tree = render();
+    if (field !== Object.keys(values)[Object.keys(values).length - 1]) {
+      assert(formElement(tree, `bloom.reset.${prefix}.submit`).props.disabled === true,
+        "The current form must remain disabled until all four explicit choices have been made.");
+      pressForm(tree, `bloom.reset.${prefix}.submit`);
+      assert(submissions.length === 0, "Partially answered forms must not dispatch even when their callback is directly invoked.");
+    }
   }
   assert(formElement(tree, `bloom.reset.${prefix}.submit`).props.disabled === false,
-    "A complete descriptive answer set must be submittable, including uncertainty/nonresponse.");
+    "Every complete descriptive answer set must be submittable without scoring or eligibility restrictions.");
   pressForm(tree, `bloom.reset.${prefix}.submit`);
   equal(JSON.parse(JSON.stringify(submissions)), [values], "Forms must submit only exact semantic answer fields, with no generated links, IDs, scores, or timestamps.");
   tree = render(true);
   pressForm(tree, `bloom.reset.${prefix}.submit`);
   assert(Number(submissions.length) === 1, "Locked baseline callbacks must never dispatch even if directly invoked.");
+  const selected = { ...values };
+  for (const [field, choices] of Object.entries(options)) {
+    for (const value of choices) {
+      tree = render();
+      pressForm(tree, `bloom.reset.${prefix}.${field}.${value}`);
+      tree = render();
+      selected[field] = value;
+      assert(formElement(tree, `bloom.reset.${prefix}.submit`).props.disabled === false,
+        "Every specified answer option must be eligible for descriptive submission.");
+      pressForm(tree, `bloom.reset.${prefix}.submit`);
+      equal(JSON.parse(JSON.stringify(submissions[submissions.length - 1])), selected,
+        "Every answer option must emit only the current four semantic fields, without aggregates or medical interpretation.");
+    }
+  }
+  for (const unanswered of Object.keys(values)) {
+    const partialHooks = createControlledHooks();
+    const partialForm = compileForms(partialHooks)[name]!;
+    let partialSubmissions = 0;
+    const renderPartial = () => partialHooks.render(() => partialForm({ locked: false, onSubmit: () => { partialSubmissions++; } }));
+    let partialTree = renderPartial();
+    for (const [field, value] of Object.entries(values)) {
+      if (field === unanswered) continue;
+      pressForm(partialTree, `bloom.reset.${prefix}.${field}.${value}`);
+      partialTree = renderPartial();
+    }
+    assert(formElement(partialTree, `bloom.reset.${prefix}.submit`).props.disabled === true,
+      `The form must require ${unanswered}, even when every other answer is present.`);
+    pressForm(partialTree, `bloom.reset.${prefix}.submit`);
+    assert(partialSubmissions === 0, "Omitting any one required answer must prevent direct submission.");
+  }
 }
 
 function createHarness(initialState = baselinePendingState()) {

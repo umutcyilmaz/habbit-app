@@ -3,6 +3,8 @@ import type {
   CompletedContentFreeActivation,
   ContentFreeState,
   ContentFreeViolation,
+  CurrentResetBaselineSelfReport,
+  LegacyResetBaselineSelfReport,
   MasturbationPause,
   MasturbationSession,
   MasturbationSessionFeedback,
@@ -427,13 +429,40 @@ export function normalizeResetBaseline(
     ...optionalField(record, "averageIntervalSeconds", path, (entry, entryPath) => finiteNumber(entry, entryPath, 0)),
     ...optionalField(record, "averageErectionQuality", path, (entry, entryPath) => finiteNumber(entry, entryPath, 1, 10)),
     ...optionalField(record, "explicitContentSessionRatio", path, (entry, entryPath) => finiteNumber(entry, entryPath, 0, 1)),
-    selfReport: {
-      urgeIntensity: choice(selfReport.urgeIntensity, ["low", "medium", "high", "notSure", "preferNotToSay"], `${path}.selfReport.urgeIntensity`),
-      abilityToPause: choice(selfReport.abilityToPause, ["difficult", "sometimesPossible", "manageable", "notSure", "preferNotToSay"], `${path}.selfReport.abilityToPause`),
-      spontaneousOrMorningErections: choice(selfReport.spontaneousOrMorningErections,
-        ["often", "sometimes", "rarely", "notSure", "preferNotToSay"], `${path}.selfReport.spontaneousOrMorningErections`)
-    }
+    selfReport: "erectionDecline" in selfReport
+      ? normalizeCurrentResetBaselineSelfReport(selfReport, `${path}.selfReport`)
+      : normalizeLegacyResetBaselineSelfReport(selfReport, `${path}.selfReport`)
   };
+}
+
+export function normalizeCurrentResetBaselineSelfReport(
+  value: unknown,
+  path = "state.resetJourney.baseline.selfReport"
+): CurrentResetBaselineSelfReport {
+  const record = object(value, path);
+  exactSelfReportKeys(record, ["erectionDecline", "needsStrongerOrFasterStimulation", "climaxTakesLonger", "difficultyArousingWithoutExplicitContent"], path);
+  return {
+    erectionDecline: choice(record.erectionDecline, ["clear", "mild", "none", "notSure"], `${path}.erectionDecline`),
+    needsStrongerOrFasterStimulation: choice(record.needsStrongerOrFasterStimulation, ["clearly", "somewhat", "no"], `${path}.needsStrongerOrFasterStimulation`),
+    climaxTakesLonger: choice(record.climaxTakesLonger, ["clearly", "somewhat", "no", "notSure"], `${path}.climaxTakesLonger`),
+    difficultyArousingWithoutExplicitContent: choice(record.difficultyArousingWithoutExplicitContent, ["yes", "sometimes", "no", "notTried"], `${path}.difficultyArousingWithoutExplicitContent`)
+  };
+}
+
+function normalizeLegacyResetBaselineSelfReport(value: unknown, path: string): LegacyResetBaselineSelfReport {
+  const record = object(value, path);
+  exactSelfReportKeys(record, ["urgeIntensity", "abilityToPause", "spontaneousOrMorningErections"], path);
+  return {
+    urgeIntensity: choice(record.urgeIntensity, ["low", "medium", "high", "notSure", "preferNotToSay"], `${path}.urgeIntensity`),
+    abilityToPause: choice(record.abilityToPause, ["difficult", "sometimesPossible", "manageable", "notSure", "preferNotToSay"], `${path}.abilityToPause`),
+    spontaneousOrMorningErections: choice(record.spontaneousOrMorningErections,
+      ["often", "sometimes", "rarely", "notSure", "preferNotToSay"], `${path}.spontaneousOrMorningErections`)
+  };
+}
+
+function exactSelfReportKeys(record: Record<string, unknown>, required: readonly string[], path: string) {
+  const keys = Object.keys(record);
+  ensure(keys.length === required.length && required.every((key) => keys.includes(key)), path, "must contain exactly one complete questionnaire shape");
 }
 
 export function normalizePostResetAssessment(

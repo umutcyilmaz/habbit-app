@@ -16,6 +16,8 @@ import {
   type BloomPersistenceRetryToken
 } from "../src/app/providers/bloomLocalStateMutationRuntime";
 import type { MasturbationSessionFeedback } from "../src/domain/models";
+import type { CurrentResetBaselineSelfReport, LegacyResetBaselineSelfReport } from "../src/domain/models/ResetBaseline";
+import type { ResetBaselineAnswers } from "../src/features/reset/resetController";
 import { createDefaultBloomState, type BloomLocalState } from "../src/storage/bloomState";
 import { BLOOM_STATE_STORAGE_KEY, type BloomStateWriteReceipt } from "../src/storage/bloomStatePersistence";
 import { BLOOM_PERSISTENCE_VERSION } from "../src/storage/bloomStateSchema";
@@ -31,8 +33,24 @@ type FlowCase = {
   prefixes: BloomProductFlowIdPrefix[];
   prepared?: false;
 };
+type EqualTypes<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;
+type CurrentQuestionContract = {
+  erectionDecline: "clear" | "mild" | "none" | "notSure";
+  needsStrongerOrFasterStimulation: "clearly" | "somewhat" | "no";
+  climaxTakesLonger: "clearly" | "somewhat" | "no" | "notSure";
+  difficultyArousingWithoutExplicitContent: "yes" | "sometimes" | "no" | "notTried";
+};
+const exactCurrentQuestionContract: EqualTypes<CurrentResetBaselineSelfReport, CurrentQuestionContract> = true;
+const exactFeatureAnswers: EqualTypes<ResetBaselineAnswers, CurrentResetBaselineSelfReport> = true;
+const exactFlowInput: EqualTypes<Parameters<BloomProductFlowActions["reset"]["startFromBaseline"]>, [CurrentResetBaselineSelfReport]> = true;
+const exactApplicationInput: EqualTypes<Parameters<BloomProductAcknowledgedActions["reset"]["startFromBaseline"]>, [{
+  resetBaselineId: string; capturedAt: string; selfReport: CurrentResetBaselineSelfReport; resetAttemptId: string; startedAt: string;
+}]> = true;
+const legacyIsNotCurrent: LegacyResetBaselineSelfReport extends ResetBaselineAnswers ? false : true = true;
 
 export async function verifyBloomProductFlowActions() {
+  assert(exactCurrentQuestionContract && exactFeatureAnswers && exactFlowInput && exactApplicationInput && legacyIsNotCurrent,
+    "Current form/flow/application APIs must expose exactly the four new answers, without legacy answers, caller baselines, or aggregate inputs.");
   const cases = flowCases();
   const paths = new Set(cases.map((item) => item.path));
   assert(paths.size === 30, "Every new-product command must have a flow/preparation or direct-alias verification case.");
@@ -58,9 +76,13 @@ async function verifyPreparedInputs(item: FlowCase, index: number) {
   const expectedInput = item.args[0] as Record<string, unknown> | undefined;
   if (item.path === "onboarding.saveProductOnboardingResult") assert(actualInput === expectedInput, "An already-scored onboarding result must pass through by reference without rescoring.");
   if (expectedInput?.feedback !== undefined) assert(actualInput?.feedback === expectedInput.feedback, "Feedback semantic objects must remain caller-owned through mechanical preparation.");
-  if (expectedInput?.resetBaseline !== undefined) {
-    assert((actualInput?.resetBaseline as { selfReport: unknown }).selfReport === (expectedInput.resetBaseline as { selfReport: unknown }).selfReport,
-      "Baseline preparation must preserve the caller's self-report reference and optional aggregate absence.");
+  if (item.path === "reset.startFromBaseline") {
+    assert(actualInput?.selfReport === expectedInput?.selfReport,
+      "Reset preparation must preserve the caller's four-answer self-report reference.");
+    equal(Object.keys(actualInput!).sort(), ["capturedAt", "resetAttemptId", "resetBaselineId", "selfReport", "startedAt"],
+      "The flow must prepare only mechanical facts plus answers; baseline construction and aggregate derivation belong to the transition.");
+    assert(actualInput?.capturedAt === at && actualInput.startedAt === at,
+      "Baseline capture and Reset start must use the exact same operation timestamp.");
   }
   if ((expectedInput?.source as { kind?: string } | undefined)?.kind === "masturbationSession") {
     assert(actualInput?.source === expectedInput?.source, "Existing session source identity must pass through unchanged.");
@@ -85,18 +107,18 @@ async function verifyPreparedInputs(item: FlowCase, index: number) {
 
 function flowCases(): FlowCase[] {
   const feedback: MasturbationSessionFeedback = { erectionQuality: 8, usedExplicitContent: true, endingReason: "stoppedByChoice" };
-  const baseline = {
-    averageIntervalSeconds: 86400.5, averageErectionQuality: 6.5, explicitContentSessionRatio: 0.25,
-    selfReport: { urgeIntensity: "notSure" as const, abilityToPause: "preferNotToSay" as const, spontaneousOrMorningErections: "sometimes" as const }
+  const selfReport: CurrentResetBaselineSelfReport = {
+    erectionDecline: "mild", needsStrongerOrFasterStimulation: "somewhat",
+    climaxTakesLonger: "notSure", difficultyArousingWithoutExplicitContent: "notTried"
   };
   const onboarding = createActiveState(false, false).productOnboarding;
   assert(onboarding.status === "completed", "Canonical onboarding result fixture required.");
   const result = { ...onboarding.result, recommendation: "masturbation_tracking" as const };
-  freeze([feedback, baseline, result]);
+  freeze([feedback, selfReport, result]);
   const cases: FlowCase[] = [
     { path: "onboarding.saveProductOnboardingResult", invoke: (f) => f.onboarding.saveProductOnboardingResult(result), args: [result], prefixes: [], prepared: false },
     { path: "onboarding.acceptRecommendation", invoke: (f) => f.onboarding.acceptRecommendation(), args: [{ acceptedAt: at, resetJourneyId: id("reset-journey"), contentFreeActivationId: id("content-free-activation") }], prefixes: ["reset-journey", "content-free-activation"] },
-    { path: "reset.startFromBaseline", invoke: (f) => f.reset.startFromBaseline(baseline), args: [{ resetBaseline: { ...baseline, id: id("reset-baseline"), capturedAt: at }, resetAttemptId: id("reset-attempt"), startedAt: at }], prefixes: ["reset-baseline", "reset-attempt"] },
+    { path: "reset.startFromBaseline", invoke: (f) => f.reset.startFromBaseline(selfReport), args: [{ resetBaselineId: id("reset-baseline"), capturedAt: at, selfReport, resetAttemptId: id("reset-attempt"), startedAt: at }], prefixes: ["reset-baseline", "reset-attempt"] },
     { path: "reset.recordViolation", invoke: (f) => f.reset.recordViolation({ reason: "masturbationWithExplicitContent", source: { kind: "manual" } }), args: [resetViolation("masturbationWithExplicitContent", { kind: "manual", logActionId: id("log-action") }, at)], prefixes: ["reset-violation", "reset-attempt", "content-free-violation", "log-action"] },
     { path: "reset.undoViolation", invoke: (f) => f.reset.undoViolation({ violationId: "existing-reset-violation" }), args: [{ violationId: "existing-reset-violation", undoneAt: at }], prefixes: [] },
     { path: "reset.completeElapsed", invoke: (f) => f.reset.completeElapsed(), args: [{ observedAt: at }], prefixes: [] },
@@ -144,8 +166,6 @@ function flowCases(): FlowCase[] {
   cases.push({ path: "tracking.session.completeFeedback", invoke: (f) => f.tracking.session.completeFeedback(invalidFeedback), args: [{ feedback: invalidFeedback, recordedAt: at, contentFreeViolationId: id("content-free-violation") }], prefixes: ["content-free-violation"] });
   const contentFreeFeedback = { ...feedback, usedExplicitContent: false };
   cases.push({ path: "tracking.session.completeFeedback", invoke: (f) => f.tracking.session.completeFeedback(contentFreeFeedback), args: [{ feedback: contentFreeFeedback, recordedAt: at, contentFreeViolationId: id("content-free-violation") }], prefixes: ["content-free-violation"] });
-  const minimalBaseline = { selfReport: baseline.selfReport };
-  cases.push({ path: "reset.startFromBaseline", invoke: (f) => f.reset.startFromBaseline(minimalBaseline), args: [{ resetBaseline: { ...minimalBaseline, id: id("reset-baseline"), capturedAt: at }, resetAttemptId: id("reset-attempt"), startedAt: at }], prefixes: ["reset-baseline", "reset-attempt"] });
   return cases;
 }
 

@@ -1,5 +1,5 @@
 import type { MasturbationSessionFeedback } from "../../domain/models/MasturbationSession";
-import type { ResetBaseline } from "../../domain/models/ResetBaseline";
+import type { CurrentResetBaselineSelfReport } from "../../domain/models/ResetBaseline";
 import type { ISODateString, UUID } from "../../domain/models/shared";
 import type { BloomProductAcknowledgedActions } from "../providers/bloomProductAcknowledgedActions";
 
@@ -14,7 +14,6 @@ export type BloomProductFlowIdPrefix =
   | "urge-control-event"
   | "log-action";
 
-export type BloomResetBaselineValues = Omit<ResetBaseline, "id" | "capturedAt">;
 export type BloomResetViolationValues = {
   reason: Parameters<BloomProductAcknowledgedActions["reset"]["recordViolation"]>[0]["reason"];
   source: { kind: "manual" } | { kind: "masturbationSession"; sessionId: UUID };
@@ -53,14 +52,12 @@ export function createBloomProductFlowActions({
       }
     },
     reset: {
-      startFromBaseline: (baseline: BloomResetBaselineValues) => {
+      startFromBaseline: (selfReport: CurrentResetBaselineSelfReport) => {
         const { operationTime, timestamp } = captureOperation();
         return productActions.reset.startFromBaseline({
-          resetBaseline: {
-            ...baseline,
-            id: createId("reset-baseline", operationTime),
-            capturedAt: timestamp
-          },
+          resetBaselineId: createId("reset-baseline", operationTime),
+          capturedAt: timestamp,
+          selfReport,
           resetAttemptId: createId("reset-attempt", operationTime),
           startedAt: timestamp
         });

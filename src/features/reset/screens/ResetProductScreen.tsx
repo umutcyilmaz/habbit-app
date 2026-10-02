@@ -28,10 +28,6 @@ const saveStateLabels: Record<ResetFeature["saveState"], string> = {
   saved: "Saved on this device",
   unconfirmed: "Save not yet confirmed"
 };
-const uncertainChoices = [
-  { value: "notSure", label: "Not sure" },
-  { value: "preferNotToSay", label: "Prefer not to say" }
-] as const;
 const violationReasons: ReadonlyArray<Choice<ResetViolation["reason"]>> = [
   { value: "masturbation", label: "Masturbation" },
   { value: "intentionalExplicitContent", label: "Intentional explicit-content use" },
@@ -199,41 +195,53 @@ function ProgressSummary({ view }: { view: ActiveResetView }) {
 }
 
 function ResetBaselineForm({ locked, onSubmit }: { locked: boolean; onSubmit: (selfReport: ResetBaselineAnswers) => void }) {
-  const [urgeIntensity, setUrgeIntensity] = useState<ResetBaselineAnswers["urgeIntensity"] | null>(null);
-  const [abilityToPause, setAbilityToPause] = useState<ResetBaselineAnswers["abilityToPause"] | null>(null);
-  const [spontaneousOrMorningErections, setSpontaneousOrMorningErections] = useState<ResetBaselineAnswers["spontaneousOrMorningErections"] | null>(null);
-  const complete = urgeIntensity !== null && abilityToPause !== null && spontaneousOrMorningErections !== null;
+  const [erectionDecline, setErectionDecline] = useState<ResetBaselineAnswers["erectionDecline"] | null>(null);
+  const [needsStrongerOrFasterStimulation, setNeedsStrongerOrFasterStimulation] = useState<ResetBaselineAnswers["needsStrongerOrFasterStimulation"] | null>(null);
+  const [climaxTakesLonger, setClimaxTakesLonger] = useState<ResetBaselineAnswers["climaxTakesLonger"] | null>(null);
+  const [difficultyArousingWithoutExplicitContent, setDifficultyArousingWithoutExplicitContent] = useState<ResetBaselineAnswers["difficultyArousingWithoutExplicitContent"] | null>(null);
+  const complete = erectionDecline !== null && needsStrongerOrFasterStimulation !== null &&
+    climaxTakesLonger !== null && difficultyArousingWithoutExplicitContent !== null;
   const submit = () => {
-    if (locked || urgeIntensity === null || abilityToPause === null || spontaneousOrMorningErections === null) return;
-    onSubmit({ urgeIntensity, abilityToPause, spontaneousOrMorningErections });
+    if (locked || erectionDecline === null || needsStrongerOrFasterStimulation === null ||
+      climaxTakesLonger === null || difficultyArousingWithoutExplicitContent === null) return;
+    onSubmit({ erectionDecline, needsStrongerOrFasterStimulation, climaxTakesLonger, difficultyArousingWithoutExplicitContent });
   };
 
   return (
     <View style={styles.stack}>
-      <AppText tone="secondary">Record your own observations before the 15-day Reset. Choose an answer for each question, including “Not sure” or “Prefer not to say” when that fits.</AppText>
+      <AppText tone="secondary">15 günlük Reset öncesinde kendi gözlemlerini kaydet. Her soru için bir yanıt seç.</AppText>
       <ResetChoice
-        title="How strong do your urges feel?"
-        testIDPrefix="bloom.reset.baseline.urgeIntensity"
-        value={urgeIntensity}
-        onChange={setUrgeIntensity}
+        title="Ereksiyonunda bir düşüş fark ediyor musun?"
+        testIDPrefix="bloom.reset.baseline.erectionDecline"
+        value={erectionDecline}
+        onChange={setErectionDecline}
         locked={locked}
-        options={[{ value: "low", label: "Low" }, { value: "medium", label: "Medium" }, { value: "high", label: "High" }, ...uncertainChoices]}
+        options={[{ value: "clear", label: "Evet, belirgin" }, { value: "mild", label: "Evet, hafif" }, { value: "none", label: "Hayır" }, { value: "notSure", label: "Emin değilim" }]}
       />
       <ResetChoice
-        title="How does pausing when an urge comes up feel?"
-        testIDPrefix="bloom.reset.baseline.abilityToPause"
-        value={abilityToPause}
-        onChange={setAbilityToPause}
+        title="Aynı seviyede uyarılmak için daha sert ya da daha hızlı yapman gerekiyor mu?"
+        testIDPrefix="bloom.reset.baseline.needsStrongerOrFasterStimulation"
+        value={needsStrongerOrFasterStimulation}
+        onChange={setNeedsStrongerOrFasterStimulation}
         locked={locked}
-        options={[{ value: "difficult", label: "Difficult" }, { value: "sometimesPossible", label: "Sometimes possible" }, { value: "manageable", label: "Manageable" }, ...uncertainChoices]}
+        options={[{ value: "clearly", label: "Evet, belirgin" }, { value: "somewhat", label: "Biraz" }, { value: "no", label: "Hayır" }]}
       />
       <ResetChoice
-        title="How often do you notice spontaneous or morning erections?"
-        testIDPrefix="bloom.reset.baseline.spontaneousOrMorningErections"
-        value={spontaneousOrMorningErections}
-        onChange={setSpontaneousOrMorningErections}
+        title="Boşalmak eskisine göre daha mı uzun sürüyor?"
+        testIDPrefix="bloom.reset.baseline.climaxTakesLonger"
+        value={climaxTakesLonger}
+        onChange={setClimaxTakesLonger}
         locked={locked}
-        options={[{ value: "often", label: "Often" }, { value: "sometimes", label: "Sometimes" }, { value: "rarely", label: "Rarely" }, ...uncertainChoices]}
+        options={[{ value: "clearly", label: "Evet, belirgin" }, { value: "somewhat", label: "Biraz" }, { value: "no", label: "Hayır" }, { value: "notSure", label: "Emin değilim" }]}
+      />
+      <AppText variant="bodySmall" tone="secondary">Burada “içerik”, bilerek kullanılan açık cinsel içerik anlamına gelir.</AppText>
+      <ResetChoice
+        title="İçerik olmadan uyarılmakta zorlanıyor musun?"
+        testIDPrefix="bloom.reset.baseline.difficultyArousingWithoutExplicitContent"
+        value={difficultyArousingWithoutExplicitContent}
+        onChange={setDifficultyArousingWithoutExplicitContent}
+        locked={locked}
+        options={[{ value: "yes", label: "Evet" }, { value: "sometimes", label: "Bazen" }, { value: "no", label: "Hayır" }, { value: "notTried", label: "Denemedim" }]}
       />
       {!complete ? <AppText variant="bodySmall" tone="secondary">Choose an answer for each question to begin.</AppText> : null}
       <AppButton testID="bloom.reset.baseline.submit" disabled={locked || !complete} onPress={submit}>

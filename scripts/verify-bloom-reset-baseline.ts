@@ -1,14 +1,16 @@
 import { isDeepStrictEqual } from "node:util";
 
-import type { ResetBaseline, ResetJourney } from "../src/domain/models";
+import type { CurrentResetBaselineSelfReport, LegacyResetBaselineSelfReport, ResetBaseline, ResetJourney } from "../src/domain/models";
 import { scoreBloomOnboarding } from "../src/domain/onboarding/scoreBloomOnboarding";
+import { getResetRestrictionStatus } from "../src/domain/productPolicy/getResetRestrictionStatus";
 import { getResetProgress } from "../src/domain/reset/getResetProgress";
-import { createDefaultBloomState, startResetFromBaselineState, type BloomLocalState } from "../src/storage/bloomState";
+import { completeElapsedResetPeriodState, createDefaultBloomState, recordActiveResetViolationState, startResetFromBaselineState, undoActiveResetViolationState, type BloomLocalState } from "../src/storage/bloomState";
 import {
   BLOOM_CORRUPT_BACKUP_PREFIX, BLOOM_LEGACY_STATE_STORAGE_KEYS, BLOOM_STATE_STORAGE_KEY,
   createBloomStatePersistenceCoordinator, loadBloomLocalState, persistBloomLocalState
 } from "../src/storage/bloomStatePersistence";
 import { BLOOM_PERSISTENCE_VERSION, validateAndNormalizeBloomState } from "../src/storage/bloomStateSchema";
+import { normalizeResetBaseline } from "../src/storage/bloomProductStateSchema";
 import type { StorageClient } from "../src/storage/storageAdapters";
 import { createPopulatedState, withoutResetViolationUndoFields } from "./verify-bloom-product-persistence";
 
@@ -24,6 +26,9 @@ export async function verifyBloomResetBaseline() {
   assert(BLOOM_PERSISTENCE_VERSION === 7 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v7", "Elapsed Reset attempts must use canonical v7 persistence.");
   equal(BLOOM_LEGACY_STATE_STORAGE_KEYS, historicalKeys, "Migration must prefer v6 through v1 in descending order.");
   verifyBaselineStart();
+  verifyCurrentQuestions();
+  await verifyLegacyBaselineCompatibility();
+  verifyBaselineLifecyclePreservation();
   const rejectedStarts = verifyRejectedStarts();
   verifyElapsedProgress();
   await verifyNoAutomaticCompletion();
@@ -31,51 +36,61 @@ export async function verifyBloomResetBaseline() {
   await verifyMigrationDurability();
   const corruptCases = await verifyCorruptResetPreservation();
   await verifyDeletionAndFuturePreservation();
-  console.log(`Bloom Reset baseline verification passed (${rejectedStarts} rejected starts; ${corruptCases} corrupt Reset cases; elapsed-time boundaries, unchanged histories, no automatic completion, and v3–v7 migration).`);
+  console.log(`Bloom Reset baseline verification passed (${rejectedStarts} rejected starts; ${corruptCases} corrupt Reset cases; current questions, canonical snapshots, legacy v7 preservation, unchanged lifecycle baselines, elapsed-time boundaries, and v3–v7 migration).`);
 }
 
 function verifyBaselineStart() {
   for (const historical of [false, true]) {
-    for (const baseline of [createBaseline(), { ...createBaseline(), averageIntervalSeconds: 86400.5, averageErectionQuality: 6.5, explicitContentSessionRatio: 0.25 }, { ...createBaseline(), averageIntervalSeconds: 0, averageErectionQuality: 1, explicitContentSessionRatio: 0 }, { ...createBaseline(), averageErectionQuality: 10, explicitContentSessionRatio: 1 }]) {
-      const state = createBaselinePendingState(historical);
-      const sourceBytes = JSON.stringify(state);
-      const input = { resetBaseline: baseline, resetAttemptId: "new-reset-attempt", startedAt };
-      const active = startResetFromBaselineState(state, input);
-      assert(active !== state && active.resetJourney.status === "active", "A valid baseline_pending journey must become active.");
-      assert("id" in state.resetJourney && active.resetJourney.id === state.resetJourney.id, "Starting Reset must preserve the existing journey identity.");
-      equal(active.resetJourney.currentAttempt, { id: "new-reset-attempt", status: "active", startedAt }, "Active attempts must persist only identity, status, and the supplied start time.");
-      assert(active.resetJourney.startedAt === startedAt && active.resetJourney.currentAttempt.startedAt === startedAt, "The new journey and attempt must use the same explicit start time.");
-      assert(!("completedDays" in active.resetJourney.currentAttempt), "Starting Reset must not persist an active day counter.");
-      equal(active.resetJourney.baseline, baseline, "The supplied nonmedical baseline must be retained without deriving aggregates from historical sessions.");
-      for (const field of ["averageIntervalSeconds", "averageErectionQuality", "explicitContentSessionRatio"] as const) {
-        assert((field in active.resetJourney.baseline) === (field in baseline), "Unknown aggregate fields must remain absent, not zero-filled.");
-      }
-      equal(active.resetJourney.pastAttempts, state.resetJourney.pastAttempts, "Starting Reset must preserve historical completed and restarted attempts.");
-      equal(active.resetJourney.violations, state.resetJourney.violations, "Starting Reset must retain historical violation facts.");
-      assert(active.resetJourney.durationDays === 15 && active.resetJourney.bestCompletedDays === state.resetJourney.bestCompletedDays, "Starting Reset must retain the 15-day duration and historical best progress.");
-      for (const key of Object.keys(state) as Array<keyof BloomLocalState>) {
-        if (key !== "resetJourney") assert(active[key] === state[key], `Starting Reset must leave ${key} untouched by reference, including active Content-Free, onboarding acceptance, Tracking, and legacy state.`);
-      }
-      assert(!active.masturbationTracking.enabled && active.masturbationTracking.currentSession === null, "Starting Reset must not enable tracking or create a session.");
-      assert(JSON.stringify(state) === sourceBytes, "Starting Reset must not mutate its source state.");
-      equal(startResetFromBaselineState(state, input), active, "The transition must be deterministic with explicitly supplied inputs.");
-      const validation = validateAndNormalizeBloomState(active);
-      assert(validation.success, `Started Reset must be structurally valid, including retained earlier history: ${validation.success ? "" : validation.error}`);
-      const activeBytes = JSON.stringify(active);
-      for (const repeated of [input, { ...input, resetAttemptId: "replacement-attempt", resetBaseline: { ...baseline, id: "replacement-baseline" }, startedAt: "2026-10-01T12:00:00.000Z" }, null]) {
-        assert(startResetFromBaselineState(active, repeated as StartInput) === active, "A repeated start must preserve the original baseline, start time, and attempt identity by returning the exact active state.");
-      }
-      baseline.selfReport.urgeIntensity = "high";
-      baseline.id = "mutated-caller-baseline";
-      assert(JSON.stringify(active) === activeBytes, "The saved baseline must own its nested values independently of later caller mutation.");
+    const state = createBaselinePendingState(historical);
+    const sourceBytes = JSON.stringify(state);
+    const input = validInput();
+    const active = startResetFromBaselineState(state, input);
+    assert(active !== state && active.resetJourney.status === "active", "A valid baseline_pending journey must become active.");
+    assert("id" in state.resetJourney && active.resetJourney.id === state.resetJourney.id, "Starting Reset must preserve the existing journey identity.");
+    equal(active.resetJourney.currentAttempt, { id: "new-reset-attempt", status: "active", startedAt }, "Active attempts must persist only identity, status, and the supplied start time.");
+    assert(active.resetJourney.startedAt === startedAt && active.resetJourney.currentAttempt.startedAt === startedAt, "The new journey and attempt must use the same explicit start time.");
+    assert(!("completedDays" in active.resetJourney.currentAttempt), "Starting Reset must not persist an active day counter.");
+    const aggregates = historical ? { averageIntervalSeconds: 0, averageErectionQuality: 8.5, explicitContentSessionRatio: 1 / 6 } : {};
+    equal(active.resetJourney.baseline, { ...createBaseline(), ...aggregates }, "The transition must construct the baseline using canonical caller facts and the current Tracking snapshot.");
+    for (const field of ["averageIntervalSeconds", "averageErectionQuality", "explicitContentSessionRatio"] as const) {
+      assert((field in active.resetJourney.baseline) === historical, "Unknown aggregate fields must remain absent, not zero-filled.");
     }
+    equal(active.resetJourney.pastAttempts, state.resetJourney.pastAttempts, "Starting Reset must preserve historical completed and restarted attempts.");
+    equal(active.resetJourney.violations, state.resetJourney.violations, "Starting Reset must retain historical violation facts.");
+    assert(active.resetJourney.durationDays === 15 && active.resetJourney.bestCompletedDays === state.resetJourney.bestCompletedDays, "Starting Reset must retain the 15-day duration and historical best progress.");
+    for (const key of Object.keys(state) as Array<keyof BloomLocalState>) {
+      if (key !== "resetJourney") assert(active[key] === state[key], `Starting Reset must leave ${key} untouched by reference, including active Content-Free, onboarding acceptance, Tracking, and legacy state.`);
+    }
+    assert(!active.masturbationTracking.enabled && active.masturbationTracking.currentSession === null, "Starting Reset must not enable tracking or create a session.");
+    assert(JSON.stringify(state) === sourceBytes, "Starting Reset must not mutate its source state.");
+    equal(startResetFromBaselineState(state, input), active, "The transition must be deterministic with explicitly supplied inputs.");
+    const validation = validateAndNormalizeBloomState(active);
+    assert(validation.success, `Started Reset must be structurally valid, including retained earlier history: ${validation.success ? "" : validation.error}`);
+    const activeBytes = JSON.stringify(active);
+    for (const repeated of [input, { ...input, resetAttemptId: "replacement-attempt", resetBaselineId: "replacement-baseline", startedAt: "2026-10-01T12:00:00.000Z" }, null]) {
+      assert(startResetFromBaselineState(active, repeated as StartInput) === active, "A repeated start must preserve the original baseline, start time, and attempt identity by returning the exact active state.");
+    }
+    input.selfReport.erectionDecline = "clear";
+    input.resetBaselineId = "mutated-caller-baseline";
+    assert(JSON.stringify(active) === activeBytes, "The saved baseline must own its nested values independently of later caller mutation.");
   }
   const sameTime = createBaselinePendingState(false);
-  assert(startResetFromBaselineState(sameTime, { resetBaseline: { ...createBaseline(), capturedAt: startedAt }, resetAttemptId: "equal-time-attempt", startedAt }) !== sameTime, "Baseline capture and Reset start may occur at the same timestamp.");
+  assert(startResetFromBaselineState(sameTime, { ...validInput(), capturedAt: startedAt }) !== sameTime, "Baseline capture and Reset start may occur at the same timestamp.");
   const unrelated = createBaselinePendingState(true);
   unrelated.masturbationTracking = createPopulatedState().masturbationTracking;
   const started = startResetFromBaselineState(unrelated, validInput());
   assert(started !== unrelated && started.masturbationTracking === unrelated.masturbationTracking, "Baseline completion must not add unrelated tracking/session preconditions or implement session blocking in this phase.");
+
+  const cutoffState = createBaselinePendingState(false);
+  cutoffState.masturbationTracking.sessions = [
+    { id: "at-cutoff", status: "completed", startedAt: "2026-09-01T11:58:00.000Z", endedAt: capturedAt, durationSeconds: 60, pauses: [], erectionQuality: 3, usedExplicitContent: false, endingReason: "climaxed" },
+    { id: "after-cutoff", status: "completed", startedAt: capturedAt, endedAt: "2026-09-01T11:59:30.000Z", durationSeconds: 30, pauses: [], erectionQuality: 9, usedExplicitContent: true, endingReason: "climaxed" }
+  ];
+  const cutoffStarted = startResetFromBaselineState(cutoffState, validInput());
+  assert(cutoffStarted.resetJourney.status === "active", "Cutoff start fixture required.");
+  equal(cutoffStarted.resetJourney.baseline, { ...createBaseline(), averageErectionQuality: 3, explicitContentSessionRatio: 0 }, "capturedAt must include an exactly-ended session and exclude a session ending after capture even before startedAt.");
+  const changedTracking = { ...cutoffStarted, masturbationTracking: { ...cutoffStarted.masturbationTracking, sessions: [] } };
+  assert(startResetFromBaselineState(changedTracking, validInput()) === changedTracking, "A stale start must never recapture a baseline after Tracking changes.");
 }
 
 function verifyRejectedStarts() {
@@ -100,12 +115,19 @@ function verifyRejectedStarts() {
   for (const [label, path, value, remove] of invalidBaselineCases()) {
     const baseline: unknown = clone(createBaseline());
     replaceAtPath(baseline, path, value, remove === true);
-    reject(pending, { ...validInput(), resetBaseline: baseline }, label);
+    const malformed = baseline as Record<string, unknown>;
+    const { id, ...facts } = malformed;
+    reject(pending, { ...facts, resetBaselineId: id, resetAttemptId: "new-reset-attempt", startedAt }, label);
   }
-  for (const value of [null, [], "baseline"]) reject(pending, { ...validInput(), resetBaseline: value }, "baseline must be a complete valid object");
+  for (const value of [null, [], "baseline", createBaseline()]) reject(pending, { ...validInput(), resetBaseline: value }, "caller must not supply a full baseline");
+  reject(pending, { ...validInput(), selfReport: legacySelfReport() }, "new starts must reject the legacy questionnaire");
+  for (const field of ["averageIntervalSeconds", "averageErectionQuality", "explicitContentSessionRatio"]) {
+    reject(pending, { ...validInput(), [field]: 1 }, "caller must not inject its own aggregate");
+    reject(pending, { ...validInput(), selfReport: { ...currentSelfReport(), [field]: 1 } }, "caller must not hide aggregates in answers");
+  }
   reject(pending, { ...validInput(), resetAttemptId: "attempt-past" }, "attempt IDs must not reuse restarted history");
   reject(pending, { ...validInput(), resetAttemptId: "attempt-current" }, "attempt IDs must not reuse completed history");
-  reject(pending, { ...validInput(), startedAt: "2026-02-10T12:00:00.000Z", resetBaseline: { ...createBaseline(), capturedAt: "2026-02-10T11:00:00.000Z" } }, "a new attempt must not overlap an earlier historical attempt");
+  reject(pending, { ...validInput(), startedAt: "2026-02-10T12:00:00.000Z", capturedAt: "2026-02-10T11:00:00.000Z" }, "a new attempt must not overlap an earlier historical attempt");
   for (const [path, value] of [
     ["id", ""], ["durationDays", 14], ["bestCompletedDays", 0], ["baseline", createBaseline()],
     ["startedAt", startedAt], ["currentAttempt", { id: "already-started", status: "active", startedAt }],
@@ -116,6 +138,108 @@ function verifyRejectedStarts() {
     reject(malformed, validInput(), `malformed baseline_pending source: ${path}`);
   }
   return count;
+}
+
+function verifyCurrentQuestions() {
+  const values = {
+    erectionDecline: ["clear", "mild", "none", "notSure"],
+    needsStrongerOrFasterStimulation: ["clearly", "somewhat", "no"],
+    climaxTakesLonger: ["clearly", "somewhat", "no", "notSure"],
+    difficultyArousingWithoutExplicitContent: ["yes", "sometimes", "no", "notTried"]
+  } as const;
+  equal(Object.keys(currentSelfReport()).sort(), Object.keys(values).sort(), "Current self-report must contain exactly the four product questions.");
+  for (const [field, options] of Object.entries(values)) {
+    for (const answer of options) {
+      const baseline = { ...createBaseline(), selfReport: { ...currentSelfReport(), [field]: answer } };
+      equal(normalizeResetBaseline(baseline), baseline, `Current ${field}=${answer} must be preserved without scoring or interpretation.`);
+      const pending = createBaselinePendingState(false);
+      const active = startResetFromBaselineState(pending, { ...validInput(), selfReport: baseline.selfReport });
+      assert(active !== pending, `Current ${field}=${answer} must be accepted by Reset start.`);
+    }
+  }
+}
+
+async function verifyLegacyBaselineCompatibility() {
+  const completed = createPopulatedState();
+  assert(completed.resetJourney.status === "completed" && "urgeIntensity" in completed.resetJourney.baseline.selfReport, "Compatibility fixtures must retain a real legacy questionnaire.");
+  const { assessment: _assessment, ...withoutAssessment } = completed.resetJourney;
+  const fixtures = [createLegacyActiveState(), { ...completed, resetJourney: withoutAssessment }, completed];
+  for (const fixture of fixtures) {
+    const reset = fixture.resetJourney;
+    assert(reset.status === "active" || reset.status === "completed", "Historical baseline fixture required.");
+    const originalBaseline = clone(reset.baseline);
+    // Existing persistence serializes normalized state. Put unrelated slices
+    // and lifecycle fields in that established property order before checking
+    // whether a historical questionnaire alone would require writeback.
+    const prepared = validateAndNormalizeBloomState(fixture);
+    assert(prepared.success, "A real historical questionnaire must pass direct v7 validation.");
+    assert(prepared.state.resetJourney.status === "active" || prepared.state.resetJourney.status === "completed", "Normalized historical baseline fixture required.");
+    assert(JSON.stringify(prepared.state.resetJourney.baseline) === JSON.stringify(reset.baseline), "Direct validation must leave the legacy baseline JSON unchanged, including property order.");
+    const state = prepared.state;
+    const validation = validateAndNormalizeBloomState(state);
+    assert(validation.success && !validation.wasNormalized, "An exact legacy questionnaire must validate without normalization or fabricated facts.");
+    equal(validation.state, state, "Direct validation must preserve historical questionnaire, assessment references, lifecycle, aggregates, and unrelated data.");
+    const client = new ResetTestStorage();
+    const raw = envelope(7, state);
+    client.values.set(BLOOM_STATE_STORAGE_KEY, raw);
+    const loaded = await loadBloomLocalState(client, now);
+    assert(loaded.status === "success" && loaded.source === "current" && !loaded.needsPersist, "A real legacy-baseline v7 fixture must hydrate without forced writeback.");
+    equal(loaded.state, state, "Legacy v7 hydration must preserve every persisted fact.");
+    assert(client.values.get(BLOOM_STATE_STORAGE_KEY) === raw && client.operations.length === 0, "Merely having a legacy questionnaire must not write or alter source bytes.");
+    assert(loaded.state.resetJourney.status === reset.status, "Legacy active and completed journeys must retain their lifecycle.");
+    if (loaded.state.resetJourney.status === "active" || loaded.state.resetJourney.status === "completed") {
+      equal(loaded.state.resetJourney.baseline, originalBaseline, "Legacy answers and aggregate facts must be preserved exactly.");
+      equal(Object.keys(loaded.state.resetJourney.baseline.selfReport).sort(), Object.keys(legacySelfReport()).sort(), "No current answers or synthetic discriminator may be fabricated for historical baselines.");
+    }
+  }
+  for (const selfReport of [
+    { ...legacySelfReport(), ...currentSelfReport() },
+    { urgeIntensity: "medium", abilityToPause: "sometimesPossible", erectionDecline: "none" },
+    { erectionDecline: "none", needsStrongerOrFasterStimulation: "no", climaxTakesLonger: "no", spontaneousOrMorningErections: "often" },
+    ...Object.keys(legacySelfReport()).flatMap((field) => {
+      const incomplete = { ...legacySelfReport() } as Record<string, unknown>;
+      delete incomplete[field];
+      return [incomplete, { ...legacySelfReport(), [field]: "unsupported" }];
+    }),
+    { ...legacySelfReport(), extra: "answer" }
+  ]) {
+    const malformed = clone(completed);
+    replaceAtPath(malformed, "resetJourney.baseline.selfReport", selfReport, false);
+    assert(!validateAndNormalizeBloomState(malformed).success, "Mixed, partial, extra, or unsupported legacy questionnaires must be rejected.");
+    await assertCorruptPreserved(envelope(7, malformed), BLOOM_STATE_STORAGE_KEY, "Malformed legacy/current questionnaire");
+  }
+}
+
+function verifyBaselineLifecyclePreservation() {
+  const current = startResetFromBaselineState(createBaselinePendingState(true), validInput());
+  for (const original of [current, createLegacyActiveState()]) {
+    assert(original.resetJourney.status === "active", "Current and legacy active fixtures required.");
+    const baseline = original.resetJourney.baseline;
+    const baselineBytes = JSON.stringify(baseline);
+    const attemptStart = Date.parse(original.resetJourney.currentAttempt.startedAt);
+    const occurredAt = new Date(attemptStart + 2 * daySeconds * 1000).toISOString();
+    assert(getResetProgress(original.resetJourney, occurredAt)?.completedDays === 2, "Both current and legacy baselines must support active progress.");
+    assert(getResetRestrictionStatus(original.resetJourney, occurredAt)?.isRestrictionActive === true, "Current and legacy baselines must preserve active Reset restrictions.");
+    const changedTracking = { ...original, masturbationTracking: { ...original.masturbationTracking, sessions: [] } };
+    const restarted = recordActiveResetViolationState(changedTracking, {
+      violationId: "baseline-preservation-violation", replacementAttemptId: "baseline-preservation-attempt", occurredAt, recordedAt: occurredAt,
+      source: { kind: "manual", logActionId: "baseline-preservation-log" }, reason: "masturbation"
+    });
+    assert(restarted !== changedTracking && restarted.resetJourney.status === "active", "Current and legacy active Reset journeys must still restart.");
+    assert(restarted.resetJourney.baseline === baseline && JSON.stringify(restarted.resetJourney.baseline) === baselineBytes, "Restart must preserve the exact baseline reference and facts without recapturing answers or changed Tracking.");
+    const undone = undoActiveResetViolationState(restarted, { violationId: "baseline-preservation-violation", undoneAt: occurredAt });
+    assert(undone !== restarted && undone.resetJourney.status === "active", "Current and legacy active Reset journeys must still undo a restart.");
+    assert(undone.resetJourney.baseline === baseline && JSON.stringify(undone.resetJourney.baseline) === baselineBytes, "Undo must preserve the original baseline without recapture.");
+    for (const active of [restarted, undone]) {
+      assert(active.resetJourney.status === "active", "Active completion fixture required.");
+      const observedAt = new Date(Date.parse(active.resetJourney.currentAttempt.startedAt) + 15 * daySeconds * 1000).toISOString();
+      const finished = completeElapsedResetPeriodState(active, { observedAt });
+      assert(finished !== active && finished.resetJourney.status === "completed", "Current and legacy baseline journeys must still complete directly at 15 days.");
+      assert(finished.resetJourney.baseline === baseline && JSON.stringify(finished.resetJourney.baseline) === baselineBytes, "Completion must retain the exact original baseline after restart or undo.");
+      assert(getResetRestrictionStatus(finished.resetJourney, observedAt)?.isRestrictionActive === false, "Completed current and legacy baselines must release Reset restrictions.");
+      assert(validateAndNormalizeBloomState(finished).success, "Completed current and legacy baseline journeys must remain valid.");
+    }
+  }
 }
 
 function verifyElapsedProgress() {
@@ -297,10 +421,18 @@ async function verifyDeletionAndFuturePreservation() {
 }
 
 function createBaseline(): ResetBaseline {
-  return { id: "new-reset-baseline", capturedAt, selfReport: { urgeIntensity: "notSure", abilityToPause: "preferNotToSay", spontaneousOrMorningErections: "notSure" } };
+  return { id: "new-reset-baseline", capturedAt, selfReport: currentSelfReport() };
 }
 
-function validInput(): StartInput { return { resetBaseline: createBaseline(), resetAttemptId: "new-reset-attempt", startedAt }; }
+function currentSelfReport(): CurrentResetBaselineSelfReport {
+  return { erectionDecline: "notSure", needsStrongerOrFasterStimulation: "somewhat", climaxTakesLonger: "no", difficultyArousingWithoutExplicitContent: "notTried" };
+}
+
+function legacySelfReport(): LegacyResetBaselineSelfReport {
+  return { urgeIntensity: "medium", abilityToPause: "sometimesPossible", spontaneousOrMorningErections: "sometimes" };
+}
+
+function validInput(): StartInput { return { resetBaselineId: "new-reset-baseline", capturedAt, selfReport: currentSelfReport(), resetAttemptId: "new-reset-attempt", startedAt }; }
 
 function createBaselinePendingState(historical: boolean): BloomLocalState {
   const state = historical ? createPopulatedState() : createDefaultBloomState();
@@ -368,10 +500,13 @@ function invalidBaselineCases(): Array<[string, string, unknown, boolean?]> {
     ["averageErectionQuality", [0, 10.1, NaN, Infinity, "5", null]],
     ["explicitContentSessionRatio", [-0.1, 1.1, NaN, Infinity, "0.5", null]]
   ] as const) for (const value of values) cases.push([`invalid ${field}: ${value}`, field, value]);
-  for (const field of ["urgeIntensity", "abilityToPause", "spontaneousOrMorningErections"]) {
+  for (const field of Object.keys(currentSelfReport())) {
     cases.push([`missing ${field}`, `selfReport.${field}`, undefined, true]);
     cases.push([`unknown ${field}`, `selfReport.${field}`, "medicalInterpretation"]);
   }
+  cases.push(["Q2 does not support notSure", "selfReport.needsStrongerOrFasterStimulation", "notSure"]);
+  cases.push(["mixed current and legacy questionnaire", "selfReport.urgeIntensity", "medium"]);
+  cases.push(["unsupported current answer property", "selfReport.extra", "none"]);
   return cases;
 }
 

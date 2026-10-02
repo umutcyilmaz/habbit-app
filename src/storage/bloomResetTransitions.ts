@@ -1,11 +1,13 @@
 import type { BehaviorEventSource } from "../domain/models/BehaviorEventSource";
 import type { ContentFreeState } from "../domain/models/ContentFreeState";
-import type { ResetBaseline } from "../domain/models/ResetBaseline";
+import type { CurrentResetBaselineSelfReport } from "../domain/models/ResetBaseline";
 import type { ResetCompletedDays, ResetJourney, ResetViolation, RestartedResetAttempt } from "../domain/models/ResetJourney";
 import type { ISODateString, UUID } from "../domain/models/shared";
 import { getResetProgress } from "../domain/reset/getResetProgress";
+import { getResetTrackingSnapshot } from "../domain/reset/getResetTrackingSnapshot";
 import {
   normalizeContentFree,
+  normalizeCurrentResetBaselineSelfReport,
   normalizeResetBaseline,
   normalizeResetJourney,
   normalizeResetViolation
@@ -14,7 +16,9 @@ import type { BloomLocalState } from "./bloomState";
 import { isValidBloomIsoTimestamp } from "./bloomValueValidation";
 
 export type StartResetFromBaselineInput = {
-  resetBaseline: ResetBaseline;
+  resetBaselineId: UUID;
+  capturedAt: ISODateString;
+  selfReport: CurrentResetBaselineSelfReport;
   resetAttemptId: UUID;
   startedAt: ISODateString;
 };
@@ -38,7 +42,8 @@ export type CompleteElapsedResetPeriodInput = {
   observedAt: ISODateString;
 };
 
-// Complete preparation and start one attempt using only supplied facts.
+// Capture the historical Tracking observations and start one attempt using
+// explicit identities, times, and current questionnaire answers.
 // Repeated starts and invalid inputs follow the existing exact no-op pattern.
 export function startResetFromBaselineState(
   state: BloomLocalState,
@@ -52,11 +57,16 @@ export function startResetFromBaselineState(
     normalizeResetJourney(reset);
     if (typeof input !== "object" || input === null || Array.isArray(input)) return state;
     const keys = Object.keys(input);
-    if (keys.length !== 3 || !keys.includes("resetBaseline") ||
-      !keys.includes("resetAttemptId") || !keys.includes("startedAt")) return state;
+    const required = ["resetBaselineId", "capturedAt", "selfReport", "resetAttemptId", "startedAt"];
+    if (keys.length !== required.length || !required.every((key) => keys.includes(key))) return state;
     const { startedAt, resetAttemptId } = input;
     if (!isValidBloomIsoTimestamp(startedAt)) return state;
-    const baseline = normalizeResetBaseline(input.resetBaseline);
+    const selfReport = normalizeCurrentResetBaselineSelfReport(input.selfReport);
+    const snapshot = getResetTrackingSnapshot(state.masturbationTracking, input.capturedAt);
+    if (snapshot === null) return state;
+    const baseline = normalizeResetBaseline({
+      id: input.resetBaselineId, capturedAt: input.capturedAt, selfReport, ...snapshot
+    });
     if (Date.parse(startedAt) < Date.parse(baseline.capturedAt)) return state;
 
     const resetJourney: ResetJourney = {

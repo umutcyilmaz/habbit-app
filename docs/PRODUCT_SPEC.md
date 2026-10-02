@@ -32,6 +32,8 @@ Phase 1N adds manual Tracking controls and shared product-policy selectors. Sess
 
 Phase 1O adds the separate pure Home read model for the new product. It selects semantic action priority and tracker order from current product facts without changing UI, providers, navigation, legacy Today/next-action behavior, or v7 persistence.
 
+Phase 1W aligns only current Reset baseline questions and canonical Tracking snapshots. It preserves Phase 1V direct completion, persistence v7 / `bloom.localState.v7`, legacy behavior, and the existing screen styling; visual redesign, recommendations, Urge Control work, and new Home cutover remain deferred.
+
 The Expo Router architecture and local-first approach remain technical constraints. Older inventories in [ARCHITECTURE.md](ARCHITECTURE.md) and product references in [DECISIONS.md](DECISIONS.md) describe earlier stages; they do not require a new flow to depend on Protect. Existing navigation remains unchanged in this phase.
 
 ## Product Summary
@@ -147,7 +149,7 @@ Masturbation-only undo leaves Content-Free unchanged. For a linked content event
 
 Newer events can be undone first, then earlier events when both systems remain safely reversible. Repeating undo preserves the first undo timestamp; a stale retry cannot reapply an undone source. A genuinely new behavior needs a new source identity. Arbitrary history editing and replay remain outside this phase.
 
-Reset starts only when its baseline is completed. The caller supplies the baseline, attempt ID, and one start timestamp used for both journey and attempt. Repeating the start is a no-op. Existing history and best progress are preserved, while Content-Free, Tracking, onboarding acceptance, and legacy systems remain unchanged.
+Reset starts only when the current four-question baseline form is complete. UI supplies semantic answers only. The flow prepares baseline/attempt IDs and one timestamp for capture/start; the pure transition derives the Tracking snapshot from current state and constructs the baseline. Repeating the start is a no-op. Existing journey history and best progress are preserved; Content-Free, Tracking, onboarding acceptance, and legacy systems remain unchanged.
 
 Progress advances with elapsed time even when the app is closed. Each day is a full 24 hours from the current attempt's start; users do not complete days manually. Before 24 hours progress is 0 completed days / Day 1, at 24 hours it is 1 / Day 2, and at 15 full days it is 15 completed days with the period complete. Progress clamps safely between 0 and 15. Local calendar dates and timezone/DST changes do not affect these durations.
 
@@ -159,11 +161,11 @@ Elapsed completion preserves the journey's original start, baseline, prior attem
 
 ## Reset Baseline and Historical Assessment
 
-**ResetBaseline** is a snapshot of available pre-reset information. It can retain average interval between sessions, average self-reported erection quality, and the proportion of sessions with intentional explicit content. Unknown aggregates remain absent; no observations is not equivalent to a measured zero.
+**ResetBaseline** records four current self-reports: erection decline; needing stronger or faster stimulation; climax taking longer; and difficulty becoming aroused without intentional explicit sexual content. The current form starts unanswered and requires all four choices. [DATA_MODEL.md](DATA_MODEL.md#resetbaseline) defines the exact field/value contract, including the second question's intentional lack of `notSure`. These answers produce no score, eligibility decision, or interpretation.
 
-The baseline also supports self-reports about urge intensity, ability to pause or delay acting, and perceived spontaneous or morning erections. Unknown or declined responses must not be interpreted as the absence of a concern.
+Old three-question baselines (`urgeIntensity`, `abilityToPause`, `spontaneousOrMorningErections`) remain readable historical snapshots. They are not collected by the current flow or translated into new answers. Exact legacy and current shapes are structurally validated; mixed, incomplete, and unsupported shapes are rejected. No discriminator or new answers are added to old v7 records.
 
-A user starting directly from onboarding may supply only these self-reports, an ID, and capture time. Phase 1F validates known aggregates without computing them from session history. Tracking-off periods and observation windows must be modeled before that calculation can be trustworthy. The start timestamp must be at or after capture time; timestamps are not rewritten.
+At start, the canonical pure Tracking snapshot helper includes all completed sessions with `endedAt <= capturedAt`, regardless of Tracking enablement, and excludes unfinished/future-ended sessions. It captures mean erection quality and the explicit-content session ratio for at least one observation, plus the mean chronological start-to-start interval in seconds for at least two. With no eligible observations all aggregates are absent; observed zero ratios remain zero. Values retain precision without storage rounding. The baseline remains fixed through restart, undo, and completion. Capture/start use one flow operation timestamp; no screen calculates aggregates.
 
 **PostResetAssessment** remains optional historical metadata on completed journeys. Existing answers describe perceived changes in urge intensity, ability to pause, spontaneous erections, overall sexual response, and readiness to restart tracking. They remain readable and validated, without clinical interpretation or new collection.
 

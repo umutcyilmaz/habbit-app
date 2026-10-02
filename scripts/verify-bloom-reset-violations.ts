@@ -306,7 +306,8 @@ export function createActiveState(retainedHistory: boolean, contentActive: boole
   }
   const active = startResetFromBaselineState(state, {
     resetAttemptId: "initial-active-attempt", startedAt,
-    resetBaseline: { id: "original-reset-baseline", capturedAt: "2026-09-01T11:59:00.000Z", averageIntervalSeconds: 86400.5, averageErectionQuality: 6.5, explicitContentSessionRatio: 0.25, selfReport: { urgeIntensity: "notSure", abilityToPause: "preferNotToSay", spontaneousOrMorningErections: "sometimes" } }
+    resetBaselineId: "original-reset-baseline", capturedAt: "2026-09-01T11:59:00.000Z",
+    selfReport: { erectionDecline: "notSure", needsStrongerOrFasterStimulation: "somewhat", climaxTakesLonger: "notSure", difficultyArousingWithoutExplicitContent: "notTried" }
   });
   assert(active.resetJourney.status === "active", "The baseline transition must construct a valid active fixture.");
   return active;
