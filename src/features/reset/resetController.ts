@@ -1,6 +1,5 @@
 import type { BloomProductFlowActions } from "../../app/flows/bloomProductFlowActions";
 import type { BloomPersistedMutationResult, BloomPersistenceRetryToken } from "../../app/providers/bloomLocalStateMutationRuntime";
-import type { PostResetAssessment } from "../../domain/models/PostResetAssessment";
 import type { ResetBaseline } from "../../domain/models/ResetBaseline";
 import type { ResetJourney, ResetViolation } from "../../domain/models/ResetJourney";
 import type { ISODateString } from "../../domain/models/shared";
@@ -8,10 +7,7 @@ import type { BloomLocalState } from "../../storage/bloomState";
 import { getLatestResetUndoCandidate, getResetRouteView, type ResetRouteInput } from "./resetView";
 
 export type ResetBaselineAnswers = ResetBaseline["selfReport"];
-export type ResetAssessmentAnswers = Pick<PostResetAssessment,
-  "urgeIntensityChange" | "abilityToPauseChange" | "spontaneousErectionChange" |
-  "overallSexualResponseChange" | "readinessToRestartTracking">;
-export type ResetOperation = "startFromBaseline" | "recordViolation" | "undoViolation" | "completeElapsed" | "completeAssessment";
+export type ResetOperation = "startFromBaseline" | "recordViolation" | "undoViolation" | "completeElapsed";
 export type ResetOperationSnapshot = {
   busy: boolean;
   operation: ResetOperation | null;
@@ -70,7 +66,6 @@ export function createResetController(options: Options) {
     const view = getResetRouteView(reset, route, options.getDisplayTime());
     const valid = reset === expectedReset && (
       operation === "startFromBaseline" ? route.mode === "baseline" && view.kind === "baseline" :
-      operation === "completeAssessment" ? route.mode === "assessment" && view.kind === "assessment" :
       operation === "completeElapsed" ? route.mode === "completion" && view.kind === "active" && view.progress.isPeriodComplete :
       route.mode === "progress" && view.kind === "active" &&
         (operation !== "undoViolation" || (typeof violationId === "string" && violationId.trim().length > 0 &&
@@ -114,16 +109,6 @@ export function createResetController(options: Options) {
     ),
     completeElapsed: (expectedReset: ResetJourney) => run(
       "completeElapsed", expectedReset, options.flowActions.reset.completeElapsed
-    ),
-    completeAssessment: (answers: ResetAssessmentAnswers, expectedReset: ResetJourney) => run(
-      "completeAssessment", expectedReset, (reset) => {
-        // run has validated the assessment route and this exact immutable
-        // snapshot. Stable references come from canonical state, not URL hints.
-        if (reset.status !== "assessment_pending") throw new Error("Invalid assessment state.");
-        return options.flowActions.reset.completeAssessment({
-          ...answers, resetJourneyId: reset.id, resetAttemptId: reset.currentAttempt.id, baselineId: reset.baseline.id
-        });
-      }
     ),
     retry: (): Promise<BloomPersistedMutationResult> | null => {
       if (snapshot.busy) return inFlight;

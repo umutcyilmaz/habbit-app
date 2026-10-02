@@ -7,7 +7,7 @@ import { AppCard } from "../../../shared/components/AppCard";
 import { AppScreen } from "../../../shared/components/AppScreen";
 import { AppText } from "../../../shared/components/AppText";
 import { theme } from "../../../shared/design-system/theme";
-import type { ResetAssessmentAnswers, ResetBaselineAnswers } from "../resetController";
+import type { ResetBaselineAnswers } from "../resetController";
 import { formatResetEventTime, formatResetRemainingSeconds } from "../resetView";
 import { useResetFeature } from "../useResetFeature";
 
@@ -19,8 +19,7 @@ type Choice<T extends string> = { value: T; label: string };
 const titles: Record<ResetMode, string> = {
   baseline: "Before your Reset",
   progress: "Your 15-day Reset",
-  completion: "Finish your Reset period",
-  assessment: "Reset assessment"
+  completion: "Finish your Reset period"
 };
 const saveStateLabels: Record<ResetFeature["saveState"], string> = {
   loading: "Loading your saved state…",
@@ -49,10 +48,6 @@ export function ResetProgressScreen() {
 
 export function ResetCompletionScreen() {
   return <ResetProductScreen mode="completion" />;
-}
-
-export function ResetAssessmentScreen() {
-  return <ResetProductScreen mode="assessment" />;
 }
 
 function ResetProductScreen({ mode }: { mode: ResetMode }) {
@@ -91,7 +86,7 @@ function ResetContent({ mode, feature }: { mode: ResetMode; feature: ResetFeatur
         {view.progress.isPeriodComplete ? (
           <AppCard style={styles.stack}>
             <AppText variant="title">Your 15-day period has ended</AppText>
-            <AppText tone="secondary">Continue to record the completed period and move on to your assessment.</AppText>
+            <AppText tone="secondary">Continue to save your completed Reset.</AppText>
             <AppButton testID="bloom.reset.continue" disabled={locked || !feature.canOpenCompletion} onPress={actions.continueToCompletion}>
               Continue to completion
             </AppButton>
@@ -110,12 +105,12 @@ function ResetContent({ mode, feature }: { mode: ResetMode; feature: ResetFeatur
         <AppCard style={styles.stack}>
           {view.progress.isPeriodComplete ? (
             <>
-              <AppText variant="title">Ready for your assessment</AppText>
+              <AppText variant="title">Your 15-day period has ended</AppText>
               <AppText tone="secondary">
-                Your 15-day period has ended. Continue to save its completion and open your assessment.
+                Your 15-day period has ended. Save its completion to return to Today.
               </AppText>
               <AppButton testID="bloom.reset.complete" disabled={locked} onPress={actions.completeElapsed}>
-                Continue to assessment
+                Save completion
               </AppButton>
             </>
           ) : (
@@ -126,19 +121,6 @@ function ResetContent({ mode, feature }: { mode: ResetMode; feature: ResetFeatur
           )}
         </AppCard>
       </>
-    );
-  }
-  if (mode === "assessment" && view.kind === "assessment") {
-    return <ResetAssessmentForm key={`${view.reset.id}:${view.reset.currentAttempt.id}:${view.reset.baseline.id}`} locked={locked} onSubmit={actions.completeAssessment} />;
-  }
-  if (view.kind === "completed") {
-    return (
-      <AppCard style={styles.stack}>
-        <AppText variant="title">Reset assessment complete</AppText>
-        <AppText tone="secondary">
-          {feature.saveState === "saved" ? "Your assessment is saved on this device." : "Saving your assessment still needs confirmation."}
-        </AppText>
-      </AppCard>
     );
   }
   return (
@@ -174,7 +156,6 @@ function RecoveryCard({ feature }: { feature: ResetFeature }) {
   if (target === null) return null;
   const nextStep = {
     progress: "Your next step is the current Reset progress screen.",
-    assessment: "Your next step is the post-Reset assessment.",
     today: "Your next step is Today."
   };
   return (
@@ -352,72 +333,6 @@ function ResetViolationHistory({ view, locked, onUndo }: {
           ) : null}
         </AppCard>
       ))}
-    </View>
-  );
-}
-
-function ResetAssessmentForm({ locked, onSubmit }: { locked: boolean; onSubmit: (answers: ResetAssessmentAnswers) => void }) {
-  const [urgeIntensityChange, setUrgeIntensityChange] = useState<ResetAssessmentAnswers["urgeIntensityChange"] | null>(null);
-  const [abilityToPauseChange, setAbilityToPauseChange] = useState<ResetAssessmentAnswers["abilityToPauseChange"] | null>(null);
-  const [spontaneousErectionChange, setSpontaneousErectionChange] = useState<ResetAssessmentAnswers["spontaneousErectionChange"] | null>(null);
-  const [overallSexualResponseChange, setOverallSexualResponseChange] = useState<ResetAssessmentAnswers["overallSexualResponseChange"] | null>(null);
-  const [readinessToRestartTracking, setReadinessToRestartTracking] = useState<ResetAssessmentAnswers["readinessToRestartTracking"] | null>(null);
-  const complete = urgeIntensityChange !== null && abilityToPauseChange !== null && spontaneousErectionChange !== null &&
-    overallSexualResponseChange !== null && readinessToRestartTracking !== null;
-  const submit = () => {
-    if (locked || urgeIntensityChange === null || abilityToPauseChange === null || spontaneousErectionChange === null ||
-      overallSexualResponseChange === null || readinessToRestartTracking === null) return;
-    onSubmit({ urgeIntensityChange, abilityToPauseChange, spontaneousErectionChange, overallSexualResponseChange, readinessToRestartTracking });
-  };
-
-  return (
-    <View style={styles.stack}>
-      <AppText tone="secondary">The 15-day period has ended. Record what you noticed compared with before your Reset.</AppText>
-      <ResetChoice
-        title="How has your urge intensity changed?"
-        testIDPrefix="bloom.reset.assessment.urgeIntensityChange"
-        value={urgeIntensityChange}
-        onChange={setUrgeIntensityChange}
-        locked={locked}
-        options={[{ value: "decreased", label: "Decreased" }, { value: "same", label: "Stayed the same" }, { value: "increased", label: "Increased" }, ...uncertainChoices]}
-      />
-      <ResetChoice
-        title="How has your ability to pause changed?"
-        testIDPrefix="bloom.reset.assessment.abilityToPauseChange"
-        value={abilityToPauseChange}
-        onChange={setAbilityToPauseChange}
-        locked={locked}
-        options={[{ value: "harder", label: "Harder" }, { value: "same", label: "Stayed the same" }, { value: "easier", label: "Easier" }, ...uncertainChoices]}
-      />
-      <ResetChoice
-        title="How has the frequency of spontaneous erections changed?"
-        testIDPrefix="bloom.reset.assessment.spontaneousErectionChange"
-        value={spontaneousErectionChange}
-        onChange={setSpontaneousErectionChange}
-        locked={locked}
-        options={[{ value: "lessFrequent", label: "Less frequent" }, { value: "same", label: "Stayed the same" }, { value: "moreFrequent", label: "More frequent" }, ...uncertainChoices]}
-      />
-      <ResetChoice
-        title="How has your overall sexual response changed?"
-        testIDPrefix="bloom.reset.assessment.overallSexualResponseChange"
-        value={overallSexualResponseChange}
-        onChange={setOverallSexualResponseChange}
-        locked={locked}
-        options={[{ value: "worse", label: "Worse" }, { value: "same", label: "Stayed the same" }, { value: "better", label: "Better" }, ...uncertainChoices]}
-      />
-      <ResetChoice
-        title="How ready do you feel to restart tracking?"
-        testIDPrefix="bloom.reset.assessment.readinessToRestartTracking"
-        value={readinessToRestartTracking}
-        onChange={setReadinessToRestartTracking}
-        locked={locked}
-        options={[{ value: "ready", label: "Ready" }, { value: "notReady", label: "Not ready" }, { value: "notSure", label: "Not sure" }]}
-      />
-      <AppText variant="bodySmall" tone="secondary">You can submit any readiness answer. This reflection does not extend the completed Reset period.</AppText>
-      {!complete ? <AppText variant="bodySmall" tone="secondary">Choose an answer for each question to finish.</AppText> : null}
-      <AppButton testID="bloom.reset.assessment.submit" disabled={locked || !complete} onPress={submit}>
-        Save assessment
-      </AppButton>
     </View>
   );
 }

@@ -8,7 +8,7 @@ import { routes } from "../../constants/navigation";
 import type { ResetJourney, ResetViolation } from "../../domain/models/ResetJourney";
 import { getResetProgress } from "../../domain/reset/getResetProgress";
 import { usePersistenceNavigationGuard } from "../../shared/navigation/usePersistenceNavigationGuard";
-import { createResetController, type ResetAssessmentAnswers, type ResetBaselineAnswers, type ResetOperation } from "./resetController";
+import { createResetController, type ResetBaselineAnswers, type ResetOperation } from "./resetController";
 import { getResetRouteView, type ResetRouteMode, type ResetRouteView } from "./resetView";
 
 // Read-only selector clock. Mutation IDs/timestamps are created exclusively by
@@ -51,11 +51,6 @@ export function useResetFeature(mode: ResetRouteMode) {
       navigateBloomProductFlow(router, {
         flow: "resetProgress", journeyId: acceptedReset.id, attemptId: acceptedReset.currentAttempt.id, progress
       }, "replace");
-    } else if (acceptedReset.status === "assessment_pending") {
-      allowNavigation();
-      navigateBloomProductFlow(router, {
-        flow: "resetAssessment", journeyId: acceptedReset.id, attemptId: acceptedReset.currentAttempt.id
-      }, "replace");
     } else if (acceptedReset.status === "completed") {
       allowNavigation();
       router.replace(routes.home);
@@ -91,8 +86,8 @@ export function useResetFeature(mode: ResetRouteMode) {
   // Keep that operation's receipt/retry UI visible without trusting the old URL
   // as authority for the successor. Only this exact saved successor can proceed.
   const acceptedReset = hasHydrated && operation.acceptedReset === reset ? operation.acceptedReset : null;
-  const recoveryTarget: "progress" | "assessment" | "today" | null = acceptedReset?.status === "active" ? "progress" :
-    acceptedReset?.status === "assessment_pending" ? "assessment" : acceptedReset?.status === "completed" ? "today" : null;
+  const recoveryTarget: "progress" | "today" | null = acceptedReset?.status === "active" ? "progress" :
+    acceptedReset?.status === "completed" ? "today" : null;
   const canContinue = !operation.busy && operation.result?.ok === true &&
     recoveryTarget !== null && acceptedReset === durableState.resetJourney;
   const canOpenCompletion = !locked && mode === "progress" && view.kind === "active" &&
@@ -112,7 +107,6 @@ export function useResetFeature(mode: ResetRouteMode) {
       recordViolation: (reason: ResetViolation["reason"]) => invoke(() => controller.recordViolation(reason, reset)),
       undoViolation: (violationId: string) => invoke(() => controller.undoViolation(violationId, reset)),
       completeElapsed: () => invoke(() => controller.completeElapsed(reset)),
-      completeAssessment: (answers: ResetAssessmentAnswers) => invoke(() => controller.completeAssessment(answers, reset)),
       retry: () => invoke(controller.retry),
       continueAfterSave: () => {
         if (!mounted.current || currentController.current !== controller || controller.getSnapshot().busy ||

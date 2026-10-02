@@ -110,7 +110,7 @@ function verifyProgressAndStreakBoundaries() {
     for (const reason of reasons) {
       const input = { ...createInput(reason), occurredAt: time, recordedAt: time };
       assert(recordActiveResetViolationState(state, input) === state, "At and after exactly 15 elapsed days, no Reset or Content-Free change may extend the completed period.");
-      assert(state.resetJourney.status === "active", "The boundary guard must not auto-transition the persisted lifecycle to assessment_pending.");
+      assert(state.resetJourney.status === "active", "The boundary guard must not auto-transition the persisted lifecycle to completed.");
     }
   }
   const delayed = recordActiveResetViolationState(state, { ...createInput("masturbation"), recordedAt: "2026-10-01T12:00:00.000Z" });
@@ -180,12 +180,12 @@ function verifyAtomicRejections() {
   const input = createInput("masturbationWithExplicitContent");
   const finished = createPopulatedState().resetJourney;
   assert(finished.status === "completed", "Completed Reset fixture required.");
-  const { assessment: _assessment, ...assessmentPending } = finished;
+  const { assessment: _assessment, ...withoutAssessment } = finished;
   for (const reset of [
     createDefaultBloomState().resetJourney,
     { status: "recommended", id: "recommended-reset", durationDays: 15, bestCompletedDays: 0, pastAttempts: [], violations: [] } as const,
     { status: "baseline_pending", id: "pending-reset", durationDays: 15, bestCompletedDays: 0, pastAttempts: [], violations: [] } as const,
-    { ...assessmentPending, status: "assessment_pending" } as const, finished
+    withoutAssessment, finished
   ]) reject({ ...active, resetJourney: reset as ResetJourney }, input, `wrong lifecycle ${reset.status}`);
   for (const value of [null, [], "event", {}]) reject(active, value, "invalid input structure");
   for (const field of ["violationId", "replacementAttemptId", "occurredAt", "recordedAt", "source", "reason"]) {

@@ -3,7 +3,6 @@ import {
   activateContentFreeState,
   completeElapsedResetPeriodState,
   completeMasturbationSessionFeedbackState,
-  completePostResetAssessmentState,
   completeUrgeControlEventState,
   completeUrgeControlInterruptState,
   deactivateContentFreeState,
@@ -63,8 +62,7 @@ export function createBloomProductAcknowledgedActions({
       startFromBaseline: acknowledge(startResetFromBaselineState),
       recordViolation: acknowledge(recordActiveResetViolationState),
       undoViolation: acknowledge(undoActiveResetViolationState),
-      completeElapsed: acknowledge(completeElapsedResetPeriodState),
-      completeAssessment: acknowledge(completePostResetAssessmentState)
+      completeElapsed: acknowledge(completeElapsedResetPeriodState)
     },
     tracking: {
       enable: acknowledge(enableMasturbationTrackingState),

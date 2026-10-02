@@ -398,12 +398,12 @@ function feedbackInput(usedExplicitContent: boolean) { return { feedback: create
 function nonActiveResetStates(): ResetJourney[] {
   const completed = createPopulatedState().resetJourney;
   assert(completed.status === "completed", "Completed fixture required.");
-  const { assessment: _assessment, ...pending } = completed;
+  const { assessment: _assessment, ...withoutAssessment } = completed;
   return [
     createDefaultBloomState().resetJourney,
     { status: "recommended", id: "recommended", durationDays: 15, bestCompletedDays: 0, pastAttempts: [], violations: [] },
     { status: "baseline_pending", id: "pending-baseline", durationDays: 15, bestCompletedDays: 0, pastAttempts: [], violations: [] },
-    { ...pending, status: "assessment_pending" }, completed
+    withoutAssessment, completed
   ];
 }
 

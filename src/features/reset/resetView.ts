@@ -3,7 +3,7 @@ import type { ISODateString } from "../../domain/models/shared";
 import { getResetRestrictionStatus, type ResetRestrictionStatus } from "../../domain/productPolicy/getResetRestrictionStatus";
 import { getResetProgress, type ResetProgress } from "../../domain/reset/getResetProgress";
 
-export type ResetRouteMode = "baseline" | "progress" | "completion" | "assessment";
+export type ResetRouteMode = "baseline" | "progress" | "completion";
 export type ResetRouteInput = { mode: ResetRouteMode; journeyId: unknown; attemptId?: unknown };
 export type ResetRouteView =
   | { kind: "missing" | "invalid" | "mismatch" | "unavailable" }
@@ -16,9 +16,7 @@ export type ResetRouteView =
       bestCompletedDays: number;
       history: ResetViolation[];
       undoCandidateId: string | null;
-    }
-  | { kind: "assessment"; reset: Extract<ResetJourney, { status: "assessment_pending" }> }
-  | { kind: "completed"; reset: Extract<ResetJourney, { status: "completed" }> };
+    };
 
 export function getLatestResetUndoCandidate(reset: ResetJourney): ResetViolation | null {
   if (reset.status !== "active") return null;
@@ -37,10 +35,6 @@ export function getResetRouteView(reset: ResetJourney, route: ResetRouteInput, a
     return reset.status === "baseline_pending" ? { kind: "baseline", reset } : { kind: "mismatch" };
   }
   if (!("currentAttempt" in reset) || reset.currentAttempt.id !== route.attemptId) return { kind: "mismatch" };
-  if (route.mode === "assessment") {
-    if (reset.status === "assessment_pending") return { kind: "assessment", reset };
-    return reset.status === "completed" ? { kind: "completed", reset } : { kind: "mismatch" };
-  }
   if (reset.status !== "active") return { kind: "mismatch" };
   const progress = getResetProgress(reset, at);
   const restriction = getResetRestrictionStatus(reset, at);

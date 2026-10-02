@@ -10,7 +10,7 @@ import { createBloomLocalStateMutationRuntime } from "../src/app/providers/bloom
 import { getResetProgress } from "../src/domain/reset/getResetProgress";
 import { getResetRestrictionStatus } from "../src/domain/productPolicy/getResetRestrictionStatus";
 import { getMasturbationTrackingAvailability } from "../src/domain/productPolicy/getMasturbationTrackingAvailability";
-import type { PostResetAssessment, ResetBaseline, ResetJourney, ResetViolation } from "../src/domain/models";
+import type { ResetBaseline, ResetJourney, ResetViolation } from "../src/domain/models";
 import { createDefaultBloomState, type BloomLocalState } from "../src/storage/bloomState";
 import {
   BLOOM_STATE_STORAGE_KEY, loadBloomLocalState, persistBloomLocalState,
@@ -31,21 +31,17 @@ const ts: typeof import("typescript") = createRequire(resolve("package.json"))("
 const selfReport: ResetBaseline["selfReport"] = {
   urgeIntensity: "preferNotToSay", abilityToPause: "sometimesPossible", spontaneousOrMorningErections: "notSure"
 };
-const answers = {
-  urgeIntensityChange: "notSure", abilityToPauseChange: "easier", spontaneousErectionChange: "preferNotToSay",
-  overallSexualResponseChange: "same", readinessToRestartTracking: "notReady"
-} as const;
 
 export async function verifyBloomResetFeature() {
   assert(BLOOM_PERSISTENCE_VERSION === 7 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v7",
     "Executable Reset must retain the current v7 persistence contract.");
   await verifyLifecycle();
-  await verifyReasonsAndReadiness();
+  await verifyReasonsAndTrackingPreferences();
   await verifyIdentityGuards();
   verifyViewsAndBoundary();
   verifySourceAndForms();
   await verifyHookWiring();
-  console.log("Bloom Reset feature verification passed (explicit baseline, restart/undo atomicity, elapsed boundaries, assessment, stale route guards, durable-only navigation/retry, v7 reloads, and controlled hook/forms).");
+  console.log("Bloom Reset feature verification passed (explicit baseline, restart/undo atomicity, elapsed boundaries, direct completion, preserved Tracking preferences, stale route guards, durable-only navigation/retry, v7 reloads, and controlled hook/forms).");
 }
 
 async function verifyLifecycle() {
@@ -133,36 +129,16 @@ async function verifyLifecycle() {
   const completion = h.controller.completeElapsed(restored.resetJourney);
   assert(completion !== null && h.controller.completeElapsed(restored.resetJourney) === completion,
     "Explicit elapsed completion must delegate exactly once.");
-  const pending = h.runtime.getState();
-  assert(pending.resetJourney.status === "assessment_pending" && pending.resetJourney.completedAt === completedAt &&
-    pending.resetJourney.currentAttempt.completedAt === completedAt && Number(h.persisted.length) === 3,
-  "The transition must record the true 15-day boundary, not the later observation clock; navigation must wait.");
-  await failAndRetry(h, completion, 5);
-  assert(h.persisted[3]?.reset === pending.resetJourney && h.persisted[3]?.operation === "completeElapsed",
-    "Durable elapsed completion must expose the same canonical attempt for assessment navigation.");
-  assertOtherReferences(restored, pending, ["resetJourney"]);
-  await roundTrip(pending);
-
-  h.setRoute({ mode: "assessment", journeyId: pending.resetJourney.id, attemptId: pending.resetJourney.currentAttempt.id });
-  h.setTime(shift(completedAt, 3 * day));
-  const assessment = h.controller.completeAssessment(answers, pending.resetJourney);
-  assert(assessment !== null && h.controller.completeAssessment(answers, pending.resetJourney) === assessment,
-    "Duplicate assessment submissions must share the canonical acknowledgement.");
   const finished = h.runtime.getState();
-  assert(finished.resetJourney.status === "completed" && finished.masturbationTracking.enabled,
-    "A descriptive notReady answer must still complete Reset and let the existing transition enable Tracking.");
-  equal(finished.resetJourney.assessment, {
-    ...answers, id: "reset-assessment-reset-feature-7", completedAt: shift(completedAt, 3 * day),
-    resetJourneyId: pending.resetJourney.id, resetAttemptId: pending.resetJourney.currentAttempt.id,
-    baselineId: pending.resetJourney.baseline.id
-  }, "Assessment must contain exact semantic answers and validated canonical references, with only flow-generated identity/time.");
-  assert(Number(h.persisted.length) === 4, "Accepted assessment completion must not close to Today before a durable receipt.");
-  await failAndRetry(h, assessment, 7);
-  assert(h.persisted[4]?.reset === finished.resetJourney && h.persisted[4]?.operation === "completeAssessment",
-    "Durable assessment success must carry only its completed canonical Reset.");
-  assertOtherReferences(pending, finished, ["resetJourney", "masturbationTracking"]);
-  assert(finished.masturbationTracking.sessions === pending.masturbationTracking.sessions,
-    "Transition-owned Tracking enablement must preserve historical sessions by reference.");
+  assert(finished.resetJourney.status === "completed" && finished.resetJourney.completedAt === completedAt &&
+    finished.resetJourney.currentAttempt.completedAt === completedAt && Number(h.persisted.length) === 3,
+  "The transition must complete directly at the true 15-day boundary, not the later observation clock; navigation must wait.");
+  assert(!("assessment" in finished.resetJourney) && !finished.masturbationTracking.enabled,
+    "Completing Reset must not fabricate an assessment or change a manually disabled Tracking preference.");
+  await failAndRetry(h, completion, 5);
+  assert(h.persisted[3]?.reset === finished.resetJourney && h.persisted[3]?.operation === "completeElapsed",
+    "Durable elapsed completion must expose the same completed journey for Today navigation.");
+  assertOtherReferences(restored, finished, ["resetJourney"]);
   await roundTrip(finished);
   assert(JSON.stringify(initial) === original, "The complete executable lifecycle must not mutate its original populated snapshot.");
 }
@@ -190,7 +166,7 @@ async function failAndRetry(
     "A successful retry must publish its durable navigation callback once.");
 }
 
-async function verifyReasonsAndReadiness() {
+async function verifyReasonsAndTrackingPreferences() {
   const baseline = createHarness();
   const start = baseline.controller.startFromBaseline(selfReport, baseline.initialState.resetJourney);
   assert(start !== null, "Baseline retry fixture must submit explicitly.");
@@ -212,18 +188,22 @@ async function verifyReasonsAndReadiness() {
     h.attempts[0]!.succeed();
     assert((await command).ok, "All three reason values must preserve acknowledged saves.");
   }
-  for (const readinessToRestartTracking of ["ready", "notReady", "notSure"] as const) {
-    const state = assessmentPendingState();
+  for (const enabled of [true, false]) {
+    const state = createActiveState(false, true);
+    assert(state.resetJourney.status === "active", "Active completion fixture required.");
+    state.masturbationTracking = { ...state.masturbationTracking, enabled };
     const h = createHarness(state);
-    const command = h.controller.completeAssessment({ ...answers, readinessToRestartTracking }, state.resetJourney);
-    assert(command !== null && h.counts().mutationCalls === 1, "All descriptive readiness answers must delegate the same assessment command.");
+    h.setRoute(routeFor(state.resetJourney, "completion"));
+    h.setTime(shift(state.resetJourney.currentAttempt.startedAt, 15 * day));
+    const command = h.controller.completeElapsed(state.resetJourney);
+    assert(command !== null && h.counts().mutationCalls === 1, "Elapsed completion must dispatch exactly once for either Tracking preference.");
     const accepted = h.runtime.getState();
-    assert(accepted.resetJourney.status === "completed" && accepted.resetJourney.assessment.readinessToRestartTracking === readinessToRestartTracking &&
-      accepted.masturbationTracking.enabled && accepted.masturbationTracking.sessions === state.masturbationTracking.sessions,
-    "Readiness must not gate completion or transition-owned Tracking enablement.");
+    assert(accepted.resetJourney.status === "completed" && !("assessment" in accepted.resetJourney) &&
+      accepted.masturbationTracking === state.masturbationTracking && accepted.masturbationTracking.enabled === enabled,
+    "Direct completion must preserve the exact Tracking slice and create no assessment.");
     h.attempts[0]!.succeed();
-    assert((await command).ok, "Every readiness answer must complete with normal durable acknowledgement.");
-    assertOtherReferences(state, accepted, ["resetJourney", "masturbationTracking"]);
+    assert((await command).ok, "Either Tracking preference must preserve normal durable acknowledgement.");
+    assertOtherReferences(state, accepted, ["resetJourney"]);
   }
   // A real session-derived event stays session-derived; the Reset owner may
   // still reverse it by exact ID without calling Content-Free undo separately.
@@ -247,8 +227,8 @@ async function verifyReasonsAndReadiness() {
 
 async function verifyIdentityGuards() {
   const invalidIds: unknown[] = [undefined, null, "", " ", [], ["feature-reset"], ["one", "two"], 42, "different-id"];
-  for (const mode of ["baseline", "progress", "completion", "assessment"] as const) {
-    const state = mode === "baseline" ? baselinePendingState() : mode === "assessment" ? assessmentPendingState() : createActiveState(false, true);
+  for (const mode of ["baseline", "progress", "completion"] as const) {
+    const state = mode === "baseline" ? baselinePendingState() : createActiveState(false, true);
     for (const id of invalidIds) {
       const h = createHarness(state);
       const valid = routeFor(state.resetJourney, mode);
@@ -256,18 +236,18 @@ async function verifyIdentityGuards() {
       if (state.resetJourney.status === "active") h.setTime(shift(state.resetJourney.currentAttempt.startedAt, 15 * day));
       const invoke = () => mode === "baseline" ? h.controller.startFromBaseline(selfReport, state.resetJourney) :
         mode === "progress" ? h.controller.recordViolation("masturbation", state.resetJourney) :
-        mode === "completion" ? h.controller.completeElapsed(state.resetJourney) : h.controller.completeAssessment(answers, state.resetJourney);
+        h.controller.completeElapsed(state.resetJourney);
       assert(invoke() === null && h.counts().clockCalls === 0 && h.attempts.length === 0,
         "Every Reset route must reject missing, non-scalar, blank, or mismatched journey identity before dispatch.");
       if (mode !== "baseline") {
         h.setRoute({ ...valid, attemptId: id });
         assert(invoke() === null && h.counts().mutationCalls === 0,
-          "Progress/completion/assessment must require the exact canonical current attempt ID.");
+          "Progress/completion must require the exact canonical current attempt ID.");
       }
     }
   }
   for (const mode of ["baseline", "progress", "completion"] as const) {
-    const state = assessmentPendingState();
+    const state = completedState();
     const h = createHarness(state);
     h.setRoute(routeFor(state.resetJourney, mode));
     assert(h.controller.startFromBaseline(selfReport, state.resetJourney) === null &&
@@ -310,15 +290,6 @@ async function verifyIdentityGuards() {
       "Retained undo must reject changed canonical status/source/journey/baseline even when the target ID string survives.");
     equal(h.counts(), counts, "Event-time accepted-state reads must prevent a stale row from issuing another mutation.");
   }
-  const pending = assessmentPendingState();
-  const assessment = createHarness(pending);
-  assert(pending.resetJourney.status === "assessment_pending", "Assessment reference fixture required.");
-  const changed = { ...pending.resetJourney, baseline: { ...pending.resetJourney.baseline, id: "new-baseline" } };
-  const external = assessment.runtime.applyAcknowledgedMutation((state) => ({ ...state, resetJourney: changed }));
-  assessment.attempts[0]!.succeed();
-  await external;
-  assert(assessment.controller.completeAssessment(answers, pending.resetJourney) === null && assessment.counts().clockCalls === 0,
-    "Assessment must not submit caller answers against a baseline identity replaced after rendering.");
 }
 
 function verifyViewsAndBoundary() {
@@ -355,10 +326,11 @@ function verifyViewsAndBoundary() {
   const oldBoundary = getResetRouteView(restarted, routeFor(restarted), shift(active.startedAt, 15 * day));
   assert(oldBoundary.kind === "active" && !oldBoundary.progress.isPeriodComplete,
     "A restarted attempt must not finish at the older overall journey's boundary.");
-  const pending = assessmentPendingState().resetJourney;
-  assert(getResetRouteView(pending, routeFor(pending), startedAt).kind === "assessment", "Only matching assessment-pending identity may expose assessment answers.");
-  const completed = createPopulatedState().resetJourney;
-  assert(getResetRouteView(completed, routeFor(completed), startedAt).kind === "completed", "A completed assessment route may show saved completion without resubmitting it.");
+  const completed = completedState().resetJourney;
+  for (const mode of ["baseline", "progress", "completion"] as const) {
+    assert(getResetRouteView(completed, routeFor(completed, mode), startedAt).kind === "mismatch",
+      "A completed Reset must not expose another active step through a stale Reset route.");
+  }
 }
 
 async function verifyHookWiring() {
@@ -401,11 +373,11 @@ async function verifyHookWiring() {
   type Feature = {
     view: ReturnType<typeof getResetRouteView>; busy: boolean; locked: boolean; canRetry: boolean;
     saveState: "loading" | "unavailable" | "saving" | "saved" | "unconfirmed";
-    recoveryTarget: "progress" | "assessment" | "today" | null; canContinue: boolean; canOpenCompletion: boolean;
+    recoveryTarget: "progress" | "today" | null; canContinue: boolean; canOpenCompletion: boolean;
     actions: {
       startFromBaseline: (answers: ResetBaseline["selfReport"]) => void;
       recordViolation: (reason: ResetViolation["reason"]) => void; undoViolation: (id: string) => void;
-      completeElapsed: () => void; completeAssessment: (values: typeof answers) => void;
+      completeElapsed: () => void;
       retry: () => void; continueAfterSave: () => void; continueToCompletion: () => void; close: () => void;
     };
   };
@@ -571,27 +543,28 @@ async function verifyHookWiring() {
   feature.actions.completeElapsed();
   feature.actions.completeElapsed();
   feature = render();
-  const pending = h.runtime.getState().resetJourney;
-  assert(pending.status === "assessment_pending" && pending.completedAt === boundary && feature.busy &&
-    feature.recoveryTarget === "assessment" && Number(navigation.length) === 4,
-  "Explicit completion must retain the domain boundary and wait before opening assessment.");
-  await receipt(5);
-  assertNavigation(4, { intent: { flow: "resetAssessment", journeyId: pending.id, attemptId: pending.currentAttempt.id }, mode: "replace" },
-    "Durable elapsed completion must navigate to the canonical assessment route.");
-
-  mode = "assessment";
-  params = { journeyId: pending.id, attemptId: pending.currentAttempt.id };
+  const finished = h.runtime.getState().resetJourney;
+  assert(finished.status === "completed" && finished.completedAt === boundary && !("assessment" in finished) && feature.busy &&
+    feature.recoveryTarget === "today" && Number(navigation.length) === 4 && !h.runtime.getState().masturbationTracking.enabled,
+  "Explicit completion must preserve Tracking preference and retain the domain boundary while waiting before returning to Today.");
+  feature.actions.continueAfterSave();
+  feature.actions.close();
+  assert(Number(navigation.length) === 4, "Pending completion must not navigate to Today before a durable receipt.");
+  h.attempts[5]!.fail();
+  await flush();
   feature = render();
-  assert(feature.view.kind === "assessment", "Validated assessment route must expose the canonical pending baseline references.");
-  h.setTime(shift(boundary, 20000));
-  feature.actions.completeAssessment(answers);
-  feature.actions.completeAssessment(answers);
-  feature = render();
-  assert(h.runtime.getState().resetJourney.status === "completed" && h.runtime.getState().masturbationTracking.enabled &&
-    feature.busy && feature.recoveryTarget === "today" && Number(navigation.length) === 5,
-  "Accepted notReady assessment must preserve pending-save UI and must not navigate to Today yet.");
+  assert(feature.locked && feature.canRetry && feature.recoveryTarget === "today" && !feature.canContinue,
+    "Failed completion must retain retry for the accepted completed journey without allowing continuation.");
+  feature.actions.continueAfterSave();
+  assert(Number(navigation.length) === 4, "Failed completion must never return to Today through Continue.");
+  const completionCounts = h.counts();
+  feature.actions.retry();
+  feature.actions.retry();
   await receipt(6);
-  assertNavigation(5, { path: "/existing-today" }, "Only durable assessment completion may return to the existing Today route.");
+  equal(h.counts(), completionCounts, "Hook completion retry must persist the same completed journey without a second transition.");
+  assertNavigation(4, { path: "/existing-today" }, "Only durable elapsed completion may return directly to the existing Today route.");
+  feature = render();
+  assert(feature.canContinue && feature.recoveryTarget === "today", "The saved completion receipt must retain a safe Today recovery action.");
   await roundTrip(h.runtime.getState());
   hooks.unmount();
 }
@@ -606,11 +579,12 @@ function verifySourceAndForms() {
     assert(!/AsyncStorage|persistBloomLocalState|loadBloomLocalState|applyAcknowledgedMutation|bloomResetTransitions|getNextBloomAction/.test(source),
       "Reset feature modules must not directly access storage, transitions, or legacy journey routing.");
     assert(!/createBloomRecordId|Math\.random|createId\s*\(/.test(source), "Reset feature code must leave operation identity generation to the flow layer.");
+    assert(!/assessment|Assessment/.test(source), "Current Reset feature views, routes, and commands must not expose post-reset assessment.");
   }
   assert(!/Date\.|new Date|useEffect|setInterval|averageIntervalSeconds|averageErectionQuality|explicitContentSessionRatio/.test(screen),
     "Reset screens must not create timestamps, mount writes, or ad-hoc baseline aggregates.");
   assert(!/flowActions\.contentFree|recordManualViolation|undoManualViolation|streakBefore|currentStreakStartedAt|masturbationTracking\.enabled\s*=/.test(screen + hook + controller),
-    "One Reset command must own linked Content-Free effects and Tracking enablement without feature-level policy writes.");
+    "One Reset command must own linked Content-Free effects without feature-level policy writes or Tracking preference changes.");
   assert(hook.includes("getState: getAcceptedState") && hook.includes("useBloomProductFlowActions") &&
     view.includes("getResetProgress(reset, at)") && view.includes("getResetRestrictionStatus(reset, at)"),
   "Reset event handlers and progress must reuse the canonical provider getter, flow hook, and domain selectors.");
@@ -624,7 +598,7 @@ function verifySourceAndForms() {
     assert(screen.includes(`import { ${component} }`), `Reset must use shared ${component} UI.`);
   }
   const parsed = ts.createSourceFile("ResetProductScreen.tsx", screen, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
-  const formNames = ["ResetBaselineForm", "ResetAssessmentForm", "ResetViolationForm", "ResetChoice"];
+  const formNames = ["ResetBaselineForm", "ResetViolationForm", "ResetChoice"];
   const definitions = parsed.statements.flatMap((node) => {
     if (ts.isFunctionDeclaration(node) && formNames.includes(node.name?.text ?? "")) return [`export ${node.getText(parsed)}`];
     if (ts.isVariableStatement(node) && node.declarationList.declarations.some((declaration) =>
@@ -650,13 +624,6 @@ function verifySourceAndForms() {
     abilityToPause: ["difficult", "sometimesPossible", "manageable", "notSure", "preferNotToSay"],
     spontaneousOrMorningErections: ["often", "sometimes", "rarely", "notSure", "preferNotToSay"]
   }, selfReport, compileForms);
-  verifyAnswerForm("ResetAssessmentForm", "assessment", {
-    urgeIntensityChange: ["decreased", "same", "increased", "notSure", "preferNotToSay"],
-    abilityToPauseChange: ["harder", "same", "easier", "notSure", "preferNotToSay"],
-    spontaneousErectionChange: ["lessFrequent", "same", "moreFrequent", "notSure", "preferNotToSay"],
-    overallSexualResponseChange: ["worse", "same", "better", "notSure", "preferNotToSay"],
-    readinessToRestartTracking: ["ready", "notReady", "notSure"]
-  }, answers, compileForms);
 
   const hooks = createControlledHooks();
   const forms = compileForms(hooks);
@@ -733,7 +700,7 @@ function verifyAnswerForm(
   const render = (locked = false) => hooks.render(() => forms[name]!({ locked, onSubmit: (answers: unknown) => submissions.push(answers) }));
   let tree = render();
   render();
-  assert(submissions.length === 0, "Rendering a baseline/assessment form must never submit.");
+  assert(submissions.length === 0, "Rendering a baseline form must never submit.");
   for (const [field, expected] of Object.entries(options)) {
     const choices = findFormElements(tree).filter((element) => String(element.props.testID).startsWith(`bloom.reset.${prefix}.${field}.`));
     equal(choices.map((element) => String(element.props.testID).split(".").pop()), expected,
@@ -750,24 +717,12 @@ function verifyAnswerForm(
     tree = render();
   }
   assert(formElement(tree, `bloom.reset.${prefix}.submit`).props.disabled === false,
-    "A complete descriptive answer set must be submittable, including notReady.");
+    "A complete descriptive answer set must be submittable, including uncertainty/nonresponse.");
   pressForm(tree, `bloom.reset.${prefix}.submit`);
   equal(JSON.parse(JSON.stringify(submissions)), [values], "Forms must submit only exact semantic answer fields, with no generated links, IDs, scores, or timestamps.");
   tree = render(true);
   pressForm(tree, `bloom.reset.${prefix}.submit`);
-  assert(Number(submissions.length) === 1, "Locked baseline/assessment callbacks must never dispatch even if directly invoked.");
-  if (prefix === "assessment") {
-    for (const readiness of ["ready", "notSure"]) {
-      tree = render();
-      pressForm(tree, `bloom.reset.assessment.readinessToRestartTracking.${readiness}`);
-      tree = render();
-      assert(formElement(tree, "bloom.reset.assessment.submit").props.disabled === false,
-        "Every readiness answer must preserve assessment eligibility without extending restriction.");
-      pressForm(tree, "bloom.reset.assessment.submit");
-    }
-    equal(JSON.parse(JSON.stringify(submissions)), [values, { ...values, readinessToRestartTracking: "ready" }, { ...values, readinessToRestartTracking: "notSure" }],
-      "Actual assessment form wiring must treat every readiness answer descriptively.");
-  }
+  assert(Number(submissions.length) === 1, "Locked baseline callbacks must never dispatch even if directly invoked.");
 }
 
 function createHarness(initialState = baselinePendingState()) {
@@ -816,7 +771,7 @@ function createHarness(initialState = baselinePendingState()) {
 
 function routeFor(reset: ResetJourney, mode?: ResetRouteInput["mode"]): ResetRouteInput {
   return {
-    mode: mode ?? (reset.status === "active" ? "progress" : reset.status === "assessment_pending" || reset.status === "completed" ? "assessment" : "baseline"),
+    mode: mode ?? (reset.status === "active" ? "progress" : reset.status === "completed" ? "completion" : "baseline"),
     journeyId: "id" in reset ? reset.id : undefined,
     ...("currentAttempt" in reset ? { attemptId: reset.currentAttempt.id } : {})
   };
@@ -829,11 +784,11 @@ function baselinePendingState(): BloomLocalState {
   return state;
 }
 
-function assessmentPendingState(): BloomLocalState {
+function completedState(): BloomLocalState {
   const state = createPopulatedState();
   assert(state.resetJourney.status === "completed", "Finished Reset fixture required.");
   const { assessment: _assessment, ...finished } = state.resetJourney;
-  state.resetJourney = { ...finished, status: "assessment_pending" };
+  state.resetJourney = finished;
   state.masturbationTracking = { ...state.masturbationTracking, enabled: false, currentSession: null };
   return state;
 }
@@ -892,7 +847,7 @@ async function roundTrip(state: BloomLocalState) {
   await persistBloomLocalState(state, storage, now);
   const loaded = await loadBloomLocalState(storage, now);
   assert(loaded.status === "success" && loaded.source === "current", "Reset feature facts must load from current v7 storage.");
-  equal(loaded.state, state, "Hydration must preserve Reset identity, baseline, history, and assessment without automatic lifecycle advancement.");
+  equal(loaded.state, state, "Hydration must preserve Reset identity, baseline, history, and completion facts without automatic lifecycle advancement.");
   return loaded.state;
 }
 

@@ -13,7 +13,6 @@ export {
 } from "./bloomProductOnboardingTransitions";
 export {
   completeElapsedResetPeriodState,
-  completePostResetAssessmentState,
   recordActiveResetViolationState,
   startResetFromBaselineState,
   undoActiveResetViolationState,

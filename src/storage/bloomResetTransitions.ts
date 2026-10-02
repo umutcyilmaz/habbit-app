@@ -1,14 +1,11 @@
 import type { BehaviorEventSource } from "../domain/models/BehaviorEventSource";
 import type { ContentFreeState } from "../domain/models/ContentFreeState";
-import type { PostResetAssessment } from "../domain/models/PostResetAssessment";
 import type { ResetBaseline } from "../domain/models/ResetBaseline";
 import type { ResetCompletedDays, ResetJourney, ResetViolation, RestartedResetAttempt } from "../domain/models/ResetJourney";
 import type { ISODateString, UUID } from "../domain/models/shared";
 import { getResetProgress } from "../domain/reset/getResetProgress";
 import {
   normalizeContentFree,
-  normalizeMasturbationTracking,
-  normalizePostResetAssessment,
   normalizeResetBaseline,
   normalizeResetJourney,
   normalizeResetViolation
@@ -279,7 +276,7 @@ export function completeElapsedResetPeriodState(
     ).toISOString();
     const resetJourney: ResetJourney = {
       ...reset,
-      status: "assessment_pending",
+      status: "completed",
       bestCompletedDays: 15,
       completedAt: periodCompletedAt,
       currentAttempt: {
@@ -292,35 +289,6 @@ export function completeElapsedResetPeriodState(
     };
     normalizeResetJourney(resetJourney);
     return { ...state, resetJourney };
-  } catch {
-    return state;
-  }
-}
-
-// Readiness is descriptive. Any valid assessment finishes this lifecycle and
-// enables Tracking, without creating or replacing session history.
-export function completePostResetAssessmentState(
-  state: BloomLocalState,
-  assessment: PostResetAssessment
-): BloomLocalState {
-  const reset = state.resetJourney;
-  if (reset.status !== "assessment_pending") return state;
-
-  try {
-    normalizeResetJourney(reset);
-    const tracking = state.masturbationTracking;
-    if (tracking.currentSession !== null) return state;
-    normalizeMasturbationTracking(tracking);
-    const captured = normalizePostResetAssessment(assessment);
-    if (captured.resetJourneyId !== reset.id || captured.resetAttemptId !== reset.currentAttempt.id ||
-      captured.baselineId !== reset.baseline.id || Date.parse(captured.completedAt) < Date.parse(reset.completedAt)) return state;
-    const resetJourney: ResetJourney = { ...reset, status: "completed", assessment: captured };
-    normalizeResetJourney(resetJourney);
-    return {
-      ...state,
-      resetJourney,
-      masturbationTracking: tracking.enabled ? tracking : { ...tracking, enabled: true }
-    };
   } catch {
     return state;
   }

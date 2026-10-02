@@ -284,13 +284,17 @@ export function normalizeResetJourney(
       const finished = { ...started, bestCompletedDays, currentAttempt, completedAt };
       if (status === "assessment_pending") {
         absent(record, ["assessment"], path);
-        journey = { ...finished, status };
-      } else {
+        // v7 previously stopped here. Its validated completion facts are already
+        // authoritative; normalize only the lifecycle for existing writeback.
+        journey = { ...finished, status: "completed" };
+      } else if (Object.prototype.hasOwnProperty.call(record, "assessment")) {
         const assessment = normalizePostResetAssessment(record.assessment, `${path}.assessment`);
         ensure(assessment.resetJourneyId === started.id && assessment.resetAttemptId === currentAttempt.id &&
           assessment.baselineId === started.baseline.id, path, "has inconsistent assessment references");
         notBefore(assessment.completedAt, completedAt, `${path}.assessment.completedAt`);
         journey = { ...finished, status, assessment };
+      } else {
+        journey = { ...finished, status };
       }
     }
   }

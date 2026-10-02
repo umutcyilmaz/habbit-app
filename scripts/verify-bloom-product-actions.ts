@@ -11,7 +11,7 @@ import type {
 import {
   createDefaultBloomState, saveProductOnboardingResultState, acceptProductOnboardingRecommendationState,
   startResetFromBaselineState, recordActiveResetViolationState, undoActiveResetViolationState,
-  completeElapsedResetPeriodState, completePostResetAssessmentState,
+  completeElapsedResetPeriodState,
   enableMasturbationTrackingState, disableMasturbationTrackingState,
   startMasturbationSessionState, startMasturbationPauseState, endMasturbationPauseState,
   endMasturbationSessionState, completeMasturbationSessionFeedbackState, discardActiveMasturbationSessionState,
@@ -51,7 +51,6 @@ type ExpectedProductActions = {
     recordViolation: Acknowledged<typeof recordActiveResetViolationState>;
     undoViolation: Acknowledged<typeof undoActiveResetViolationState>;
     completeElapsed: Acknowledged<typeof completeElapsedResetPeriodState>;
-    completeAssessment: Acknowledged<typeof completePostResetAssessmentState>;
   };
   tracking: {
     enable: Acknowledged<typeof enableMasturbationTrackingState>;
@@ -99,14 +98,14 @@ export async function verifyBloomProductActions() {
   verifyFactoryIsolation();
   const cases = commandCases();
   const api = createBloomProductAcknowledgedActions({ applyAcknowledgedMutation: async () => success(1) });
-  equal(commandPaths(api).sort(), cases.map((item) => item.name).sort(), "The facade must expose exactly the 31 grouped command paths covered by delegation tests.");
-  assert(cases.length === 31, "Every Phase 1P product transition must have one focused command case.");
+  equal(commandPaths(api).sort(), cases.map((item) => item.name).sort(), "The facade must expose exactly the 30 grouped command paths covered by delegation tests.");
+  assert(cases.length === 30 && !("completeAssessment" in api.reset), "Every current product transition must have one focused command case; Reset assessment must no longer be a command.");
   for (const item of cases) {
     await verifyDelegation(item);
     await verifyResultPassthrough(item);
   }
   await verifyRapidSequentialCommands();
-  console.log("Bloom product-action facade verification passed (all 31 grouped commands; exact transition delegation, caller facts, runtime-supplied current state, no-ops, acknowledgement passthrough, and rapid sequential commands).");
+  console.log("Bloom product-action facade verification passed (all 30 grouped commands; exact transition delegation, caller facts, runtime-supplied current state, no-ops, acknowledgement passthrough, and rapid sequential commands).");
   await verifyBloomProductActionsRuntime();
 }
 
@@ -211,8 +210,6 @@ function commandCases(): CommandCase[] {
   const resetActive = startResetFromBaselineState(accepted, baselineInput);
   const violationInput = { violationId: "caller-reset-violation", replacementAttemptId: "caller-replacement-attempt", occurredAt: shift(at, 3 * day + 234), recordedAt: shift(at, 3 * day + 1_345), source: { kind: "manual" as const, logActionId: "caller-reset-source" }, reason: "masturbationWithExplicitContent" as const, contentFreeViolationId: "caller-linked-content-violation" };
   const violated = recordActiveResetViolationState(resetActive, violationInput);
-  const resetPending = completeElapsedResetPeriodState(resetActive, { observedAt: shift(at, 15 * day + 567) });
-  const assessment = { id: "caller-assessment", resetJourneyId: "caller-reset-journey", resetAttemptId: "caller-reset-attempt", baselineId: "caller-baseline", completedAt: shift(at, 15 * day + 678), urgeIntensityChange: "notSure" as const, abilityToPauseChange: "same" as const, spontaneousErectionChange: "lessFrequent" as const, overallSexualResponseChange: "preferNotToSay" as const, readinessToRestartTracking: "notReady" as const };
   const enabled = enableMasturbationTrackingState(blank);
   const sessionBase = activateContentFreeState(enabled, { activationId: "caller-session-content", activatedAt: shift(at, -day) });
   const sessionInput = { sessionId: "caller-session", startedAt: at };
@@ -242,7 +239,6 @@ function commandCases(): CommandCase[] {
     command("reset.recordViolation", resetActive, recordActiveResetViolationState, (a) => a.reset.recordViolation, violationInput),
     command("reset.undoViolation", violated, undoActiveResetViolationState, (a) => a.reset.undoViolation, { violationId: violationInput.violationId, undoneAt: shift(at, 3 * day + 2_456) }),
     command("reset.completeElapsed", resetActive, completeElapsedResetPeriodState, (a) => a.reset.completeElapsed, { observedAt: shift(at, 15 * day + 567) }),
-    command("reset.completeAssessment", resetPending, completePostResetAssessmentState, (a) => a.reset.completeAssessment, assessment),
     command("tracking.enable", blank, enableMasturbationTrackingState, (a) => a.tracking.enable),
     command("tracking.disable", enabled, disableMasturbationTrackingState, (a) => a.tracking.disable),
     command("tracking.session.start", sessionBase, startMasturbationSessionState, (a) => a.tracking.session.start, sessionInput),

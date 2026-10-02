@@ -14,8 +14,6 @@ export type BloomProductFlowIntent =
       HomeActionPayload<"resumeUrgeControl">)
   | ({ flow: "resetCompletion" } &
       HomeActionPayload<"recordResetElapsedCompletion">)
-  | ({ flow: "resetAssessment" } &
-      HomeActionPayload<"completeResetAssessment">)
   | ({ flow: "resetBaseline" } &
       HomeActionPayload<"completeResetBaseline">)
   | ({ flow: "resetProgress" } & HomeActionPayload<"viewActiveReset">)
@@ -56,12 +54,6 @@ export function mapBloomHomeActionToFlowIntent(
         journeyId: action.journeyId,
         attemptId: action.attemptId,
         progress: action.progress
-      };
-    case "completeResetAssessment":
-      return {
-        flow: "resetAssessment",
-        journeyId: action.journeyId,
-        attemptId: action.attemptId
       };
     case "completeResetBaseline":
       return { flow: "resetBaseline", journeyId: action.journeyId };

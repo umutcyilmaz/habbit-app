@@ -8,7 +8,6 @@ export const bloomProductRoutePaths = {
   masturbationSessionFeedback: "/bloom/masturbation-session/feedback",
   urgeControlResume: "/bloom/urge-control/resume",
   resetCompletion: "/bloom/reset/completion",
-  resetAssessment: "/bloom/reset/assessment",
   resetBaseline: "/bloom/reset/baseline",
   resetProgress: "/bloom/reset/progress",
   startingRecommendation: "/bloom/starting-recommendation",
@@ -46,10 +45,6 @@ export type BloomProductRouteTarget =
       params: Pick<FlowIntent<"resetCompletion">, "journeyId" | "attemptId">;
     }
   | {
-      pathname: typeof bloomProductRoutePaths.resetAssessment;
-      params: Pick<FlowIntent<"resetAssessment">, "journeyId" | "attemptId">;
-    }
-  | {
       pathname: typeof bloomProductRoutePaths.resetBaseline;
       params: Pick<FlowIntent<"resetBaseline">, "journeyId">;
     }
@@ -80,8 +75,7 @@ export type BloomProductReadyRouteTarget = Extract<
       | typeof bloomProductRoutePaths.contentFree
       | typeof bloomProductRoutePaths.resetBaseline
       | typeof bloomProductRoutePaths.resetProgress
-      | typeof bloomProductRoutePaths.resetCompletion
-      | typeof bloomProductRoutePaths.resetAssessment;
+      | typeof bloomProductRoutePaths.resetCompletion;
   }
 >;
 

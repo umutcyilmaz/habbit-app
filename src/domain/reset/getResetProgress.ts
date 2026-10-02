@@ -18,7 +18,7 @@ export type ResetProgress = {
 // Null means the period has not started or a supplied timestamp is invalid.
 export function getResetProgress(resetJourney: ResetJourney, now: ISODateString): ResetProgress | null {
   if (!isCanonicalTimestamp(now)) return null;
-  if (resetJourney.status === "assessment_pending" || resetJourney.status === "completed") {
+  if (resetJourney.status === "completed") {
     return { completedDays: 15, currentDay: 15, isPeriodComplete: true, remainingDays: 0, remainingSeconds: 0 };
   }
   if (resetJourney.status !== "active") return null;

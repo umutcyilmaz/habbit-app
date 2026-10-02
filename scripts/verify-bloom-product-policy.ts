@@ -44,7 +44,7 @@ async function verifyToggleMatrix() {
     const allowed = ["inactive", "recommended", "completed"].includes(state.resetJourney.status);
     const on = enableMasturbationTrackingState(state);
     const off = disableMasturbationTrackingState(state);
-    if (enabled || !allowed) assert(on === state, "Already enabled or baseline/active/assessment-pending Reset must make manual enable an exact no-op.");
+    if (enabled || !allowed) assert(on === state, "Already enabled or baseline/active Reset must make manual enable an exact no-op.");
     else assertToggleOnly(state, on, true);
     if (!enabled) assert(off === state, "Already disabled Tracking must make manual disable an exact no-op.");
     else assertToggleOnly(state, off, false);
@@ -176,9 +176,9 @@ function statusStates(): BloomLocalState[] {
   const baseline: ResetJourney = { ...history, status: "baseline_pending", id: "policy-baseline" };
   const active = createActiveState(true, true);
   assert(active.resetJourney.status === "active", "Active Reset fixture required.");
-  const pending = completeElapsedResetPeriodState(active, { observedAt: shift(active.resetJourney.currentAttempt.startedAt, period) });
-  assert(pending.resetJourney.status === "assessment_pending", "Pending assessment fixture required.");
-  return [{ ...completed, resetJourney: inactive }, { ...completed, resetJourney: recommended }, { ...completed, resetJourney: baseline }, active, pending, completed];
+  const withoutAssessment = completeElapsedResetPeriodState(active, { observedAt: shift(active.resetJourney.currentAttempt.startedAt, period) });
+  assert(withoutAssessment.resetJourney.status === "completed" && !("assessment" in withoutAssessment.resetJourney), "Current completion fixture requires no assessment.");
+  return [{ ...completed, resetJourney: inactive }, { ...completed, resetJourney: recommended }, { ...completed, resetJourney: baseline }, active, withoutAssessment, completed];
 }
 function setCurrent(state: BloomLocalState, status: CurrentStatus) {
   state.masturbationTracking.currentSession = status === "none" ? null : status === "awaiting_feedback" ? createPopulatedState().masturbationTracking.currentSession : {

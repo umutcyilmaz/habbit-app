@@ -2,7 +2,7 @@ import { normalizeMasturbationTracking, normalizeResetJourney } from "./bloomPro
 import type { BloomLocalState } from "./bloomState";
 
 // Manual activation respects persisted Reset lifecycle, independently of the
-// event-time behavioral restriction. Assessment owns enabling its Reset path.
+// event-time behavioral restriction. Reset completion never enables Tracking.
 export function enableMasturbationTrackingState(state: BloomLocalState): BloomLocalState {
   try {
     const tracking = state.masturbationTracking;
@@ -16,7 +16,6 @@ export function enableMasturbationTrackingState(state: BloomLocalState): BloomLo
         return { ...state, masturbationTracking: { ...tracking, enabled: true } };
       case "baseline_pending":
       case "active":
-      case "assessment_pending":
       default:
         return state;
     }

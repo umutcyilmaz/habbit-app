@@ -74,9 +74,9 @@ type FinishedResetJourney = StartedResetJourney & {
 };
 
 // The active period lasts 15 elapsed days from the current attempt's start.
-// A later action records assessment_pending; a stale active status or pending
-// assessment cannot extend the period. New session starts use effective Reset
-// restriction at their supplied start time, based on the current attempt.
+// A later action records completion; a stale active status cannot extend the
+// period. New session starts use effective Reset restriction at their supplied
+// start time, based on the current attempt.
 export type ResetJourney = ResetJourneyHistory &
   (
     | { status: "inactive" }
@@ -86,9 +86,9 @@ export type ResetJourney = ResetJourneyHistory &
         status: "active";
         currentAttempt: ActiveResetAttempt;
       })
-    | (FinishedResetJourney & { status: "assessment_pending" })
     | (FinishedResetJourney & {
         status: "completed";
-        assessment: PostResetAssessment;
+        // Retained historical metadata; current completion collects no assessment.
+        assessment?: PostResetAssessment;
       })
   );

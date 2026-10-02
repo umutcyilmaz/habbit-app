@@ -91,7 +91,7 @@ function verifyRejectedStarts() {
   const completed = createPopulatedState().resetJourney;
   assert(completed.status === "completed", "Completed Reset fixture required.");
   const { assessment: _assessment, ...finished } = completed;
-  for (const reset of [createDefaultBloomState().resetJourney, { status: "recommended", id: "recommendation-only", durationDays: 15, bestCompletedDays: 0, pastAttempts: [], violations: [] } as const, active.resetJourney, { ...finished, status: "assessment_pending" } as const, completed]) {
+  for (const reset of [createDefaultBloomState().resetJourney, { status: "recommended", id: "recommendation-only", durationDays: 15, bestCompletedDays: 0, pastAttempts: [], violations: [] } as const, active.resetJourney, finished, completed]) {
     reject({ ...pending, resetJourney: reset as ResetJourney }, validInput(), `disallowed ${reset.status} source`);
   }
   for (const input of [null, [], "start", {}, { ...validInput(), resetAttemptId: undefined }, { ...validInput(), resetAttemptId: "" }, { ...validInput(), resetAttemptId: "   " }, { ...validInput(), resetAttemptId: 17 }, { ...validInput(), startedAt: "2026-02-30T12:00:00.000Z" }, { ...validInput(), startedAt: "2026-09-01" }, { ...validInput(), startedAt: "2026-09-01T12:00:00+00:00" }, { ...validInput(), startedAt: "2026-09-01T11:58:59.999Z" }]) {
@@ -138,7 +138,7 @@ function verifyElapsedProgress() {
   assert(lastMillisecond !== null && lastMillisecond.completedDays === 0 && lastMillisecond.currentDay === 1, "A partial 24-hour period must not round up into a completed day.");
   const midnight = getResetProgress(state.resetJourney, "2026-09-02T00:00:00.000Z");
   assert(midnight?.completedDays === 0, "Crossing midnight must not count a day before 24 elapsed hours.");
-  assert(JSON.stringify(state.resetJourney) === original && state.resetJourney.status === "active", "Progress selectors must neither mutate state nor persist assessment_pending at 15 days.");
+  assert(JSON.stringify(state.resetJourney) === original && state.resetJourney.status === "active", "Progress selectors must neither mutate state nor persist completion at 15 days.");
   for (const invalid of ["", "2026-02-30T12:00:00.000Z", "2026-09-02", "2026-09-02T12:00:00+00:00", 17, null]) {
     assert(getResetProgress(state.resetJourney, invalid as string) === null, "Invalid explicit current time must not create progress facts.");
   }
@@ -148,7 +148,7 @@ function verifyElapsedProgress() {
   const completed = createPopulatedState().resetJourney;
   assert(completed.status === "completed", "Finished selector fixture required.");
   const { assessment: _assessment, ...finished } = completed;
-  for (const reset of [completed, { ...finished, status: "assessment_pending" } as const]) {
+  for (const reset of [completed, finished]) {
     equal(getResetProgress(reset, startedAt), { completedDays: 15, currentDay: 15, isPeriodComplete: true, remainingDays: 0, remainingSeconds: 0 }, "Finished historical journeys remain fixed at 15 completed days.");
   }
   const restarted = createLegacyActiveState().resetJourney;
@@ -161,7 +161,7 @@ async function verifyNoAutomaticCompletion() {
   const active = startResetFromBaselineState(createBaselinePendingState(true), validInput());
   const original = JSON.stringify(active);
   const validation = validateAndNormalizeBloomState(active);
-  assert(validation.success && validation.state.resetJourney.status === "active", "Validation must not convert elapsed active Reset into assessment_pending.");
+  assert(validation.success && validation.state.resetJourney.status === "active", "Validation must not convert elapsed active Reset into completed.");
   const client = new ResetTestStorage();
   await persistBloomLocalState(active, client, now);
   const raw = client.values.get(BLOOM_STATE_STORAGE_KEY);

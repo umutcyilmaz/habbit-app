@@ -18,7 +18,6 @@ export function getResetRestrictionStatus(resetJourney: ResetJourney, at: ISODat
       case "inactive":
       case "recommended":
       case "baseline_pending":
-      case "assessment_pending":
       case "completed":
         return { isRestrictionActive: false, isElapsedPeriodComplete: false, needsCompletionTransition: false, progress: null };
       case "active": {

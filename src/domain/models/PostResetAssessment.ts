@@ -1,5 +1,6 @@
 import type { ISODateString, UUID } from "./shared";
 
+// Legacy persisted metadata only; the current Reset flow collects no assessment.
 export type PostResetAssessment = {
   id: UUID;
   resetJourneyId: UUID;

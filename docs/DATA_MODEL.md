@@ -18,7 +18,7 @@ Phase 1G adds active Reset violation/restart and linked Content-Free streak chan
 
 Phase 1H adds latest-violation undo, with linked Content-Free restoration in the same transaction. Persistence v7 retains Reset violations as recorded or undone tombstones and supports exact prior-best rollback for new logs.
 
-Phase 1I adds explicit elapsed completion and assessment submission using existing v7 shapes. The restriction ends at 15 full elapsed days; onboarding Tracking is enabled by assessment submission, independently of the readiness answer. No model or migration change is required.
+Phase 1I introduced elapsed completion followed by assessment submission. Phase 1V replaces that sequence with direct completion at 15 full elapsed days and optional historical assessment metadata. Completion preserves Tracking enablement; legacy pending records normalize within v7 without a version bump.
 
 Phase 1J adds the core Masturbation Session lifecycle and atomic session-derived Content-Free effects. Existing v7 shapes, the storage key, and migrations remain unchanged; no UI or legacy flow is connected.
 
@@ -62,7 +62,7 @@ The container in [`MasturbationTrackingState.ts`](../src/domain/models/Masturbat
 
 [`bloomMasturbationTrackingTransitions.ts`](../src/storage/bloomMasturbationTrackingTransitions.ts) defines `enableMasturbationTrackingState(state)` and `disableMasturbationTrackingState(state)`, re-exported from `bloomState.ts`. They change only the existing `enabled` Boolean and preserve `currentSession`, completed sessions, and every other slice. No timestamps, IDs, toggle history, or audit metadata are added. Invalid state and calls that already match the requested value are exact no-ops.
 
-Manual enable explicitly allows Reset `inactive`, `recommended`, and `completed`, while rejecting `baseline_pending`, `active`, and `assessment_pending`. An elapsed but still-active Reset remains blocked for manual enable so the toggle cannot bypass the assessment lifecycle. Future statuses must be handled explicitly. Disable is allowed regardless of Reset lifecycle and never discards unfinished work: `enabled: false` with an active or awaiting-feedback session is intentionally valid. Existing actions can still end that session, complete feedback, or explicitly discard an active physical session; no new session can start while disabled.
+Manual enable explicitly allows Reset `inactive`, `recommended`, and `completed`, while rejecting `baseline_pending` and `active`. An elapsed but still-active Reset retains the existing manual-enable guard until its explicit completion is recorded; completion itself never changes the preference. Future statuses must be handled explicitly. Disable is allowed regardless of Reset lifecycle and never discards unfinished work: `enabled: false` with an active or awaiting-feedback session is intentionally valid. Existing actions can still end that session, complete feedback, or explicitly discard an active physical session; no new session can start while disabled.
 
 ### Session transitions
 
@@ -79,7 +79,7 @@ These pure APIs are defined in [`bloomMasturbationTransitions.ts`](../src/storag
 
 Active session and pause timers derive from timestamps, with no ticking persisted counter or background mutation. Ending stores `floor((endedAt - startedAt) / 1000)` seconds. Session duration includes all pause time; it is never reduced by pause durations. Zero pauses and zero elapsed seconds are valid. Ending the physical session does not append completed history. Awaiting feedback survives close/reload and blocks another start until feedback is saved.
 
-Tracking permission is `enabled`, with no direct onboarding prerequisite. Effective Reset restriction at the supplied session `startedAt` blocks new starts before 15 elapsed days; exactly at/after the current attempt's boundary, stale persisted `active` status alone does not block them. Onboarding Tracking still remains disabled until assessment submission. Session start never advances Reset. Completing feedback for an existing session does not require Tracking to remain enabled. Session transitions do not fabricate Reset violations or repair inconsistent cross-feature history. Existing completed sessions are preserved in order; separate correction APIs own completed feedback edits and deletion.
+Tracking permission is `enabled`, with no direct onboarding prerequisite. Effective Reset restriction at the supplied session `startedAt` blocks new starts before 15 elapsed days; exactly at/after the current attempt's boundary, stale persisted `active` status alone does not block them. Disabled Tracking stays disabled until explicitly enabled; Reset completion never changes that preference. Session start never advances Reset. Completing feedback for an existing session does not require Tracking to remain enabled. Session transitions do not fabricate Reset violations or repair inconsistent cross-feature history. Existing completed sessions are preserved in order; separate correction APIs own completed feedback edits and deletion.
 
 ### Completed-session corrections
 
@@ -167,10 +167,9 @@ The new Reset is a 15-day journey. It is distinct from the legacy `TenDayResetSt
 | `recommended` | Reset has been suggested; the user has not begun preparation. |
 | `baseline_pending` | A pre-reset baseline still needs to be captured. |
 | `active` | An attempt has started; elapsed time determines whether its 15-day period remains underway. Explicit completion persists its end. |
-| `assessment_pending` | The 15-day attempt has ended and `completedAt` is present; assessment is outstanding and onboarding Tracking remains disabled. |
-| `completed` | The post-reset assessment has been recorded; successful submission enables Tracking. |
+| `completed` | The 15-day period and final completed attempt are recorded; `assessment` is optional historical metadata. |
 
-All journey states have `durationDays: 15`, `bestCompletedDays` (0 through 15), `pastAttempts`, and `violations`. Inactive state has no identity; `id` is required from `recommended` or `baseline_pending` onward. This is the minimal Phase 1B correction needed to avoid inventing a journey ID at installation. Started states additionally contain `startedAt`, the captured `baseline`, and `currentAttempt`. Both `assessment_pending` and `completed` require `bestCompletedDays: 15`. The `completed` state adds `assessment`.
+All journey states have `durationDays: 15`, `bestCompletedDays` (0 through 15), `pastAttempts`, and `violations`. Inactive state has no identity; `id` is required from `recommended` or `baseline_pending` onward. This is the minimal Phase 1B correction needed to avoid inventing a journey ID at installation. Started states additionally contain `startedAt`, the captured `baseline`, and `currentAttempt`. The `completed` state requires `bestCompletedDays: 15` and permits an optional legacy `assessment`; new completions omit it. `assessment_pending` is accepted only at the persistence compatibility boundary and normalizes to `completed`.
 
 An active attempt contains only `{ id, status: "active", startedAt }`. Its progress is derived from elapsed time and is never persisted as a mutable day counter. A restarted attempt retains historical `completedDays` from 0 through 14 with `endedAt` and `restartViolationId`. A completed attempt has `completedDays: 15` and `completedAt`. `pastAttempts` contains prior restarted/completed attempts and excludes `currentAttempt`. Attempt count can be derived from this history; it is not a separate counter. `bestCompletedDays` preserves historical best progress; it is not a cache of the active attempt's live progress.
 
@@ -180,7 +179,7 @@ Each `ResetViolation` has `id`, `attemptId`, `occurredAt`, `recordedAt`, the sha
 
 Its lifecycle is `{ status: "recorded" }` or `{ status: "undone", undoneAt }`. Recorded entries forbid `undoneAt`; undone timestamps must be canonical and at or after recording. Optional `bestCompletedDaysBefore` (0–15) preserves the exact prior historical summary. New logs always capture it; migrations leave it absent because old records did not own that fact. Both statuses retain their IDs and source identities for deduplication.
 
-Journey and final attempt `completedAt` identify the end of the 15-day Reset period. The assessment has its own submission timestamp. `assessment_pending` does not extend the behavioral restriction. In the onboarding Reset flow, Tracking remains disabled until assessment submission; all valid readiness answers then enable it.
+Journey and final attempt `completedAt` identify the end of the 15-day Reset period. Historical assessments retain their separate submission timestamp. Phase 1V changes `15 days → assessment_pending → assessment → completed` to `15 days → completed`; no new assessment is collected. The restriction ends at the same elapsed boundary and completion never changes Tracking enablement.
 
 Phase 1G violation behavior, before the current attempt's 15-day period is complete:
 
@@ -197,7 +196,7 @@ The session-start restriction and violation reporting serve different purposes: 
 
 [`recordActiveResetViolationState`](../src/storage/bloomResetTransitions.ts), also exported from `bloomState.ts`, accepts `{ violationId, replacementAttemptId, occurredAt, recordedAt, source, reason, contentFreeViolationId? }`. Time and identities come from the caller. The source is either `{ kind: "manual", logActionId }` or `{ kind: "masturbationSession", sessionId }`; the same source is retained on both records when the event affects both systems.
 
-The source journey must be valid and `active`. Timestamps are canonical, `recordedAt >= occurredAt`, and `occurredAt >= currentAttempt.startedAt`. `getResetProgress(resetJourney, occurredAt)` must report fewer than 15 completed days. At or after the 15-day boundary the entire transition returns the original state, without restarting Reset or changing Content-Free. The event time controls this boundary, rather than when the event is recorded; no completion or assessment transition runs.
+The source journey must be valid and `active`. Timestamps are canonical, `recordedAt >= occurredAt`, and `occurredAt >= currentAttempt.startedAt`. `getResetProgress(resetJourney, occurredAt)` must report fewer than 15 completed days. At or after the 15-day boundary the entire transition returns the original state, without restarting Reset or changing Content-Free. The event time controls this boundary, rather than when the event is recorded; no completion transition runs.
 
 The old attempt is appended to `pastAttempts` as `restarted`, retaining its ID/start and adding `endedAt: occurredAt`, derived `completedDays` (0–14), and `restartViolationId: violationId`. Exactly one recorded Reset violation references that old attempt and captures `bestCompletedDaysBefore`. The replacement is `{ id: replacementAttemptId, status: "active", startedAt: occurredAt }`, with no persisted live day count. The journey remains active and retains its ID, original `startedAt`, baseline, duration, and history. `bestCompletedDays` becomes the maximum of its previous value and the archived attempt's derived progress.
 
@@ -225,7 +224,7 @@ Both restored slices are validated before one snapshot is returned. Sequential b
 
 Before 24 hours it reports 0 completed days / Day 1; at 24 hours, 1 / Day 2; at 14 days, 14 / Day 15. At or after 15 full days it reports 15 completed days, Day 15, and `isPeriodComplete: true`. Future start times clamp to zero elapsed progress. `remainingDays` counts full or partial days rounded up; `remainingSeconds` preserves subsecond precision. Finished states report their fixed 15-day completion.
 
-Users do not manually complete days. Calling the selector, validating, loading, or hydrating never changes status, historical best progress, or any stored fact. An elapsed period cannot be extended by a stale `active` status or an unanswered assessment. The application must explicitly call the completion transition to persist its end. Session starts and standalone Content-Free logging use shared effective restriction at their supplied event times.
+Users do not manually complete days. Calling the selector, validating, loading, or hydrating never finishes an active journey or changes its best progress. Hydration only normalizes already-finished legacy `assessment_pending` records to `completed`. An elapsed period cannot be extended by a stale `active` status. The application must explicitly call the completion transition to persist its end. Session starts and standalone Content-Free logging use shared effective restriction at their supplied event times.
 
 ### Product policy read models
 
@@ -241,15 +240,15 @@ Users do not manually complete days. Calling the selector, validating, loading, 
 
 [`getMasturbationTrackingAvailability(state, at)`](../src/domain/productPolicy/getMasturbationTrackingAvailability.ts) returns `{ enabled, currentSessionStatus, canStartSession, blockReason, resetRestriction }`, with the shared policy result included. `currentSessionStatus` is `none`, `active`, or `awaiting_feedback`. Start-block precedence is `trackingDisabled`, then `activeSession`, then `awaitingFeedback`, then `resetRestriction`, otherwise null. `canStartSession` is true only for the null case: enabled Tracking, no unfinished session, and no effective restriction. Invalid time or policy returns null rather than guessing a capability.
 
-An elapsed active Reset can report `needsCompletionTransition: true` while availability still reports `trackingDisabled`, as in the normal onboarding assessment path. These selectors accept plain models/state and produce facts only, with no React, storage, routing, provider, or Home-priority behavior. Reads never persist derived fields or automatically advance a lifecycle.
+An elapsed active Reset can report `needsCompletionTransition: true` while availability still reports `trackingDisabled`, when Tracking is manually disabled or has never been enabled. These selectors accept plain models/state and produce facts only, with no React, storage, routing, provider, or Home-priority behavior. Reads never persist derived fields or automatically advance a lifecycle.
 
 ### Completing the elapsed period
 
 [`completeElapsedResetPeriodState(state, { observedAt })`](../src/storage/bloomResetTransitions.ts), also exported from `bloomState.ts`, requires a valid active journey and a supplied canonical observation timestamp. `getResetProgress(resetJourney, observedAt)` must report `isPeriodComplete: true` and 15 completed days. Invalid, early, or wrong-lifecycle calls return the original state.
 
-The completion timestamp is derived from `currentAttempt.startedAt + 15 * 24 hours`, never from a late `observedAt` or a calendar-day boundary. The journey becomes `assessment_pending` with `bestCompletedDays: 15` and that `completedAt`. Its current attempt retains the same ID/start and becomes `{ status: "completed", completedDays: 15, completedAt }`; it remains `currentAttempt` rather than also entering `pastAttempts`. Original journey identity/start, baseline, previous attempts, and violation tombstones are preserved.
+The completion timestamp is derived from `currentAttempt.startedAt + 15 * 24 hours`, never from a late `observedAt` or a calendar-day boundary. The journey becomes `completed` with `bestCompletedDays: 15` and that `completedAt`. Its current attempt retains the same ID/start and becomes `{ status: "completed", completedDays: 15, completedAt }`; it remains `currentAttempt` rather than also entering `pastAttempts`. Original journey identity/start, baseline, previous attempts, and violation tombstones are preserved.
 
-This transition changes only `resetJourney`. It creates no assessment and does not enable Tracking, so the onboarding path remains disabled while assessment is pending. Content-Free and all other slices retain their original references. Repeating completion cannot replace the completion time. The new transition writes the exact elapsed boundary; persisted validation retains its existing structural and temporal checks without rewriting older valid completion timestamps.
+This transition changes only `resetJourney`. It creates no assessment and preserves the entire Tracking slice, including its manual enabled/disabled preference and any unfinished session. Content-Free and all other slices retain their original references. Repeating completion cannot replace the completion time. The new transition writes the exact elapsed boundary; persisted validation retains its existing structural and temporal checks without rewriting older valid completion timestamps.
 
 ## ResetBaseline
 
@@ -281,11 +280,11 @@ The transition changes only `resetJourney` to `active`, preserving its ID, 15-da
 
 Invalid inputs, partially started source shapes, and every status other than `baseline_pending` return the original state. Repeating a start cannot replace the baseline, attempt, or journey identity. Onboarding acceptance, Tracking, Content-Free, Urge Control, and every legacy slice retain their original references. Starting Reset neither enables Tracking nor changes a Content-Free activation already underway.
 
-## PostResetAssessment
+## Historical PostResetAssessment
 
 Source: [`PostResetAssessment.ts`](../src/domain/models/PostResetAssessment.ts).
 
-A `PostResetAssessment` has `id`, `resetJourneyId`, `resetAttemptId`, `baselineId`, and its own `completedAt` submission timestamp. It records the user's comparison with that baseline after Reset:
+An optional historical `PostResetAssessment` has `id`, `resetJourneyId`, `resetAttemptId`, `baselineId`, and its own `completedAt` submission timestamp. It records the user's comparison with that baseline after Reset:
 
 | Field | Values |
 | --- | --- |
@@ -295,13 +294,13 @@ A `PostResetAssessment` has `id`, `resetJourneyId`, `resetAttemptId`, `baselineI
 | `overallSexualResponseChange` | `worse`, `same`, `better`, `notSure`, `preferNotToSay` |
 | `readinessToRestartTracking` | `ready`, `notReady`, `notSure` |
 
-The answers describe perceived change and allow uncertainty. Readiness is a self-report, not an eligibility flag. Assessment submission enables onboarding Tracking for `ready`, `notReady`, and `notSure`; an unanswered assessment leaves that setting disabled without extending the Reset period. Submission cannot alter its completion timestamp.
+The historical answers describe perceived change and allow uncertainty. Readiness is a self-report, not an eligibility flag. Phase 1V preserves these values without exposing a submission command or changing Tracking enablement.
 
-### Submitting the assessment
+### Persistence compatibility
 
-[`completePostResetAssessmentState(state, assessment)`](../src/storage/bloomResetTransitions.ts), also exported from `bloomState.ts`, accepts only a valid `assessment_pending` journey. The assessment must have a valid nonempty ID, valid existing enum answers, and exact references to the journey ID, current completed attempt ID, and baseline ID. Its canonical `completedAt` must be at or after the journey's period completion time; equality is allowed. Mismatches are rejected rather than corrected.
+`normalizeResetJourney` accepts valid legacy `assessment_pending` records, applies the existing finished-attempt, timestamp, baseline, best-progress, and history checks, and returns the equivalent `completed` journey without an assessment. Existing v7 validation reports `wasNormalized`, and loading reports `needsPersist`, making the result eligible for the existing writeback mechanism. No current transition produces `assessment_pending`.
 
-The transition validates and copies the assessment, moves Reset to `completed`, and sets `masturbationTracking.enabled = true` for every readiness answer. It requires `currentSession === null`; an unexpected unfinished session or any other invalid input leaves the entire state unchanged. It preserves session history, the final completed attempt, both Reset completion timestamps, baseline, best progress, prior attempts, and all violations/tombstones. Content-Free, onboarding, Urge Control, and every legacy slice are unchanged. No session is created, and a repeated submission cannot replace the stored assessment or its timestamp.
+Completed journeys may omit `assessment`. When present, it must still have a valid nonempty ID, known enum answers, exact journey/attempt/baseline references, and a canonical submission time at or after period completion. Invalid assessment data is rejected rather than removed. Historical completion times are preserved under the existing structural and temporal checks; hydration does not recalculate them from today's clock or impose new duration arithmetic. Unrelated product and legacy slices remain semantically unchanged. Persistence remains version 7 at `bloom.localState.v7`, with existing older-version migrations intact.
 
 These facts support later descriptive reports; no clinical interpretation is derived. Report generation, post-Reset session comparison, and tracking-based Reset recommendations remain outside this phase.
 
@@ -425,7 +424,7 @@ The structural validator in [`validation.ts`](../src/domain/onboarding/validatio
 
 All paths require a completed, valid result with null acceptance, an inactive Reset journey, and no unfinished masturbation session. Non-tracking recommendations additionally require Tracking already disabled, preventing acceptance from turning off an existing system. Tracking acceptance may retain an already-enabled setting. Content-Free must be inactive only when this action activates it; otherwise its existing state is untouched. New activation IDs cannot repeat a past activation ID, and activation time cannot overlap past activation boundaries. Histories, best streak/progress, and unchanged slice references are preserved.
 
-Reset preparation adds only its journey ID and `baseline_pending` status to the preserved 15-day history. Acceptance creates no `startedAt`, baseline, attempt, completion, or assessment. The period begins through the separate baseline transition; Tracking is enabled after post-reset assessment submission. Content-Free starts its activation and streak at `acceptedAt`, without a violation or masturbation restriction, and continues independently through both completion transitions. Urge Control and every legacy slice are unchanged.
+Reset preparation adds only its journey ID and `baseline_pending` status to the preserved 15-day history. Acceptance creates no `startedAt`, baseline, attempt, completion, or assessment. The period begins through the separate baseline transition; completion preserves Tracking enablement. Content-Free starts its activation and streak at `acceptedAt`, without a violation or masturbation restriction, and continues independently through Reset completion. Urge Control and every legacy slice are unchanged.
 
 The transition returns one atomic snapshot containing the product changes and `{ acceptedAt, recommendation }` acceptance. Invalid inputs or conflicting state return the original state. Repeated acceptance returns the original accepted state before inspecting new inputs, preventing duplicate identities or replacement timestamps. The saved scoring result remains the same historical object and is never rescored.
 
@@ -445,7 +444,6 @@ It composes `getMasturbationTrackingAvailability`, `getContentFreeProgress`, and
 | Current session awaiting feedback | `finishMasturbationSessionFeedback` | `sessionId` |
 | Active Urge Control event | `resumeUrgeControl` | `eventId`, selector `stage` |
 | Active Reset whose period has elapsed | `recordResetElapsedCompletion` | `journeyId`, `attemptId`, existing `progress` |
-| Reset assessment pending | `completeResetAssessment` | `journeyId`, `attemptId` |
 | Reset baseline pending | `completeResetBaseline` | `journeyId` |
 | Active Reset still effectively restricted | `viewActiveReset` | `journeyId`, `attemptId`, existing `progress` |
 | Completed product onboarding with null acceptance | `reviewStartingRecommendation` | Stored `recommendation` |
@@ -453,7 +451,7 @@ It composes `getMasturbationTrackingAvailability`, `getContentFreeProgress`, and
 | Primary Tracking tracker can start | `startMasturbationSession` | None |
 | Content-Free is the primary tracker | `viewContentFree` | None |
 
-Unfinished session work has priority even over conflicting feature states, with active Urge Control next. Exactly at/after 15 elapsed days, still-active Reset requests explicit completion persistence, not an active-restriction view or session-start action. It never calls `completeElapsedResetPeriodState`. An assessment action does not assert continued restriction; baseline pending does not assert Reset has started. The stored onboarding recommendation is never rescored and takes precedence over recommended Reset. Not-completed product onboarding alone generates no action, preserving the migration boundary until later entry/routing integration.
+Unfinished session work has priority even over conflicting feature states, with active Urge Control next. Exactly at/after 15 elapsed days, still-active Reset requests explicit completion persistence, not an active-restriction view or session-start action. It never calls `completeElapsedResetPeriodState`. Home never requests a post-reset assessment; legacy pending records normalize before reaching the current model. Baseline pending does not assert Reset has started. The stored onboarding recommendation is never rescored and takes precedence over recommended Reset. Not-completed product onboarding alone generates no action, preserving the migration boundary until later entry/routing integration.
 
 Tracker summaries use `kind` as their discriminant: `{ kind: "masturbationTracking", availability, completedSessionCount }` or `{ kind: "contentFree", progress }`, where Content-Free progress is the existing active result. Enabled Tracking is always primary; active Content-Free then becomes secondary. With Tracking disabled, active Content-Free becomes primary and secondary is null. With neither enabled/active, both trackers are null. These roles follow current feature facts, never legacy plan identity or recommendation ownership.
 
@@ -479,7 +477,7 @@ urgeControl
 productOnboarding
 ```
 
-[`bloomStateSchema.ts`](../src/storage/bloomStateSchema.ts) now validates version 7. The loader prefers `bloom.localState.v7`, then v6 through v1. V6 preserves all valid state and adds `status: "recorded"` to Reset violations; old schemas could not record undo. Migration does not invent `undoneAt` or prior-best rollback metadata, or import later-looking fields as those facts. V3–v5 violations receive the same correction. V3–v5 active attempts also retain the earlier validated removal of obsolete `completedDays`. All existing start times, historical progress, and onboarding acceptance remain unchanged. Loading, validation, and migration never automatically undo or complete anything.
+[`bloomStateSchema.ts`](../src/storage/bloomStateSchema.ts) now validates version 7. The loader prefers `bloom.localState.v7`, then v6 through v1. V6 preserves all valid state and adds `status: "recorded"` to Reset violations; old schemas could not record undo. Migration does not invent `undoneAt` or prior-best rollback metadata, or import later-looking fields as those facts. V3–v5 violations receive the same correction. V3–v5 active attempts also retain the earlier validated removal of obsolete `completedDays`. All existing start times, historical progress, and onboarding acceptance remain unchanged. Loading, validation, and migration never undo violations or finish active attempts. Phase 1V only normalizes already-finished legacy `assessment_pending` journeys to `completed`, preserving their completion facts.
 
 V4 still adds only `planAcceptance: null` to completed onboarding; not-completed state stays unchanged. Acceptance is never inferred from feature state or imported from a later-looking v4 field. V3 preserves legacy and Phase 1B slices and adds the not-completed onboarding default. V2 and supported raw legacy payloads retain the legacy slices and receive safe product defaults. Each migration writes directly to v7, removing its source key only after the write succeeds. Failed writes preserve the source. Corrupt/future payload preservation and lifecycle guarantees remain intact. Delete-all covers v1–v7 and Bloom corrupt backups.
 

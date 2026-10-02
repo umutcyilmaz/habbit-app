@@ -22,15 +22,20 @@ type ReadyRoutePath =
   | typeof bloomProductRoutePaths.contentFree
   | typeof bloomProductRoutePaths.resetBaseline
   | typeof bloomProductRoutePaths.resetProgress
-  | typeof bloomProductRoutePaths.resetCompletion
-  | typeof bloomProductRoutePaths.resetAssessment;
+  | typeof bloomProductRoutePaths.resetCompletion;
 type ReadyRouteContract = Assert<Equal<
   Extract<BloomProductRouteDestination, { status: "ready" }>["destination"]["pathname"],
   ReadyRoutePath
 >>;
 type PendingRouteContract = Assert<Equal<
   Extract<BloomProductRouteDestination, { status: "featurePending" }>["destination"]["pathname"],
-  Exclude<BloomProductRouteTarget["pathname"], ReadyRoutePath>
+  | typeof bloomProductRoutePaths.urgeControlResume
+  | typeof bloomProductRoutePaths.startingRecommendation
+  | typeof bloomProductRoutePaths.resetRecommendation
+>>;
+type AssessmentRouteRemoved = Assert<Equal<
+  Extract<BloomProductRouteTarget, { pathname: "/bloom/reset/assessment" }>,
+  never
 >>;
 
 type FlowIntentKey<Intent extends BloomProductFlowIntent> =
@@ -49,7 +54,6 @@ type RouteCases = {
       | "resetBaseline"
       | "resetProgress"
       | "resetCompletion"
-      | "resetAssessment"
       ? "ready"
       : "featurePending";
   };
@@ -128,21 +132,6 @@ const cases = {
       }
     }
   },
-  resetAssessment: {
-    status: "ready",
-    intent: {
-      flow: "resetAssessment",
-      journeyId: "route-assessment-journey",
-      attemptId: "route-assessment-attempt"
-    },
-    target: {
-      pathname: "/bloom/reset/assessment",
-      params: {
-        journeyId: "route-assessment-journey",
-        attemptId: "route-assessment-attempt"
-      }
-    }
-  },
   resetBaseline: {
     status: "ready",
     intent: { flow: "resetBaseline", journeyId: "route-baseline-journey" },
@@ -194,6 +183,12 @@ const cases = {
 } satisfies RouteCases;
 
 export function verifyBloomProductRoutes() {
+  assert(
+    Object.values(cases).filter((testCase) => testCase.status === "ready").length === 7 &&
+      Object.values(cases).filter((testCase) => testCase.status === "featurePending").length === 3 &&
+      !("resetAssessment" in bloomProductRoutePaths),
+    "Exactly seven routes remain ready and three remain pending; assessment is absent from the current route contract."
+  );
   for (const testCase of Object.values(cases)) {
     const intent = testCase.intent;
     if ("progress" in intent) Object.freeze(intent.progress);
@@ -232,7 +227,7 @@ export function verifyBloomProductRoutes() {
   verifyNavigationExecution();
   verifyNamespaceAndDependencies();
   console.log(
-    "Bloom product-route verification passed (eight ready session/Content-Free/Reset routes, three pending destinations, navigation execution, and legacy isolation)."
+    "Bloom product-route verification passed (seven ready session/Content-Free/Reset routes, three pending destinations, no assessment route, navigation execution, and legacy isolation)."
   );
 }
 
@@ -319,7 +314,7 @@ function verifyNamespaceAndDependencies() {
       ) &&
       isDeepStrictEqual(
         readdirSync(resolve("app/bloom/reset")).sort(),
-        ["assessment.tsx", "baseline.tsx", "completion.tsx", "progress.tsx"]
+        ["baseline.tsx", "completion.tsx", "progress.tsx"]
       ),
     "Exactly the session, Content-Free, and core Reset routes must exist; recommendation and Urge Control routes remain deferred."
   );
@@ -330,8 +325,7 @@ function verifyNamespaceAndDependencies() {
     ["app/bloom/content-free.tsx", "content-free"],
     ["app/bloom/reset/baseline.tsx", "reset"],
     ["app/bloom/reset/progress.tsx", "reset"],
-    ["app/bloom/reset/completion.tsx", "reset"],
-    ["app/bloom/reset/assessment.tsx", "reset"]
+    ["app/bloom/reset/completion.tsx", "reset"]
   ] as const) {
     const entry = readFileSync(
       resolve(file),

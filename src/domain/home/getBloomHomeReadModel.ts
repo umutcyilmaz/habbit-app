@@ -28,7 +28,6 @@ export type BloomHomeAction =
   | { id: "finishMasturbationSessionFeedback"; sessionId: UUID }
   | { id: "resumeUrgeControl"; eventId: UUID; stage: UrgeControlProgress["stage"] }
   | { id: "recordResetElapsedCompletion"; journeyId: UUID; attemptId: UUID; progress: ResetProgress }
-  | { id: "completeResetAssessment"; journeyId: UUID; attemptId: UUID }
   | { id: "completeResetBaseline"; journeyId: UUID }
   | { id: "viewActiveReset"; journeyId: UUID; attemptId: UUID; progress: ResetProgress }
   | { id: "reviewStartingRecommendation"; recommendation: OnboardingRecommendation }
@@ -110,7 +109,6 @@ function getPrimaryAction(
   if (reset.status === "active" && restriction.needsCompletionTransition && restriction.progress !== null) {
     return { id: "recordResetElapsedCompletion", journeyId: reset.id, attemptId: reset.currentAttempt.id, progress: restriction.progress };
   }
-  if (reset.status === "assessment_pending") return { id: "completeResetAssessment", journeyId: reset.id, attemptId: reset.currentAttempt.id };
   if (reset.status === "baseline_pending") return { id: "completeResetBaseline", journeyId: reset.id };
   if (reset.status === "active" && restriction.isRestrictionActive && restriction.progress !== null) {
     return { id: "viewActiveReset", journeyId: reset.id, attemptId: reset.currentAttempt.id, progress: restriction.progress };

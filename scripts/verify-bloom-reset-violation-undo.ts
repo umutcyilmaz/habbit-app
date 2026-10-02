@@ -201,7 +201,7 @@ function verifyUnsafeUndo() {
   const completed = createPopulatedState().resetJourney;
   assert(completed.status === "completed", "Completed Reset fixture required.");
   const { assessment: _assessment, ...finished } = completed;
-  for (const reset of [createDefaultBloomState().resetJourney, { status: "recommended", id: "recommended", durationDays: 15, bestCompletedDays: 0, pastAttempts: [], violations: [] } as const, { status: "baseline_pending", id: "pending", durationDays: 15, bestCompletedDays: 0, pastAttempts: [], violations: [] } as const, { ...finished, status: "assessment_pending" } as const, completed]) {
+  for (const reset of [createDefaultBloomState().resetJourney, { status: "recommended", id: "recommended", durationDays: 15, bestCompletedDays: 0, pastAttempts: [], violations: [] } as const, { status: "baseline_pending", id: "pending", durationDays: 15, bestCompletedDays: 0, pastAttempts: [], violations: [] } as const, finished, completed]) {
     reject({ ...logged, resetJourney: reset as ResetJourney }, undo, `wrong lifecycle ${reset.status}`);
   }
   for (const [path, value, remove] of [

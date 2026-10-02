@@ -5,6 +5,7 @@ import { getResetProgress } from "../src/domain/reset/getResetProgress";
 import { getUrgeControlProgress } from "../src/domain/urgeControl/getUrgeControlProgress";
 import { scoreBloomOnboarding } from "../src/domain/onboarding/scoreBloomOnboarding";
 import { completeElapsedResetPeriodState, createDefaultBloomState, recordActiveResetViolationState, type BloomLocalState } from "../src/storage/bloomState";
+import { validateAndNormalizeBloomState } from "../src/storage/bloomStateSchema";
 import { createPopulatedState } from "./verify-bloom-product-persistence";
 import { createActiveState } from "./verify-bloom-reset-violations";
 import { verifyBloomHomeComposition } from "./verify-bloom-home-composition";
@@ -22,6 +23,7 @@ export async function verifyBloomHome() {
   const sessionCases = verifyUnfinishedSessionPriority(priorities);
   const urgeCases = verifyUrgePriorityAndResume(priorities);
   verifyCurrentAttemptBoundaries();
+  verifyCompletedResetPriority();
   verifyStoredRecommendations();
   console.log(`Bloom Home priority verification passed (${priorities.length} action cases; ${sessionCases} session precedence combinations; ${urgeCases} Urge precedence/stage combinations; elapsed Reset completion and stored recommendation identity).`);
   await verifyBloomHomeComposition();
@@ -48,8 +50,8 @@ function priorityCases(): PriorityCase[] {
   const baseline = clone(tracking);
   baseline.resetJourney = { ...createDefaultBloomState().resetJourney, status: "baseline_pending", id: "home-baseline-reset" };
   setRecommendation(baseline, "reset_and_content_free");
-  const pending = completeElapsedResetPeriodState(active, { observedAt: elapsedAt });
-  assert(pending.resetJourney.status === "assessment_pending", "Assessment-pending fixture required.");
+  const completed = completeElapsedResetPeriodState(active, { observedAt: elapsedAt });
+  assert(completed.resetJourney.status === "completed", "Completed Reset fixture required.");
   return [
     { label: "notCompleted product onboarding alone must not force onboarding or generic support", state: idle, clock: at, action: null },
     { label: "startable Tracking supplies the ordinary action", state: tracking, clock: at, action: { id: "startMasturbationSession" } },
@@ -58,9 +60,29 @@ function priorityCases(): PriorityCase[] {
     { label: "unaccepted stored onboarding recommendation outranks Reset recommendation and trackers", state: startingRecommendation, clock: at, action: { id: "reviewStartingRecommendation", recommendation: "masturbation_tracking" } },
     { label: "effective active Reset outranks unaccepted recommendation and enabled Tracking", state: active, clock: activeAt, action: { id: "viewActiveReset", journeyId: active.resetJourney.id, attemptId: active.resetJourney.currentAttempt.id, progress: activeProgress } },
     { label: "baseline preparation outranks unaccepted recommendation and trackers", state: baseline, clock: at, action: { id: "completeResetBaseline", journeyId: "home-baseline-reset" } },
-    { label: "pending assessment outranks unaccepted recommendation and trackers", state: pending, clock: elapsedAt, action: { id: "completeResetAssessment", journeyId: pending.resetJourney.id, attemptId: pending.resetJourney.currentAttempt.id } },
+    { label: "completed Reset yields to unaccepted recommendation without an assessment action", state: completed, clock: elapsedAt, action: { id: "reviewStartingRecommendation", recommendation: "content_free" } },
     { label: "exact Day 15 requests explicit lifecycle persistence before recommendation or tracker actions", state: active, clock: elapsedAt, action: { id: "recordResetElapsedCompletion", journeyId: active.resetJourney.id, attemptId: active.resetJourney.currentAttempt.id, progress: elapsedProgress } }
   ];
+}
+
+function verifyCompletedResetPriority() {
+  const active = clearWork(createActiveState(true, true));
+  assert(active.resetJourney.status === "active", "Active Reset fixture required.");
+  const completedAt = shift(active.resetJourney.currentAttempt.startedAt, period);
+  const completed = completeElapsedResetPeriodState(active, { observedAt: shift(completedAt, day) });
+  assert(completed.resetJourney.status === "completed", "Elapsed completion must produce completed Reset directly.");
+  const legacyPending = {
+    ...completed,
+    resetJourney: { ...completed.resetJourney, status: "assessment_pending" }
+  };
+  const normalized = validateAndNormalizeBloomState(legacyPending);
+  assert(normalized.success && normalized.wasNormalized && normalized.state.resetJourney.status === "completed", "Legacy pending assessment must normalize to completed before current Home reads it.");
+  for (const source of [completed, normalized.state]) for (const enabled of [false, true]) {
+    const state = clone(source);
+    state.masturbationTracking.enabled = enabled;
+    const model = expectAction(state, completedAt, enabled ? { id: "startMasturbationSession" } : { id: "viewContentFree" }, "Completed Reset must use ordinary Home priorities without requiring an assessment");
+    assert(!model.trackingAvailability.resetRestriction.isRestrictionActive && model.trackingAvailability.enabled === enabled, "Completed Home state must preserve manual Tracking preference and end Reset restriction.");
+  }
 }
 
 function verifyUnfinishedSessionPriority(cases: PriorityCase[]) {

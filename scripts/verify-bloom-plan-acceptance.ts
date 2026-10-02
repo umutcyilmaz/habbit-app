@@ -370,13 +370,13 @@ function createInactiveHistoryState(): BloomLocalState {
 function nonInactiveResetStates(): ResetJourney[] {
   const populated = createPopulatedState().resetJourney;
   assert(populated.status === "completed", "Completed Reset fixture required.");
-  const { assessment: _assessment, ...assessmentPending } = populated;
-  const { completedAt: _completedAt, currentAttempt: _currentAttempt, ...started } = assessmentPending;
+  const { assessment: _assessment, ...withoutAssessment } = populated;
+  const { completedAt: _completedAt, currentAttempt: _currentAttempt, ...started } = withoutAssessment;
   return [
     { status: "recommended", id: "existing-reset", durationDays: 15, bestCompletedDays: 0, pastAttempts: [], violations: [] },
     { status: "baseline_pending", id: "existing-reset", durationDays: 15, bestCompletedDays: 0, pastAttempts: [], violations: [] },
     { ...started, status: "active", currentAttempt: { id: "attempt-current", status: "active", startedAt: "2026-02-03T10:10:00.000Z" } },
-    { ...assessmentPending, status: "assessment_pending" }, populated
+    withoutAssessment, populated
   ];
 }
 

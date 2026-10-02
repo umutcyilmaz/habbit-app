@@ -354,7 +354,7 @@ async function verifyMalformedProductRecords() {
   for (const invalid of [-1, 16, 1.5]) bad(`invalid best Reset progress ${invalid}`, "resetJourney.bestCompletedDays", invalid);
   missing("started Reset missing baseline", "resetJourney.baseline");
   missing("finished Reset missing completion", "resetJourney.completedAt");
-  missing("completed Reset missing assessment", "resetJourney.assessment");
+  bad("malformed historical assessment", "resetJourney.assessment", null);
   bad("active attempt carries a persisted counter", "resetJourney.currentAttempt.completedDays", 0, active);
   bad("completed attempt claiming 14", "resetJourney.currentAttempt.completedDays", 14);
   bad("current Reset attempt in wrong lifecycle", "resetJourney.currentAttempt.status", "restarted");
@@ -418,7 +418,7 @@ function createValidLifecycleStates(): Array<[string, BloomLocalState]> {
       ...populated.masturbationTracking,
       currentSession: { id: "session-active", status: "active", startedAt: "2026-03-01T10:00:00.000Z", pauses: [{ status: "active", startedAt: "2026-03-01T10:02:00.000Z" }] }
     } }],
-    ["assessment pending Reset", { ...populated, resetJourney: { ...pending, status: "assessment_pending" } }],
+    ["completed Reset without historical assessment", { ...populated, resetJourney: pending }],
     ["completed Reset and awaiting feedback", populated]
   ];
   const inactiveContent: ContentFreeState = {

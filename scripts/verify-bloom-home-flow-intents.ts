@@ -8,6 +8,14 @@ import {
 } from "../src/app/flows/mapBloomHomeActionToFlowIntent";
 import type { BloomHomeAction } from "../src/domain/home/getBloomHomeReadModel";
 
+type Assert<Condition extends true> = Condition;
+type AssessmentHomeActionRemoved = Assert<
+  Extract<BloomHomeAction, { id: "completeResetAssessment" }> extends never ? true : false
+>;
+type AssessmentFlowIntentRemoved = Assert<
+  Extract<BloomProductFlowIntent, { flow: "resetAssessment" }> extends never ? true : false
+>;
+
 type HomeActionCases = {
   [ActionId in BloomHomeAction["id"]]: {
     action: Extract<BloomHomeAction, { id: ActionId }>;
@@ -79,18 +87,6 @@ const cases = {
       journeyId: "flow-elapsed-journey",
       attemptId: "flow-elapsed-attempt",
       progress: completedProgress
-    }
-  },
-  completeResetAssessment: {
-    action: {
-      id: "completeResetAssessment",
-      journeyId: "flow-assessment-journey",
-      attemptId: "flow-assessment-attempt"
-    },
-    expected: {
-      flow: "resetAssessment",
-      journeyId: "flow-assessment-journey",
-      attemptId: "flow-assessment-attempt"
     }
   },
   completeResetBaseline: {
@@ -177,7 +173,7 @@ export function verifyBloomHomeFlowIntents() {
 
   verifyMappingDependencies();
   console.log(
-    "Bloom Home flow-intent verification passed (all 11 actions, exact payloads, frozen/deterministic mapping, and dependency isolation)."
+    "Bloom Home flow-intent verification passed (all 10 current actions, no assessment action or intent, exact payloads, frozen/deterministic mapping, and dependency isolation)."
   );
 }
 

@@ -35,7 +35,8 @@ type FlowCase = {
 export async function verifyBloomProductFlowActions() {
   const cases = flowCases();
   const paths = new Set(cases.map((item) => item.path));
-  assert(paths.size === 31, "Every new-product command must have a flow/preparation or direct-alias verification case.");
+  assert(paths.size === 30, "Every new-product command must have a flow/preparation or direct-alias verification case.");
+  assert(!("completeAssessment" in recordingHarness().flow.reset), "The current flow API must not expose a Reset assessment command.");
   for (const [index, item] of cases.entries()) await verifyPreparedInputs(item, index);
   verifyDefaultIdConvention();
   await verifyFreshInvocationFacts();
@@ -43,7 +44,7 @@ export async function verifyBloomProductFlowActions() {
   await verifyNoOpAndRuntimeBlocks();
   verifyIsolation();
   assert(BLOOM_PERSISTENCE_VERSION === 7 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v7", "Flow integration must preserve the established v7 persistence contract.");
-  console.log(`Bloom product flow-action verification passed (all 31 paths; ${cases.length} exact-input cases; one-time mechanical facts, direct aliases, semantic passthrough, real runtime retry/no-op/lifecycle safety, and v7 isolation).`);
+  console.log(`Bloom product flow-action verification passed (all 30 paths; ${cases.length} exact-input cases; one-time mechanical facts, direct aliases, semantic passthrough, real runtime retry/no-op/lifecycle safety, and v7 isolation).`);
 }
 
 async function verifyPreparedInputs(item: FlowCase, index: number) {
@@ -88,16 +89,10 @@ function flowCases(): FlowCase[] {
     averageIntervalSeconds: 86400.5, averageErectionQuality: 6.5, explicitContentSessionRatio: 0.25,
     selfReport: { urgeIntensity: "notSure" as const, abilityToPause: "preferNotToSay" as const, spontaneousOrMorningErections: "sometimes" as const }
   };
-  const assessment = {
-    resetJourneyId: "existing-journey", resetAttemptId: "existing-attempt", baselineId: "existing-baseline",
-    urgeIntensityChange: "notSure" as const, abilityToPauseChange: "same" as const,
-    spontaneousErectionChange: "moreFrequent" as const, overallSexualResponseChange: "preferNotToSay" as const,
-    readinessToRestartTracking: "notReady" as const
-  };
   const onboarding = createActiveState(false, false).productOnboarding;
   assert(onboarding.status === "completed", "Canonical onboarding result fixture required.");
   const result = { ...onboarding.result, recommendation: "masturbation_tracking" as const };
-  freeze([feedback, baseline, assessment, result]);
+  freeze([feedback, baseline, result]);
   const cases: FlowCase[] = [
     { path: "onboarding.saveProductOnboardingResult", invoke: (f) => f.onboarding.saveProductOnboardingResult(result), args: [result], prefixes: [], prepared: false },
     { path: "onboarding.acceptRecommendation", invoke: (f) => f.onboarding.acceptRecommendation(), args: [{ acceptedAt: at, resetJourneyId: id("reset-journey"), contentFreeActivationId: id("content-free-activation") }], prefixes: ["reset-journey", "content-free-activation"] },
@@ -105,7 +100,6 @@ function flowCases(): FlowCase[] {
     { path: "reset.recordViolation", invoke: (f) => f.reset.recordViolation({ reason: "masturbationWithExplicitContent", source: { kind: "manual" } }), args: [resetViolation("masturbationWithExplicitContent", { kind: "manual", logActionId: id("log-action") }, at)], prefixes: ["reset-violation", "reset-attempt", "content-free-violation", "log-action"] },
     { path: "reset.undoViolation", invoke: (f) => f.reset.undoViolation({ violationId: "existing-reset-violation" }), args: [{ violationId: "existing-reset-violation", undoneAt: at }], prefixes: [] },
     { path: "reset.completeElapsed", invoke: (f) => f.reset.completeElapsed(), args: [{ observedAt: at }], prefixes: [] },
-    { path: "reset.completeAssessment", invoke: (f) => f.reset.completeAssessment(assessment), args: [{ ...assessment, id: id("reset-assessment"), completedAt: at }], prefixes: ["reset-assessment"] },
     { path: "tracking.enable", invoke: (f) => f.tracking.enable(), args: [], prefixes: [], prepared: false },
     { path: "tracking.disable", invoke: (f) => f.tracking.disable(), args: [], prefixes: [], prepared: false },
     { path: "tracking.session.start", invoke: (f) => f.tracking.session.start(), args: [{ sessionId: id("masturbation-session"), startedAt: at }], prefixes: ["masturbation-session"] },

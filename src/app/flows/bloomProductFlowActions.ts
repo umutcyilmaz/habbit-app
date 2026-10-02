@@ -1,5 +1,4 @@
 import type { MasturbationSessionFeedback } from "../../domain/models/MasturbationSession";
-import type { PostResetAssessment } from "../../domain/models/PostResetAssessment";
 import type { ResetBaseline } from "../../domain/models/ResetBaseline";
 import type { ISODateString, UUID } from "../../domain/models/shared";
 import type { BloomProductAcknowledgedActions } from "../providers/bloomProductAcknowledgedActions";
@@ -9,7 +8,6 @@ export type BloomProductFlowIdPrefix =
   | "reset-baseline"
   | "reset-attempt"
   | "reset-violation"
-  | "reset-assessment"
   | "content-free-activation"
   | "content-free-violation"
   | "masturbation-session"
@@ -17,7 +15,6 @@ export type BloomProductFlowIdPrefix =
   | "log-action";
 
 export type BloomResetBaselineValues = Omit<ResetBaseline, "id" | "capturedAt">;
-export type BloomResetAssessmentValues = Omit<PostResetAssessment, "id" | "completedAt">;
 export type BloomResetViolationValues = {
   reason: Parameters<BloomProductAcknowledgedActions["reset"]["recordViolation"]>[0]["reason"];
   source: { kind: "manual" } | { kind: "masturbationSession"; sessionId: UUID };
@@ -89,14 +86,6 @@ export function createBloomProductFlowActions({
       completeElapsed: () => {
         const { timestamp } = captureOperation();
         return productActions.reset.completeElapsed({ observedAt: timestamp });
-      },
-      completeAssessment: (assessment: BloomResetAssessmentValues) => {
-        const { operationTime, timestamp } = captureOperation();
-        return productActions.reset.completeAssessment({
-          ...assessment,
-          id: createId("reset-assessment", operationTime),
-          completedAt: timestamp
-        });
       }
     },
     tracking: {
