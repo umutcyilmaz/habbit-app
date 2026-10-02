@@ -22,6 +22,10 @@ export {
   type UndoActiveResetViolationInput
 } from "./bloomResetTransitions";
 export {
+  recordBehaviorSlipState,
+  type RecordBehaviorSlipInput
+} from "./bloomBehaviorSlipTransitions";
+export {
   completeMasturbationSessionFeedbackState,
   discardActiveMasturbationSessionState,
   endMasturbationPauseState,

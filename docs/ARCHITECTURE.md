@@ -168,6 +168,7 @@ Phase 1P exposes `useBloomLocalState().productActions` as the application comman
 | --- | --- |
 | `onboarding` | `saveProductOnboardingResult`, `acceptRecommendation` |
 | `reset` | `startFromBaseline`, `recordViolation`, `undoViolation`, `completeElapsed` |
+| `behaviorSlip` | `record` |
 | `tracking` | `enable`, `disable` |
 | `tracking.session` | `start`, `startPause`, `endPause`, `end`, `completeFeedback`, `discardActive` |
 | `tracking.corrections` | `editFeedback`, `deleteSession` |
@@ -204,6 +205,16 @@ The flow layer preallocates possible cross-feature IDs without reading state or 
 | `viewContentFree` | `contentFree` | None |
 
 Mapping an intent does not execute a command, advance Reset, or navigate. The separation remains domain Home selector → semantic action → application intent → future route integration. The flow factory and mapping have no React, provider state capture, route paths, or navigation dependency. Provider, command facade, pure transitions, runtime, legacy APIs/`getNextBloomAction`, and v7 persistence remain unchanged. Screens, Home wiring, routes, presentation, and legacy cutover are outside Phase 1Q.
+
+## Behavior Slip Application Boundary
+
+Phase 1X adds `productActions.behaviorSlip.record(input)` through the existing acknowledged mutation factory and `flowActions.behaviorSlip.record(reason, occurredAt?)` through the existing flow factory. `BehaviorSlipReason` aliases the existing Reset reasons. The flow reads no state: it captures one operation Date, generates one `log-action` ID and candidate `reset-violation`, `reset-attempt`, and `content-free-violation` IDs, and dispatches one acknowledged command. `recordedAt` uses that Date; only omitted/undefined `occurredAt` defaults to the same timestamp. Supplied occurrence passes through unchanged.
+
+The pure [`getBehaviorSlipImpact`](../src/domain/productPolicy/getBehaviorSlipImpact.ts) selector owns the semantic preview, while [`recordBehaviorSlipState`](../src/storage/bloomBehaviorSlipTransitions.ts) chooses the single existing mutation owner from current accepted facts. Effective Reset restriction at occurrence owns the event first, including atomic linked Content-Free for explicit-content reasons. Only without restriction can standalone Content-Free own an applicable explicit-content event. Masturbation alone never affects Content-Free. Rejection never triggers a second owner or partial fallback. Stored active Reset after its exact current-attempt 15-day boundary stays unchanged while Content-Free may accept the event.
+
+One accepted command yields one immutable successor snapshot. Runtime acknowledgement advances durable state only after that exact snapshot writes. Failure retains the accepted snapshot, and `retryPersistedMutation(retryToken)` retries persistence without calling `behaviorSlip.record`, regenerating facts, or reevaluating policy. Neither-affected and invalid commands retain the existing exact no-op/runtime rejection behavior.
+
+The direct `reset.recordViolation` and `contentFree.recordManualViolation` APIs remain available to their unchanged executable screens. Existing Reset-owned and standalone Content-Free undo paths remain separate; no generic undo command is added. No provider responsibility, persistence shape/version, route readiness, Urge lifecycle, Home integration, or presentation changes are introduced.
 
 ## React Flow Adapter and Product Routes
 

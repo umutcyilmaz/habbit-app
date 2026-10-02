@@ -51,6 +51,7 @@ import { verifyBloomProductRoutes } from "./verify-bloom-product-routes";
 import { verifyBloomMasturbationFeature } from "./verify-bloom-masturbation-feature";
 import { verifyBloomContentFreeFeature } from "./verify-bloom-content-free-feature";
 import { verifyBloomResetFeature } from "./verify-bloom-reset-feature";
+import { verifyBloomBehaviorSlip } from "./verify-bloom-behavior-slip";
 
 const fixedNow = () => new Date("2026-07-22T10:00:00.000Z");
 
@@ -99,6 +100,7 @@ async function verifyBloomPersistence() {
   await verifyBloomResetCompletion();
   await verifyBloomMasturbationSessions();
   await verifyBloomContentFree();
+  await verifyBloomBehaviorSlip();
   await verifyBloomSessionCorrections();
   await verifyBloomUrgeControl();
   await verifyBloomProductPolicy();

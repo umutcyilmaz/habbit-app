@@ -13,6 +13,7 @@ export type * from "./PrivacySettings";
 export type * from "./NotificationSettings";
 export type * from "./SubscriptionState";
 export type * from "./BehaviorEventSource";
+export type * from "./BehaviorSlip";
 export type * from "./MasturbationSession";
 export type * from "./MasturbationTrackingState";
 export type * from "./ContentFreeState";

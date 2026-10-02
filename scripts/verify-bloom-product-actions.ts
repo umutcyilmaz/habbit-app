@@ -11,7 +11,7 @@ import type {
 import {
   createDefaultBloomState, saveProductOnboardingResultState, acceptProductOnboardingRecommendationState,
   startResetFromBaselineState, recordActiveResetViolationState, undoActiveResetViolationState,
-  completeElapsedResetPeriodState,
+  completeElapsedResetPeriodState, recordBehaviorSlipState,
   enableMasturbationTrackingState, disableMasturbationTrackingState,
   startMasturbationSessionState, startMasturbationPauseState, endMasturbationPauseState,
   endMasturbationSessionState, completeMasturbationSessionFeedbackState, discardActiveMasturbationSessionState,
@@ -45,6 +45,9 @@ type ExpectedProductActions = {
   onboarding: {
     saveProductOnboardingResult: Acknowledged<typeof saveProductOnboardingResultState>;
     acceptRecommendation: Acknowledged<typeof acceptProductOnboardingRecommendationState>;
+  };
+  behaviorSlip: {
+    record: Acknowledged<typeof recordBehaviorSlipState>;
   };
   reset: {
     startFromBaseline: Acknowledged<typeof startResetFromBaselineState>;
@@ -98,14 +101,15 @@ export async function verifyBloomProductActions() {
   verifyFactoryIsolation();
   const cases = commandCases();
   const api = createBloomProductAcknowledgedActions({ applyAcknowledgedMutation: async () => success(1) });
-  equal(commandPaths(api).sort(), cases.map((item) => item.name).sort(), "The facade must expose exactly the 30 grouped command paths covered by delegation tests.");
-  assert(cases.length === 30 && !("completeAssessment" in api.reset), "Every current product transition must have one focused command case; Reset assessment must no longer be a command.");
+  equal(commandPaths(api).sort(), cases.map((item) => item.name).sort(), "The facade must expose exactly the 31 grouped command paths covered by delegation tests.");
+  assert(cases.length === 31 && !("completeAssessment" in api.reset), "Every current product transition must have one focused command case; Reset assessment must no longer be a command.");
+  equal(Object.keys(api.behaviorSlip), ["record"], "The shared behavior-slip facade must not introduce a generic undo command.");
   for (const item of cases) {
     await verifyDelegation(item);
     await verifyResultPassthrough(item);
   }
   await verifyRapidSequentialCommands();
-  console.log("Bloom product-action facade verification passed (all 30 grouped commands; exact transition delegation, caller facts, runtime-supplied current state, no-ops, acknowledgement passthrough, and rapid sequential commands).");
+  console.log("Bloom product-action facade verification passed (all 31 grouped commands; exact transition delegation, caller facts, runtime-supplied current state, no-ops, acknowledgement passthrough, and rapid sequential commands).");
   await verifyBloomProductActionsRuntime();
 }
 
@@ -235,6 +239,11 @@ function commandCases(): CommandCase[] {
   return [
     save,
     command("onboarding.acceptRecommendation", saved, acceptProductOnboardingRecommendationState, (a) => a.onboarding.acceptRecommendation, acceptance),
+    command("behaviorSlip.record", resetActive, recordBehaviorSlipState, (a) => a.behaviorSlip.record, {
+      reason: "masturbationWithExplicitContent", occurredAt: shift(at, 3 * day + 234), recordedAt: shift(at, 3 * day + 1_345),
+      logActionId: "caller-slip-source", resetViolationId: "caller-slip-reset-violation",
+      replacementResetAttemptId: "caller-slip-replacement-attempt", contentFreeViolationId: "caller-slip-content-violation"
+    }),
     command("reset.startFromBaseline", accepted, startResetFromBaselineState, (a) => a.reset.startFromBaseline, baselineInput),
     command("reset.recordViolation", resetActive, recordActiveResetViolationState, (a) => a.reset.recordViolation, violationInput),
     command("reset.undoViolation", violated, undoActiveResetViolationState, (a) => a.reset.undoViolation, { violationId: violationInput.violationId, undoneAt: shift(at, 3 * day + 2_456) }),

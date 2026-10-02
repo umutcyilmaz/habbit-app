@@ -175,6 +175,18 @@ Baseline/assessment reports, future post-Reset session comparisons, and tracking
 
 No numeric score thresholds, diagnosis, guaranteed benefit, or medical interpretation is defined here.
 
+## Manual Behavior Slips
+
+Phase 1X provides one application command for the future “Seriyi bozdum” flow: `behaviorSlip.record(reason, occurredAt?)`. It reuses the existing reasons for masturbation, intentional explicit-content use, and both behaviors; accidental exposure is outside this command. UI does not choose which trackers to mutate.
+
+One manual event has one coordinator. Effective Reset restriction at occurrence owns the event first. Masturbation restarts Reset only. Either explicit-content reason restarts Reset and, when active/applicable, Content-Free in the existing atomic Reset transaction. An unsafe linked transaction changes neither system; it never falls back to a partial write.
+
+Only without effective Reset restriction may standalone Content-Free own an explicit-content event in its current activation/streak. Stored Reset `active` alone does not imply restriction: at/after exactly 15 elapsed days from the current attempt start, explicit content can reset active Content-Free while Reset remains unchanged. Masturbation alone never resets Content-Free. If neither tracker is affected, the action stores nothing. Slip evaluation never advances Reset completion.
+
+The canonical impact selector returns semantic tracker effects without display text or mutation. Invalid occurrence timestamps and unsafe temporal ownership fail safely. Backdated occurrence remains an explicit event fact; recording uses the operation time. Persistence retries retain the same accepted event, identities, timestamps, and snapshot.
+
+Existing direct feature commands and undo ownership remain unchanged. This is foundation work only: no Panic route, new Figma screens, save/undo confirmation UI, Home cutover, recommendation logic, or Urge lifecycle changes. The same seven routes remain ready; Urge Control and recommendation destinations remain pending. Persistence remains v7 / `bloom.localState.v7`.
+
 ## Urge Control
 
 Urge Control is optional acute support that creates a brief moment to choose. It does not aim to eliminate sexual desire, diagnose behavior, guarantee prevention or urge reduction, or assign success/failure.

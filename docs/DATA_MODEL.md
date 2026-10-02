@@ -325,6 +325,33 @@ Completed journeys may omit `assessment`. When present, it must still have a val
 
 These facts support later descriptive reports; no clinical interpretation is derived. Report generation, post-Reset session comparison, and tracking-based Reset recommendations remain outside this phase.
 
+## Manual Behavior Slip Coordination
+
+Phase 1X adds a non-persisted semantic alias, [`BehaviorSlipReason`](../src/domain/models/BehaviorSlip.ts), equal to `ResetViolation["reason"]`: `masturbation`, `intentionalExplicitContent`, or `masturbationWithExplicitContent`. These describe intentional behavior only. There is no new generic event history or persisted slice.
+
+[`getBehaviorSlipImpact({ resetJourney, contentFree }, reason, occurredAt)`](../src/domain/productPolicy/getBehaviorSlipImpact.ts) is the canonical pure preview selector. Its result is `{ reset: "restart" | "unchanged", contentFree: "resetStreak" | "unchanged" }`, or null for invalid/indeterminate facts or an occurrence outside a required current attempt/streak boundary. It reads validated domain facts, calls `getResetRestrictionStatus` at the supplied canonical occurrence timestamp, and produces no copy, IDs, clocks, mutations, or navigation.
+
+| Effective restriction at occurrence | Reason | Applicable active Content-Free | Effects |
+| --- | --- | --- | --- |
+| Active | Masturbation | Either | Reset only |
+| Active | Either explicit-content reason | Yes | Reset and Content-Free atomically |
+| Active | Either explicit-content reason | Inactive | Reset only |
+| Inactive | Masturbation | Either | Neither |
+| Inactive | Either explicit-content reason | Yes | Content-Free only |
+| Inactive | Either explicit-content reason | Inactive | Neither |
+
+Content-Free applicability requires occurrence within its current activation and at/after its current streak start. An explicit-content event during effective Reset with an active but temporally inapplicable Content-Free streak cannot produce a partial Reset-only preview or mutation. A backdated event before the current Reset attempt also cannot restart that attempt. These unsafe previews return null. Preview describes temporal effects; the mutation additionally validates supplied identities, source freshness, recording time, and persisted record consistency.
+
+[`recordBehaviorSlipState(state, input)`](../src/storage/bloomBehaviorSlipTransitions.ts), re-exported from `bloomState.ts`, receives exactly `{ reason, occurredAt, recordedAt, logActionId, resetViolationId, replacementResetAttemptId, contentFreeViolationId }`. Canonical timestamps require `recordedAt >= occurredAt`; supplied occurrence is never replaced with recording time. Candidate identities are prepared externally. A manual `logActionId` already present in either Reset or Content-Free history, including undone tombstones, is rejected by the coordinator even if a retry changes reason or owner.
+
+One manual behavior event has one application coordinator. Effective Reset restriction owns the event first: the coordinator delegates once to `recordActiveResetViolationState`, which already owns linked Content-Free changes for explicit-content reasons. It never follows that call with a standalone Content-Free write or falls back after rejection. Both existing candidate slices must validate before that transaction publishes one successor; unsafe linkage leaves the exact original state.
+
+Only when Reset restriction is not effective may an applicable active Content-Free streak own an explicit-content slip through `recordManualContentFreeViolationState`. A stored active Reset at or after `currentAttempt.startedAt + 15 * 24 hours` has no restriction, so explicit content can use this standalone path while Reset remains unchanged. Neither evaluating nor recording a slip completes Reset. Masturbation alone never resets Content-Free. If neither tracker is affected, the coordinator returns the exact original state without storing the button press.
+
+Linked records share `{ kind: "manual", logActionId }`, `occurredAt`, and `recordedAt`. Existing transitions retain baseline/history preservation, best calculations, backdating guards, source deduplication, and tombstones. Unused candidate IDs are not persisted. Tracking, Urge Control, product onboarding, and all legacy slices remain unchanged.
+
+The existing direct Reset/Content-Free commands and screens remain intact. Undo ownership also remains intact: Reset undo owns a Reset-linked event and its Content-Free reversal; standalone Content-Free undo owns a standalone event. There is no generic behavior-slip undo. Persistence stays version 7 / `bloom.localState.v7`, using only existing record shapes, with no migration or route change.
+
 ## UrgeControlEvent
 
 Source: [`UrgeControlEvent.ts`](../src/domain/models/UrgeControlEvent.ts).

@@ -1,3 +1,4 @@
+import type { BehaviorSlipReason } from "../../domain/models/BehaviorSlip";
 import type { MasturbationSessionFeedback } from "../../domain/models/MasturbationSession";
 import type { CurrentResetBaselineSelfReport } from "../../domain/models/ResetBaseline";
 import type { ISODateString, UUID } from "../../domain/models/shared";
@@ -48,6 +49,20 @@ export function createBloomProductFlowActions({
           acceptedAt: timestamp,
           resetJourneyId: createId("reset-journey", operationTime),
           contentFreeActivationId: createId("content-free-activation", operationTime)
+        });
+      }
+    },
+    behaviorSlip: {
+      record: (reason: BehaviorSlipReason, occurredAt?: ISODateString) => {
+        const { operationTime, timestamp } = captureOperation();
+        return productActions.behaviorSlip.record({
+          reason,
+          occurredAt: occurredAt === undefined ? timestamp : occurredAt,
+          recordedAt: timestamp,
+          logActionId: createId("log-action", operationTime),
+          resetViolationId: createId("reset-violation", operationTime),
+          replacementResetAttemptId: createId("reset-attempt", operationTime),
+          contentFreeViolationId: createId("content-free-violation", operationTime)
         });
       }
     },

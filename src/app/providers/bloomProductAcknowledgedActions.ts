@@ -16,6 +16,7 @@ import {
   endMasturbationSessionState,
   endUrgeControlPhoneAwayState,
   recordActiveResetViolationState,
+  recordBehaviorSlipState,
   recordManualContentFreeViolationState,
   recordUrgeControlOutcomeState,
   recordUrgeControlTriggerState,
@@ -57,6 +58,9 @@ export function createBloomProductAcknowledgedActions({
     onboarding: {
       saveProductOnboardingResult: acknowledge(saveProductOnboardingResultState),
       acceptRecommendation: acknowledge(acceptProductOnboardingRecommendationState)
+    },
+    behaviorSlip: {
+      record: acknowledge(recordBehaviorSlipState)
     },
     reset: {
       startFromBaseline: acknowledge(startResetFromBaselineState),

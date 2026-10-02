@@ -16,6 +16,7 @@ import {
   type BloomStateWriteReceipt
 } from "../src/storage/bloomStatePersistence";
 import { BLOOM_PERSISTENCE_VERSION } from "../src/storage/bloomStateSchema";
+import { createActiveState } from "./verify-bloom-reset-violations";
 
 const sessionInput = {
   sessionId: "product-runtime-session",
@@ -27,6 +28,7 @@ export async function verifyBloomProductActionsRuntime() {
   await verifyFailureAndRetry();
   await verifyNoOpAndRuntimeBlocks();
   await verifyLatestAcceptedState();
+  await verifyBehaviorSlipUsesLatestAcceptedState();
   verifyProviderIntegration();
   assert(
     BLOOM_PERSISTENCE_VERSION === 7 &&
@@ -34,7 +36,7 @@ export async function verifyBloomProductActionsRuntime() {
     "Application commands must keep the existing v7 persistence contract."
   );
   console.log(
-    "Bloom product actions runtime verification passed (accepted/durable state, retry without replay, no-op and lifecycle blocks, latest-state commands, and provider wiring)."
+    "Bloom product actions runtime verification passed (accepted/durable state, retry without replay, no-op and lifecycle blocks, atomic behavior-slip latest-state ownership, and provider wiring)."
   );
 }
 
@@ -214,6 +216,56 @@ async function verifyLatestAcceptedState() {
       harness.runtime.getDurableState() === latest,
     "A late older receipt must not regress accepted or durable product state."
   );
+}
+
+async function verifyBehaviorSlipUsesLatestAcceptedState() {
+  const harness = createHarness(createActiveState(false, false));
+  const activation = harness.actions.contentFree.activate({
+    activationId: "slip-runtime-activation", activatedAt: "2026-09-02T12:00:00.000Z"
+  });
+  const beforeSlip = harness.runtime.getState();
+  assert(beforeSlip.contentFree.status === "active" && harness.runtime.getDurableState() === harness.initialState,
+    "The fixture must have accepted an applicable Content-Free activation whose save is still pending.");
+  const before = JSON.stringify(beforeSlip);
+  const input = Object.freeze({
+    reason: "intentionalExplicitContent" as const,
+    occurredAt: "2026-09-03T12:00:00.123Z", recordedAt: "2026-09-04T12:00:00.456Z",
+    logActionId: "slip-runtime-source", resetViolationId: "slip-runtime-reset-violation",
+    replacementResetAttemptId: "slip-runtime-replacement", contentFreeViolationId: "slip-runtime-content-violation"
+  });
+  const recording = harness.actions.behaviorSlip.record(input);
+  const accepted = harness.runtime.getState();
+  assert(accepted.resetJourney !== beforeSlip.resetJourney && accepted.contentFree !== beforeSlip.contentFree &&
+    harness.acceptedStates.length === 2 && harness.acceptedStates[1] === accepted &&
+    harness.attempts.length === 2 && harness.attempts[1]!.state === accepted,
+  "The behavior command must evaluate the latest accepted activation and publish both effects in one cumulative successor, even before activation persistence settles.");
+  const resetEvent = accepted.resetJourney.violations[0];
+  const contentEvent = accepted.contentFree.violations[0];
+  assert(resetEvent?.id === input.resetViolationId && contentEvent?.id === input.contentFreeViolationId &&
+    contentEvent.activationId === "slip-runtime-activation" && resetEvent.source.kind === "manual" &&
+    contentEvent.source.kind === "manual" && resetEvent.source.logActionId === input.logActionId &&
+    contentEvent.source.logActionId === input.logActionId,
+  "Current accepted state must own both linked manual records with their explicit caller identities.");
+  assert(resetEvent.occurredAt === input.occurredAt && contentEvent.occurredAt === input.occurredAt &&
+    resetEvent.recordedAt === input.recordedAt && contentEvent.recordedAt === input.recordedAt,
+  "The acknowledged command must preserve backdated occurrence separately from its shared recording time.");
+  assert(JSON.stringify(beforeSlip) === before,
+    "Accepting a linked behavior slip must never mutate the previous accepted activation snapshot.");
+  for (const key of Object.keys(beforeSlip) as Array<keyof BloomLocalState>) {
+    if (key !== "resetJourney" && key !== "contentFree") assert(accepted[key] === beforeSlip[key],
+      "The behavior-slip command must preserve all unrelated accepted slices by reference.");
+  }
+  assertRejected(await harness.actions.behaviorSlip.record(input), "invalidSession",
+    "A repeated manual source must retain the normal exact-no-op acknowledgement.");
+  assert(harness.runtime.getState() === accepted && harness.attempts.length === 2 && harness.acceptedStates.length === 2,
+    "The same prepared behavior event cannot publish or persist another restart or Content-Free record.");
+  harness.attempts[1]!.succeed();
+  assertPersisted(await recording, "One persisted successor must acknowledge both linked effects.");
+  harness.attempts[0]!.succeed();
+  const supersededActivation = await activation;
+  assert(!supersededActivation.ok && supersededActivation.accepted && supersededActivation.reason === "persistenceSuperseded" &&
+    harness.runtime.getDurableState() === accepted,
+  "An older activation receipt must not regress either part of the acknowledged behavior slip.");
 }
 
 function verifyProviderIntegration() {

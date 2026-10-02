@@ -15,7 +15,7 @@ import {
   type BloomPersistedMutationResult,
   type BloomPersistenceRetryToken
 } from "../src/app/providers/bloomLocalStateMutationRuntime";
-import type { MasturbationSessionFeedback } from "../src/domain/models";
+import type { BehaviorSlipReason, MasturbationSessionFeedback } from "../src/domain/models";
 import type { CurrentResetBaselineSelfReport, LegacyResetBaselineSelfReport } from "../src/domain/models/ResetBaseline";
 import type { ResetBaselineAnswers } from "../src/features/reset/resetController";
 import { createDefaultBloomState, type BloomLocalState } from "../src/storage/bloomState";
@@ -47,22 +47,25 @@ const exactApplicationInput: EqualTypes<Parameters<BloomProductAcknowledgedActio
   resetBaselineId: string; capturedAt: string; selfReport: CurrentResetBaselineSelfReport; resetAttemptId: string; startedAt: string;
 }]> = true;
 const legacyIsNotCurrent: LegacyResetBaselineSelfReport extends ResetBaselineAnswers ? false : true = true;
+const exactSlipFlowInput: EqualTypes<Parameters<BloomProductFlowActions["behaviorSlip"]["record"]>, [BehaviorSlipReason, string?]> = true;
 
 export async function verifyBloomProductFlowActions() {
   assert(exactCurrentQuestionContract && exactFeatureAnswers && exactFlowInput && exactApplicationInput && legacyIsNotCurrent,
     "Current form/flow/application APIs must expose exactly the four new answers, without legacy answers, caller baselines, or aggregate inputs.");
+  assert(exactSlipFlowInput, "Behavior-slip callers must provide only a semantic reason and optional occurrence time.");
   const cases = flowCases();
   const paths = new Set(cases.map((item) => item.path));
-  assert(paths.size === 30, "Every new-product command must have a flow/preparation or direct-alias verification case.");
+  assert(paths.size === 31, "Every new-product command must have a flow/preparation or direct-alias verification case.");
   assert(!("completeAssessment" in recordingHarness().flow.reset), "The current flow API must not expose a Reset assessment command.");
   for (const [index, item] of cases.entries()) await verifyPreparedInputs(item, index);
   verifyDefaultIdConvention();
   await verifyFreshInvocationFacts();
   await verifyRetryWithoutRegeneration();
+  await verifyBehaviorSlipRetryWithoutRegeneration();
   await verifyNoOpAndRuntimeBlocks();
   verifyIsolation();
   assert(BLOOM_PERSISTENCE_VERSION === 7 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v7", "Flow integration must preserve the established v7 persistence contract.");
-  console.log(`Bloom product flow-action verification passed (all 30 paths; ${cases.length} exact-input cases; one-time mechanical facts, direct aliases, semantic passthrough, real runtime retry/no-op/lifecycle safety, and v7 isolation).`);
+  console.log(`Bloom product flow-action verification passed (all 31 paths; ${cases.length} exact-input cases; one-time mechanical facts, direct aliases, semantic passthrough, atomic behavior-slip retry/no-op safety, and v7 isolation).`);
 }
 
 async function verifyPreparedInputs(item: FlowCase, index: number) {
@@ -162,6 +165,20 @@ function flowCases(): FlowCase[] {
       prefixes: ["content-free-violation", "log-action"]
     });
   }
+  for (const reason of ["masturbation", "intentionalExplicitContent", "masturbationWithExplicitContent"] as const) {
+    for (const occurredAt of [undefined, earlier, "", "invalid", null, 7, {}]) {
+      cases.push({
+        path: "behaviorSlip.record",
+        invoke: (flow) => occurredAt === undefined ? flow.behaviorSlip.record(reason) : flow.behaviorSlip.record(reason, occurredAt as never),
+        args: [{
+          reason, occurredAt: occurredAt === undefined ? at : occurredAt, recordedAt: at,
+          logActionId: id("log-action"), resetViolationId: id("reset-violation"),
+          replacementResetAttemptId: id("reset-attempt"), contentFreeViolationId: id("content-free-violation")
+        }],
+        prefixes: ["log-action", "reset-violation", "reset-attempt", "content-free-violation"]
+      });
+    }
+  }
   const invalidFeedback = { ...feedback, erectionQuality: 99 } as unknown as MasturbationSessionFeedback;
   cases.push({ path: "tracking.session.completeFeedback", invoke: (f) => f.tracking.session.completeFeedback(invalidFeedback), args: [{ feedback: invalidFeedback, recordedAt: at, contentFreeViolationId: id("content-free-violation") }], prefixes: ["content-free-violation"] });
   const contentFreeFeedback = { ...feedback, usedExplicitContent: false };
@@ -254,6 +271,65 @@ async function verifyRetryWithoutRegeneration() {
   assert(harness.clockCalls() === 1 && harness.idCalls() === 1 && harness.mutationCalls() === 1 && harness.attempts.length === 2, "Persistence retry must never replay flow generation, domain mutation, or linked-history creation.");
 }
 
+async function verifyBehaviorSlipRetryWithoutRegeneration() {
+  const activeAt = "2026-09-03T12:00:00.123Z";
+  const elapsedAt = "2026-09-16T12:00:00.000Z";
+  const cases = [
+    { contentActive: true, operationAt: activeAt, resetChanges: true, contentChanges: true },
+    { contentActive: false, operationAt: activeAt, resetChanges: true, contentChanges: false },
+    { contentActive: true, operationAt: elapsedAt, resetChanges: false, contentChanges: true }
+  ];
+  for (const item of cases) {
+    const initial = freeze(createActiveState(false, item.contentActive));
+    const before = JSON.stringify(initial);
+    const harness = runtimeHarness(initial, "ready", item.operationAt);
+    const pending = harness.flow.behaviorSlip.record("masturbationWithExplicitContent");
+    const accepted = harness.runtime.getState();
+    assert((accepted.resetJourney !== initial.resetJourney) === item.resetChanges &&
+      (accepted.contentFree !== initial.contentFree) === item.contentChanges,
+    "One behavior-slip command must publish the expected complete successor for both, Reset-only, or elapsed-Reset Content-Free-only ownership.");
+    assert(accepted.resetJourney.status === "active" && initial.resetJourney.status === "active" &&
+      accepted.resetJourney.baseline === initial.resetJourney.baseline,
+    "The behavior-slip flow must preserve the accepted baseline and never complete a stale active Reset.");
+    const resetEvent = accepted.resetJourney.violations.find((entry) => entry.id === id("reset-violation"));
+    const contentEvent = accepted.contentFree.violations.find((entry) => entry.id === id("content-free-violation"));
+    assert((resetEvent !== undefined) === item.resetChanges && (contentEvent !== undefined) === item.contentChanges,
+      "Only affected trackers may persist their candidate record identities.");
+    for (const event of [resetEvent, contentEvent]) {
+      if (event === undefined) continue;
+      assert(event.source.kind === "manual" && event.source.logActionId === id("log-action") &&
+        event.occurredAt === item.operationAt && event.recordedAt === item.operationAt,
+      "Every affected tracker must retain the same manual source and canonical occurrence/recording facts.");
+    }
+    for (const key of Object.keys(initial) as Array<keyof BloomLocalState>) {
+      if (key !== "resetJourney" && key !== "contentFree") assert(accepted[key] === initial[key],
+        "Behavior-slip acknowledgement must preserve all unrelated product and legacy slices by reference.");
+    }
+    assert(JSON.stringify(initial) === before && harness.attempts.length === 1 && harness.attempts[0]!.state === accepted,
+      "The accepted linked successor must be immutable and handed to persistence exactly once with no partial write.");
+    assert(harness.clockCalls() === 1 && harness.idCalls() === 4 && harness.mutationCalls() === 1,
+      "One behavior slip must generate one clock and four IDs before one acknowledged mutation.");
+    harness.attempts[0]!.fail();
+    const failed = await pending;
+    assert(!failed.ok && failed.accepted && failed.retryable && failed.reason === "persistenceFailed" &&
+      harness.runtime.getState() === accepted && harness.runtime.getDurableState() === initial,
+    "Failed behavior-slip persistence must retain the complete accepted successor without falsely advancing durable state.");
+    harness.setTime("2027-01-01T00:00:00.000Z");
+    const retry = harness.runtime.retryPersistence(failed.retryToken);
+    assert(harness.attempts[1]!.state === accepted,
+      "Retry after restriction conditions have changed with time must persist the original accepted snapshot, without reevaluating ownership.");
+    harness.attempts[1]!.succeed();
+    assert((await retry).ok && (await harness.runtime.retryPersistence(failed.retryToken)).ok &&
+      harness.runtime.getDurableState() === accepted,
+    "Successful behavior-slip retry must acknowledge the same successor idempotently.");
+    assert(harness.clockCalls() === 1 && harness.idCalls() === 4 && harness.mutationCalls() === 1 && Number(harness.attempts.length) === 2,
+      "Persistence retry must not regenerate mechanical facts, replay policy/mutation, or duplicate either linked history.");
+    assert(accepted.resetJourney.violations.length === Number(item.resetChanges) &&
+      accepted.contentFree.violations.length === Number(item.contentChanges),
+    "One accepted behavior slip must remain exactly one record per affected tracker after retry.");
+  }
+}
+
 async function verifyNoOpAndRuntimeBlocks() {
   const invalidFeedback = runtimeHarness(createPopulatedState());
   const rejected = await invalidFeedback.flow.tracking.session.completeFeedback({ erectionQuality: 99, usedExplicitContent: false, endingReason: "other" } as never);
@@ -277,6 +353,18 @@ async function verifyNoOpAndRuntimeBlocks() {
     assert(reset.attempts.length === 0 && reset.runtime.getState() === reset.initialState,
       "Invalid explicit Reset occurrence must remain invalid while the otherwise-valid operation time is inside the active period.");
     assertRejected(await pendingReset, "invalidSession");
+    const slip = runtimeHarness(createActiveState(false, true), "ready", "2026-09-03T12:00:00.123Z");
+    assertRejected(await slip.flow.behaviorSlip.record("intentionalExplicitContent", invalid as never), "invalidSession");
+    assert(slip.attempts.length === 0 && slip.runtime.getState() === slip.initialState &&
+      slip.clockCalls() === 1 && slip.idCalls() === 4 && slip.mutationCalls() === 1,
+    "Invalid explicit behavior occurrence must pass through mechanical preparation unchanged and fail safely without either effect or persistence.");
+  }
+  for (const reason of ["masturbation", "intentionalExplicitContent", "masturbationWithExplicitContent"] as const) {
+    const slip = runtimeHarness();
+    assertRejected(await slip.flow.behaviorSlip.record(reason), "invalidSession");
+    assert(slip.runtime.getState() === slip.initialState && slip.attempts.length === 0 &&
+      slip.clockCalls() === 1 && slip.idCalls() === 4 && slip.mutationCalls() === 1,
+    "No affected tracker must remain the existing exact no-op result; unused candidate IDs must never force a write.");
   }
   for (const status of ["loading", "error", "ready"] as const) {
     const harness = runtimeHarness(createDefaultBloomState(), status);
@@ -285,6 +373,12 @@ async function verifyNoOpAndRuntimeBlocks() {
     assertRejected(result, status === "loading" ? "hydrationPending" : status === "error" ? "stateUnavailable" : "deletionInProgress");
     assert(harness.clockCalls() === 1 && harness.idCalls() === 1 && harness.mutationCalls() === 0 && harness.attempts.length === 0, "Unsafe lifecycle states must inherit acknowledged runtime rejection after mechanical flow preparation, without domain execution.");
     assert(harness.runtime.getPendingMutationCount() === 0, "Blocked flow commands must not be placed into a new replay queue.");
+    const slip = runtimeHarness(createActiveState(false, true), status, "2026-09-03T12:00:00.123Z");
+    if (status === "ready") slip.runtime.beginDeletion();
+    assertRejected(await slip.flow.behaviorSlip.record("intentionalExplicitContent"),
+      status === "loading" ? "hydrationPending" : status === "error" ? "stateUnavailable" : "deletionInProgress");
+    assert(slip.clockCalls() === 1 && slip.idCalls() === 4 && slip.mutationCalls() === 0 && slip.attempts.length === 0,
+      "Behavior slips must inherit runtime lifecycle guards after one mechanical preparation without dispatching either owner.");
   }
 }
 
@@ -302,7 +396,7 @@ function runtimeHarness(initialState = createDefaultBloomState(), initialHydrati
   let idCalls = 0;
   const productActions = createBloomProductAcknowledgedActions({ applyAcknowledgedMutation: (mutation) => runtime.applyAcknowledgedMutation((state) => { mutationCalls++; return mutation(state); }) });
   const flow = createBloomProductFlowActions({ productActions, now: () => { clockCalls++; return new Date(operationAt); }, createId: (prefix) => { idCalls++; return id(prefix); } });
-  return { runtime, flow, initialState, attempts, mutationCalls: () => mutationCalls, clockCalls: () => clockCalls, idCalls: () => idCalls };
+  return { runtime, flow, initialState, attempts, setTime: (value: string) => { operationAt = value; }, mutationCalls: () => mutationCalls, clockCalls: () => clockCalls, idCalls: () => idCalls };
 }
 
 function verifyIsolation() {
