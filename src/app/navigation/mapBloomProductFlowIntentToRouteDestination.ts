@@ -20,6 +20,7 @@ export function mapBloomProductFlowIntentToRouteDestination(
     case bloomProductRoutePaths.resetProgress:
     case bloomProductRoutePaths.resetCompletion:
     case bloomProductRoutePaths.resetRecommendation:
+    case bloomProductRoutePaths.startingRecommendation:
       return { status: "ready", destination };
     default:
       return { status: "featurePending", destination };
@@ -76,8 +77,7 @@ function mapRouteTarget(intent: BloomProductFlowIntent): BloomProductRouteTarget
       };
     case "startingRecommendation":
       return {
-        pathname: bloomProductRoutePaths.startingRecommendation,
-        params: { recommendation: intent.recommendation }
+        pathname: bloomProductRoutePaths.startingRecommendation
       };
     case "resetRecommendation":
       return {

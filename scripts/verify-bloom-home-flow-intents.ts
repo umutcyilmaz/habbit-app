@@ -22,6 +22,13 @@ type RecommendationIntentHasNoPayload = Assert<
   keyof Extract<BloomProductFlowIntent, { flow: "resetRecommendation" }> extends "flow" ? true : false
 >;
 
+type StartingActionHasNoPayload = Assert<
+  keyof Extract<BloomHomeAction, { id: "reviewStartingRecommendation" }> extends "id" ? true : false
+>;
+type StartingIntentHasNoPayload = Assert<
+  keyof Extract<BloomProductFlowIntent, { flow: "startingRecommendation" }> extends "flow" ? true : false
+>;
+
 type HomeActionCases = {
   [ActionId in BloomHomeAction["id"]]: {
     action: Extract<BloomHomeAction, { id: ActionId }>;
@@ -121,12 +128,10 @@ const cases = {
   },
   reviewStartingRecommendation: {
     action: {
-      id: "reviewStartingRecommendation",
-      recommendation: "reset_and_content_free"
+      id: "reviewStartingRecommendation"
     },
     expected: {
-      flow: "startingRecommendation",
-      recommendation: "reset_and_content_free"
+      flow: "startingRecommendation"
     }
   },
   reviewResetRecommendation: {
@@ -181,6 +186,12 @@ export function verifyBloomHomeFlowIntents() {
   }
   assert(isDeepStrictEqual(mapBloomHomeActionToFlowIntent(Object.freeze(recommendation)), { flow: "resetRecommendation" }),
     "Recommendation review must derive facts at its feature boundary rather than carrying a Home snapshot.");
+  const starting = { id: "reviewStartingRecommendation" } as const;
+  for (const key of ["recommendation", "answers", "dimensions", "scores", "result", "completedAt"]) {
+    Object.defineProperty(starting, key, { get() { throw new Error("Starting review must not inspect Home snapshots."); } });
+  }
+  assert(isDeepStrictEqual(mapBloomHomeActionToFlowIntent(Object.freeze(starting)), { flow: "startingRecommendation" }),
+    "Starting review must carry no stored recommendation payload.");
   verifyMappingDependencies();
   console.log(
     "Bloom Home flow-intent verification passed (all 10 current actions, no assessment action or intent, exact payloads, frozen/deterministic mapping, and dependency isolation)."

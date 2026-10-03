@@ -58,6 +58,8 @@ import { verifyBloomPanicFeature } from "./verify-bloom-panic-feature";
 import { verifyBloomUrgeControlFeature } from "./verify-bloom-urge-control-feature";
 import { verifyBloomResetRecommendationFeature } from "./verify-bloom-reset-recommendation-feature";
 
+import { verifyBloomStartingRecommendationFeature } from "./verify-bloom-starting-recommendation-feature";
+
 const fixedNow = () => new Date("2026-07-22T10:00:00.000Z");
 
 async function verifyBloomPersistence() {
@@ -123,6 +125,7 @@ async function verifyBloomPersistence() {
   await verifyBloomPanicFeature();
   await verifyBloomUrgeControlFeature();
   await verifyBloomResetRecommendationFeature();
+  await verifyBloomStartingRecommendationFeature();
 }
 
 async function verifyAvailableWebStorage() {

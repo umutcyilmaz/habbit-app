@@ -42,6 +42,8 @@ Phase 2A adds only a deterministic Tracking-based Reset recommendation selector.
 
 Phase 2B exposes that unchanged derived result as optional advice in the product Home read model and makes Reset recommendation review/acceptance executable. Advice never replaces normal Tracking as the primary action. Explicit acceptance prepares only `baseline_pending`; the existing four baseline questions must still be answered before Reset starts. Legacy Today and bottom tabs remain unchanged.
 
+Phase 2C makes the stored Starting Recommendation executable through a parameter-free route. It preserves historical onboarding results without rescoring, uses the existing atomic acceptance command, and leaves all eleven current product destinations ready. Onboarding questions, thresholds, acceptance rules, final V4 visuals, legacy onboarding/Today, and tabs are unchanged.
+
 The Expo Router architecture and local-first approach remain technical constraints. Older inventories in [ARCHITECTURE.md](ARCHITECTURE.md) and product references in [DECISIONS.md](DECISIONS.md) describe earlier stages; they do not require a new flow to depend on Protect. Existing navigation remains unchanged in this phase.
 
 ## Product Summary
@@ -205,7 +207,7 @@ The result is `insufficientData`, `noCurrentRecommendation`, or `recommended`; i
 
 The product Home read model exposes `trackingResetRecommendation` separately from `primaryAction`. Its optional `resetRecommendationAction` is `{ id: "reviewResetRecommendation" }` only when the derived result is recommended, Reset is inactive, no Masturbation Session awaits completion/feedback, and no completed onboarding recommendation awaits acceptance. Tracking enablement and Content-Free activation do not gate advice. Active Urge Control retains primary priority while advice may coexist; startable Tracking remains the primary action when no higher-priority task exists.
 
-Review maps to `{ flow: "resetRecommendation" }` and the parameter-free `/bloom/reset/recommendation` route. The feature re-derives evidence from accepted state, never URL snapshots. Descriptive observations and interval context carry no causal, medical, or frequency-concern interpretation. The route is ready; Starting Recommendation remains pending. Final V4 visuals are deferred.
+Review maps to `{ flow: "resetRecommendation" }` and the parameter-free `/bloom/reset/recommendation` route. The feature re-derives evidence from accepted state, never URL snapshots. Descriptive observations and interval context carry no causal, medical, or frequency-concern interpretation. The route is ready; Phase 2C also makes Starting Recommendation ready. Final V4 visuals are deferred.
 
 The explicit Continue action calls `flowActions.reset.acceptRecommendation()`. The canonical transition reevaluates the unchanged Phase 2A selector at the supplied acceptance time. Corrected feedback or changed history that removes the recommendation makes acceptance an exact no-op. The transition also rejects unfinished sessions, unresolved onboarding acceptance, malformed inputs, and Reset already baseline-pending, active, or completed.
 
@@ -270,7 +272,7 @@ The slip branch uses exactly the existing three reasons: masturbation, intention
 
 Successful slip, Urge completion, and explicit discard return to existing Today only after durable acknowledgement. Accepted save failures keep state visible, lock conflicting commands, and offer persistence-only retry without new IDs/timestamps or command replay. A stale/rejected command shows an unavailable message rather than a saved claim. Leaving or unmounting never silently discards an event.
 
-Phase 1Z made nine routes ready: the seven earlier Session/Content-Free/Reset routes, Panic, and Urge resume. Phase 2B adds parameter-free Reset recommendation for ten ready routes; only Starting recommendation remains pending. Future buttons can use the Panic intent; existing Home, Reset, Content-Free, and tab buttons are not cut over. Final V4 visuals, post-save result/undo screens, and “Başka bir şey dene” remain deferred.
+Phase 1Z made nine routes ready: the seven earlier Session/Content-Free/Reset routes, Panic, and Urge resume. Phase 2B added parameter-free Reset recommendation; Phase 2C adds parameter-free Starting recommendation for eleven ready routes and none pending. Future buttons can use the Panic intent; existing Home, Reset, Content-Free, and tab buttons are not cut over. Final V4 visuals, post-save result/undo screens, and “Başka bir şey dene” remain deferred.
 
 ## Onboarding Starting Hypothesis
 
@@ -315,6 +317,16 @@ Exactly at/after Day 15, an active Reset requests `recordResetElapsedCompletion`
 Current feature state determines tracker roles independently of legacy `activePlan` or an old recommendation. Enabled Tracking is primary; active Content-Free is secondary when both exist, or primary when Tracking is disabled. Tracker summaries remain available beneath a higher-priority Reset or unfinished-flow action. With no higher-priority item, startable Tracking offers `startMasturbationSession`, Content-Free alone offers `viewContentFree`, and otherwise no primary action is required. Inactive Urge Control remains available as optional support rather than becoming a default task.
 
 The exact output and action payloads are defined in [DATA_MODEL.md](DATA_MODEL.md#new-product-home-read-model). Quick-action presentation, navigation mapping, Home/Today UI, provider wiring, onboarding routing, and replacement of the legacy engine remain deferred.
+
+## Executable Starting Recommendation — Phase 2C
+
+Completed product onboarding with null `planAcceptance` retains its primary Home review action after existing higher-priority unfinished/lifecycle work. The action is `{ id: "reviewStartingRecommendation" }`; its flow is `{ flow: "startingRecommendation" }`; `/bloom/starting-recommendation` takes no parameters. The feature reads the latest accepted stored recommendation, so a stale Home/URL snapshot cannot select another plan. It does not rescore answers, dimensions, or evidence.
+
+An explicit Accept action calls only `flowActions.onboarding.acceptRecommendation()`. The unchanged canonical transition atomically records acceptance and applies the stored plan: `masturbation_tracking` enables Tracking; `content_free` activates Content-Free; `reset` prepares Reset baseline-pending; `reset_and_content_free` prepares Reset and activates Content-Free together. No plan starts a session or the Reset period. The existing four-question baseline remains required before active Reset.
+
+After durable save, Tracking and Content-Free plans return to Today. Reset-based plans navigate to baseline using the actual accepted journey ID. Failed saves retain the complete accepted successor and retry only persistence, generating no new IDs/times or repeated activations. Conflicting canonical state produces safe unavailable feedback with no fake success or navigation. Rendered onboarding, Tracking, Reset, and Content-Free references are checked before dispatch. Close before acceptance writes nothing; accepted-but-undurable work blocks exit until recovery resolves.
+
+After acceptance, ordinary resulting state owns Home: Tracking starts, Content-Free review, or Reset baseline completion while combined Content-Free remains represented. Unresolved onboarding still suppresses Phase 2B optional advice; accepted Tracking plans may later show it when canonical history supports it. No persistent dismissal/snooze, new recommendation identifiers, or new persisted fields are introduced. Persistence stays v7 / `bloom.localState.v7`. All eleven product routes are ready; final V4/Home/tab and legacy onboarding cutover remain separate work.
 
 ## Compatibility Gaps Intentionally Retained
 

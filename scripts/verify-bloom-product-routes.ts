@@ -25,6 +25,7 @@ type ReadyRoutePath =
   | typeof bloomProductRoutePaths.resetBaseline
   | typeof bloomProductRoutePaths.resetProgress
   | typeof bloomProductRoutePaths.resetRecommendation
+  | typeof bloomProductRoutePaths.startingRecommendation
   | typeof bloomProductRoutePaths.resetCompletion;
 type ReadyRouteContract = Assert<Equal<
   Extract<BloomProductRouteDestination, { status: "ready" }>["destination"]["pathname"],
@@ -32,7 +33,7 @@ type ReadyRouteContract = Assert<Equal<
 >>;
 type PendingRouteContract = Assert<Equal<
   Extract<BloomProductRouteDestination, { status: "featurePending" }>["destination"]["pathname"],
-  typeof bloomProductRoutePaths.startingRecommendation
+  never
 >>;
 type AssessmentRouteRemoved = Assert<Equal<
   Extract<BloomProductRouteTarget, { pathname: "/bloom/reset/assessment" }>,
@@ -55,6 +56,15 @@ type ResetRecommendationRouteContract = Assert<Equal<
   { pathname: "/bloom/reset/recommendation"; params?: never }
 >>;
 
+type StartingRecommendationIntentContract = Assert<Equal<
+  Extract<BloomProductFlowIntent, { flow: "startingRecommendation" }>,
+  { flow: "startingRecommendation" }
+>>;
+type StartingRecommendationRouteContract = Assert<Equal<
+  Extract<BloomProductRouteTarget, { pathname: "/bloom/starting-recommendation" }>,
+  { pathname: "/bloom/starting-recommendation"; params?: never }
+>>;
+
 type FlowIntentKey<Intent extends BloomProductFlowIntent> =
   Intent extends { mode: infer Mode extends string }
     ? `${Intent["flow"]}:${Mode}`
@@ -74,6 +84,7 @@ type RouteCases = {
       | "resetProgress"
       | "resetCompletion"
       | "resetRecommendation"
+      | "startingRecommendation"
       ? "ready"
       : "featurePending";
   };
@@ -177,14 +188,12 @@ const cases = {
     }
   },
   startingRecommendation: {
-    status: "featurePending",
+    status: "ready",
     intent: {
-      flow: "startingRecommendation",
-      recommendation: "reset_and_content_free"
+      flow: "startingRecommendation"
     },
     target: {
-      pathname: "/bloom/starting-recommendation",
-      params: { recommendation: "reset_and_content_free" }
+      pathname: "/bloom/starting-recommendation"
     }
   },
   resetRecommendation: {
@@ -208,10 +217,10 @@ const cases = {
 
 export function verifyBloomProductRoutes() {
   assert(
-    Object.values(cases).filter((testCase) => testCase.status === "ready").length === 10 &&
-      Object.values(cases).filter((testCase) => testCase.status === "featurePending").length === 1 &&
+    Object.values(cases).filter((testCase) => testCase.status === "ready").length === 11 &&
+      Object.values(cases).filter((testCase) => String(testCase.status) === "featurePending").length === 0 &&
       !("resetAssessment" in bloomProductRoutePaths),
-    "Exactly ten routes are ready and only Starting recommendation remains pending; assessment is absent from the current route contract."
+    "Exactly eleven routes are ready with no current pending destination; assessment is absent from the current route contract."
   );
   for (const testCase of Object.values(cases)) {
     const intent = testCase.intent;
@@ -249,12 +258,12 @@ export function verifyBloomProductRoutes() {
 
   verifyProgressIsNotRouteIdentity();
   verifyCurrentAndLegacyUrgeResume();
-  verifyMalformedRecommendationsRemainPending();
+  verifyStartingRecommendationDiscardsPayload();
   verifyRecommendationDiscardsPayload();
   verifyNavigationExecution();
   verifyNamespaceAndDependencies();
   console.log(
-    "Bloom product-route verification passed (ten ready routes including parameter-free Reset recommendation, one pending Starting recommendation, discarded stale recommendation payloads, navigation execution, and legacy isolation)."
+    "Bloom product-route verification passed (eleven ready routes with both recommendations parameter-free, zero pending destinations, discarded stale recommendation payloads, navigation execution, and legacy isolation)."
   );
 }
 
@@ -277,20 +286,27 @@ function verifyCurrentAndLegacyUrgeResume() {
   }
 }
 
-function verifyMalformedRecommendationsRemainPending() {
-  for (const malformed of [
-    { flow: "startingRecommendation" },
-    { flow: "startingRecommendation", recommendation: null },
-    { flow: "startingRecommendation", recommendation: ["reset", "content_free"] },
-    { flow: "startingRecommendation", recommendation: "unknown" }
+function verifyStartingRecommendationDiscardsPayload() {
+  for (const extras of [
+    {}, { recommendation: null }, { recommendation: ["reset", "content_free"] }, { recommendation: "unknown" },
+    { recommendation: "reset" }, { answers: { q1: "stale" } }, { dimensions: { concern: "high" } },
+    { scores: [1, 2] }, { result: { recommendation: "content_free" } }, { completedAt: "stale" }
   ]) {
-    let calls = 0;
-    const router = { push: () => { calls++; }, replace: () => { calls++; } };
+    const intent = Object.freeze({ flow: "startingRecommendation", ...extras }) as BloomProductFlowIntent;
+    const destination = { pathname: "/bloom/starting-recommendation" };
+    equalRecommendationTarget(intent, destination);
     for (const method of ["push", "replace"] as const) {
-      assert(!navigateBloomProductFlow(router, malformed as unknown as BloomProductFlowIntent, method) && calls === 0,
-        "Malformed payloads cannot make the deferred Starting recommendation destination executable.");
+      const calls: unknown[] = [];
+      const router = { push: (target: unknown) => calls.push(target), replace: (target: unknown) => calls.push(target) };
+      assert(navigateBloomProductFlow(router, intent, method) && isDeepStrictEqual(calls, [destination]),
+        "Starting review must execute without serializing any stale onboarding payload.");
     }
   }
+  const unreadable = { flow: "startingRecommendation" } as const;
+  for (const key of ["recommendation", "answers", "dimensions", "scores", "result", "completedAt"]) {
+    Object.defineProperty(unreadable, key, { get() { throw new Error("Starting routing must not inspect result snapshots."); } });
+  }
+  equalRecommendationTarget(Object.freeze(unreadable), { pathname: "/bloom/starting-recommendation" });
 }
 
 function verifyRecommendationDiscardsPayload() {
@@ -399,7 +415,7 @@ function verifyNamespaceAndDependencies() {
     "The central contract must expose exactly the unique Bloom namespace paths."
   );
   assert(
-    isDeepStrictEqual(readdirSync(resolve("app/bloom")).sort(), ["content-free.tsx", "masturbation-session", "panic.tsx", "reset", "urge-control"]) &&
+    isDeepStrictEqual(readdirSync(resolve("app/bloom")).sort(), ["content-free.tsx", "masturbation-session", "panic.tsx", "reset", "starting-recommendation.tsx", "urge-control"]) &&
       isDeepStrictEqual(
         readdirSync(resolve("app/bloom/masturbation-session")).sort(),
         ["feedback.tsx", "resume.tsx", "start.tsx"]
@@ -412,7 +428,7 @@ function verifyNamespaceAndDependencies() {
         readdirSync(resolve("app/bloom/urge-control")).sort(),
         ["resume.tsx"]
       ),
-    "Exactly the session, Content-Free, Reset including recommendation, Panic, and Urge resume routes must exist; Starting recommendation remains deferred."
+    "Exactly the session, Content-Free, Reset including recommendation, Panic, and Urge resume and Starting recommendation routes must exist."
   );
   for (const [file, feature] of [
     ["app/bloom/masturbation-session/start.tsx", "masturbation-tracking"],
@@ -423,6 +439,7 @@ function verifyNamespaceAndDependencies() {
     ["app/bloom/reset/progress.tsx", "reset"],
     ["app/bloom/reset/completion.tsx", "reset"],
     ["app/bloom/reset/recommendation.tsx", "reset-recommendation"],
+    ["app/bloom/starting-recommendation.tsx", "starting-recommendation"],
     ["app/bloom/panic.tsx", "panic"],
     ["app/bloom/urge-control/resume.tsx", "urge-control"]
   ] as const) {

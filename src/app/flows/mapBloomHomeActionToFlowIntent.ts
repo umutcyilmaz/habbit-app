@@ -17,8 +17,7 @@ export type BloomProductFlowIntent =
   | ({ flow: "resetBaseline" } &
       HomeActionPayload<"completeResetBaseline">)
   | ({ flow: "resetProgress" } & HomeActionPayload<"viewActiveReset">)
-  | ({ flow: "startingRecommendation" } &
-      HomeActionPayload<"reviewStartingRecommendation">)
+  | { flow: "startingRecommendation" }
   | { flow: "resetRecommendation" }
   | { flow: "masturbationSession"; mode: "start" }
   | { flow: "panic" }
@@ -66,8 +65,7 @@ export function mapBloomHomeActionToFlowIntent(
       };
     case "reviewStartingRecommendation":
       return {
-        flow: "startingRecommendation",
-        recommendation: action.recommendation
+        flow: "startingRecommendation"
       };
     case "reviewResetRecommendation":
       return { flow: "resetRecommendation" };

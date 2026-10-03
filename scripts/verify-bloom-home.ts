@@ -57,10 +57,10 @@ function priorityCases(): PriorityCase[] {
     { label: "startable Tracking supplies the ordinary action", state: tracking, clock: at, action: { id: "startMasturbationSession" } },
     { label: "Content-Free alone supplies the ordinary action", state: contentOnly, clock: at, action: { id: "viewContentFree" } },
     { label: "Persisted Reset recommendation retains compatibility priority over normal trackers", state: recommended, clock: at, action: { id: "reviewResetRecommendation" } },
-    { label: "unaccepted stored onboarding recommendation outranks Reset recommendation and trackers", state: startingRecommendation, clock: at, action: { id: "reviewStartingRecommendation", recommendation: "masturbation_tracking" } },
+    { label: "unaccepted stored onboarding recommendation outranks Reset recommendation and trackers", state: startingRecommendation, clock: at, action: { id: "reviewStartingRecommendation" } },
     { label: "effective active Reset outranks unaccepted recommendation and enabled Tracking", state: active, clock: activeAt, action: { id: "viewActiveReset", journeyId: active.resetJourney.id, attemptId: active.resetJourney.currentAttempt.id, progress: activeProgress } },
     { label: "baseline preparation outranks unaccepted recommendation and trackers", state: baseline, clock: at, action: { id: "completeResetBaseline", journeyId: "home-baseline-reset" } },
-    { label: "completed Reset yields to unaccepted recommendation without an assessment action", state: completed, clock: elapsedAt, action: { id: "reviewStartingRecommendation", recommendation: "content_free" } },
+    { label: "completed Reset yields to unaccepted recommendation without an assessment action", state: completed, clock: elapsedAt, action: { id: "reviewStartingRecommendation" } },
     { label: "exact Day 15 requests explicit lifecycle persistence before recommendation or tracker actions", state: active, clock: elapsedAt, action: { id: "recordResetElapsedCompletion", journeyId: active.resetJourney.id, attemptId: active.resetJourney.currentAttempt.id, progress: elapsedProgress } }
   ];
 }
@@ -177,7 +177,7 @@ function verifyStoredRecommendations() {
     const stored = state.productOnboarding.result;
     const fresh = scoreBloomOnboarding(stored.answers, stored.completedAt);
     if (recommendation !== "reset_and_content_free") assert(fresh.recommendation !== stored.recommendation, "Historical recommendation fixture must intentionally differ from today's scorer for the same raw answers.");
-    expectAction(state, at, { id: "reviewStartingRecommendation", recommendation }, "Home must return the exact stored recommendation without rescoring or assigning permanent tracker ownership");
+    expectAction(state, at, { id: "reviewStartingRecommendation" }, "Home must request parameter-free stored recommendation review without rescoring or assigning permanent tracker ownership");
     const accepted = clone(state);
     assert(accepted.productOnboarding.status === "completed", "Accepted fixture requires a stored result.");
     accepted.productOnboarding.planAcceptance = { acceptedAt: at, recommendation };

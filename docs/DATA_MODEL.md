@@ -519,7 +519,7 @@ It composes `getMasturbationTrackingAvailability`, `getContentFreeProgress`, and
 | Active Reset whose period has elapsed | `recordResetElapsedCompletion` | `journeyId`, `attemptId`, existing `progress` |
 | Reset baseline pending | `completeResetBaseline` | `journeyId` |
 | Active Reset still effectively restricted | `viewActiveReset` | `journeyId`, `attemptId`, existing `progress` |
-| Completed product onboarding with null acceptance | `reviewStartingRecommendation` | Stored `recommendation` |
+| Completed product onboarding with null acceptance | `reviewStartingRecommendation` | None; feature reads stored result |
 | Reset recommended (persisted compatibility) | `reviewResetRecommendation` | None |
 | Primary Tracking tracker can start | `startMasturbationSession` | None |
 | Content-Free is the primary tracker | `viewContentFree` | None |
@@ -569,6 +569,14 @@ Known differences requiring later explicit work:
 - Pause and Arousal Control remain separate legacy state slices and routes; their records are not implicitly converted into Masturbation Sessions.
 - The current journey may require Protection and proceeds toward separate Arousal Practice. Protect remains implemented but is deferred for new flows.
 - The existing five tabs and `/reset/ten-day`, `/pause`, and `/exercises/arousal-control` routes remain unchanged.
+
+## Starting Recommendation Integration — Phase 2C
+
+The executable `/bloom/starting-recommendation` feature consumes the existing `ProductOnboardingState` without changing its model. Only completed onboarding with null `planAcceptance` offers review, and the stored `result.recommendation` is read exactly as persisted. Structural validation never rescores historical answers. The Home action and flow intent carry only `id: "reviewStartingRecommendation"` and `flow: "startingRecommendation"` respectively; the route has no parameters or serialized result/evidence.
+
+Acceptance uses the unchanged `acceptProductOnboardingRecommendationState` through existing acknowledged flow/application APIs. It persists only the already-supported `ProductPlanAcceptance`, enabled Tracking, active Content-Free, and/or Reset `baseline_pending` shapes. No new recommendation state, dismissal metadata, schema version, or migration is added. The transition still owns all conflicts and atomicity; no React branch directly enables/activates/prepares a system.
+
+The feature retains the exact accepted successor for save recovery, checks all four relevant immutable references before submission, and retries persistence without replaying acceptance. Durable Reset-based acceptance routes to the actual prepared journey's baseline; other plans route to Today. Acceptance never creates a session, baseline answers, or an active Reset attempt. Eleven current routes are ready; legacy onboarding/Today and final V4/tab presentation remain unchanged. Persistence remains v7 / `bloom.localState.v7`.
 
 ## Runtime Validation and Deferred Behavior
 

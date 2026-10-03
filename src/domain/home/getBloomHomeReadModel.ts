@@ -1,6 +1,5 @@
 import type { ContentFreeState } from "../models/ContentFreeState";
 import type { MasturbationTrackingState } from "../models/MasturbationTrackingState";
-import type { OnboardingRecommendation } from "../models/OnboardingDimensions";
 import type { ProductOnboardingState } from "../models/ProductOnboardingState";
 import type { ResetJourney } from "../models/ResetJourney";
 import type { UrgeControlState } from "../models/UrgeControlState";
@@ -31,7 +30,7 @@ export type BloomHomeAction =
   | { id: "recordResetElapsedCompletion"; journeyId: UUID; attemptId: UUID; progress: ResetProgress }
   | { id: "completeResetBaseline"; journeyId: UUID }
   | { id: "viewActiveReset"; journeyId: UUID; attemptId: UUID; progress: ResetProgress }
-  | { id: "reviewStartingRecommendation"; recommendation: OnboardingRecommendation }
+  | { id: "reviewStartingRecommendation" }
   | { id: "reviewResetRecommendation" }
   | { id: "startMasturbationSession" }
   | { id: "viewContentFree" };
@@ -130,7 +129,7 @@ function getPrimaryAction(
 
   const onboarding = state.productOnboarding;
   if (onboarding.status === "completed" && onboarding.planAcceptance === null) {
-    return { id: "reviewStartingRecommendation", recommendation: onboarding.result.recommendation };
+    return { id: "reviewStartingRecommendation" };
   }
   if (reset.status === "recommended") return { id: "reviewResetRecommendation" };
 

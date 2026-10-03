@@ -270,7 +270,7 @@ Urge resume validates exact active event identity and reads `getUrgeControlProgr
 
 Controllers retain accepted operation snapshots and retry tokens while hooks display accepted/durable status and guard navigation. Failed accepted writes lock conflicting operations and retry only through `retryPersistedMutation`. Completion/discard recovery remains visible after accepted state clears `activeEvent`. Successful start/completion/discard/slip navigation waits for durable acknowledgement and rechecks current accepted identity. Unmounting never discards or permits stale callbacks to navigate. Existing v7 schema/key, transitions, write runtime, and migration behavior are unchanged.
 
-`verify-bloom-panic-feature.ts` and `verify-bloom-urge-control-feature.ts` run through `verify:persistence` for branch separation, preview/identity guards, current and legacy execution, failed-save recovery without logical replay, durable navigation, and feature wiring. Phase 2B route verification expects ten ready routes including Reset recommendation; only Starting recommendation remains pending. Final V4 presentation, second intervention, result/undo screens, and Home/tab cutover remain deferred.
+`verify-bloom-panic-feature.ts` and `verify-bloom-urge-control-feature.ts` run through `verify:persistence` for branch separation, preview/identity guards, current and legacy execution, failed-save recovery without logical replay, durable navigation, and feature wiring. Phase 2C route verification expects eleven ready routes including both parameter-free recommendation destinations and no pending current route. Final V4 presentation, second intervention, result/undo screens, and Home/tab cutover remain deferred.
 
 ### Tracking Reset recommendation acceptance — Phase 2B
 
@@ -431,3 +431,7 @@ Do not overwrite or delete an unsupported payload merely because the running app
 ## Privacy Boundary
 
 Private notes and sensitive reflection details must not be sent through analytics or crash metadata. If cloud sync, analytics, encryption, or app lock is added later, each requires a separate explicit data and threat-model decision.
+
+### Executable Starting Recommendation — Phase 2C
+
+The parameter-free `/bloom/starting-recommendation` feature reads the existing stored product onboarding result without rescoring. It invokes only `flowActions.onboarding.acceptRecommendation()` and the existing unchanged atomic transition. Tracking/Content-Free plans return to Today after durable save; Reset/combined plans go to baseline with the actual accepted journey ID. Failed saves retain the entire successor and retry only the same persistence snapshot without regenerating facts. No new persisted fields, acceptance semantics, schema, migration, or v7 key change is introduced. The new feature suite runs through `verify:persistence`; all eleven current routes are ready. Legacy onboarding/Today, final V4 presentation, and tab cutover remain deferred.
