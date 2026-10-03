@@ -68,6 +68,13 @@ export function createBloomProductFlowActions({
       }
     },
     reset: {
+      acceptRecommendation: () => {
+        const { operationTime, timestamp } = captureOperation();
+        return productActions.reset.acceptRecommendation({
+          resetJourneyId: createId("reset-journey", operationTime),
+          acceptedAt: timestamp
+        });
+      },
       startFromBaseline: (selfReport: CurrentResetBaselineSelfReport) => {
         const { operationTime, timestamp } = captureOperation();
         return productActions.reset.startFromBaseline({

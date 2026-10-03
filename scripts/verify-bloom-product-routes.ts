@@ -24,6 +24,7 @@ type ReadyRoutePath =
   | typeof bloomProductRoutePaths.contentFree
   | typeof bloomProductRoutePaths.resetBaseline
   | typeof bloomProductRoutePaths.resetProgress
+  | typeof bloomProductRoutePaths.resetRecommendation
   | typeof bloomProductRoutePaths.resetCompletion;
 type ReadyRouteContract = Assert<Equal<
   Extract<BloomProductRouteDestination, { status: "ready" }>["destination"]["pathname"],
@@ -31,8 +32,7 @@ type ReadyRouteContract = Assert<Equal<
 >>;
 type PendingRouteContract = Assert<Equal<
   Extract<BloomProductRouteDestination, { status: "featurePending" }>["destination"]["pathname"],
-  | typeof bloomProductRoutePaths.startingRecommendation
-  | typeof bloomProductRoutePaths.resetRecommendation
+  typeof bloomProductRoutePaths.startingRecommendation
 >>;
 type AssessmentRouteRemoved = Assert<Equal<
   Extract<BloomProductRouteTarget, { pathname: "/bloom/reset/assessment" }>,
@@ -45,6 +45,14 @@ type PanicIntentContract = Assert<Equal<
 type PanicRouteContract = Assert<Equal<
   Extract<BloomProductRouteTarget, { pathname: "/bloom/panic" }>,
   { pathname: "/bloom/panic"; params?: never }
+>>;
+type ResetRecommendationIntentContract = Assert<Equal<
+  Extract<BloomProductFlowIntent, { flow: "resetRecommendation" }>,
+  { flow: "resetRecommendation" }
+>>;
+type ResetRecommendationRouteContract = Assert<Equal<
+  Extract<BloomProductRouteTarget, { pathname: "/bloom/reset/recommendation" }>,
+  { pathname: "/bloom/reset/recommendation"; params?: never }
 >>;
 
 type FlowIntentKey<Intent extends BloomProductFlowIntent> =
@@ -65,6 +73,7 @@ type RouteCases = {
       | "resetBaseline"
       | "resetProgress"
       | "resetCompletion"
+      | "resetRecommendation"
       ? "ready"
       : "featurePending";
   };
@@ -179,11 +188,10 @@ const cases = {
     }
   },
   resetRecommendation: {
-    status: "featurePending",
-    intent: { flow: "resetRecommendation", journeyId: "route-recommendation" },
+    status: "ready",
+    intent: { flow: "resetRecommendation" },
     target: {
-      pathname: "/bloom/reset/recommendation",
-      params: { journeyId: "route-recommendation" }
+      pathname: "/bloom/reset/recommendation"
     }
   },
   contentFree: {
@@ -200,10 +208,10 @@ const cases = {
 
 export function verifyBloomProductRoutes() {
   assert(
-    Object.values(cases).filter((testCase) => testCase.status === "ready").length === 9 &&
-      Object.values(cases).filter((testCase) => testCase.status === "featurePending").length === 2 &&
+    Object.values(cases).filter((testCase) => testCase.status === "ready").length === 10 &&
+      Object.values(cases).filter((testCase) => testCase.status === "featurePending").length === 1 &&
       !("resetAssessment" in bloomProductRoutePaths),
-    "Exactly nine routes are ready and two recommendations remain pending; assessment is absent from the current route contract."
+    "Exactly ten routes are ready and only Starting recommendation remains pending; assessment is absent from the current route contract."
   );
   for (const testCase of Object.values(cases)) {
     const intent = testCase.intent;
@@ -242,10 +250,11 @@ export function verifyBloomProductRoutes() {
   verifyProgressIsNotRouteIdentity();
   verifyCurrentAndLegacyUrgeResume();
   verifyMalformedRecommendationsRemainPending();
+  verifyRecommendationDiscardsPayload();
   verifyNavigationExecution();
   verifyNamespaceAndDependencies();
   console.log(
-    "Bloom product-route verification passed (nine ready routes including Panic/current/legacy Urge resume, two pending recommendations, no assessment route, navigation execution, and legacy isolation)."
+    "Bloom product-route verification passed (ten ready routes including parameter-free Reset recommendation, one pending Starting recommendation, discarded stale recommendation payloads, navigation execution, and legacy isolation)."
   );
 }
 
@@ -273,19 +282,45 @@ function verifyMalformedRecommendationsRemainPending() {
     { flow: "startingRecommendation" },
     { flow: "startingRecommendation", recommendation: null },
     { flow: "startingRecommendation", recommendation: ["reset", "content_free"] },
-    { flow: "startingRecommendation", recommendation: "unknown" },
-    { flow: "resetRecommendation" },
-    { flow: "resetRecommendation", journeyId: "" },
-    { flow: "resetRecommendation", journeyId: null },
-    { flow: "resetRecommendation", journeyId: ["one", "two"] }
+    { flow: "startingRecommendation", recommendation: "unknown" }
   ]) {
     let calls = 0;
     const router = { push: () => { calls++; }, replace: () => { calls++; } };
     for (const method of ["push", "replace"] as const) {
       assert(!navigateBloomProductFlow(router, malformed as unknown as BloomProductFlowIntent, method) && calls === 0,
-        "Malformed payloads cannot make either deferred recommendation destination executable.");
+        "Malformed payloads cannot make the deferred Starting recommendation destination executable.");
     }
   }
+}
+
+function verifyRecommendationDiscardsPayload() {
+  for (const extras of [
+    { journeyId: "obsolete-journey" }, { journeyId: "" }, { journeyId: null }, { journeyId: ["one", "two"] },
+    { signals: ["erectionQualityDownwardTrend"] }, { evidence: { recentAverageErectionQuality: 1 } },
+    { recommendation: { status: "recommended", signals: [], evidence: {} } },
+    { resetJourney: { status: "recommended", id: "snapshot" } }
+  ]) {
+    const intent = Object.freeze({ flow: "resetRecommendation", ...extras }) as BloomProductFlowIntent;
+    const destination = { pathname: "/bloom/reset/recommendation" };
+    equalRecommendationTarget(intent, destination);
+    for (const method of ["push", "replace"] as const) {
+      const calls: unknown[] = [];
+      const router = { push: (target: unknown) => { assert(method === "push", "Recommendation must use requested push/replace."); calls.push(target); },
+        replace: (target: unknown) => { assert(method === "replace", "Recommendation must use requested push/replace."); calls.push(target); } };
+      assert(navigateBloomProductFlow(router, intent, method) && isDeepStrictEqual(calls, [destination]),
+        "Recommendation execution must never pass stale journey IDs, evidence, signals, or snapshots to navigation.");
+    }
+  }
+  const unreadable = { flow: "resetRecommendation" } as const;
+  for (const key of ["journeyId", "signals", "evidence", "recommendation", "resetJourney"]) {
+    Object.defineProperty(unreadable, key, { get() { throw new Error("Recommendation routing must not inspect snapshots."); } });
+  }
+  equalRecommendationTarget(Object.freeze(unreadable), { pathname: "/bloom/reset/recommendation" });
+}
+
+function equalRecommendationTarget(intent: BloomProductFlowIntent, destination: unknown) {
+  assert(isDeepStrictEqual(mapBloomProductFlowIntentToRouteDestination(intent), { status: "ready", destination }),
+    "Reset recommendation routing must create its exact ready parameter-free target without reading payloads.");
 }
 
 function verifyNavigationExecution() {
@@ -371,13 +406,13 @@ function verifyNamespaceAndDependencies() {
       ) &&
       isDeepStrictEqual(
         readdirSync(resolve("app/bloom/reset")).sort(),
-        ["baseline.tsx", "completion.tsx", "progress.tsx"]
+        ["baseline.tsx", "completion.tsx", "progress.tsx", "recommendation.tsx"]
       ) &&
       isDeepStrictEqual(
         readdirSync(resolve("app/bloom/urge-control")).sort(),
         ["resume.tsx"]
       ),
-    "Exactly the session, Content-Free, Reset, Panic, and Urge resume routes must exist; recommendation routes remain deferred."
+    "Exactly the session, Content-Free, Reset including recommendation, Panic, and Urge resume routes must exist; Starting recommendation remains deferred."
   );
   for (const [file, feature] of [
     ["app/bloom/masturbation-session/start.tsx", "masturbation-tracking"],
@@ -387,6 +422,7 @@ function verifyNamespaceAndDependencies() {
     ["app/bloom/reset/baseline.tsx", "reset"],
     ["app/bloom/reset/progress.tsx", "reset"],
     ["app/bloom/reset/completion.tsx", "reset"],
+    ["app/bloom/reset/recommendation.tsx", "reset-recommendation"],
     ["app/bloom/panic.tsx", "panic"],
     ["app/bloom/urge-control/resume.tsx", "urge-control"]
   ] as const) {

@@ -11,6 +11,7 @@ import {
   type MasturbationTrackingAvailability
 } from "../productPolicy/getMasturbationTrackingAvailability";
 import type { ResetProgress } from "../reset/getResetProgress";
+import { getTrackingResetRecommendation, type TrackingResetRecommendation } from "../reset/getTrackingResetRecommendation";
 import { getUrgeControlProgress, type UrgeControlProgress } from "../urgeControl/getUrgeControlProgress";
 
 // Only current product facts belong to this input. A full application snapshot
@@ -31,7 +32,7 @@ export type BloomHomeAction =
   | { id: "completeResetBaseline"; journeyId: UUID }
   | { id: "viewActiveReset"; journeyId: UUID; attemptId: UUID; progress: ResetProgress }
   | { id: "reviewStartingRecommendation"; recommendation: OnboardingRecommendation }
-  | { id: "reviewResetRecommendation"; journeyId: UUID }
+  | { id: "reviewResetRecommendation" }
   | { id: "startMasturbationSession" }
   | { id: "viewContentFree" };
 
@@ -49,6 +50,8 @@ export type BloomHomeReadModel = {
   primaryTracker: BloomHomeTracker | null;
   secondaryTracker: ContentFreeHomeTracker | null;
   trackingAvailability: MasturbationTrackingAvailability;
+  trackingResetRecommendation: TrackingResetRecommendation;
+  resetRecommendationAction: Extract<BloomHomeAction, { id: "reviewResetRecommendation" }> | null;
   urgeControlProgress: UrgeControlProgress | null;
   urgeControlAvailable: true;
 };
@@ -59,6 +62,8 @@ export function getBloomHomeReadModel(state: BloomHomeState, at: ISODateString):
   try {
     const trackingAvailability = getMasturbationTrackingAvailability(state, at);
     if (trackingAvailability === null) return null;
+    const trackingResetRecommendation = getTrackingResetRecommendation(state.masturbationTracking, at);
+    if (trackingResetRecommendation === null) return null;
     const contentFreeProgress = getContentFreeProgress(state.contentFree, at);
     if (contentFreeProgress === null) return null;
     const urgeControlProgress = getUrgeControlProgress(state.urgeControl, at);
@@ -80,6 +85,15 @@ export function getBloomHomeReadModel(state: BloomHomeState, at: ISODateString):
       primaryTracker,
       secondaryTracker: trackingAvailability.enabled ? contentFreeTracker : null,
       trackingAvailability,
+      trackingResetRecommendation,
+      // Tracking-derived advice is optional and never participates in the
+      // primary-action priority ladder. Acceptance revalidates these facts.
+      resetRecommendationAction: trackingResetRecommendation.status === "recommended" &&
+        state.resetJourney.status === "inactive" &&
+        state.masturbationTracking.currentSession === null &&
+        !(state.productOnboarding.status === "completed" && state.productOnboarding.planAcceptance === null)
+        ? { id: "reviewResetRecommendation" }
+        : null,
       urgeControlProgress,
       urgeControlAvailable: true
     };
@@ -118,7 +132,7 @@ function getPrimaryAction(
   if (onboarding.status === "completed" && onboarding.planAcceptance === null) {
     return { id: "reviewStartingRecommendation", recommendation: onboarding.result.recommendation };
   }
-  if (reset.status === "recommended") return { id: "reviewResetRecommendation", journeyId: reset.id };
+  if (reset.status === "recommended") return { id: "reviewResetRecommendation" };
 
   if (primaryTracker?.kind === "masturbationTracking" && trackingAvailability.canStartSession) return { id: "startMasturbationSession" };
   if (primaryTracker?.kind === "contentFree") return { id: "viewContentFree" };

@@ -1,7 +1,7 @@
 import type { BloomProductFlowIntent } from "../flows/mapBloomHomeActionToFlowIntent";
 
 // Sessions, Content-Free, Reset, Panic, and Urge Control have route entries.
-// Recommendation paths remain reserved until features exist.
+// Starting recommendation remains reserved until its feature exists.
 export const bloomProductRoutePaths = {
   masturbationSessionStart: "/bloom/masturbation-session/start",
   masturbationSessionResume: "/bloom/masturbation-session/resume",
@@ -64,7 +64,7 @@ export type BloomProductRouteTarget =
     }
   | {
       pathname: typeof bloomProductRoutePaths.resetRecommendation;
-      params: Pick<FlowIntent<"resetRecommendation">, "journeyId">;
+      params?: never;
     }
   | {
       pathname: typeof bloomProductRoutePaths.contentFree;
@@ -83,6 +83,7 @@ export type BloomProductReadyRouteTarget = Extract<
       | typeof bloomProductRoutePaths.contentFree
       | typeof bloomProductRoutePaths.resetBaseline
       | typeof bloomProductRoutePaths.resetProgress
+      | typeof bloomProductRoutePaths.resetRecommendation
       | typeof bloomProductRoutePaths.resetCompletion;
   }
 >;

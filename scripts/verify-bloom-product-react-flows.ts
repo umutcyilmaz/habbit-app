@@ -162,6 +162,18 @@ async function verifyHookDependencyWiring(source: string) {
   currentContext = providerContext(second.actions, 4);
   assert(useFlow() === replacementFlow && Number(factoryBuilds) === 2 && Number(clockCalls) === 1 && Number(idCalls) === 1,
     "Acknowledgement-related provider updates must not rebuild flow actions or regenerate facts.");
+  const acceptingReset = replacementFlow.reset.acceptRecommendation();
+  assert(acceptingReset === second.resetAcknowledgement.promise && second.resetCalls.length === 1 && first.resetCalls.length === 0,
+    "Reset recommendation acceptance must use the current provider command and preserve its exact acknowledgement promise.");
+  const acceptedInput = second.resetCalls[0]!;
+  assert(acceptedInput.resetJourneyId === "reset-journey-react-test-2" && acceptedInput.acceptedAt === at &&
+    Object.keys(acceptedInput).length === 2 && Number(clockCalls) === 2 && Number(idCalls) === 2,
+  "The React flow may prepare only one candidate journey ID and operation timestamp at explicit acceptance, with no evidence or provider-state reads.");
+  const resetResult: BloomPersistedMutationResult = { ok: true, accepted: true, persisted: true, sequence: 92 };
+  second.resetAcknowledgement.resolve(resetResult);
+  assert(await acceptingReset === resetResult && useFlow() === replacementFlow && Number(factoryBuilds) === 2 &&
+    Number(clockCalls) === 2 && Number(idCalls) === 2,
+  "Recommendation acknowledgement and rerenders must not replay acceptance, rebuild stable commands, or regenerate its mechanical facts.");
 }
 
 function providerContext(productActions: BloomProductAcknowledgedActions, revision: number) {
@@ -177,12 +189,18 @@ function providerContext(productActions: BloomProductAcknowledgedActions, revisi
 
 function productSpy() {
   const acknowledgement = deferred<BloomPersistedMutationResult>();
+  const resetAcknowledgement = deferred<BloomPersistedMutationResult>();
   const calls: Array<{ sessionId: string; startedAt: string }> = [];
+  const resetCalls: Array<{ resetJourneyId: string; acceptedAt: string }> = [];
   const base = createBloomProductAcknowledgedActions({
     applyAcknowledgedMutation: async () => { throw new Error("Render must not dispatch any product mutation."); }
   });
   const actions: BloomProductAcknowledgedActions = {
     ...base,
+    reset: {
+      ...base.reset,
+      acceptRecommendation: (input) => { resetCalls.push(input); return resetAcknowledgement.promise; }
+    },
     tracking: {
       ...base.tracking,
       session: {
@@ -191,7 +209,7 @@ function productSpy() {
       }
     }
   };
-  return { actions, calls, acknowledgement };
+  return { actions, calls, acknowledgement, resetCalls, resetAcknowledgement };
 }
 
 function deferred<T>() {

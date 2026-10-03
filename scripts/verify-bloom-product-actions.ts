@@ -11,7 +11,7 @@ import type {
 import {
   createDefaultBloomState, saveProductOnboardingResultState, acceptProductOnboardingRecommendationState,
   startResetFromBaselineState, recordActiveResetViolationState, undoActiveResetViolationState,
-  completeElapsedResetPeriodState, recordBehaviorSlipState,
+  completeElapsedResetPeriodState, recordBehaviorSlipState, acceptResetRecommendationState,
   enableMasturbationTrackingState, disableMasturbationTrackingState,
   startMasturbationSessionState, startMasturbationPauseState, endMasturbationPauseState,
   endMasturbationSessionState, completeMasturbationSessionFeedbackState, discardActiveMasturbationSessionState,
@@ -26,6 +26,7 @@ import { validateAndNormalizeBloomState } from "../src/storage/bloomStateSchema"
 import { createPopulatedState } from "./verify-bloom-product-persistence";
 import { createActiveState } from "./verify-bloom-reset-violations";
 import { verifyBloomProductActionsRuntime } from "./verify-bloom-product-actions-runtime";
+import { createTrackingResetRecommendationState } from "./verify-bloom-reset-recommendation-acceptance";
 
 const at = "2026-11-01T12:00:00.123Z";
 const day = 24 * 60 * 60 * 1000;
@@ -50,6 +51,7 @@ type ExpectedProductActions = {
     record: Acknowledged<typeof recordBehaviorSlipState>;
   };
   reset: {
+    acceptRecommendation: Acknowledged<typeof acceptResetRecommendationState>;
     startFromBaseline: Acknowledged<typeof startResetFromBaselineState>;
     recordViolation: Acknowledged<typeof recordActiveResetViolationState>;
     undoViolation: Acknowledged<typeof undoActiveResetViolationState>;
@@ -102,15 +104,15 @@ export async function verifyBloomProductActions() {
   verifyFactoryIsolation();
   const cases = commandCases();
   const api = createBloomProductAcknowledgedActions({ applyAcknowledgedMutation: async () => success(1) });
-  equal(commandPaths(api).sort(), cases.map((item) => item.name).sort(), "The facade must expose exactly the 32 grouped command paths covered by delegation tests.");
-  assert(cases.length === 32 && !("completeAssessment" in api.reset), "Every current product transition must have one focused command case; Reset assessment must no longer be a command.");
+  equal(commandPaths(api).sort(), cases.map((item) => item.name).sort(), "The facade must expose exactly the 33 grouped command paths covered by delegation tests.");
+  assert(cases.length === 33 && !("completeAssessment" in api.reset), "Every current product transition must have one focused command case; Reset assessment must no longer be a command.");
   equal(Object.keys(api.behaviorSlip), ["record"], "The shared behavior-slip facade must not introduce a generic undo command.");
   for (const item of cases) {
     await verifyDelegation(item);
     await verifyResultPassthrough(item);
   }
   await verifyRapidSequentialCommands();
-  console.log("Bloom product-action facade verification passed (all 32 grouped commands; exact transition delegation, caller facts, runtime-supplied current state, no-ops, acknowledgement passthrough, and rapid sequential commands).");
+  console.log("Bloom product-action facade verification passed (all 33 grouped commands; exact transition delegation, caller facts, runtime-supplied current state, no-ops, acknowledgement passthrough, and rapid sequential commands).");
   await verifyBloomProductActionsRuntime();
 }
 
@@ -251,6 +253,8 @@ function commandCases(): CommandCase[] {
       logActionId: "caller-slip-source", resetViolationId: "caller-slip-reset-violation",
       replacementResetAttemptId: "caller-slip-replacement-attempt", contentFreeViolationId: "caller-slip-content-violation"
     }),
+    command("reset.acceptRecommendation", createTrackingResetRecommendationState(), acceptResetRecommendationState, (a) => a.reset.acceptRecommendation,
+      { resetJourneyId: "caller-derived-reset", acceptedAt: at }),
     command("reset.startFromBaseline", accepted, startResetFromBaselineState, (a) => a.reset.startFromBaseline, baselineInput),
     command("reset.recordViolation", resetActive, recordActiveResetViolationState, (a) => a.reset.recordViolation, violationInput),
     command("reset.undoViolation", violated, undoActiveResetViolationState, (a) => a.reset.undoViolation, { violationId: violationInput.violationId, undoneAt: shift(at, 3 * day + 2_456) }),

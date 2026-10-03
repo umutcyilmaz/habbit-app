@@ -19,6 +19,7 @@ export function mapBloomProductFlowIntentToRouteDestination(
     case bloomProductRoutePaths.resetBaseline:
     case bloomProductRoutePaths.resetProgress:
     case bloomProductRoutePaths.resetCompletion:
+    case bloomProductRoutePaths.resetRecommendation:
       return { status: "ready", destination };
     default:
       return { status: "featurePending", destination };
@@ -80,8 +81,7 @@ function mapRouteTarget(intent: BloomProductFlowIntent): BloomProductRouteTarget
       };
     case "resetRecommendation":
       return {
-        pathname: bloomProductRoutePaths.resetRecommendation,
-        params: { journeyId: intent.journeyId }
+        pathname: bloomProductRoutePaths.resetRecommendation
       };
     case "contentFree":
       return { pathname: bloomProductRoutePaths.contentFree };

@@ -1,5 +1,6 @@
 import {
   acceptProductOnboardingRecommendationState,
+  acceptResetRecommendationState,
   activateContentFreeState,
   completeElapsedResetPeriodState,
   completeMasturbationSessionFeedbackState,
@@ -64,6 +65,7 @@ export function createBloomProductAcknowledgedActions({
       record: acknowledge(recordBehaviorSlipState)
     },
     reset: {
+      acceptRecommendation: acknowledge(acceptResetRecommendationState),
       startFromBaseline: acknowledge(startResetFromBaselineState),
       recordViolation: acknowledge(recordActiveResetViolationState),
       undoViolation: acknowledge(undoActiveResetViolationState),

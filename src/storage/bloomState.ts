@@ -22,6 +22,10 @@ export {
   type UndoActiveResetViolationInput
 } from "./bloomResetTransitions";
 export {
+  acceptResetRecommendationState,
+  type AcceptResetRecommendationInput
+} from "./bloomResetRecommendationTransitions";
+export {
   recordBehaviorSlipState,
   type RecordBehaviorSlipInput
 } from "./bloomBehaviorSlipTransitions";

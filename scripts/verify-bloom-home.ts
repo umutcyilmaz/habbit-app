@@ -56,7 +56,7 @@ function priorityCases(): PriorityCase[] {
     { label: "notCompleted product onboarding alone must not force onboarding or generic support", state: idle, clock: at, action: null },
     { label: "startable Tracking supplies the ordinary action", state: tracking, clock: at, action: { id: "startMasturbationSession" } },
     { label: "Content-Free alone supplies the ordinary action", state: contentOnly, clock: at, action: { id: "viewContentFree" } },
-    { label: "Reset recommendation outranks normal trackers", state: recommended, clock: at, action: { id: "reviewResetRecommendation", journeyId: "home-recommended-reset" } },
+    { label: "Persisted Reset recommendation retains compatibility priority over normal trackers", state: recommended, clock: at, action: { id: "reviewResetRecommendation" } },
     { label: "unaccepted stored onboarding recommendation outranks Reset recommendation and trackers", state: startingRecommendation, clock: at, action: { id: "reviewStartingRecommendation", recommendation: "masturbation_tracking" } },
     { label: "effective active Reset outranks unaccepted recommendation and enabled Tracking", state: active, clock: activeAt, action: { id: "viewActiveReset", journeyId: active.resetJourney.id, attemptId: active.resetJourney.currentAttempt.id, progress: activeProgress } },
     { label: "baseline preparation outranks unaccepted recommendation and trackers", state: baseline, clock: at, action: { id: "completeResetBaseline", journeyId: "home-baseline-reset" } },
@@ -181,7 +181,7 @@ function verifyStoredRecommendations() {
     const accepted = clone(state);
     assert(accepted.productOnboarding.status === "completed", "Accepted fixture requires a stored result.");
     accepted.productOnboarding.planAcceptance = { acceptedAt: at, recommendation };
-    expectAction(accepted, at, recommended ? { id: "reviewResetRecommendation", journeyId: "home-both-recommendations" } : { id: "startMasturbationSession" }, "An accepted onboarding result must stop forcing starting-recommendation review while independent current feature facts remain authoritative");
+    expectAction(accepted, at, recommended ? { id: "reviewResetRecommendation" } : { id: "startMasturbationSession" }, "An accepted onboarding result must stop forcing starting-recommendation review while independent current feature facts remain authoritative");
   }
   const migrated = clearWork(createPopulatedState());
   assert(migrated.productOnboarding.status === "notCompleted", "Migrated product onboarding fixture must remain uncompleted.");

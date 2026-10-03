@@ -6,7 +6,8 @@ import { getBloomHomeReadModel } from "../src/domain/home/getBloomHomeReadModel"
 import { getContentFreeProgress } from "../src/domain/contentFree/getContentFreeProgress";
 import { getMasturbationTrackingAvailability } from "../src/domain/productPolicy/getMasturbationTrackingAvailability";
 import { getUrgeControlProgress } from "../src/domain/urgeControl/getUrgeControlProgress";
-import { createDefaultBloomState, type BloomLocalState } from "../src/storage/bloomState";
+import { getTrackingResetRecommendation } from "../src/domain/reset/getTrackingResetRecommendation";
+import { completeElapsedResetPeriodState, createDefaultBloomState, type BloomLocalState } from "../src/storage/bloomState";
 import { BLOOM_STATE_STORAGE_KEY, loadBloomLocalState, persistBloomLocalState } from "../src/storage/bloomStatePersistence";
 import { BLOOM_PERSISTENCE_VERSION } from "../src/storage/bloomStateSchema";
 import { createMemoryStorageClient } from "../src/storage/storageAdapters";
@@ -32,6 +33,8 @@ export async function verifyBloomHomeComposition() {
         "With no higher-priority work, the semantic action follows the available primary tracker.");
       if (!enabled && !contentActive) assert(home.primaryAction === null, "Empty product onboarding must not invent onboarding or motivational work.");
       equal(home.trackingAvailability, getMasturbationTrackingAvailability(state, at), "Home must expose the existing Phase 1N availability result unchanged.");
+      equal(home.trackingResetRecommendation, getTrackingResetRecommendation(state.masturbationTracking, at), "Home must expose the authoritative derived recommendation independently of its primary action.");
+      assert(home.resetRecommendationAction === null, "Insufficient history must not create a recommendation action.");
       assert(home.urgeControlAvailable === true && home.urgeControlProgress === null,
         "Urge Control is available as optional support without becoming a default action or fabricated active progress.");
       if (home.primaryTracker?.kind === "masturbationTracking") {
@@ -48,10 +51,101 @@ export async function verifyBloomHomeComposition() {
     }
   }
   await verifySupportDuringReset();
+  await verifyOptionalResetRecommendation();
   verifySafeInvalidResults();
   verifyPurityAndLegacyIsolation();
   verifyDomainImports();
-  console.log("Bloom Home composition verification passed (four tracker combinations, selector equivalence, invalid-input safety, frozen/legacy-isolated reads, and v7 round trips).");
+  console.log("Bloom Home composition verification passed (optional derived Reset advice with preserved primary priorities, tracker independence, selector equivalence, invalid-input safety, frozen/legacy-isolated reads, and v7 round trips).");
+}
+
+async function verifyOptionalResetRecommendation() {
+  for (const enabled of [false, true]) for (const contentActive of [false, true]) {
+    const state = recommendationState(enabled, contentActive);
+    const before = JSON.stringify(state);
+    const home = getBloomHomeReadModel(deepFreeze(state), at);
+    assert(home !== null && home.trackingResetRecommendation.status === "recommended", "History supports a derived recommendation regardless of Tracking preference and Content-Free status.");
+    equal(home.trackingResetRecommendation, getTrackingResetRecommendation(state.masturbationTracking, at), "Home must compose the complete selector result without recreating recommendation policy.");
+    equal(home.resetRecommendationAction, { id: "reviewResetRecommendation" }, "Eligible optional advice has one parameter-free semantic review action.");
+    equal(home.primaryAction, enabled ? { id: "startMasturbationSession" } : contentActive ? { id: "viewContentFree" } : null,
+      "Derived advice must never replace the ordinary primary action, including disabled Tracking.");
+    assert(state.resetJourney.status === "inactive" && JSON.stringify(state) === before, "Reading recommended history must not materialize a recommended Reset or mutate frozen facts.");
+    await verifyRoundTrip(state);
+  }
+
+  for (const status of ["active", "awaiting_feedback"] as const) {
+    const state = recommendationState(true, true);
+    state.masturbationTracking.currentSession = status === "active"
+      ? { id: "recommendation-current-session", status, startedAt: "2026-09-07T12:00:00.000Z", pauses: [] }
+      : { id: "recommendation-current-session", status, startedAt: "2026-09-07T12:00:00.000Z", endedAt: "2026-09-07T12:01:00.000Z", durationSeconds: 60, pauses: [], erectionQuality: 7 };
+    const home = getBloomHomeReadModel(state, at);
+    assert(home?.trackingResetRecommendation.status === "recommended" && home.resetRecommendationAction === null,
+      "Unfinished work suppresses only the advice action, preserving the historical recommendation fact.");
+    equal(home.primaryAction, { id: status === "active" ? "resumeMasturbationSession" : "finishMasturbationSessionFeedback", sessionId: "recommendation-current-session" },
+      "A historical recommendation must not displace active or awaiting-feedback Tracking work.");
+  }
+
+  const urge = recommendationState(true, false);
+  urge.urgeControl.activeEvent = { id: "recommendation-current-urge", flowVersion: 2, status: "active", startedAt: "2026-09-07T12:00:00.000Z" };
+  const urgeHome = getBloomHomeReadModel(urge, at);
+  equal(urgeHome?.primaryAction, { id: "resumeUrgeControl", eventId: "recommendation-current-urge", stage: "interrupt" }, "Optional advice preserves active Urge primary priority.");
+  equal(urgeHome?.resetRecommendationAction, { id: "reviewResetRecommendation" }, "Active Urge does not suppress independently eligible optional advice.");
+  assert(urgeHome?.trackingResetRecommendation.status === "recommended", "Urge priority preserves the derived recommendation fact.");
+
+  const active = createActiveState(false, true);
+  active.masturbationTracking = recommendationState(true, false).masturbationTracking;
+  active.urgeControl = createDefaultBloomState().urgeControl;
+  active.productOnboarding = createDefaultBloomState().productOnboarding;
+  assert(active.resetJourney.status === "active", "Active Reset fixture required.");
+  const elapsedAt = new Date(Date.parse(active.resetJourney.currentAttempt.startedAt) + 15 * 24 * 60 * 60 * 1000).toISOString();
+  const baseline = recommendationState(true, false);
+  baseline.resetJourney = { ...baseline.resetJourney, status: "baseline_pending", id: "recommendation-existing-baseline" };
+  const completed = completeElapsedResetPeriodState(active, { observedAt: elapsedAt });
+  assert(completed.resetJourney.status === "completed", "Completed Reset fixture required.");
+  for (const [state, clock, primaryId] of [
+    [active, at, "viewActiveReset"],
+    [active, elapsedAt, "recordResetElapsedCompletion"],
+    [baseline, at, "completeResetBaseline"],
+    [completed, elapsedAt, "startMasturbationSession"]
+  ] as const) {
+    const home = getBloomHomeReadModel(state, clock);
+    assert(home?.trackingResetRecommendation.status === "recommended" && home.resetRecommendationAction === null && home.primaryAction?.id === primaryId,
+      "Existing baseline, active, elapsed, and completed Reset lifecycles preserve priority and prohibit a second derived recommendation action.");
+  }
+
+  const unresolved = recommendationState(true, true);
+  unresolved.productOnboarding = createActiveState(false, false).productOnboarding;
+  assert(unresolved.productOnboarding.status === "completed", "Historical onboarding fixture required.");
+  unresolved.productOnboarding = { ...unresolved.productOnboarding, planAcceptance: null };
+  const unresolvedHome = getBloomHomeReadModel(unresolved, at);
+  assert(unresolvedHome?.trackingResetRecommendation.status === "recommended" && unresolvedHome.resetRecommendationAction === null &&
+    unresolvedHome.primaryAction?.id === "reviewStartingRecommendation", "Unresolved onboarding remains primary and prevents the derived Reset advice action.");
+  const accepted = { ...unresolved, productOnboarding: { ...unresolved.productOnboarding, planAcceptance: { acceptedAt: at, recommendation: unresolved.productOnboarding.result.recommendation } } };
+  const acceptedHome = getBloomHomeReadModel(accepted, at);
+  assert(acceptedHome?.primaryAction?.id === "startMasturbationSession" && acceptedHome.resetRecommendationAction?.id === "reviewResetRecommendation",
+    "Accepted onboarding permits optional advice while ordinary Tracking remains primary.");
+
+  const persisted = trackerState(true, false);
+  persisted.resetJourney = { ...persisted.resetJourney, status: "recommended", id: "existing-persisted-recommendation" };
+  const persistedHome = getBloomHomeReadModel(persisted, at);
+  assert(persistedHome?.trackingResetRecommendation.status === "insufficientData", "Persisted compatibility must not fabricate Phase 2A evidence.");
+  equal(persistedHome.primaryAction, { id: "reviewResetRecommendation" }, "A persisted recommendation retains its historical primary review behavior without requiring history or carrying its ID.");
+
+  const corrected = recommendationState(true, false);
+  corrected.masturbationTracking.sessions = corrected.masturbationTracking.sessions.map((session) => ({ ...session, erectionQuality: 9, endingReason: "climaxed" }));
+  const correctedHome = getBloomHomeReadModel(corrected, at);
+  assert(correctedHome?.trackingResetRecommendation.status === "noCurrentRecommendation" && correctedHome.resetRecommendationAction === null &&
+    correctedHome.primaryAction?.id === "startMasturbationSession", "Canonical feedback correction naturally removes optional advice without changing the ordinary primary action.");
+}
+
+function recommendationState(enabled: boolean, contentActive: boolean): BloomLocalState {
+  const state = trackerState(enabled, contentActive);
+  state.masturbationTracking.sessions = Array.from({ length: 6 }, (_, index) => ({
+    id: `recommendation-home-${index}`, status: "completed", startedAt: `2026-08-0${index + 1}T10:00:00.000Z`,
+    endedAt: `2026-08-0${index + 1}T10:05:00.000Z`, durationSeconds: 300, pauses: [],
+    erectionQuality: index < 3 ? 9 : 6, usedExplicitContent: index >= 3,
+    endingReason: index < 3 ? "climaxed" : "firmnessDecreased"
+  }));
+  return state;
 }
 
 async function verifySupportDuringReset() {
@@ -106,6 +200,10 @@ function verifySafeInvalidResults() {
   const missingAttempt = createActiveState(false, true);
   (missingAttempt.resetJourney as unknown as Record<string, unknown>).currentAttempt = undefined;
   assert(getBloomHomeReadModel(missingAttempt, at) === null, "An active Reset with indeterminate progress must not accidentally grant a tracker action.");
+  const invalidHistory = trackerState(true, false);
+  invalidHistory.masturbationTracking.sessions[0]!.erectionQuality = Number.NaN as never;
+  assert(getTrackingResetRecommendation(invalidHistory.masturbationTracking, at) === null && getBloomHomeReadModel(invalidHistory, at) === null,
+    "An invalid required Tracking recommendation selector result must follow Home's complete safe-failure convention.");
 }
 
 function verifyPurityAndLegacyIsolation() {

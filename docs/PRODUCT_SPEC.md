@@ -40,6 +40,8 @@ Phase 1Z makes Panic entry and current/legacy Urge resume executable using simpl
 
 Phase 2A adds only a deterministic Tracking-based Reset recommendation selector. It is a derived domain read, with no screen, Home action changes, command, lifecycle mutation, or persisted recommendation. Both recommendation routes remain pending.
 
+Phase 2B exposes that unchanged derived result as optional advice in the product Home read model and makes Reset recommendation review/acceptance executable. Advice never replaces normal Tracking as the primary action. Explicit acceptance prepares only `baseline_pending`; the existing four baseline questions must still be answered before Reset starts. Legacy Today and bottom tabs remain unchanged.
+
 The Expo Router architecture and local-first approach remain technical constraints. Older inventories in [ARCHITECTURE.md](ARCHITECTURE.md) and product references in [DECISIONS.md](DECISIONS.md) describe earlier stages; they do not require a new flow to depend on Protect. Existing navigation remains unchanged in this phase.
 
 ## Product Summary
@@ -199,6 +201,20 @@ Evidence preserves both quality means, both firmness counts, both explicit-conte
 
 The result is `insufficientData`, `noCurrentRecommendation`, or `recommended`; invalid time or unsafe observation input returns null. Corrections to canonical completed feedback naturally change later derived results. Nothing is saved, no IDs/timestamps are created, and Reset never enters a persisted `recommended` status through this selector. Reset, Tracking, Content-Free, onboarding, Urge Control, routes, and Home behavior remain unchanged; persistence remains v7 / `bloom.localState.v7`.
 
+### Optional review and explicit acceptance — Phase 2B
+
+The product Home read model exposes `trackingResetRecommendation` separately from `primaryAction`. Its optional `resetRecommendationAction` is `{ id: "reviewResetRecommendation" }` only when the derived result is recommended, Reset is inactive, no Masturbation Session awaits completion/feedback, and no completed onboarding recommendation awaits acceptance. Tracking enablement and Content-Free activation do not gate advice. Active Urge Control retains primary priority while advice may coexist; startable Tracking remains the primary action when no higher-priority task exists.
+
+Review maps to `{ flow: "resetRecommendation" }` and the parameter-free `/bloom/reset/recommendation` route. The feature re-derives evidence from accepted state, never URL snapshots. Descriptive observations and interval context carry no causal, medical, or frequency-concern interpretation. The route is ready; Starting Recommendation remains pending. Final V4 visuals are deferred.
+
+The explicit Continue action calls `flowActions.reset.acceptRecommendation()`. The canonical transition reevaluates the unchanged Phase 2A selector at the supplied acceptance time. Corrected feedback or changed history that removes the recommendation makes acceptance an exact no-op. The transition also rejects unfinished sessions, unresolved onboarding acceptance, malformed inputs, and Reset already baseline-pending, active, or completed.
+
+Success changes only Reset to the existing `baseline_pending` shape, preserving duration, best progress, past attempts, and violations. There is no baseline, attempt, start timestamp, or persisted advice/evidence yet. Tracking's enabled/disabled preference is unchanged; baseline-pending does not itself restrict session starts. Content-Free, Urge Control, onboarding, and all legacy slices remain unchanged. The 15-day restriction begins only when the existing baseline flow starts the active attempt.
+
+Persisted v7 Reset `recommended` remains readable and retains its existing Home review priority. Its review shows compatibility copy without fabricated Tracking evidence; acceptance uses its existing journey ID and does not require Tracking-derived evidence. It still requires no unfinished session or unresolved onboarding acceptance. This is separate from derived advice, which never materializes an inactive journey as `recommended`.
+
+Navigation replaces review with the existing baseline route only after durable persistence, using the actual accepted journey ID. Failed saves retain that successor and retry persistence without repeating acceptance or generating another ID/time. Closing without accepting returns to Today with no write. Dismissal/snooze history, repeated Reset journeys after a completed journey, and final recommendation visuals remain deferred. Persistence stays v7 / `bloom.localState.v7`.
+
 ## Manual Behavior Slips
 
 Phase 1X provides one application command for the future “Seriyi bozdum” flow: `behaviorSlip.record(reason, occurredAt?)`. It reuses the existing reasons for masturbation, intentional explicit-content use, and both behaviors; accidental exposure is outside this command. UI does not choose which trackers to mutate.
@@ -254,7 +270,7 @@ The slip branch uses exactly the existing three reasons: masturbation, intention
 
 Successful slip, Urge completion, and explicit discard return to existing Today only after durable acknowledgement. Accepted save failures keep state visible, lock conflicting commands, and offer persistence-only retry without new IDs/timestamps or command replay. A stale/rejected command shows an unavailable message rather than a saved claim. Leaving or unmounting never silently discards an event.
 
-Nine routes are ready: the seven earlier Session/Content-Free/Reset routes, Panic, and Urge resume. Starting recommendation and Reset recommendation remain pending. Future buttons can use the Panic intent; Phase 1Z does not wire existing Home, Reset, Content-Free, or tab buttons to it. Final V4 visuals, post-save result/undo screens, and “Başka bir şey dene” remain deferred.
+Phase 1Z made nine routes ready: the seven earlier Session/Content-Free/Reset routes, Panic, and Urge resume. Phase 2B adds parameter-free Reset recommendation for ten ready routes; only Starting recommendation remains pending. Future buttons can use the Panic intent; existing Home, Reset, Content-Free, and tab buttons are not cut over. Final V4 visuals, post-save result/undo screens, and “Başka bir şey dene” remain deferred.
 
 ## Onboarding Starting Hypothesis
 
@@ -292,7 +308,7 @@ Initial acceptance requires an inactive Reset and no unfinished session; non-tra
 
 The new Home engine is a pure read model using explicit time and the five new product slices. It composes existing availability/progress selectors and returns semantic action IDs and tracker facts, with no presentation copy, routes, state writes, generated time/identity, or automatic lifecycle advancement. The existing legacy `getNextBloomAction` remains unchanged and separate.
 
-Priority is deterministic: unfinished Masturbation Session or awaiting feedback first; then active Urge Control resume; elapsed-but-still-active Reset completion; pending baseline; effectively active Reset; unaccepted stored onboarding recommendation; recommended Reset; and finally the primary tracker's action. Pending session work wins even when other feature states conflict. Urge Control resume includes the version-aware current or legacy stage. Reset preparation is not an active restriction; completed Reset has no pending assessment action.
+Priority is deterministic: unfinished Masturbation Session or awaiting feedback first; then active Urge Control resume; elapsed-but-still-active Reset completion; pending baseline; effectively active Reset; unaccepted stored onboarding recommendation; persisted `recommended` Reset compatibility; and finally the primary tracker's action. Tracking-derived advice is separate and never enters this primary-action sequence. Pending session work wins even when other feature states conflict. Urge Control resume includes the version-aware current or legacy stage. Reset preparation is not an active restriction; completed Reset has no pending assessment action.
 
 Exactly at/after Day 15, an active Reset requests `recordResetElapsedCompletion` before normal tracker actions. This asks a later integration layer to persist the existing completion transition; reading Home never invokes it. Onboarding recommendations are returned as stored without rescoring. An unaccepted onboarding recommendation wins over a recommended Reset, while `productOnboarding: notCompleted` alone does not force an action or onboarding gate.
 

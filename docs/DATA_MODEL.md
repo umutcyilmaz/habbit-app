@@ -117,7 +117,15 @@ Only historical completed sessions ending at or before the explicit canonical ti
 
 `erectionQualityDownwardTrend` means a recent mean at least 1.0 below the previous mean. Equal-sized window totals are compared against a difference of 3 to preserve the exact boundary without rounding divided means. `repeatedFirmnessDecrease` requires a recent count of at least two and strictly more than the previous count. `recentExplicitContentPattern` requires at least two recent intentional-content sessions. The recommendation requires either response signal plus the explicit-content signal; signals have the stable order listed here. The previous explicit ratio and recent interval are descriptive only: frequency alone never recommends Reset. This is a product heuristic, not a medical or causal conclusion.
 
-Feedback corrections are reflected on the next read; there is no recommendation history, tombstone, ID, or `recommendedAt`. The selector neither inspects nor mutates Reset, Content-Free, onboarding, or Urge Control, and never modifies Tracking. Persistence remains v7 / `bloom.localState.v7`; Home consumption, recommendation screens, and activation remain deferred.
+Feedback corrections are reflected on the next read; there is no recommendation history, tombstone, ID, or `recommendedAt`. The selector neither inspects nor mutates Reset, Content-Free, onboarding, or Urge Control, and never modifies Tracking. Persistence remains v7 / `bloom.localState.v7`. Phase 2B consumes this unchanged read in Home and explicit recommendation acceptance as described below.
+
+### Reset recommendation acceptance — Phase 2B
+
+[`acceptResetRecommendationState(state, { resetJourneyId, acceptedAt })`](../src/storage/bloomResetRecommendationTransitions.ts), re-exported from `bloomState.ts`, returns either the exact input state or a successor changing only `resetJourney`. It validates canonical acceptance time and candidate identity, requires no unfinished Masturbation Session or unresolved onboarding starting recommendation, and accepts only inactive or persisted-recommended Reset.
+
+For inactive Reset it reruns `getTrackingResetRecommendation(state.masturbationTracking, acceptedAt)` and requires `recommended`. For persisted `recommended` it requires no derived evidence and reuses the existing journey ID, ignoring the valid unused candidate. Both cases produce only `{ status: "baseline_pending", id, durationDays, bestCompletedDays, pastAttempts, violations }`. Existing history arrays retain their references. No acceptance timestamp, recommendation result, signals, evidence, baseline, attempt, or start time is saved.
+
+All other slices retain identity, including Tracking preference/history/current session, Content-Free, onboarding, Urge Control, and legacy systems. Baseline-pending adds no effective session restriction; the existing four-question baseline transition starts the period later. Baseline-pending, active, and completed Reset reject acceptance; repeat completed journeys are deferred because multiple journey-level baselines are not represented. Existing persisted `recommended` remains schema-compatible, with no migration or version/key change. Closing review does not save dismissal or snooze state.
 
 ## ContentFreeState
 
@@ -340,7 +348,7 @@ The historical answers describe perceived change and allow uncertainty. Readines
 
 Completed journeys may omit `assessment`. When present, it must still have a valid nonempty ID, known enum answers, exact journey/attempt/baseline references, and a canonical submission time at or after period completion. Invalid assessment data is rejected rather than removed. Historical completion times are preserved under the existing structural and temporal checks; hydration does not recalculate them from today's clock or impose new duration arithmetic. Unrelated product and legacy slices remain semantically unchanged. Persistence remains version 7 at `bloom.localState.v7`, with existing older-version migrations intact.
 
-These facts support later descriptive reports; no clinical interpretation is derived. Report generation and post-Reset session comparison remain deferred. Phase 2A's separate Tracking recommendation read does not consume baseline or assessment facts; its Home/presentation integration remains deferred.
+These facts support later descriptive reports; no clinical interpretation is derived. Report generation and post-Reset session comparison remain deferred. The separate Tracking recommendation read does not consume baseline or assessment facts; Phase 2B adds optional Home advice and explicit review/acceptance without a new assessment or repeated completed journey.
 
 ## Manual Behavior Slip Coordination
 
@@ -512,11 +520,13 @@ It composes `getMasturbationTrackingAvailability`, `getContentFreeProgress`, and
 | Reset baseline pending | `completeResetBaseline` | `journeyId` |
 | Active Reset still effectively restricted | `viewActiveReset` | `journeyId`, `attemptId`, existing `progress` |
 | Completed product onboarding with null acceptance | `reviewStartingRecommendation` | Stored `recommendation` |
-| Reset recommended | `reviewResetRecommendation` | `journeyId` |
+| Reset recommended (persisted compatibility) | `reviewResetRecommendation` | None |
 | Primary Tracking tracker can start | `startMasturbationSession` | None |
 | Content-Free is the primary tracker | `viewContentFree` | None |
 
 Unfinished session work has priority even over conflicting feature states, with active Urge Control next. Exactly at/after 15 elapsed days, still-active Reset requests explicit completion persistence, not an active-restriction view or session-start action. It never calls `completeElapsedResetPeriodState`. Home never requests a post-reset assessment; legacy pending records normalize before reaching the current model. Baseline pending does not assert Reset has started. The stored onboarding recommendation is never rescored and takes precedence over recommended Reset. Not-completed product onboarding alone generates no action, preserving the migration boundary until later entry/routing integration.
+
+Phase 2B adds `trackingResetRecommendation` containing the canonical derived result. A null selector result fails the whole Home read safely. Its separate `resetRecommendationAction` is `{ id: "reviewResetRecommendation" }` only for recommended Tracking evidence with inactive Reset, no unfinished session, and no unresolved completed onboarding recommendation. It is independent of Tracking enablement, Content-Free, and Urge priority, and never replaces `primaryAction`. Persisted Reset `recommended` retains the existing primary review behavior without requiring evidence. Both review paths map to the same parameter-free route.
 
 Tracker summaries use `kind` as their discriminant: `{ kind: "masturbationTracking", availability, completedSessionCount }` or `{ kind: "contentFree", progress }`, where Content-Free progress is the existing active result. Enabled Tracking is always primary; active Content-Free then becomes secondary. With Tracking disabled, active Content-Free becomes primary and secondary is null. With neither enabled/active, both trackers are null. These roles follow current feature facts, never legacy plan identity or recommendation ownership.
 
@@ -571,4 +581,4 @@ The v7 storage boundary checks record shapes, discriminated lifecycle fields, ca
 - Consistency of attempt history and identity, progress, baseline, completion timestamps, and assessment references.
 - Atomic, acknowledged cross-system effects when one event affects both Reset and Content-Free.
 
-Phase 1O adds pure Home priority and tracker composition using existing v7 shapes; none of the derived output is persisted. Disabled Tracking with unfinished work remains valid, and session times, durations, and pause history remain immutable. Phase 2A adds only the separate derived Tracking recommendation. Home/Today integration, legacy next-action replacement, active/awaiting-session correction, awaiting-feedback deletion, Reset history rewriting, completed Urge Control editing/deletion/undo, same-day calendar collapse, arbitrary historical replay, post-Reset reports/comparisons, and Tracking recommendation presentation/activation remain deferred. There is no new backend, authentication, sync metadata, analytics, or AI dependency.
+Phase 1O adds pure Home priority and tracker composition using existing v7 shapes; none of the derived output is persisted. Disabled Tracking with unfinished work remains valid, and session times, durations, and pause history remain immutable. Phase 2A adds the derived Tracking recommendation; Phase 2B adds optional Home advice and explicit acceptance to the existing baseline flow. Legacy Home/Today cutover, legacy next-action replacement, active/awaiting-session correction, awaiting-feedback deletion, Reset history rewriting, completed Urge Control editing/deletion/undo, same-day calendar collapse, arbitrary historical replay, post-Reset reports/comparisons, repeated completed Reset journeys, and final recommendation visuals remain deferred. There is no new backend, authentication, sync metadata, analytics, or AI dependency.

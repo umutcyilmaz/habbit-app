@@ -35,6 +35,7 @@ import { verifyBloomPlanAcceptance } from "./verify-bloom-plan-acceptance";
 import { verifyBloomResetBaseline } from "./verify-bloom-reset-baseline";
 import { verifyBloomResetTrackingSnapshot } from "./verify-bloom-reset-tracking-snapshot";
 import { verifyBloomResetRecommendation } from "./verify-bloom-reset-recommendation";
+import { verifyBloomResetRecommendationAcceptance } from "./verify-bloom-reset-recommendation-acceptance";
 import { verifyBloomResetViolations } from "./verify-bloom-reset-violations";
 import { verifyBloomResetViolationUndo } from "./verify-bloom-reset-violation-undo";
 import { verifyBloomResetCompletion } from "./verify-bloom-reset-completion";
@@ -55,6 +56,7 @@ import { verifyBloomResetFeature } from "./verify-bloom-reset-feature";
 import { verifyBloomBehaviorSlip } from "./verify-bloom-behavior-slip";
 import { verifyBloomPanicFeature } from "./verify-bloom-panic-feature";
 import { verifyBloomUrgeControlFeature } from "./verify-bloom-urge-control-feature";
+import { verifyBloomResetRecommendationFeature } from "./verify-bloom-reset-recommendation-feature";
 
 const fixedNow = () => new Date("2026-07-22T10:00:00.000Z");
 
@@ -99,6 +101,7 @@ async function verifyBloomPersistence() {
   await verifyBloomResetBaseline();
   verifyBloomResetTrackingSnapshot();
   verifyBloomResetRecommendation();
+  await verifyBloomResetRecommendationAcceptance();
   await verifyBloomResetViolations();
   await verifyBloomResetViolationUndo();
   await verifyBloomResetCompletion();
@@ -119,6 +122,7 @@ async function verifyBloomPersistence() {
   await verifyBloomResetFeature();
   await verifyBloomPanicFeature();
   await verifyBloomUrgeControlFeature();
+  await verifyBloomResetRecommendationFeature();
 }
 
 async function verifyAvailableWebStorage() {

@@ -24,6 +24,7 @@ import { BLOOM_STATE_STORAGE_KEY, loadBloomLocalState, persistBloomLocalState, t
 import { BLOOM_PERSISTENCE_VERSION, validateAndNormalizeBloomState } from "../src/storage/bloomStateSchema";
 import { createPopulatedState } from "./verify-bloom-product-persistence";
 import { createActiveState } from "./verify-bloom-reset-violations";
+import { createTrackingResetRecommendationState } from "./verify-bloom-reset-recommendation-acceptance";
 
 const at = "2026-11-01T12:00:00.123Z";
 const earlier = "2026-10-31T10:00:00.456Z";
@@ -51,26 +52,29 @@ const exactApplicationInput: EqualTypes<Parameters<BloomProductAcknowledgedActio
 const legacyIsNotCurrent: LegacyResetBaselineSelfReport extends ResetBaselineAnswers ? false : true = true;
 const exactSlipFlowInput: EqualTypes<Parameters<BloomProductFlowActions["behaviorSlip"]["record"]>, [BehaviorSlipReason, string?]> = true;
 const exactTriggersFlowInput: EqualTypes<Parameters<BloomProductFlowActions["urgeControl"]["recordTriggers"]>, [CurrentUrgeControlTrigger[]]> = true;
+const exactResetAcceptanceFlowInput: EqualTypes<Parameters<BloomProductFlowActions["reset"]["acceptRecommendation"]>, []> = true;
 
 export async function verifyBloomProductFlowActions() {
   assert(exactCurrentQuestionContract && exactFeatureAnswers && exactFlowInput && exactApplicationInput && legacyIsNotCurrent,
     "Current form/flow/application APIs must expose exactly the four new answers, without legacy answers, caller baselines, or aggregate inputs.");
   assert(exactSlipFlowInput, "Behavior-slip callers must provide only a semantic reason and optional occurrence time.");
   assert(exactTriggersFlowInput, "Current Urge Control trigger callers must provide only their semantic selection array.");
+  assert(exactResetAcceptanceFlowInput, "Reset recommendation acceptance must take no rendered evidence, state, IDs, or timestamps.");
   const cases = flowCases();
   const paths = new Set(cases.map((item) => item.path));
-  assert(paths.size === 32, "Every new-product command must have a flow/preparation or semantic-passthrough verification case.");
+  assert(paths.size === 33, "Every new-product command must have a flow/preparation or semantic-passthrough verification case.");
   assert(!("completeAssessment" in recordingHarness().flow.reset), "The current flow API must not expose a Reset assessment command.");
   for (const [index, item] of cases.entries()) await verifyPreparedInputs(item, index);
   verifyDefaultIdConvention();
   await verifyFreshInvocationFacts();
   await verifyRetryWithoutRegeneration();
+  await verifyResetRecommendationRetryWithoutRegeneration();
   await verifyBehaviorSlipRetryWithoutRegeneration();
   await verifyCurrentUrgeFlowAndRetry();
   await verifyNoOpAndRuntimeBlocks();
   verifyIsolation();
   assert(BLOOM_PERSISTENCE_VERSION === 7 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v7", "Flow integration must preserve the established v7 persistence contract.");
-  console.log(`Bloom product flow-action verification passed (all 32 paths; ${cases.length} exact-input cases; one-time mechanical facts, current Urge lifecycle/resume/trigger retry, legacy operations, atomic behavior-slip retry/no-op safety, and v7 isolation).`);
+  console.log(`Bloom product flow-action verification passed (all 33 paths; ${cases.length} exact-input cases; one-time mechanical facts, Reset recommendation acceptance/retry, current Urge lifecycle/resume/trigger retry, legacy operations, atomic behavior-slip retry/no-op safety, and v7 isolation).`);
 }
 
 async function verifyPreparedInputs(item: FlowCase, index: number) {
@@ -128,6 +132,7 @@ function flowCases(): FlowCase[] {
   const cases: FlowCase[] = [
     { path: "onboarding.saveProductOnboardingResult", invoke: (f) => f.onboarding.saveProductOnboardingResult(result), args: [result], prefixes: [], prepared: false },
     { path: "onboarding.acceptRecommendation", invoke: (f) => f.onboarding.acceptRecommendation(), args: [{ acceptedAt: at, resetJourneyId: id("reset-journey"), contentFreeActivationId: id("content-free-activation") }], prefixes: ["reset-journey", "content-free-activation"] },
+    { path: "reset.acceptRecommendation", invoke: (f) => f.reset.acceptRecommendation(), args: [{ resetJourneyId: id("reset-journey"), acceptedAt: at }], prefixes: ["reset-journey"] },
     { path: "reset.startFromBaseline", invoke: (f) => f.reset.startFromBaseline(selfReport), args: [{ resetBaselineId: id("reset-baseline"), capturedAt: at, selfReport, resetAttemptId: id("reset-attempt"), startedAt: at }], prefixes: ["reset-baseline", "reset-attempt"] },
     { path: "reset.recordViolation", invoke: (f) => f.reset.recordViolation({ reason: "masturbationWithExplicitContent", source: { kind: "manual" } }), args: [resetViolation("masturbationWithExplicitContent", { kind: "manual", logActionId: id("log-action") }, at)], prefixes: ["reset-violation", "reset-attempt", "content-free-violation", "log-action"] },
     { path: "reset.undoViolation", invoke: (f) => f.reset.undoViolation({ violationId: "existing-reset-violation" }), args: [{ violationId: "existing-reset-violation", undoneAt: at }], prefixes: [] },
@@ -343,6 +348,58 @@ async function verifyBehaviorSlipRetryWithoutRegeneration() {
     assert(accepted.resetJourney.violations.length === Number(item.resetChanges) &&
       accepted.contentFree.violations.length === Number(item.contentChanges),
     "One accepted behavior slip must remain exactly one record per affected tracker after retry.");
+  }
+}
+
+async function verifyResetRecommendationRetryWithoutRegeneration() {
+  for (const compatibility of [false, true]) {
+    const initial = createTrackingResetRecommendationState();
+    if (compatibility) {
+      initial.resetJourney = { ...initial.resetJourney, status: "recommended", id: "existing-compatibility-reset" };
+      initial.masturbationTracking = { ...initial.masturbationTracking, sessions: [] };
+    }
+    const harness = runtimeHarness(initial);
+    const pending = harness.flow.reset.acceptRecommendation();
+    const accepted = harness.runtime.getState();
+    assert(accepted.resetJourney.status === "baseline_pending" &&
+      accepted.resetJourney.id === (compatibility ? "existing-compatibility-reset" : id("reset-journey")),
+    "The acknowledged successor must expose its actual journey ID, reusing the historical ID when present.");
+    assert(harness.clockCalls() === 1 && harness.idCalls() === 1 && harness.mutationCalls() === 1 &&
+      harness.attempts.length === 1 && harness.attempts[0]!.state === accepted,
+    "One Reset acceptance prepares one operation Date and candidate journey ID before exactly one mutation/write.");
+    assert(harness.runtime.getDurableState() === initial,
+      "Accepted baseline preparation must not appear durable before acknowledgement.");
+    harness.attempts[0]!.fail();
+    const failed = await pending;
+    assert(!failed.ok && failed.accepted && failed.retryable && failed.reason === "persistenceFailed" &&
+      harness.runtime.getState() === accepted && harness.runtime.getDurableState() === initial,
+    "Failed recommendation acceptance must retain the complete prepared successor and its retry token.");
+    harness.setTime("2027-01-01T00:00:00.000Z");
+    const retry = harness.runtime.retryPersistence(failed.retryToken);
+    assert(harness.attempts[1]!.state === accepted,
+      "Retry must persist the original accepted recommendation successor without recomputing evidence or replaying acceptance.");
+    harness.attempts[1]!.succeed();
+    assert((await retry).ok && (await harness.runtime.retryPersistence(failed.retryToken)).ok &&
+      harness.runtime.getDurableState() === accepted && harness.clockCalls() === 1 &&
+      harness.idCalls() === 1 && harness.mutationCalls() === 1 && Number(harness.attempts.length) === 2,
+    "Acceptance retry must acknowledge the same successor without generating another ID/time or logical command.");
+    for (const key of Object.keys(initial) as Array<keyof BloomLocalState>) {
+      if (key !== "resetJourney") assert(accepted[key] === initial[key], "Acceptance and its retry must preserve every unrelated slice.");
+    }
+  }
+  const absent = runtimeHarness();
+  assertRejected(await absent.flow.reset.acceptRecommendation(), "invalidSession");
+  assert(absent.runtime.getState() === absent.initialState && absent.attempts.length === 0 &&
+    absent.clockCalls() === 1 && absent.idCalls() === 1 && absent.mutationCalls() === 1,
+  "An unused candidate ID must not force state, persistence, or fake success when authoritative evidence is unavailable.");
+  for (const status of ["loading", "error", "ready"] as const) {
+    const blocked = runtimeHarness(createTrackingResetRecommendationState(), status);
+    if (status === "ready") blocked.runtime.beginDeletion();
+    assertRejected(await blocked.flow.reset.acceptRecommendation(),
+      status === "loading" ? "hydrationPending" : status === "error" ? "stateUnavailable" : "deletionInProgress");
+    assert(blocked.clockCalls() === 1 && blocked.idCalls() === 1 && blocked.mutationCalls() === 0 &&
+      blocked.attempts.length === 0 && blocked.runtime.getPendingMutationCount() === 0,
+    "Recommendation acceptance inherits runtime lifecycle guards without state reads or replay queues in the flow factory.");
   }
 }
 

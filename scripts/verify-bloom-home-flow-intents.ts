@@ -15,6 +15,12 @@ type AssessmentHomeActionRemoved = Assert<
 type AssessmentFlowIntentRemoved = Assert<
   Extract<BloomProductFlowIntent, { flow: "resetAssessment" }> extends never ? true : false
 >;
+type RecommendationActionHasNoPayload = Assert<
+  keyof Extract<BloomHomeAction, { id: "reviewResetRecommendation" }> extends "id" ? true : false
+>;
+type RecommendationIntentHasNoPayload = Assert<
+  keyof Extract<BloomProductFlowIntent, { flow: "resetRecommendation" }> extends "flow" ? true : false
+>;
 
 type HomeActionCases = {
   [ActionId in BloomHomeAction["id"]]: {
@@ -125,12 +131,10 @@ const cases = {
   },
   reviewResetRecommendation: {
     action: {
-      id: "reviewResetRecommendation",
-      journeyId: "flow-recommended-journey"
+      id: "reviewResetRecommendation"
     },
     expected: {
-      flow: "resetRecommendation",
-      journeyId: "flow-recommended-journey"
+      flow: "resetRecommendation"
     }
   },
   startMasturbationSession: {
@@ -171,6 +175,12 @@ export function verifyBloomHomeFlowIntents() {
     }
   }
 
+  const recommendation = { id: "reviewResetRecommendation" } as const;
+  for (const key of ["journeyId", "signals", "evidence", "recommendation"]) {
+    Object.defineProperty(recommendation, key, { get() { throw new Error("Recommendation mapping must not read stale payloads."); } });
+  }
+  assert(isDeepStrictEqual(mapBloomHomeActionToFlowIntent(Object.freeze(recommendation)), { flow: "resetRecommendation" }),
+    "Recommendation review must derive facts at its feature boundary rather than carrying a Home snapshot.");
   verifyMappingDependencies();
   console.log(
     "Bloom Home flow-intent verification passed (all 10 current actions, no assessment action or intent, exact payloads, frozen/deterministic mapping, and dependency isolation)."

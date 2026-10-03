@@ -18,6 +18,7 @@ import {
 import { BLOOM_PERSISTENCE_VERSION } from "../src/storage/bloomStateSchema";
 import type { CurrentUrgeControlTrigger } from "../src/domain/models/UrgeControlEvent";
 import { createActiveState } from "./verify-bloom-reset-violations";
+import { createTrackingResetRecommendationState } from "./verify-bloom-reset-recommendation-acceptance";
 
 const sessionInput = {
   sessionId: "product-runtime-session",
@@ -31,6 +32,7 @@ export async function verifyBloomProductActionsRuntime() {
   await verifyLatestAcceptedState();
   await verifyBehaviorSlipUsesLatestAcceptedState();
   await verifyCurrentUrgeUsesLatestAcceptedState();
+  await verifyResetRecommendationUsesLatestAcceptedState();
   verifyProviderIntegration();
   assert(
     BLOOM_PERSISTENCE_VERSION === 7 &&
@@ -218,6 +220,46 @@ async function verifyLatestAcceptedState() {
       harness.runtime.getDurableState() === latest,
     "A late older receipt must not regress accepted or durable product state."
   );
+}
+
+async function verifyResetRecommendationUsesLatestAcceptedState() {
+  const initial = createTrackingResetRecommendationState();
+  const harness = createHarness(initial);
+  // Resolve response-pattern evidence through a canonical feedback edit while
+  // its save is still pending; acceptance must use this accepted truth.
+  const correctedSession = initial.masturbationTracking.sessions[5]!;
+  const correction = harness.actions.tracking.corrections.editFeedback({
+    sessionId: correctedSession.id,
+    feedback: { erectionQuality: 8, usedExplicitContent: true, endingReason: "climaxed" },
+    editedAt: "2026-11-01T12:00:00.000Z", contentFreeViolationId: "unused-recommendation-correction"
+  });
+  const corrected = harness.runtime.getState();
+  assert(corrected !== initial && harness.runtime.getDurableState() === initial,
+    "The relevant feedback correction must be accepted while old recommendation evidence remains durable.");
+  const rejection = await harness.actions.reset.acceptRecommendation({
+    resetJourneyId: "must-not-be-persisted", acceptedAt: "2026-11-01T12:00:00.123Z"
+  });
+  assertRejected(rejection, "invalidSession", "The runtime must use current accepted observations rather than its obsolete durable recommendation.");
+  assert(harness.runtime.getState() === corrected && harness.attempts.length === 1 &&
+    harness.acceptedStates.length === 1 && harness.mutationCalls() === 2,
+  "Rejected stale recommendation acceptance must publish no Reset successor, save, or acceptance marker.");
+  harness.attempts[0]!.succeed();
+  assertPersisted(await correction, "The independent canonical feedback correction must retain its own acknowledgement.");
+
+  const accepting = createHarness(createTrackingResetRecommendationState());
+  const preparation = accepting.actions.reset.acceptRecommendation({
+    resetJourneyId: "accepted-preparation", acceptedAt: "2026-11-01T12:00:00.123Z"
+  });
+  const successor = accepting.runtime.getState();
+  assert(successor.resetJourney.status === "baseline_pending" && accepting.runtime.getDurableState() === accepting.initialState,
+    "The actual acknowledged action must expose its prepared journey before durability.");
+  assertRejected(await accepting.actions.reset.acceptRecommendation({
+    resetJourneyId: "duplicate-candidate", acceptedAt: "2026-11-02T12:00:00.123Z"
+  }), "invalidSession", "Rapid repeated acceptance must see the already accepted baseline_pending lifecycle.");
+  assert(accepting.runtime.getState() === successor && accepting.attempts.length === 1,
+    "Repeated acceptance must not replace the actual ID or enqueue another snapshot.");
+  accepting.attempts[0]!.succeed();
+  assertPersisted(await preparation, "The original preparation must become durable through its original receipt.");
 }
 
 async function verifyBehaviorSlipUsesLatestAcceptedState() {
