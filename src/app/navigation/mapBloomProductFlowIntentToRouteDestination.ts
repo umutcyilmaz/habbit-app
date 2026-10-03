@@ -13,6 +13,8 @@ export function mapBloomProductFlowIntentToRouteDestination(
     case bloomProductRoutePaths.masturbationSessionStart:
     case bloomProductRoutePaths.masturbationSessionResume:
     case bloomProductRoutePaths.masturbationSessionFeedback:
+    case bloomProductRoutePaths.panic:
+    case bloomProductRoutePaths.urgeControlResume:
     case bloomProductRoutePaths.contentFree:
     case bloomProductRoutePaths.resetBaseline:
     case bloomProductRoutePaths.resetProgress:
@@ -25,6 +27,8 @@ export function mapBloomProductFlowIntentToRouteDestination(
 
 function mapRouteTarget(intent: BloomProductFlowIntent): BloomProductRouteTarget {
   switch (intent.flow) {
+    case "panic":
+      return { pathname: bloomProductRoutePaths.panic };
     case "masturbationSession":
       switch (intent.mode) {
         case "start":

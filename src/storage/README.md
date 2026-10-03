@@ -53,7 +53,7 @@ start is valid and ten valid unique dates remain.
 
 ## Transitional Product State
 
-`masturbationTracking`, `contentFree`, `resetJourney`, and `urgeControl` are persisted alongside all legacy state. Tracking defaults to disabled with no current session/history; Content-Free is inactive with zero best streak and no history; Reset is inactive for 15 days with zero progress, no identity, attempts, violations, baseline, or assessment; Urge Control has no active event or records. Pure transitions cover plan acceptance, the Reset lifecycle, Masturbation Sessions and completed corrections, standalone Content-Free, and Urge Control. UI integration remains deferred.
+`masturbationTracking`, `contentFree`, `resetJourney`, and `urgeControl` are persisted alongside all legacy state. Tracking defaults to disabled with no current session/history; Content-Free is inactive with zero best streak and no history; Reset is inactive for 15 days with zero progress, no identity, attempts, violations, baseline, or assessment; Urge Control has no active event or records. Pure transitions cover plan acceptance, the Reset lifecycle, Masturbation Sessions and completed corrections, standalone Content-Free, and Urge Control. Thin executable feature layers call these through the existing flow/application boundary.
 
 `bloomProductStateSchema.ts` validates the new unions, canonical timestamps, finite numeric ranges, explicit enums/Booleans, source identities, and record/history relationships. The entire payload is preserved as corrupt if a new record is malformed. It does not recompute streaks, infer medical facts, prove elapsed Reset days, or implement feature transitions.
 
@@ -95,7 +95,7 @@ Events without a discriminator remain legacy. The old technique/phone-away/singu
 
 The domain-only `getUrgeControlProgress(urgeControl, now)` returns current stages `interrupt`, `outcome`, `triggers`, or `readyToComplete`; finalized `[]` is ready. Legacy stages stay unchanged. Both derive whole nonnegative elapsed event seconds; only legacy progress may expose phone-away seconds. Hydration and selectors never advance a lifecycle or persist timer counters. Discard supports both versions, preserves history, and creates no tombstone or ID reservation. All unrelated slices preserve references.
 
-Persistence remains version 7 / `bloom.localState.v7`, with no migration or top-level slice. Home uses the version-aware stage at the same priority; `urgeControlResume` remains `featurePending`. Phase 1Y adds no screen/controller, Panic route, second intervention, or Home cutover.
+Persistence remains version 7 / `bloom.localState.v7`, with no migration or top-level slice. Home uses the version-aware stage at the same priority. Phase 1Z makes Panic and current/legacy Urge resume executable without modifying these domain/persistence contracts; the second intervention and Home cutover remain deferred.
 
 `productOnboarding` defaults to `{ status: "notCompleted", result: null }`. Completed state contains the full versioned result and a null-or-recorded `planAcceptance`. The result retains raw answers, derived dimensions/recommendation/confidence/eligibility/safety, completion timestamp, and internal evidence. The separate acceptance action owns only `acceptedAt` and the accepted recommendation. The pure save mutation records a result with null acceptance, changes no feature or legacy state, and refuses invalid input or overwriting an accepted result.
 
@@ -143,7 +143,7 @@ One manual event has one coordinator and one transaction owner. Effective Reset 
 
 At/after the exact current-attempt 15-day boundary, a stale stored active Reset is not restricted: explicit-content slips may use the standalone Content-Free path without restarting/completing Reset. Existing underlying guards retain activation/streak backdating limits, source deduplication, `streakBefore`, best calculations, and tombstones. Shared manual source and occurrence/recording timestamps link atomic records. Unused IDs are not persisted; baseline and all unrelated slices remain unchanged.
 
-`productActions.behaviorSlip.record` runs the coordinator against current accepted state in one acknowledged mutation. `flowActions.behaviorSlip.record(reason, occurredAt?)` prepares one operation clock and four IDs, then dispatches once without reading state. Persistence failure retains the accepted snapshot; retry writes that same snapshot without replay, new IDs, new times, or policy reevaluation. The direct feature APIs/screens and existing undo owners remain unchanged. No generic undo, Panic route, new UI, or Urge work is included.
+`productActions.behaviorSlip.record` runs the coordinator against current accepted state in one acknowledged mutation. `flowActions.behaviorSlip.record(reason, occurredAt?)` prepares one operation clock and four IDs, then dispatches once without reading state. Persistence failure retains the accepted snapshot; retry writes that same snapshot without replay, new IDs, new times, or policy reevaluation. The direct feature APIs/screens and existing undo owners remain unchanged. Phase 1Z calls this same coordinator from Panic confirmation; it adds no generic undo or post-save result screen and changes no coordinator rules.
 
 Persistence remains version 7 / `bloom.localState.v7`: only existing Reset and Content-Free record shapes are written, with no migration or additional top-level slice.
 
@@ -261,6 +261,16 @@ Possible linked IDs are allocated before delegation without inspecting state: Re
 Phase 1Y exposes `productActions.urgeControl.recordTriggers({ triggers })` and `flowActions.urgeControl.recordTriggers(triggers)`. The flow forwards the semantic array without mutation, a clock read, or ID generation; the transition copies it into the accepted snapshot. Current consumers need only start, interrupt completion, outcome, triggers, completion, and discard. Legacy guided operations stay available. Retry persists the accepted snapshot, including the original selection, without logical replay or regenerated facts.
 
 The separate [`mapBloomHomeActionToFlowIntent`](../app/flows/mapBloomHomeActionToFlowIntent.ts) exhaustively maps all Home actions to typed `BloomProductFlowIntent` values, preserving payload identity/stage/progress/recommendation. [ARCHITECTURE.md](../../docs/ARCHITECTURE.md#product-flow-integration) lists the exact mapping. It performs no navigation, creates no route paths, and runs no command; future route integration consumes its semantic intent. Neither module adds React, timers, Home UI wiring, or automatic lifecycle advancement.
+
+## Panic and Urge Feature Persistence
+
+Phase 1Z adds `/bloom/panic` and `/bloom/urge-control/resume` through thin controllers/hooks/screens. Panic's triggered branch calls `flowActions.urgeControl.start()` or continues an existing current/legacy active event. Its slip branch previews `getBehaviorSlipImpact`, verifies the rendered Reset/Content-Free references against current accepted state, and calls only `flowActions.behaviorSlip.record(reason)`. Null or neither-affected previews do not dispatch; the coordinator remains authoritative at press time.
+
+Urge resume validates exact active event identity and reads `getUrgeControlProgress`; URL stage never supplies persisted truth. Current selection drafts stay local until `recordTriggers`, with `[]` an explicit skip. Legacy operations remain available on the same route without transforming their records. The feature never translates `explicitContentCue` into a tracker event.
+
+Controllers retain accepted operation snapshots and retry tokens while hooks display accepted/durable status and guard navigation. Failed accepted writes lock conflicting operations and retry only through `retryPersistedMutation`. Completion/discard recovery remains visible after accepted state clears `activeEvent`. Successful start/completion/discard/slip navigation waits for durable acknowledgement and rechecks current accepted identity. Unmounting never discards or permits stale callbacks to navigate. Existing v7 schema/key, transitions, write runtime, and migration behavior are unchanged.
+
+`verify-bloom-panic-feature.ts` and `verify-bloom-urge-control-feature.ts` run through `verify:persistence` for branch separation, preview/identity guards, current and legacy execution, failed-save recovery without logical replay, durable navigation, and feature wiring. Route verification now expects nine ready routes and two pending recommendation destinations. Final V4 presentation, second intervention, result/undo screens, and Home/tab cutover remain deferred.
 
 ## Hydration and Writes
 

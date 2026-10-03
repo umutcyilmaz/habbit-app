@@ -22,6 +22,7 @@ export type BloomProductFlowIntent =
   | ({ flow: "resetRecommendation" } &
       HomeActionPayload<"reviewResetRecommendation">)
   | { flow: "masturbationSession"; mode: "start" }
+  | { flow: "panic" }
   | { flow: "contentFree" };
 
 // Translate a selected semantic action without reading state, running a

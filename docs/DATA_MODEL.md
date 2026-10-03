@@ -414,7 +414,7 @@ Current completion requires no technique, phone-away, second-line action, or 60-
 
 Legacy stages remain `interrupt`, `technique`, `phoneAwayReady`, `phoneAwayActive`, `outcome`, `trigger`, and `readyToComplete`, following the earliest missing historical fact. Both versions derive `elapsedEventSeconds = max(0, floor((now - startedAt) / 1000))`. Only legacy progress may expose `phoneAwayElapsedSeconds`, from phone-away start to end or caller time; its end freezes the interval. Clock skew safely clamps elapsed values to zero.
 
-No selector persists counters or advances a lifecycle. Home keeps its existing priority and returns `resumeUrgeControl` with either version's exact stage. The Urge Control route remains `featurePending`; no Panic route or screen/controller is added.
+No selector persists counters or advances a lifecycle. Home keeps its existing priority and returns `resumeUrgeControl` with either version's exact stage. Phase 1Z makes `/bloom/urge-control/resume` executable for both versions without changing these types, normalization, or transitions. The feature validates the active event ID and reads this selector; route `stage` is only a hint. Panic uses an independent `{ flow: "panic" }` intent with no persisted state. Mutations and retries retain durable acknowledgement before navigation; trigger drafts remain local presentation state.
 
 ## Onboarding Domain Boundary
 

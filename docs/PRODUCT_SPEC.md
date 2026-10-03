@@ -36,6 +36,8 @@ Phase 1W aligns only current Reset baseline questions and canonical Tracking sna
 
 Phase 1Y changes new Urge Control events to a versioned interrupt → outcome → optional multi-trigger → complete lifecycle, while preserving historical v7 events and their resumable guided steps. No Panic route, Figma screen, Home cutover, or second intervention is added.
 
+Phase 1Z makes Panic entry and current/legacy Urge resume executable using simple shared components and durable-save navigation. It preserves domain lifecycles, Behavior Slip rules, persistence v7, Home priority, and bottom tabs. Final V4 visuals and the second intervention remain deferred.
+
 The Expo Router architecture and local-first approach remain technical constraints. Older inventories in [ARCHITECTURE.md](ARCHITECTURE.md) and product references in [DECISIONS.md](DECISIONS.md) describe earlier stages; they do not require a new flow to depend on Protect. Existing navigation remains unchanged in this phase.
 
 ## Product Summary
@@ -187,7 +189,7 @@ Only without effective Reset restriction may standalone Content-Free own an expl
 
 The canonical impact selector returns semantic tracker effects without display text or mutation. Invalid occurrence timestamps and unsafe temporal ownership fail safely. Backdated occurrence remains an explicit event fact; recording uses the operation time. Persistence retries retain the same accepted event, identities, timestamps, and snapshot.
 
-Existing direct feature commands and undo ownership remain unchanged. This is foundation work only: no Panic route, new Figma screens, save/undo confirmation UI, Home cutover, recommendation logic, or Urge lifecycle changes. The same seven routes remain ready; Urge Control and recommendation destinations remain pending. Persistence remains v7 / `bloom.localState.v7`.
+Existing direct feature commands and undo ownership remain unchanged. Phase 1Z makes this coordinator executable through Panic confirmation, without new Figma visuals, post-save/undo result UI, Home cutover, recommendation logic, or Urge lifecycle changes. Persistence remains v7 / `bloom.localState.v7`.
 
 ## Urge Control
 
@@ -218,7 +220,21 @@ Current completion requires interrupt completion, outcome, explicitly finalized 
 
 Historical events without a flow discriminator retain the old interrupt → technique → phone-away → outcome → singular trigger → optional second-line lifecycle. Legacy techniques, trigger values, timestamps, and second-line choices remain readable and resumable under their existing rules, including reduced-outcome correction. Older partial/unordered records retain their historical accepted shapes. Loading does not add a version, map triggers, delete facts, or require writeback merely because an event is legacy. Current and legacy completed records coexist in the same history.
 
-Only one event may be active, including across app restart. Starting requires no Tracking, Content-Free, Reset, or onboarding permission. An Urge event never changes those systems. Discard removes only the active event with no history/tombstone; completed records remain append-only. Home retains its existing priority and version-aware `resumeUrgeControl` stage. Persistence stays v7 / `bloom.localState.v7`; the Urge route remains pending, and no UI or Panic route is implemented.
+Only one event may be active, including across app restart. Starting requires no Tracking, Content-Free, Reset, or onboarding permission. An Urge event never changes those systems. Discard removes only the active event with no history/tombstone; completed records remain append-only. Home retains its existing priority and version-aware `resumeUrgeControl` stage. Persistence stays v7 / `bloom.localState.v7`. Phase 1Z makes the current and legacy resume route executable through the simple Panic/Urge features described below.
+
+## Panic Entry and Executable Urge Resume
+
+`/bloom/panic` opens through the parameter-free semantic intent `{ flow: "panic" }`. With no active Urge event, it offers “Şu an tetiklendim” and “Seriyi bozdum”. An existing current or legacy active event offers Continue without starting another event.
+
+The triggered branch explicitly starts the current Urge lifecycle through the existing flow command. After durable save it replaces the route with `/bloom/urge-control/resume`, carrying the actual `eventId` and a stage hint. The active event's accepted state owns progress; URL stage never overrides it. Wrong, missing, duplicated, stale, or completed event identities cannot target other work.
+
+Current UI supports interrupt completion without a 60-second lock, the four existing outcomes, optional multi-trigger selection with Kaydet or an explicit “Bu adımı atla” (`[]`), and completion. Checkbox toggles are local drafts only. Historical active records remain usable through basic technique, phone-away, outcome, and singular-trigger controls using the existing legacy commands. There is no second intervention or automatic timer completion.
+
+The slip branch uses exactly the existing three reasons: masturbation, intentional explicit content, or both. “Bunlar değişecek” reads canonical `getBehaviorSlipImpact` results; it does not calculate tracker ownership or duplicate progress arithmetic. A null preview disables confirmation. If neither tracker changes, the feature explains that no active tracker would be affected and dispatches nothing. Confirmation rechecks the rendered Reset/Content-Free facts and calls only `flowActions.behaviorSlip.record(reason)`; current state at press time remains authoritative. Slip creates no Urge event, and Urge observations create no behavior slip.
+
+Successful slip, Urge completion, and explicit discard return to existing Today only after durable acknowledgement. Accepted save failures keep state visible, lock conflicting commands, and offer persistence-only retry without new IDs/timestamps or command replay. A stale/rejected command shows an unavailable message rather than a saved claim. Leaving or unmounting never silently discards an event.
+
+Nine routes are ready: the seven earlier Session/Content-Free/Reset routes, Panic, and Urge resume. Starting recommendation and Reset recommendation remain pending. Future buttons can use the Panic intent; Phase 1Z does not wire existing Home, Reset, Content-Free, or tab buttons to it. Final V4 visuals, post-save result/undo screens, and “Başka bir şey dene” remain deferred.
 
 ## Onboarding Starting Hypothesis
 

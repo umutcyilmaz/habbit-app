@@ -19,6 +19,8 @@ type ReadyRoutePath =
   | typeof bloomProductRoutePaths.masturbationSessionStart
   | typeof bloomProductRoutePaths.masturbationSessionResume
   | typeof bloomProductRoutePaths.masturbationSessionFeedback
+  | typeof bloomProductRoutePaths.panic
+  | typeof bloomProductRoutePaths.urgeControlResume
   | typeof bloomProductRoutePaths.contentFree
   | typeof bloomProductRoutePaths.resetBaseline
   | typeof bloomProductRoutePaths.resetProgress
@@ -29,13 +31,20 @@ type ReadyRouteContract = Assert<Equal<
 >>;
 type PendingRouteContract = Assert<Equal<
   Extract<BloomProductRouteDestination, { status: "featurePending" }>["destination"]["pathname"],
-  | typeof bloomProductRoutePaths.urgeControlResume
   | typeof bloomProductRoutePaths.startingRecommendation
   | typeof bloomProductRoutePaths.resetRecommendation
 >>;
 type AssessmentRouteRemoved = Assert<Equal<
   Extract<BloomProductRouteTarget, { pathname: "/bloom/reset/assessment" }>,
   never
+>>;
+type PanicIntentContract = Assert<Equal<
+  Extract<BloomProductFlowIntent, { flow: "panic" }>,
+  { flow: "panic" }
+>>;
+type PanicRouteContract = Assert<Equal<
+  Extract<BloomProductRouteTarget, { pathname: "/bloom/panic" }>,
+  { pathname: "/bloom/panic"; params?: never }
 >>;
 
 type FlowIntentKey<Intent extends BloomProductFlowIntent> =
@@ -50,6 +59,8 @@ type RouteCases = {
     status: Intent["flow"] extends
       | "masturbationSession"
       | "masturbationSessionFeedback"
+      | "panic"
+      | "urgeControl"
       | "contentFree"
       | "resetBaseline"
       | "resetProgress"
@@ -98,7 +109,7 @@ const cases = {
     }
   },
   "urgeControl:resume": {
-    status: "featurePending",
+    status: "ready",
     intent: {
       flow: "urgeControl",
       mode: "resume",
@@ -179,15 +190,20 @@ const cases = {
     status: "ready",
     intent: { flow: "contentFree" },
     target: { pathname: "/bloom/content-free" }
+  },
+  panic: {
+    status: "ready",
+    intent: { flow: "panic" },
+    target: { pathname: "/bloom/panic" }
   }
 } satisfies RouteCases;
 
 export function verifyBloomProductRoutes() {
   assert(
-    Object.values(cases).filter((testCase) => testCase.status === "ready").length === 7 &&
-      Object.values(cases).filter((testCase) => testCase.status === "featurePending").length === 3 &&
+    Object.values(cases).filter((testCase) => testCase.status === "ready").length === 9 &&
+      Object.values(cases).filter((testCase) => testCase.status === "featurePending").length === 2 &&
       !("resetAssessment" in bloomProductRoutePaths),
-    "Exactly seven routes remain ready and three remain pending; assessment is absent from the current route contract."
+    "Exactly nine routes are ready and two recommendations remain pending; assessment is absent from the current route contract."
   );
   for (const testCase of Object.values(cases)) {
     const intent = testCase.intent;
@@ -224,26 +240,51 @@ export function verifyBloomProductRoutes() {
   }
 
   verifyProgressIsNotRouteIdentity();
-  verifyCurrentUrgeRemainsPending();
+  verifyCurrentAndLegacyUrgeResume();
+  verifyMalformedRecommendationsRemainPending();
   verifyNavigationExecution();
   verifyNamespaceAndDependencies();
   console.log(
-    "Bloom product-route verification passed (seven ready session/Content-Free/Reset routes, three pending destinations, no assessment route, navigation execution, and legacy isolation)."
+    "Bloom product-route verification passed (nine ready routes including Panic/current/legacy Urge resume, two pending recommendations, no assessment route, navigation execution, and legacy isolation)."
   );
 }
 
-function verifyCurrentUrgeRemainsPending() {
-  for (const stage of ["interrupt", "outcome", "triggers", "readyToComplete"] as const) {
-    const intent = mapBloomHomeActionToFlowIntent({ id: "resumeUrgeControl", eventId: "current-route-urge", stage });
-    assert(isDeepStrictEqual(intent, { flow: "urgeControl", mode: "resume", eventId: "current-route-urge", stage }),
-      "Current Home progress must pass through the existing semantic intent without changing its stage.");
-    assert(isDeepStrictEqual(mapBloomProductFlowIntentToRouteDestination(intent), {
-      status: "featurePending",
-      destination: { pathname: "/bloom/urge-control/resume", params: { eventId: "current-route-urge", stage } }
-    }), "Every current Urge stage must retain the pending resume destination.");
+function verifyCurrentAndLegacyUrgeResume() {
+  const versions = [
+    { eventId: "current-route-urge", stages: ["interrupt", "outcome", "triggers", "readyToComplete"] },
+    { eventId: "legacy-route-urge", stages: ["interrupt", "technique", "phoneAwayReady", "phoneAwayActive", "outcome", "trigger", "readyToComplete"] }
+  ] as const;
+  for (const { eventId, stages } of versions) for (const stage of stages) {
+    const intent = mapBloomHomeActionToFlowIntent({ id: "resumeUrgeControl", eventId, stage });
+    assert(isDeepStrictEqual(intent, { flow: "urgeControl", mode: "resume", eventId, stage }),
+      "Current and legacy Home progress must retain event identity and the stage hint in the semantic intent.");
+    const destination = { pathname: "/bloom/urge-control/resume", params: { eventId, stage } };
+    assert(isDeepStrictEqual(mapBloomProductFlowIntentToRouteDestination(intent), { status: "ready", destination }),
+      "Every current and historical Urge stage must use the same ready resume route.");
+    const calls: unknown[] = [];
+    assert(navigateBloomProductFlow({ push: () => { throw new Error("Resume requested replace."); }, replace: (target) => { calls.push(target); } }, intent, "replace") &&
+      isDeepStrictEqual(calls, [destination]), "Urge resume must execute one replace with the unchanged event ID and stage hint.");
+    assert(!("flowVersion" in destination.params), "Version and authoritative stage are read from product state, not copied into navigation snapshots.");
+  }
+}
+
+function verifyMalformedRecommendationsRemainPending() {
+  for (const malformed of [
+    { flow: "startingRecommendation" },
+    { flow: "startingRecommendation", recommendation: null },
+    { flow: "startingRecommendation", recommendation: ["reset", "content_free"] },
+    { flow: "startingRecommendation", recommendation: "unknown" },
+    { flow: "resetRecommendation" },
+    { flow: "resetRecommendation", journeyId: "" },
+    { flow: "resetRecommendation", journeyId: null },
+    { flow: "resetRecommendation", journeyId: ["one", "two"] }
+  ]) {
     let calls = 0;
-    assert(!navigateBloomProductFlow({ push: () => { calls++; }, replace: () => { calls++; } }, intent) && calls === 0,
-      "Current Urge lifecycle support must not make its pending route navigable.");
+    const router = { push: () => { calls++; }, replace: () => { calls++; } };
+    for (const method of ["push", "replace"] as const) {
+      assert(!navigateBloomProductFlow(router, malformed as unknown as BloomProductFlowIntent, method) && calls === 0,
+        "Malformed payloads cannot make either deferred recommendation destination executable.");
+    }
   }
 }
 
@@ -323,7 +364,7 @@ function verifyNamespaceAndDependencies() {
     "The central contract must expose exactly the unique Bloom namespace paths."
   );
   assert(
-    isDeepStrictEqual(readdirSync(resolve("app/bloom")).sort(), ["content-free.tsx", "masturbation-session", "reset"]) &&
+    isDeepStrictEqual(readdirSync(resolve("app/bloom")).sort(), ["content-free.tsx", "masturbation-session", "panic.tsx", "reset", "urge-control"]) &&
       isDeepStrictEqual(
         readdirSync(resolve("app/bloom/masturbation-session")).sort(),
         ["feedback.tsx", "resume.tsx", "start.tsx"]
@@ -331,8 +372,12 @@ function verifyNamespaceAndDependencies() {
       isDeepStrictEqual(
         readdirSync(resolve("app/bloom/reset")).sort(),
         ["baseline.tsx", "completion.tsx", "progress.tsx"]
+      ) &&
+      isDeepStrictEqual(
+        readdirSync(resolve("app/bloom/urge-control")).sort(),
+        ["resume.tsx"]
       ),
-    "Exactly the session, Content-Free, and core Reset routes must exist; recommendation and Urge Control routes remain deferred."
+    "Exactly the session, Content-Free, Reset, Panic, and Urge resume routes must exist; recommendation routes remain deferred."
   );
   for (const [file, feature] of [
     ["app/bloom/masturbation-session/start.tsx", "masturbation-tracking"],
@@ -341,7 +386,9 @@ function verifyNamespaceAndDependencies() {
     ["app/bloom/content-free.tsx", "content-free"],
     ["app/bloom/reset/baseline.tsx", "reset"],
     ["app/bloom/reset/progress.tsx", "reset"],
-    ["app/bloom/reset/completion.tsx", "reset"]
+    ["app/bloom/reset/completion.tsx", "reset"],
+    ["app/bloom/panic.tsx", "panic"],
+    ["app/bloom/urge-control/resume.tsx", "urge-control"]
   ] as const) {
     const entry = readFileSync(
       resolve(file),

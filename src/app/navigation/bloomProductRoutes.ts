@@ -1,11 +1,12 @@
 import type { BloomProductFlowIntent } from "../flows/mapBloomHomeActionToFlowIntent";
 
-// Sessions, Content-Free, and the core Reset lifecycle have route entries.
-// Recommendation and Urge Control paths remain reserved until features exist.
+// Sessions, Content-Free, Reset, Panic, and Urge Control have route entries.
+// Recommendation paths remain reserved until features exist.
 export const bloomProductRoutePaths = {
   masturbationSessionStart: "/bloom/masturbation-session/start",
   masturbationSessionResume: "/bloom/masturbation-session/resume",
   masturbationSessionFeedback: "/bloom/masturbation-session/feedback",
+  panic: "/bloom/panic",
   urgeControlResume: "/bloom/urge-control/resume",
   resetCompletion: "/bloom/reset/completion",
   resetBaseline: "/bloom/reset/baseline",
@@ -23,6 +24,7 @@ type FlowIntent<Flow extends BloomProductFlowIntent["flow"]> = Extract<
 // URL params contain identity and small resume/review hints only. The pathname
 // distinguishes session start/resume. Reset progress is derived at the screen
 // boundary from canonical state, never carried as a navigation snapshot.
+// Urge stage is a hint; the resume feature derives its stage from accepted state.
 export type BloomProductRouteTarget =
   | {
       pathname: typeof bloomProductRoutePaths.masturbationSessionStart;
@@ -39,6 +41,10 @@ export type BloomProductRouteTarget =
   | {
       pathname: typeof bloomProductRoutePaths.urgeControlResume;
       params: Pick<FlowIntent<"urgeControl">, "eventId" | "stage">;
+    }
+  | {
+      pathname: typeof bloomProductRoutePaths.panic;
+      params?: never;
     }
   | {
       pathname: typeof bloomProductRoutePaths.resetCompletion;
@@ -72,6 +78,8 @@ export type BloomProductReadyRouteTarget = Extract<
       | typeof bloomProductRoutePaths.masturbationSessionStart
       | typeof bloomProductRoutePaths.masturbationSessionResume
       | typeof bloomProductRoutePaths.masturbationSessionFeedback
+      | typeof bloomProductRoutePaths.panic
+      | typeof bloomProductRoutePaths.urgeControlResume
       | typeof bloomProductRoutePaths.contentFree
       | typeof bloomProductRoutePaths.resetBaseline
       | typeof bloomProductRoutePaths.resetProgress
