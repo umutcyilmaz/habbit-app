@@ -4,7 +4,10 @@ import type {
   ContentFreeState,
   ContentFreeViolation,
   CurrentResetBaselineSelfReport,
+  CurrentUrgeControlEvent,
+  CurrentUrgeControlTrigger,
   LegacyResetBaselineSelfReport,
+  LegacyUrgeControlEvent,
   MasturbationPause,
   MasturbationSession,
   MasturbationSessionFeedback,
@@ -31,6 +34,10 @@ const triggers = [
   "boredom", "stress", "loneliness", "sleeplessnessNighttime",
   "sexualDesire", "habitAutomatic", "notSure"
 ] as const;
+const currentUrgeTriggers = [
+  "boredom", "stress", "loneliness", "fatigue", "explicitContentCue",
+  "habitAutomatic", "specificSituation", "other"
+] as const satisfies readonly CurrentUrgeControlTrigger[];
 const secondLineActions = ["putPhoneInAnotherRoom", "doAnotherTask", "messageSupportPerson"] as const;
 const incompleteDays = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14] as const;
 const completedDays = [...incompleteDays, 15] as const;
@@ -500,6 +507,56 @@ export function normalizeUrgeControl(value: unknown): UrgeControlState {
 
 function normalizeUrgeEvent(value: unknown, path: string): UrgeControlEvent {
   const record = object(value, path);
+  if (Object.prototype.hasOwnProperty.call(record, "flowVersion")) {
+    choice(record.flowVersion, [2], `${path}.flowVersion`);
+    return normalizeCurrentUrgeEvent(record, path);
+  }
+  absent(record, ["triggers"], path);
+  return normalizeLegacyUrgeEvent(record, path);
+}
+
+function normalizeCurrentUrgeEvent(record: Record<string, unknown>, path: string): CurrentUrgeControlEvent {
+  const status = choice(record.status, ["active", "completed"], `${path}.status`);
+  const allowed = ["id", "flowVersion", "status", "startedAt", "interruptCompletedAt", "outcome", "triggers",
+    ...(status === "completed" ? ["completedAt"] : [])];
+  ensure(Object.keys(record).every((key) => allowed.includes(key) && record[key] !== undefined), path,
+    "must contain only current flow fields with defined values");
+  const progress = {
+    id: identityString(record.id, `${path}.id`),
+    flowVersion: 2 as const,
+    status,
+    startedAt: timestamp(record.startedAt, `${path}.startedAt`),
+    ...optionalField(record, "interruptCompletedAt", path, timestamp),
+    ...optionalField(record, "outcome", path, (entry, entryPath) => choice(entry, outcomes, entryPath)),
+    ...optionalField(record, "triggers", path, normalizeCurrentUrgeTriggers)
+  };
+  if (progress.interruptCompletedAt !== undefined) notBefore(progress.interruptCompletedAt, progress.startedAt, path);
+  ensure(progress.outcome === undefined || progress.interruptCompletedAt !== undefined, path,
+    "requires the interrupt before outcome");
+  ensure(progress.triggers === undefined || progress.outcome !== undefined, path,
+    "requires outcome before finalizing triggers");
+  if (status === "active") return { ...progress, status };
+
+  ensure(progress.interruptCompletedAt !== undefined && progress.outcome !== undefined && progress.triggers !== undefined,
+    path, "requires interrupt, outcome, and finalized triggers before completion");
+  const completedAt = timestamp(record.completedAt, `${path}.completedAt`);
+  notBefore(completedAt, progress.startedAt, `${path}.completedAt`);
+  notBefore(completedAt, progress.interruptCompletedAt, `${path}.completedAt`);
+  return {
+    ...progress, status, interruptCompletedAt: progress.interruptCompletedAt,
+    outcome: progress.outcome, triggers: progress.triggers, completedAt
+  };
+}
+
+function normalizeCurrentUrgeTriggers(value: unknown, path: string): CurrentUrgeControlTrigger[] {
+  const values = list(value, path, (entry, entryPath) => choice(entry, currentUrgeTriggers, entryPath));
+  ensure(new Set(values).size === values.length, path, "cannot contain duplicate triggers");
+  return values;
+}
+
+// Preserve historical field order, accepted partial shapes, and absence of the
+// current discriminator. Legacy records are never upgraded by normalization.
+function normalizeLegacyUrgeEvent(record: Record<string, unknown>, path: string): LegacyUrgeControlEvent {
   const status = choice(record.status, ["active", "completed"], `${path}.status`);
   const progress = {
     id: identityString(record.id, `${path}.id`),

@@ -20,6 +20,7 @@ import {
   recordManualContentFreeViolationState,
   recordUrgeControlOutcomeState,
   recordUrgeControlTriggerState,
+  recordUrgeControlTriggersState,
   saveProductOnboardingResultState,
   selectUrgeControlSecondLineActionState,
   selectUrgeControlTechniqueState,
@@ -98,6 +99,7 @@ export function createBloomProductAcknowledgedActions({
       endPhoneAway: acknowledge(endUrgeControlPhoneAwayState),
       recordOutcome: acknowledge(recordUrgeControlOutcomeState),
       recordTrigger: acknowledge(recordUrgeControlTriggerState),
+      recordTriggers: acknowledge(recordUrgeControlTriggersState),
       selectSecondLineAction: acknowledge(selectUrgeControlSecondLineActionState),
       complete: acknowledge(completeUrgeControlEventState),
       discardActive: acknowledge(discardActiveUrgeControlEventState)

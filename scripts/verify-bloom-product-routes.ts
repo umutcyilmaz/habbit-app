@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 
-import type { BloomProductFlowIntent } from "../src/app/flows/mapBloomHomeActionToFlowIntent";
+import { mapBloomHomeActionToFlowIntent, type BloomProductFlowIntent } from "../src/app/flows/mapBloomHomeActionToFlowIntent";
 import {
   bloomProductRoutePaths,
   type BloomProductRouteDestination,
@@ -224,11 +224,27 @@ export function verifyBloomProductRoutes() {
   }
 
   verifyProgressIsNotRouteIdentity();
+  verifyCurrentUrgeRemainsPending();
   verifyNavigationExecution();
   verifyNamespaceAndDependencies();
   console.log(
     "Bloom product-route verification passed (seven ready session/Content-Free/Reset routes, three pending destinations, no assessment route, navigation execution, and legacy isolation)."
   );
+}
+
+function verifyCurrentUrgeRemainsPending() {
+  for (const stage of ["interrupt", "outcome", "triggers", "readyToComplete"] as const) {
+    const intent = mapBloomHomeActionToFlowIntent({ id: "resumeUrgeControl", eventId: "current-route-urge", stage });
+    assert(isDeepStrictEqual(intent, { flow: "urgeControl", mode: "resume", eventId: "current-route-urge", stage }),
+      "Current Home progress must pass through the existing semantic intent without changing its stage.");
+    assert(isDeepStrictEqual(mapBloomProductFlowIntentToRouteDestination(intent), {
+      status: "featurePending",
+      destination: { pathname: "/bloom/urge-control/resume", params: { eventId: "current-route-urge", stage } }
+    }), "Every current Urge stage must retain the pending resume destination.");
+    let calls = 0;
+    assert(!navigateBloomProductFlow({ push: () => { calls++; }, replace: () => { calls++; } }, intent) && calls === 0,
+      "Current Urge lifecycle support must not make its pending route navigable.");
+  }
 }
 
 function verifyNavigationExecution() {

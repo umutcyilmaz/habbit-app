@@ -15,12 +15,13 @@ import {
   type BloomPersistedMutationResult,
   type BloomPersistenceRetryToken
 } from "../src/app/providers/bloomLocalStateMutationRuntime";
-import type { BehaviorSlipReason, MasturbationSessionFeedback } from "../src/domain/models";
+import type { BehaviorSlipReason, CurrentUrgeControlTrigger, MasturbationSessionFeedback } from "../src/domain/models";
 import type { CurrentResetBaselineSelfReport, LegacyResetBaselineSelfReport } from "../src/domain/models/ResetBaseline";
 import type { ResetBaselineAnswers } from "../src/features/reset/resetController";
+import { getUrgeControlProgress } from "../src/domain/urgeControl/getUrgeControlProgress";
 import { createDefaultBloomState, type BloomLocalState } from "../src/storage/bloomState";
-import { BLOOM_STATE_STORAGE_KEY, type BloomStateWriteReceipt } from "../src/storage/bloomStatePersistence";
-import { BLOOM_PERSISTENCE_VERSION } from "../src/storage/bloomStateSchema";
+import { BLOOM_STATE_STORAGE_KEY, loadBloomLocalState, persistBloomLocalState, type BloomStateWriteReceipt } from "../src/storage/bloomStatePersistence";
+import { BLOOM_PERSISTENCE_VERSION, validateAndNormalizeBloomState } from "../src/storage/bloomStateSchema";
 import { createPopulatedState } from "./verify-bloom-product-persistence";
 import { createActiveState } from "./verify-bloom-reset-violations";
 
@@ -32,6 +33,7 @@ type FlowCase = {
   args: unknown[];
   prefixes: BloomProductFlowIdPrefix[];
   prepared?: false;
+  semanticWrapper?: true;
 };
 type EqualTypes<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;
 type CurrentQuestionContract = {
@@ -48,24 +50,27 @@ const exactApplicationInput: EqualTypes<Parameters<BloomProductAcknowledgedActio
 }]> = true;
 const legacyIsNotCurrent: LegacyResetBaselineSelfReport extends ResetBaselineAnswers ? false : true = true;
 const exactSlipFlowInput: EqualTypes<Parameters<BloomProductFlowActions["behaviorSlip"]["record"]>, [BehaviorSlipReason, string?]> = true;
+const exactTriggersFlowInput: EqualTypes<Parameters<BloomProductFlowActions["urgeControl"]["recordTriggers"]>, [CurrentUrgeControlTrigger[]]> = true;
 
 export async function verifyBloomProductFlowActions() {
   assert(exactCurrentQuestionContract && exactFeatureAnswers && exactFlowInput && exactApplicationInput && legacyIsNotCurrent,
     "Current form/flow/application APIs must expose exactly the four new answers, without legacy answers, caller baselines, or aggregate inputs.");
   assert(exactSlipFlowInput, "Behavior-slip callers must provide only a semantic reason and optional occurrence time.");
+  assert(exactTriggersFlowInput, "Current Urge Control trigger callers must provide only their semantic selection array.");
   const cases = flowCases();
   const paths = new Set(cases.map((item) => item.path));
-  assert(paths.size === 31, "Every new-product command must have a flow/preparation or direct-alias verification case.");
+  assert(paths.size === 32, "Every new-product command must have a flow/preparation or semantic-passthrough verification case.");
   assert(!("completeAssessment" in recordingHarness().flow.reset), "The current flow API must not expose a Reset assessment command.");
   for (const [index, item] of cases.entries()) await verifyPreparedInputs(item, index);
   verifyDefaultIdConvention();
   await verifyFreshInvocationFacts();
   await verifyRetryWithoutRegeneration();
   await verifyBehaviorSlipRetryWithoutRegeneration();
+  await verifyCurrentUrgeFlowAndRetry();
   await verifyNoOpAndRuntimeBlocks();
   verifyIsolation();
   assert(BLOOM_PERSISTENCE_VERSION === 7 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v7", "Flow integration must preserve the established v7 persistence contract.");
-  console.log(`Bloom product flow-action verification passed (all 31 paths; ${cases.length} exact-input cases; one-time mechanical facts, direct aliases, semantic passthrough, atomic behavior-slip retry/no-op safety, and v7 isolation).`);
+  console.log(`Bloom product flow-action verification passed (all 32 paths; ${cases.length} exact-input cases; one-time mechanical facts, current Urge lifecycle/resume/trigger retry, legacy operations, atomic behavior-slip retry/no-op safety, and v7 isolation).`);
 }
 
 async function verifyPreparedInputs(item: FlowCase, index: number) {
@@ -79,6 +84,8 @@ async function verifyPreparedInputs(item: FlowCase, index: number) {
   const expectedInput = item.args[0] as Record<string, unknown> | undefined;
   if (item.path === "onboarding.saveProductOnboardingResult") assert(actualInput === expectedInput, "An already-scored onboarding result must pass through by reference without rescoring.");
   if (expectedInput?.feedback !== undefined) assert(actualInput?.feedback === expectedInput.feedback, "Feedback semantic objects must remain caller-owned through mechanical preparation.");
+  if (item.path === "urgeControl.recordTriggers") assert(actualInput?.triggers === expectedInput?.triggers,
+    "Current trigger selections must pass through by reference without copying, sorting, or filtering in the flow layer.");
   if (item.path === "reset.startFromBaseline") {
     assert(actualInput?.selfReport === expectedInput?.selfReport,
       "Reset preparation must preserve the caller's four-answer self-report reference.");
@@ -96,8 +103,8 @@ async function verifyPreparedInputs(item: FlowCase, index: number) {
   assert(harness.events[harness.events.length - 1] === "dispatch" && harness.events.filter((entry) => entry === "dispatch").length === 1,
     `${item.path}: all mechanical generation must finish before the product command is invoked.`);
   if (item.prepared === false) {
-    assert(atPath(harness.flow, item.path) === atPath(harness.productActions, item.path), `${item.path}: commands without preparation should remain direct function aliases.`);
-    equal(harness.events, ["dispatch"], "Direct aliases must not call the clock or ID generator.");
+    if (item.semanticWrapper !== true) assert(atPath(harness.flow, item.path) === atPath(harness.productActions, item.path), `${item.path}: existing commands without preparation should remain direct function aliases.`);
+    equal(harness.events, ["dispatch"], "Semantic-only operations must not call the clock or ID generator.");
   } else assert(harness.events[0] === "now", "Prepared operations must capture time before generating any IDs.");
   assert(JSON.stringify(item.args) === before, "Preparation must not mutate caller objects or semantic inputs.");
   const result: BloomPersistedMutationResult = index % 2 === 0
@@ -178,6 +185,15 @@ function flowCases(): FlowCase[] {
         prefixes: ["log-action", "reset-violation", "reset-attempt", "content-free-violation"]
       });
     }
+  }
+  for (const values of [
+    [], ["boredom"], ["stress", "explicitContentCue", "specificSituation"],
+    ["boredom", "stress", "loneliness", "fatigue", "explicitContentCue", "habitAutomatic", "specificSituation", "other"],
+    ["boredom", "boredom"], ["notSure"], null
+  ]) {
+    const triggers = freeze(values) as unknown as CurrentUrgeControlTrigger[];
+    cases.push({ path: "urgeControl.recordTriggers", invoke: (flow) => flow.urgeControl.recordTriggers(triggers),
+      args: [{ triggers }], prefixes: [], prepared: false, semanticWrapper: true });
   }
   const invalidFeedback = { ...feedback, erectionQuality: 99 } as unknown as MasturbationSessionFeedback;
   cases.push({ path: "tracking.session.completeFeedback", invoke: (f) => f.tracking.session.completeFeedback(invalidFeedback), args: [{ feedback: invalidFeedback, recordedAt: at, contentFreeViolationId: id("content-free-violation") }], prefixes: ["content-free-violation"] });
@@ -328,6 +344,117 @@ async function verifyBehaviorSlipRetryWithoutRegeneration() {
       accepted.contentFree.violations.length === Number(item.contentChanges),
     "One accepted behavior slip must remain exactly one record per affected tracker after retry.");
   }
+}
+
+async function verifyCurrentUrgeFlowAndRetry() {
+  const fixture = createPopulatedState();
+  fixture.urgeControl = { ...fixture.urgeControl, activeEvent: null };
+  const normalized = validateAndNormalizeBloomState(fixture);
+  assert(normalized.success, "A canonical populated state is required for current Urge flow persistence checks.");
+  const initial = normalized.state;
+  const legacyRecords = initial.urgeControl.records;
+  const harness = runtimeHarness(initial);
+  const saveStep = async (pending: Promise<BloomPersistedMutationResult>, stage: string) => {
+    const accepted = harness.runtime.getState();
+    harness.attempts[harness.attempts.length - 1]!.succeed();
+    assert((await pending).ok, "Each explicit current Urge Control step must retain acknowledged persistence.");
+    const loaded = await roundTripUrgeState(accepted);
+    const progress = getUrgeControlProgress(loaded.urgeControl, at);
+    assert(progress?.stage === stage && !("phoneAwayElapsedSeconds" in progress),
+      "A current Urge Control event must resume at its version-aware stage after persistence, with no phone-away timer.");
+    assert(accepted.urgeControl.records === legacyRecords,
+      "Current active progress must preserve the historical completed records by reference.");
+    for (const key of Object.keys(initial) as Array<keyof BloomLocalState>) {
+      if (key !== "urgeControl") assert(accepted[key] === initial[key],
+        "Current Urge progress and explicitContentCue observations must not mutate trackers, behavior slips, onboarding, or legacy slices.");
+    }
+    return loaded;
+  };
+  const started = harness.flow.urgeControl.start();
+  equal(harness.runtime.getState().urgeControl.activeEvent, {
+    id: id("urge-control-event"), flowVersion: 2, status: "active", startedAt: at
+  }, "Current flow starts must generate exactly one versioned active event with the canonical start identity/time.");
+  await saveStep(started, "interrupt");
+  await saveStep(harness.flow.urgeControl.completeInterrupt(), "outcome");
+  await saveStep(harness.flow.urgeControl.recordOutcome({ outcome: "stronger" }), "triggers");
+  assert(harness.clockCalls() === 2 && harness.idCalls() === 1 && harness.mutationCalls() === 3,
+    "Start and explicit interrupt completion each capture one clock; semantic outcome must create no mechanical facts.");
+
+  const triggers: CurrentUrgeControlTrigger[] = ["explicitContentCue", "stress"];
+  const selection = [...triggers];
+  const recording = harness.flow.urgeControl.recordTriggers(triggers);
+  const accepted = harness.runtime.getState();
+  const event = accepted.urgeControl.activeEvent;
+  assert(event !== null && "flowVersion" in event && event.flowVersion === 2,
+    "Current trigger finalization must retain a current active event.");
+  equal(event.triggers, selection, "Current trigger selections must preserve the caller's explicit order.");
+  equal(triggers, selection, "The current flow and transition must not mutate the caller's trigger array.");
+  triggers.push("other");
+  equal(event.triggers, selection, "A later caller-array change must not mutate an accepted trigger snapshot.");
+  harness.attempts[3]!.fail();
+  const failure = await recording;
+  assert(!failure.ok && failure.accepted && failure.retryable && failure.reason === "persistenceFailed" &&
+    harness.runtime.getState() === accepted && harness.runtime.getDurableState() !== accepted,
+  "Failed trigger persistence must keep the accepted ordered selection and its existing retry token.");
+  harness.setTime("2027-01-01T00:00:00.000Z");
+  const retry = harness.runtime.retryPersistence(failure.retryToken);
+  assert(harness.attempts[4]!.state === accepted,
+    "Current trigger retry must write the same accepted snapshot rather than resubmit its mutable caller array.");
+  harness.attempts[4]!.succeed();
+  assert((await retry).ok && (await harness.runtime.retryPersistence(failure.retryToken)).ok &&
+    harness.clockCalls() === 2 && harness.idCalls() === 1 && harness.mutationCalls() === 4 && harness.attempts.length === 5,
+  "Trigger selection and retry must generate no IDs/timestamps and replay no logical operation.");
+  const loadedSelection = await roundTripUrgeState(accepted);
+  assert(getUrgeControlProgress(loadedSelection.urgeControl, at)?.stage === "readyToComplete",
+    "Persisted multiple trigger selections must resume ready for current completion.");
+  const loadedSkip = await saveStep(harness.flow.urgeControl.recordTriggers([]), "readyToComplete");
+  assert(harness.clockCalls() === 2 && harness.idCalls() === 1,
+    "Explicitly skipping optional triggers must remain a semantic-only correction.");
+
+  const resumed = runtimeHarness(loadedSkip, "ready", at);
+  const completing = resumed.flow.urgeControl.complete();
+  const completed = resumed.runtime.getState();
+  assert(completed.urgeControl.activeEvent === null && completed.urgeControl.records.length === legacyRecords.length + 1,
+    "A hydrated current event must complete directly without calling any legacy guided operation.");
+  equal(completed.urgeControl.records[completed.urgeControl.records.length - 1], {
+    id: id("urge-control-event"), flowVersion: 2, status: "completed", startedAt: at,
+    interruptCompletedAt: at, outcome: "stronger", triggers: [], completedAt: at
+  }, "Current completion must preserve explicit skipped triggers and allow zero elapsed seconds with no legacy technique/phone-away/second-line facts.");
+  for (const [index, record] of loadedSkip.urgeControl.records.entries()) {
+    assert(completed.urgeControl.records[index] === record, "Current completion must append to mixed history without rewriting old records.");
+  }
+  for (const key of Object.keys(loadedSkip) as Array<keyof BloomLocalState>) {
+    if (key !== "urgeControl") assert(completed[key] === loadedSkip[key], "Current Urge completion must affect no other state slice.");
+  }
+  resumed.attempts[0]!.succeed();
+  assert((await completing).ok && resumed.clockCalls() === 1 && resumed.idCalls() === 0 && resumed.mutationCalls() === 1,
+    "Resumed completion must prepare its time exactly once and use the current acknowledged command.");
+  await roundTripUrgeState(completed);
+
+  const discarding = runtimeHarness(loadedSelection);
+  const discard = discarding.flow.urgeControl.discardActive();
+  assert(discarding.runtime.getState().urgeControl.activeEvent === null &&
+    discarding.runtime.getState().urgeControl.records === loadedSelection.urgeControl.records,
+  "The existing flow discard operation must remove a current active event while retaining historical records.");
+  discarding.attempts[0]!.succeed();
+  assert((await discard).ok && discarding.clockCalls() === 0 && discarding.idCalls() === 0,
+    "Current discard must remain an acknowledged operation without generated IDs or timestamps.");
+}
+
+async function roundTripUrgeState(state: BloomLocalState): Promise<BloomLocalState> {
+  const values = new Map<string, string>();
+  const client = {
+    getItem: async (key: string) => values.get(key) ?? null,
+    setItem: async (key: string, value: string) => { values.set(key, value); },
+    removeItem: async (key: string) => { values.delete(key); },
+    getAllKeys: async () => [...values.keys()]
+  };
+  await persistBloomLocalState(state, client, () => new Date(at));
+  const loaded = await loadBloomLocalState(client, () => new Date(at));
+  assert(loaded.status === "success" && loaded.source === "current" && !loaded.needsPersist,
+    "Current and legacy Urge records must hydrate from v7 without synthetic normalization/writeback.");
+  equal(loaded.state, state, "Urge Control persistence must preserve every versioned current and unversioned historical event fact.");
+  return loaded.state;
 }
 
 async function verifyNoOpAndRuntimeBlocks() {

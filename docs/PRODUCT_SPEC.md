@@ -34,6 +34,8 @@ Phase 1O adds the separate pure Home read model for the new product. It selects 
 
 Phase 1W aligns only current Reset baseline questions and canonical Tracking snapshots. It preserves Phase 1V direct completion, persistence v7 / `bloom.localState.v7`, legacy behavior, and the existing screen styling; visual redesign, recommendations, Urge Control work, and new Home cutover remain deferred.
 
+Phase 1Y changes new Urge Control events to a versioned interrupt → outcome → optional multi-trigger → complete lifecycle, while preserving historical v7 events and their resumable guided steps. No Panic route, Figma screen, Home cutover, or second intervention is added.
+
 The Expo Router architecture and local-first approach remain technical constraints. Older inventories in [ARCHITECTURE.md](ARCHITECTURE.md) and product references in [DECISIONS.md](DECISIONS.md) describe earlier stages; they do not require a new flow to depend on Protect. Existing navigation remains unchanged in this phase.
 
 ## Product Summary
@@ -191,29 +193,32 @@ Existing direct feature commands and undo ownership remain unchanged. This is fo
 
 Urge Control is optional acute support that creates a brief moment to choose. It does not aim to eliminate sexual desire, diagnose behavior, guarantee prevention or urge reduction, or assign success/failure.
 
-Urge starts → short interrupt → coping technique → phone-away period → outcome → trigger → optional second-line action.
+Current lifecycle: **start → short interrupt → outcome → optional multi-select triggers → complete**. New events carry `flowVersion: 2`. The interrupt ends explicitly, with no domain-enforced 60-second minimum. All elapsed values are derived from timestamps; no timer counter is persisted and wall-clock passage never completes a step automatically.
 
-An **UrgeControlEvent** records its identity, start/completion, intermediate timestamps, technique, outcome, trigger, and optional second-line action. Only one event may be active, including across app close/reload. Resume progress derives from retained facts; loading never expires, completes, or discards an event automatically.
+Exactly one outcome is recorded: `reduced` (Azaldı), `stillStrong` (Hâlâ güçlü), `stronger` (Daha güçlü), or `unchanged` (Değişmedi). Outcome follows interrupt completion and may be corrected while active. Completion does not require the urge to have decreased.
 
-Starting does not require Tracking, Content-Free, Reset, or onboarding permission. It remains available during active Reset and never changes those systems, creates a session/pause, or records a violation. Sexual desire as a trigger is not explicit-content use.
+Current triggers are optional and allow multiple selections:
 
-The interrupt must be completed before technique selection. The technique may change until the phone-away period starts, then remains fixed. Phone-away start/end use actual supplied times in order; the domain enforces neither an exact interrupt duration nor an exact two-minute waiting period. Elapsed values use whole nonnegative timestamp-derived seconds without persisted ticking counters.
+| Value | Product meaning |
+| --- | --- |
+| `boredom` | Can sıkıntısı |
+| `stress` | Stres |
+| `loneliness` | Yalnızlık |
+| `fatigue` | Yorgunluk |
+| `explicitContentCue` | İçerik gördüm |
+| `habitAutomatic` | Alışkanlık |
+| `specificSituation` | A specific situation; intentionally broad while UI copy is unfinished |
+| `other` | Diğer |
 
-Techniques:
+The trigger step must be explicitly finalized: `triggers` absent means not finalized, `[]` means intentionally skipped, and a non-empty array records observations in selected order. Duplicate or unsupported choices are rejected. A different valid selection replaces an earlier one before completion; identical selections are no-ops. No current `notSure` choice is inferred from the old model.
 
-- `changeEnvironment`
-- `grounding54321`
-- `cognitiveTask`
-- `urgeSurfing`
-- `personalReminder`
+Trigger observations have no scoring, diagnosis, or tracker effects. In particular, `explicitContentCue` is a cue observation, not intentional explicit-content behavior. It does not call Behavior Slip, reset Content-Free, restart Reset, or change Masturbation Tracking.
 
-Outcomes include reduced, still strong, unchanged, or stronger urges. Outcome follows the ended phone-away period, and trigger follows outcome. Both answers may be corrected before completion; identical answers are no-ops. A completed event means the interaction was recorded; it does not require the urge to have decreased.
+Current completion requires interrupt completion, outcome, explicitly finalized triggers (possibly empty), and a completion time at/after event start and interrupt completion. It appends the event and clears the active slot atomically. Current events contain no technique, phone-away, singular trigger, or second-line fields. The future “Başka bir şey dene” / second intervention is deferred.
 
-Triggers include boredom, stress, loneliness, sleeplessness/nighttime, sexual desire, automatic habit, and not being sure. Sexual desire by itself is not a diagnosis or failure.
+Historical events without a flow discriminator retain the old interrupt → technique → phone-away → outcome → singular trigger → optional second-line lifecycle. Legacy techniques, trigger values, timestamps, and second-line choices remain readable and resumable under their existing rules, including reduced-outcome correction. Older partial/unordered records retain their historical accepted shapes. Loading does not add a version, map triggers, delete facts, or require writeback merely because an event is legacy. Current and legacy completed records coexist in the same history.
 
-Optional second-line actions are putting the phone in another room, doing another task, or messaging a support person. They are available after `stillStrong`, `stronger`, or `unchanged`, and never required to finish. Changing the active outcome to `reduced` clears a prior second-line choice. Recording a choice performs no device control, messaging, scheduling, notification, or other external action.
-
-Completion requires interrupt, technique, phone-away start/end, outcome, and trigger. It appends the event once to completed history and clears the active slot. Discard clears only the active event without creating history or a tombstone. Completed events remain append-only; editing, deletion, and undo of those records are deferred.
+Only one event may be active, including across app restart. Starting requires no Tracking, Content-Free, Reset, or onboarding permission. An Urge event never changes those systems. Discard removes only the active event with no history/tombstone; completed records remain append-only. Home retains its existing priority and version-aware `resumeUrgeControl` stage. Persistence stays v7 / `bloom.localState.v7`; the Urge route remains pending, and no UI or Panic route is implemented.
 
 ## Onboarding Starting Hypothesis
 
@@ -251,7 +256,7 @@ Initial acceptance requires an inactive Reset and no unfinished session; non-tra
 
 The new Home engine is a pure read model using explicit time and the five new product slices. It composes existing availability/progress selectors and returns semantic action IDs and tracker facts, with no presentation copy, routes, state writes, generated time/identity, or automatic lifecycle advancement. The existing legacy `getNextBloomAction` remains unchanged and separate.
 
-Priority is deterministic: unfinished Masturbation Session or awaiting feedback first; then active Urge Control resume; elapsed-but-still-active Reset completion; pending baseline; effectively active Reset; unaccepted stored onboarding recommendation; recommended Reset; and finally the primary tracker's action. Pending session work wins even when other feature states conflict. Urge Control resume includes its existing stage. Reset preparation is not an active restriction; completed Reset has no pending assessment action.
+Priority is deterministic: unfinished Masturbation Session or awaiting feedback first; then active Urge Control resume; elapsed-but-still-active Reset completion; pending baseline; effectively active Reset; unaccepted stored onboarding recommendation; recommended Reset; and finally the primary tracker's action. Pending session work wins even when other feature states conflict. Urge Control resume includes the version-aware current or legacy stage. Reset preparation is not an active restriction; completed Reset has no pending assessment action.
 
 Exactly at/after Day 15, an active Reset requests `recordResetElapsedCompletion` before normal tracker actions. This asks a later integration layer to persist the existing completion transition; reading Home never invokes it. Onboarding recommendations are returned as stored without rescoring. An unaccepted onboarding recommendation wins over a recommended Reset, while `productOnboarding: notCompleted` alone does not force an action or onboarding gate.
 

@@ -1,5 +1,5 @@
 import { isDeepStrictEqual } from "node:util";
-import type { ActiveUrgeControlEvent, UrgeControlOutcome, UrgeControlSecondLineAction, UrgeControlTechnique, UrgeControlTrigger } from "../src/domain/models";
+import type { LegacyUrgeControlEvent, UrgeControlOutcome, UrgeControlSecondLineAction, UrgeControlTechnique, UrgeControlTrigger } from "../src/domain/models";
 import { getUrgeControlProgress } from "../src/domain/urgeControl/getUrgeControlProgress";
 import {
   createDefaultBloomState, startUrgeControlEventState, completeUrgeControlInterruptState,
@@ -12,6 +12,7 @@ import { BLOOM_PERSISTENCE_VERSION, validateAndNormalizeBloomState } from "../sr
 import type { StorageClient } from "../src/storage/storageAdapters";
 import { createPopulatedState } from "./verify-bloom-product-persistence";
 import { createActiveState } from "./verify-bloom-reset-violations";
+import { verifyBloomCurrentUrgeControl } from "./verify-bloom-current-urge-control";
 
 const startedAt = "2026-11-01T12:00:00.250Z";
 const interruptAt = "2026-11-01T12:00:05.250Z";
@@ -33,14 +34,16 @@ export async function verifyBloomUrgeControl() {
   verifyTimingBoundaries();
   await verifyFeatureIndependenceAndDiscard();
   await verifyOlderCompatibleFacts();
+  await verifyRawLegacyV7Hydration();
   const rejected = verifyInvalidTransitions();
   const corrupted = await verifyMalformedPersistence();
+  await verifyBloomCurrentUrgeControl();
   console.log(`Bloom Urge Control verification passed (${rejected} rejected transitions; ${corrupted} malformed persisted cases; all guided stages, descriptive answers, independent lifecycle, compatible hydration, and v7 round trips).`);
 }
 
 async function verifyLifecycleAndResume() {
   const states = createStages();
-  equal(event(states[0]!), { id: "guided-event", status: "active", startedAt }, "Starting must record only supplied identity/start and active status, without inferred answers or counters.");
+  equal(event(states[0]!), { id: "guided-event", status: "active", startedAt }, "A genuine historical v7 start contains only identity/start and active status, with no current discriminator.");
   const stages = ["interrupt", "technique", "phoneAwayReady", "phoneAwayActive", "outcome", "trigger", "readyToComplete"];
   for (const [index, state] of states.entries()) {
     const before = JSON.stringify(state);
@@ -94,7 +97,7 @@ function verifyAnswersAndOptionalSupport() {
       assert(recordUrgeControlTriggerState(answered, { trigger }) === answered, "Identical trigger recording must be an exact no-op.");
     }
     const noEscalation = changed(answered, completeUrgeControlEventState, { completedAt });
-    assert(noEscalation.urgeControl.records[0]?.secondLineAction === undefined, "Every outcome, including stillStrong, must allow completion without second-line support.");
+    assert((noEscalation.urgeControl.records[0] as LegacyUrgeControlEvent | undefined)?.secondLineAction === undefined, "Every outcome, including stillStrong, must allow completion without second-line support.");
     if (outcome === "reduced") {
       for (const action of actions) assert(selectUrgeControlSecondLineActionState(answered, { action }) === answered, "Reduced outcomes must reject unnecessary second-line escalation.");
       continue;
@@ -109,7 +112,7 @@ function verifyAnswersAndOptionalSupport() {
     assert(event(corrected).outcome === "reduced" && !Object.hasOwnProperty.call(event(corrected), "secondLineAction"), "Correcting outcome to reduced must remove the prior second-line field entirely.");
     const withTrigger = changed(support, recordUrgeControlTriggerState, { trigger: "sexualDesire" });
     const completed = changed(withTrigger, completeUrgeControlEventState, { completedAt });
-    assert(completed.urgeControl.records[0]?.secondLineAction === "messageSupportPerson", "Completion must retain the chosen optional support action as a fact with no external side effect.");
+    assert((completed.urgeControl.records[0] as LegacyUrgeControlEvent | undefined)?.secondLineAction === "messageSupportPerson", "Completion must retain the chosen optional support action as a fact with no external side effect.");
   }
   let correction = stages[5]!;
   for (const outcome of ["stronger", "unchanged", "reduced", "stillStrong"] as const) correction = changed(correction, recordUrgeControlOutcomeState, { outcome });
@@ -197,6 +200,47 @@ async function verifyOlderCompatibleFacts() {
   await assertRoundTrip(historical);
   const started = changed(historical, startUrgeControlEventState, { eventId: "new-with-old-history", startedAt: completedAt });
   assert(started.urgeControl.records === historical.urgeControl.records, "New ordered events must preserve older valid completed records without retrofitting guided timestamps or clearing historical answers.");
+}
+
+async function verifyRawLegacyV7Hydration() {
+  // These are canonical historical JSON shapes, authored independently of the
+  // current normalizer. Keep the historical property order to catch accidental
+  // writeback caused by introducing a per-event version or changing old fields.
+  const phoneStart = "2026-11-01T12:00:07.750Z";
+  const phoneEnd = "2026-11-01T12:00:10.999Z";
+  const historicalCompleted: Extract<LegacyUrgeControlEvent, { status: "completed" }> = {
+    id: "raw-old-completed", startedAt, secondLineAction: "doAnotherTask", status: "completed", completedAt,
+    selectedTechnique: "personalReminder", outcome: "reduced", trigger: "notSure"
+  };
+  const fixtures: Array<[string, Extract<LegacyUrgeControlEvent, { status: "active" }> | null]> = [
+    ["interrupt", { id: "raw-old-active", startedAt, status: "active" }],
+    ["technique", { id: "raw-old-active", startedAt, interruptCompletedAt: interruptAt, status: "active" }],
+    ["phoneAwayReady", { id: "raw-old-active", startedAt, interruptCompletedAt: interruptAt, status: "active", selectedTechnique: "urgeSurfing" }],
+    ["phoneAwayActive", { id: "raw-old-active", startedAt, interruptCompletedAt: interruptAt, phoneAwayStartedAt: phoneStart, status: "active", selectedTechnique: "urgeSurfing" }],
+    ["outcome", { id: "raw-old-active", startedAt, interruptCompletedAt: interruptAt, phoneAwayStartedAt: phoneStart, phoneAwayEndedAt: phoneEnd, status: "active", selectedTechnique: "urgeSurfing" }],
+    ["trigger", { id: "raw-old-active", startedAt, interruptCompletedAt: interruptAt, phoneAwayStartedAt: phoneStart, phoneAwayEndedAt: phoneEnd, status: "active", selectedTechnique: "urgeSurfing", outcome: "stillStrong" }],
+    ["readyToComplete", { id: "raw-old-active", startedAt, interruptCompletedAt: interruptAt, phoneAwayStartedAt: phoneStart, phoneAwayEndedAt: phoneEnd, secondLineAction: "messageSupportPerson", status: "active", selectedTechnique: "urgeSurfing", outcome: "stillStrong", trigger: "sexualDesire" }],
+    ["phoneAwayActive", { id: "raw-old-active", startedAt, interruptCompletedAt: interruptAt, phoneAwayStartedAt: phoneStart, secondLineAction: "putPhoneInAnotherRoom", status: "active", selectedTechnique: "urgeSurfing", outcome: "unchanged", trigger: "sleeplessnessNighttime" }],
+    ["completed history only", null]
+  ];
+  for (const [expectedStage, activeEvent] of fixtures) {
+    const state = createDefaultBloomState();
+    state.urgeControl = { activeEvent, records: [historicalCompleted] };
+    const raw = JSON.stringify({ version: 7, savedAt: now().toISOString(), state });
+    const client = new UrgeTestStorage();
+    client.values.set(BLOOM_STATE_STORAGE_KEY, raw);
+    const validation = validateAndNormalizeBloomState(state);
+    assert(validation.success && !validation.wasNormalized, "Canonical pre-1Y v7 facts must not normalize solely because a record is legacy.");
+    const loaded = await loadBloomLocalState(client, now);
+    assert(loaded.status === "success" && loaded.source === "current" && !loaded.needsPersist, "Raw old v7 payloads must hydrate without migration or forced writeback.");
+    equal(loaded.state, state, "Raw legacy facts, including unordered active/older completed compatibility, remain exactly unchanged.");
+    assert(client.values.get(BLOOM_STATE_STORAGE_KEY) === raw && client.values.size === 1, "Legacy hydration must preserve original bytes without rewriting or creating other storage entries.");
+    for (const item of [loaded.state.urgeControl.activeEvent, ...loaded.state.urgeControl.records]) {
+      if (item !== null) assert(!("flowVersion" in item) && !("triggers" in item), "Old v7 hydration cannot fabricate a current version or map a singular trigger into an array.");
+    }
+    const progress = getUrgeControlProgress(loaded.state.urgeControl, completedAt);
+    assert(activeEvent === null ? progress === null : progress?.stage === expectedStage, "Raw historical records must resume their old guided stages.");
+  }
 }
 
 function verifyInvalidTransitions() {
@@ -319,7 +363,12 @@ async function verifyMalformedPersistence() {
 }
 
 function createStages(source = createDefaultBloomState()): BloomLocalState[] {
-  const states = [changed(source, startUrgeControlEventState, { eventId: "guided-event", startedAt })];
+  // New starts use the current lifecycle. Legacy tests instead hydrate the real
+  // historical minimal active shape, without fabricating a current version.
+  const legacy: BloomLocalState = { ...source, urgeControl: {
+    ...source.urgeControl, activeEvent: { id: "guided-event", status: "active", startedAt }
+  } };
+  const states = [legacy];
   const steps: Array<[Transition, Record<string, unknown>]> = [
     [completeUrgeControlInterruptState, { completedAt: interruptAt }],
     [selectUrgeControlTechniqueState, { technique: "changeEnvironment" }],
@@ -342,18 +391,20 @@ function changed(state: BloomLocalState, fn: Transition, input: unknown): BloomL
   equal(fn(state, input as never), after, "Explicit input timestamps and facts must produce deterministic transitions.");
   return after;
 }
-function event(state: BloomLocalState): ActiveUrgeControlEvent { const active = state.urgeControl.activeEvent; assert(active !== null, "Active fixture required."); return active; }
+function event(state: BloomLocalState): Extract<LegacyUrgeControlEvent, { status: "active" }> { const active = state.urgeControl.activeEvent; assert(active !== null && !("flowVersion" in active), "Legacy active fixture without a discriminator required."); return active; }
 function unrelated(before: BloomLocalState, after: BloomLocalState) { for (const key of Object.keys(before) as Array<keyof BloomLocalState>) if (key !== "urgeControl") assert(after[key] === before[key], `Urge Control must preserve ${key} by reference, including active Reset, Content-Free, Tracking, onboarding, and legacy features.`); }
 function shift(timestamp: string, milliseconds: number) { return new Date(Date.parse(timestamp) + milliseconds).toISOString(); }
 function clone<T>(value: T): T { return JSON.parse(JSON.stringify(value)) as T; }
 function freeze<T>(value: T): T { if (value !== null && typeof value === "object") { for (const nested of Object.values(value)) freeze(nested); Object.freeze(value); } return value; }
 function replaceAtPath(root: unknown, path: string, value: unknown, remove: boolean) { const keys = path.split("."); const final = keys.pop()!; let parent = root as Record<string, unknown>; for (const key of keys) parent = parent[key] as Record<string, unknown>; if (remove) delete parent[final]; else parent[final] = value; }
 async function assertRoundTrip(state: BloomLocalState) {
-  assert(validateAndNormalizeBloomState(state).success, "Fixture must be valid before v7 persistence.");
+  const validation = validateAndNormalizeBloomState(state);
+  assert(validation.success, "Fixture must be valid before v7 persistence.");
+  equal(validation.state, state, "Legacy normalization must preserve every existing field without current versions or trigger arrays.");
   const client = new UrgeTestStorage();
-  await persistBloomLocalState(state, client, now);
+  await persistBloomLocalState(validation.state, client, now);
   const loaded = await loadBloomLocalState(client, now);
-  assert(loaded.status === "success" && loaded.source === "current", "Urge Control must load from the existing current v7 envelope.");
+  assert(loaded.status === "success" && loaded.source === "current" && !loaded.needsPersist, "Urge Control must load canonical v7 without forced writeback because an event is legacy.");
   equal(loaded.state, state, "Hydration must preserve exact active/completed facts and all unrelated slices without step advancement or timer persistence.");
   return loaded.state;
 }

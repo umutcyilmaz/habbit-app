@@ -1,5 +1,5 @@
 import { isDeepStrictEqual } from "node:util";
-import type { ActiveUrgeControlEvent, OnboardingRecommendation } from "../src/domain/models";
+import type { ActiveUrgeControlEvent, CurrentUrgeControlEvent, LegacyUrgeControlEvent, OnboardingRecommendation } from "../src/domain/models";
 import { getBloomHomeReadModel } from "../src/domain/home/getBloomHomeReadModel";
 import { getResetProgress } from "../src/domain/reset/getResetProgress";
 import { getUrgeControlProgress } from "../src/domain/urgeControl/getUrgeControlProgress";
@@ -87,13 +87,13 @@ function verifyCompletedResetPriority() {
 
 function verifyUnfinishedSessionPriority(cases: PriorityCase[]) {
   let count = 0;
-  for (const lower of cases) for (const enabled of [false, true]) for (const status of ["active", "awaiting_feedback"] as const) {
+  for (const lower of cases) for (const enabled of [false, true]) for (const status of ["active", "awaiting_feedback"] as const) for (const current of [false, true]) {
     const state = clone(lower.state);
     state.masturbationTracking.enabled = enabled;
     state.masturbationTracking.currentSession = status === "active"
       ? { id: "highest-active-session", status, startedAt: "2026-09-01T10:00:00.000Z", pauses: [] }
       : { id: "highest-feedback-session", status, startedAt: "2026-09-01T10:00:00.000Z", endedAt: "2026-09-01T10:01:00.000Z", durationSeconds: 60, pauses: [], erectionQuality: 8 };
-    state.urgeControl.activeEvent = { id: "lower-urge-event", status: "active", startedAt: "2026-09-01T10:00:00.000Z" };
+    state.urgeControl.activeEvent = { id: "lower-urge-event", status: "active", startedAt: "2026-09-01T10:00:00.000Z", ...(current ? { flowVersion: 2 as const } : {}) };
     const action: Action = status === "active" ? { id: "resumeMasturbationSession", sessionId: "highest-active-session" } : { id: "finishMasturbationSessionFeedback", sessionId: "highest-feedback-session" };
     const model = expectAction(state, lower.clock, action, `${status} unfinished work must outrank ${lower.label}, including the conflicting active Urge event`);
     assert(model.trackingAvailability.currentSessionStatus === status && model.urgeControlProgress?.stage === "interrupt", "Higher-priority session work must preserve independently derived session and lower-priority Urge facts.");
@@ -106,7 +106,7 @@ function verifyUnfinishedSessionPriority(cases: PriorityCase[]) {
 function verifyUrgePriorityAndResume(cases: PriorityCase[]) {
   let count = 0;
   const stages: Array<[ActiveUrgeControlEvent, string]> = [];
-  let event: ActiveUrgeControlEvent = { id: "resumable-home-urge", status: "active", startedAt: "2026-09-01T10:00:00.000Z" };
+  let event: Extract<LegacyUrgeControlEvent, { status: "active" }> = { id: "resumable-home-urge", status: "active", startedAt: "2026-09-01T10:00:00.000Z" };
   stages.push([event, "interrupt"]);
   event = { ...event, interruptCompletedAt: "2026-09-01T10:00:10.000Z" }; stages.push([event, "technique"]);
   event = { ...event, selectedTechnique: "grounding54321" }; stages.push([event, "phoneAwayReady"]);
@@ -114,10 +114,19 @@ function verifyUrgePriorityAndResume(cases: PriorityCase[]) {
   event = { ...event, phoneAwayEndedAt: "2026-09-01T10:01:37.250Z" }; stages.push([event, "outcome"]);
   event = { ...event, outcome: "stronger", secondLineAction: "messageSupportPerson" }; stages.push([event, "trigger"]);
   event = { ...event, trigger: "sexualDesire" }; stages.push([event, "readyToComplete"]);
-  for (const lower of cases) {
+  let current: Extract<CurrentUrgeControlEvent, { status: "active" }> = {
+    id: "current-resumable-home-urge", flowVersion: 2, status: "active", startedAt: "2026-09-01T10:00:00.000Z"
+  };
+  const currentStart = current;
+  stages.push([current, "interrupt"]);
+  current = { ...current, interruptCompletedAt: current.startedAt }; stages.push([current, "outcome"]);
+  current = { ...current, outcome: "stronger" }; stages.push([current, "triggers"]);
+  current = { ...current, triggers: [] }; stages.push([current, "readyToComplete"]);
+  current = { ...current, triggers: ["explicitContentCue", "fatigue"] }; stages.push([current, "readyToComplete"]);
+  for (const lower of cases) for (const first of [stages[0]![0], currentStart]) {
     const state = clone(lower.state);
-    state.urgeControl.activeEvent = stages[0]![0];
-    expectAction(state, lower.clock, { id: "resumeUrgeControl", eventId: event.id, stage: "interrupt" }, `Active Urge Control must outrank ${lower.label}`);
+    state.urgeControl.activeEvent = first;
+    expectAction(state, lower.clock, { id: "resumeUrgeControl", eventId: first.id, stage: "interrupt" }, `Active Urge Control must outrank ${lower.label}`);
     count++;
   }
   for (const [activeEvent, expectedStage] of stages) {
@@ -127,6 +136,7 @@ function verifyUrgePriorityAndResume(cases: PriorityCase[]) {
     assert(progress !== null && progress.stage === expectedStage, "Stage fixture must match the existing Urge selector.");
     const model = expectAction(state, at, { id: "resumeUrgeControl", eventId: activeEvent.id, stage: progress.stage }, "Home must resume the exact existing Urge event at its timestamp-derived stage");
     equal(model.urgeControlProgress, progress, "Home must expose the composed Urge progress without a second timer/stage implementation.");
+    if (activeEvent.flowVersion === 2) assert(!Object.hasOwnProperty.call(progress, "phoneAwayElapsedSeconds"), "Current Home resume must never expose a legacy phone-away timer.");
     count++;
   }
   const legacy = clearWork(createPopulatedState());

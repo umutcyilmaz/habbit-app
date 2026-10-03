@@ -1,6 +1,7 @@
 import type { BehaviorSlipReason } from "../../domain/models/BehaviorSlip";
 import type { MasturbationSessionFeedback } from "../../domain/models/MasturbationSession";
 import type { CurrentResetBaselineSelfReport } from "../../domain/models/ResetBaseline";
+import type { CurrentUrgeControlTrigger } from "../../domain/models/UrgeControlEvent";
 import type { ISODateString, UUID } from "../../domain/models/shared";
 import type { BloomProductAcknowledgedActions } from "../providers/bloomProductAcknowledgedActions";
 
@@ -197,6 +198,7 @@ export function createBloomProductFlowActions({
       },
       recordOutcome: productActions.urgeControl.recordOutcome,
       recordTrigger: productActions.urgeControl.recordTrigger,
+      recordTriggers: (triggers: CurrentUrgeControlTrigger[]) => productActions.urgeControl.recordTriggers({ triggers }),
       selectSecondLineAction: productActions.urgeControl.selectSecondLineAction,
       complete: () => {
         const { timestamp } = captureOperation();

@@ -16,6 +16,7 @@ import {
   type BloomStateWriteReceipt
 } from "../src/storage/bloomStatePersistence";
 import { BLOOM_PERSISTENCE_VERSION } from "../src/storage/bloomStateSchema";
+import type { CurrentUrgeControlTrigger } from "../src/domain/models/UrgeControlEvent";
 import { createActiveState } from "./verify-bloom-reset-violations";
 
 const sessionInput = {
@@ -29,6 +30,7 @@ export async function verifyBloomProductActionsRuntime() {
   await verifyNoOpAndRuntimeBlocks();
   await verifyLatestAcceptedState();
   await verifyBehaviorSlipUsesLatestAcceptedState();
+  await verifyCurrentUrgeUsesLatestAcceptedState();
   verifyProviderIntegration();
   assert(
     BLOOM_PERSISTENCE_VERSION === 7 &&
@@ -36,7 +38,7 @@ export async function verifyBloomProductActionsRuntime() {
     "Application commands must keep the existing v7 persistence contract."
   );
   console.log(
-    "Bloom product actions runtime verification passed (accepted/durable state, retry without replay, no-op and lifecycle blocks, atomic behavior-slip latest-state ownership, and provider wiring)."
+    "Bloom product actions runtime verification passed (accepted/durable state, retry without replay, no-op and lifecycle blocks, atomic behavior-slip ownership, rapid current Urge lifecycle, and provider wiring)."
   );
 }
 
@@ -266,6 +268,46 @@ async function verifyBehaviorSlipUsesLatestAcceptedState() {
   assert(!supersededActivation.ok && supersededActivation.accepted && supersededActivation.reason === "persistenceSuperseded" &&
     harness.runtime.getDurableState() === accepted,
   "An older activation receipt must not regress either part of the acknowledged behavior slip.");
+}
+
+async function verifyCurrentUrgeUsesLatestAcceptedState() {
+  const initial = createActiveState(false, true);
+  initial.urgeControl = { ...initial.urgeControl, activeEvent: null };
+  const harness = createHarness(initial);
+  const triggers: CurrentUrgeControlTrigger[] = ["explicitContentCue", "fatigue"];
+  const pending = [
+    harness.actions.urgeControl.start({ eventId: "current-runtime-urge", startedAt: sessionInput.startedAt }),
+    harness.actions.urgeControl.completeInterrupt({ completedAt: sessionInput.startedAt }),
+    harness.actions.urgeControl.recordOutcome({ outcome: "unchanged" }),
+    harness.actions.urgeControl.recordTriggers({ triggers }),
+    harness.actions.urgeControl.complete({ completedAt: sessionInput.startedAt })
+  ];
+  const accepted = harness.runtime.getState();
+  const currentRecord = accepted.urgeControl.records[accepted.urgeControl.records.length - 1];
+  assert(harness.mutationCalls() === 5 && harness.acceptedStates.length === 5 && harness.attempts.length === 5 &&
+    accepted.urgeControl.activeEvent === null && currentRecord !== undefined && "flowVersion" in currentRecord &&
+    currentRecord.flowVersion === 2 && currentRecord.status === "completed" &&
+    currentRecord.triggers.length === 2 && currentRecord.triggers[0] === "explicitContentCue" && currentRecord.triggers[1] === "fatigue",
+  "Rapid current Urge commands must compose against the latest accepted state before any save settles, without requiring legacy guided stages.");
+  assert(harness.runtime.getDurableState() === initial && harness.attempts[4]!.state === accepted,
+    "Current Urge completion must retain accepted/durable separation and persist one cumulative final snapshot.");
+  for (const key of Object.keys(initial) as Array<keyof BloomLocalState>) {
+    if (key !== "urgeControl") assert(accepted[key] === initial[key],
+      "An explicitContentCue observation must never dispatch behavior slip or mutate Reset, Content-Free, Tracking, onboarding, or legacy slices.");
+  }
+  for (const [index, record] of initial.urgeControl.records.entries()) {
+    assert(accepted.urgeControl.records[index] === record, "Completing a current event must preserve historical completed records by reference.");
+  }
+  harness.attempts[4]!.succeed();
+  assertPersisted(await pending[4]!, "The current lifecycle's final acknowledged command must save the cumulative event exactly once.");
+  for (const index of [0, 1, 2, 3]) {
+    harness.attempts[index]!.succeed();
+    const oldReceipt = await pending[index]!;
+    assert(!oldReceipt.ok && oldReceipt.accepted && oldReceipt.reason === "persistenceSuperseded",
+      "Earlier current-step receipts must preserve the runtime's superseded semantics.");
+  }
+  assert(harness.runtime.getState() === accepted && harness.runtime.getDurableState() === accepted,
+    "Late receipts from current Urge progress must never regress completed accepted/durable truth.");
 }
 
 function verifyProviderIntegration() {

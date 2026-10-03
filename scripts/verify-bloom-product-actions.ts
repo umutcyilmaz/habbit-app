@@ -19,7 +19,7 @@ import {
   activateContentFreeState, deactivateContentFreeState, recordManualContentFreeViolationState, undoManualContentFreeViolationState,
   startUrgeControlEventState, completeUrgeControlInterruptState, selectUrgeControlTechniqueState,
   startUrgeControlPhoneAwayState, endUrgeControlPhoneAwayState, recordUrgeControlOutcomeState,
-  recordUrgeControlTriggerState, selectUrgeControlSecondLineActionState, completeUrgeControlEventState,
+  recordUrgeControlTriggerState, recordUrgeControlTriggersState, selectUrgeControlSecondLineActionState, completeUrgeControlEventState,
   discardActiveUrgeControlEventState, type BloomLocalState
 } from "../src/storage/bloomState";
 import { validateAndNormalizeBloomState } from "../src/storage/bloomStateSchema";
@@ -85,6 +85,7 @@ type ExpectedProductActions = {
     endPhoneAway: Acknowledged<typeof endUrgeControlPhoneAwayState>;
     recordOutcome: Acknowledged<typeof recordUrgeControlOutcomeState>;
     recordTrigger: Acknowledged<typeof recordUrgeControlTriggerState>;
+    recordTriggers: Acknowledged<typeof recordUrgeControlTriggersState>;
     selectSecondLineAction: Acknowledged<typeof selectUrgeControlSecondLineActionState>;
     complete: Acknowledged<typeof completeUrgeControlEventState>;
     discardActive: Acknowledged<typeof discardActiveUrgeControlEventState>;
@@ -101,15 +102,15 @@ export async function verifyBloomProductActions() {
   verifyFactoryIsolation();
   const cases = commandCases();
   const api = createBloomProductAcknowledgedActions({ applyAcknowledgedMutation: async () => success(1) });
-  equal(commandPaths(api).sort(), cases.map((item) => item.name).sort(), "The facade must expose exactly the 31 grouped command paths covered by delegation tests.");
-  assert(cases.length === 31 && !("completeAssessment" in api.reset), "Every current product transition must have one focused command case; Reset assessment must no longer be a command.");
+  equal(commandPaths(api).sort(), cases.map((item) => item.name).sort(), "The facade must expose exactly the 32 grouped command paths covered by delegation tests.");
+  assert(cases.length === 32 && !("completeAssessment" in api.reset), "Every current product transition must have one focused command case; Reset assessment must no longer be a command.");
   equal(Object.keys(api.behaviorSlip), ["record"], "The shared behavior-slip facade must not introduce a generic undo command.");
   for (const item of cases) {
     await verifyDelegation(item);
     await verifyResultPassthrough(item);
   }
   await verifyRapidSequentialCommands();
-  console.log("Bloom product-action facade verification passed (all 31 grouped commands; exact transition delegation, caller facts, runtime-supplied current state, no-ops, acknowledgement passthrough, and rapid sequential commands).");
+  console.log("Bloom product-action facade verification passed (all 32 grouped commands; exact transition delegation, caller facts, runtime-supplied current state, no-ops, acknowledgement passthrough, and rapid sequential commands).");
   await verifyBloomProductActionsRuntime();
 }
 
@@ -226,7 +227,10 @@ function commandCases(): CommandCase[] {
   const manualInput = { violationId: "caller-manual-content-violation", logActionId: "caller-content-source", occurredAt: shift(at, day + 123), recordedAt: shift(at, day + 234) };
   const contentViolated = recordManualContentFreeViolationState(contentActive, manualInput);
   const urgeInput = { eventId: "caller-urge-event", startedAt: at };
-  const urge = startUrgeControlEventState(blank, urgeInput);
+  // Persisted events without a version retain the historical guided flow.
+  const urge: BloomLocalState = { ...blank, urgeControl: {
+    ...blank.urgeControl, activeEvent: { id: urgeInput.eventId, status: "active", startedAt: urgeInput.startedAt }
+  } };
   const interrupted = completeUrgeControlInterruptState(urge, { completedAt: shift(at, 10_123) });
   const technique = selectUrgeControlTechniqueState(interrupted, { technique: "grounding54321" });
   const phone = startUrgeControlPhoneAwayState(technique, { startedAt: shift(at, 12_234) });
@@ -234,6 +238,9 @@ function commandCases(): CommandCase[] {
   const outcome = recordUrgeControlOutcomeState(phoneEnded, { outcome: "stillStrong" });
   const triggered = recordUrgeControlTriggerState(outcome, { trigger: "sexualDesire" });
   const supported = selectUrgeControlSecondLineActionState(triggered, { action: "messageSupportPerson" });
+  const currentUrge = startUrgeControlEventState(blank, { eventId: "caller-current-urge", startedAt: at });
+  const currentInterrupt = completeUrgeControlInterruptState(currentUrge, { completedAt: at });
+  const currentOutcome = recordUrgeControlOutcomeState(currentInterrupt, { outcome: "stillStrong" });
   const save = command("onboarding.saveProductOnboardingResult", blank, saveProductOnboardingResultState, (a) => a.onboarding.saveProductOnboardingResult, result);
   save.noOpState = accepted;
   return [
@@ -269,6 +276,7 @@ function commandCases(): CommandCase[] {
     command("urgeControl.endPhoneAway", phone, endUrgeControlPhoneAwayState, (a) => a.urgeControl.endPhoneAway, { endedAt: shift(at, 37_345) }),
     command("urgeControl.recordOutcome", phoneEnded, recordUrgeControlOutcomeState, (a) => a.urgeControl.recordOutcome, { outcome: "stillStrong" }),
     command("urgeControl.recordTrigger", outcome, recordUrgeControlTriggerState, (a) => a.urgeControl.recordTrigger, { trigger: "sexualDesire" }),
+    command("urgeControl.recordTriggers", currentOutcome, recordUrgeControlTriggersState, (a) => a.urgeControl.recordTriggers, { triggers: ["explicitContentCue", "fatigue"] }),
     command("urgeControl.selectSecondLineAction", triggered, selectUrgeControlSecondLineActionState, (a) => a.urgeControl.selectSecondLineAction, { action: "messageSupportPerson" }),
     command("urgeControl.complete", supported, completeUrgeControlEventState, (a) => a.urgeControl.complete, { completedAt: shift(at, 40_456) }),
     command("urgeControl.discardActive", urge, discardActiveUrgeControlEventState, (a) => a.urgeControl.discardActive)

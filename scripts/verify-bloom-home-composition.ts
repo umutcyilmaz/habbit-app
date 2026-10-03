@@ -47,14 +47,14 @@ export async function verifyBloomHomeComposition() {
       await verifyRoundTrip(state);
     }
   }
-  verifySupportDuringReset();
+  await verifySupportDuringReset();
   verifySafeInvalidResults();
   verifyPurityAndLegacyIsolation();
   verifyDomainImports();
   console.log("Bloom Home composition verification passed (four tracker combinations, selector equivalence, invalid-input safety, frozen/legacy-isolated reads, and v7 round trips).");
 }
 
-function verifySupportDuringReset() {
+async function verifySupportDuringReset() {
   for (const enabled of [false, true]) {
     const state = createActiveState(false, true);
     state.masturbationTracking.enabled = enabled;
@@ -78,6 +78,17 @@ function verifySupportDuringReset() {
   assert(home?.primaryAction?.id === "resumeUrgeControl" && home.primaryTracker?.kind === "masturbationTracking" &&
     home.secondaryTracker?.kind === "contentFree", "An unfinished support flow changes action priority without erasing tracker roles.");
   equal(home.urgeControlProgress, getUrgeControlProgress(urge.urgeControl, at), "Home must reuse Urge Control resume timing/stage facts.");
+  await verifyRoundTrip(urge);
+  urge.urgeControl.activeEvent = {
+    id: "current-home-active-urge", flowVersion: 2, status: "active", startedAt: "2026-09-07T12:02:00.000Z",
+    interruptCompletedAt: "2026-09-07T12:02:00.000Z", outcome: "unchanged"
+  };
+  const currentHome = getBloomHomeReadModel(urge, at);
+  assert(currentHome?.primaryAction?.id === "resumeUrgeControl" && currentHome.primaryAction.stage === "triggers" &&
+    currentHome.primaryTracker?.kind === "masturbationTracking" && currentHome.secondaryTracker?.kind === "contentFree",
+    "Current Urge trigger finalization must keep the existing resume priority and independent tracker roles.");
+  equal(currentHome.urgeControlProgress, getUrgeControlProgress(urge.urgeControl, at), "Current Home must reuse version-aware Urge progress.");
+  await verifyRoundTrip(urge);
 }
 
 function verifySafeInvalidResults() {

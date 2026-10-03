@@ -2,17 +2,32 @@ import type { UrgeControlState } from "../models/UrgeControlState";
 import type { ISODateString } from "../models/shared";
 
 export type UrgeControlProgress = {
-  stage: "interrupt" | "technique" | "phoneAwayReady" | "phoneAwayActive" | "outcome" | "trigger" | "readyToComplete";
+  stage: "interrupt" | "technique" | "phoneAwayReady" | "phoneAwayActive" | "outcome" | "trigger" | "triggers" | "readyToComplete";
   elapsedEventSeconds: number;
   phoneAwayElapsedSeconds?: number;
 };
 
-// Resume from the earliest missing guided fact, including older partial events.
-// Timers are derived reads; a completed phone-away interval stops accumulating.
+// Current events resume interrupt -> outcome -> finalized triggers. Historical
+// events retain their guided stages. All timers remain derived reads only.
 export function getUrgeControlProgress(urgeControl: UrgeControlState, now: ISODateString): UrgeControlProgress | null {
   const event = urgeControl.activeEvent;
   if (event === null || event.status !== "active" || !isCanonicalTimestamp(now) ||
     !isCanonicalTimestamp(event.startedAt)) return null;
+
+  if (event.flowVersion === 2) {
+    if (event.interruptCompletedAt !== undefined && (!isCanonicalTimestamp(event.interruptCompletedAt) ||
+      Date.parse(event.interruptCompletedAt) < Date.parse(event.startedAt))) return null;
+    if ((event.outcome !== undefined && event.interruptCompletedAt === undefined) ||
+      (event.triggers !== undefined && (event.outcome === undefined || !Array.isArray(event.triggers)))) return null;
+    return {
+      stage: event.interruptCompletedAt === undefined ? "interrupt"
+        : event.outcome === undefined ? "outcome"
+        : event.triggers === undefined ? "triggers"
+        : "readyToComplete",
+      elapsedEventSeconds: elapsedSeconds(event.startedAt, now)
+    };
+  }
+  if (event.flowVersion !== undefined) return null;
 
   const { interruptCompletedAt, phoneAwayStartedAt, phoneAwayEndedAt } = event;
   for (const time of [interruptCompletedAt, phoneAwayStartedAt, phoneAwayEndedAt]) {

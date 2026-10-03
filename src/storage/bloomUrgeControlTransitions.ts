@@ -1,4 +1,5 @@
 import type {
+  CurrentUrgeControlTrigger,
   UrgeControlOutcome,
   UrgeControlSecondLineAction,
   UrgeControlTechnique,
@@ -17,6 +18,7 @@ export type StartUrgeControlPhoneAwayInput = { startedAt: ISODateString };
 export type EndUrgeControlPhoneAwayInput = { endedAt: ISODateString };
 export type RecordUrgeControlOutcomeInput = { outcome: UrgeControlOutcome };
 export type RecordUrgeControlTriggerInput = { trigger: UrgeControlTrigger };
+export type RecordUrgeControlTriggersInput = { triggers: CurrentUrgeControlTrigger[] };
 export type SelectUrgeControlSecondLineActionInput = { action: UrgeControlSecondLineAction };
 export type CompleteUrgeControlEventInput = { completedAt: ISODateString };
 
@@ -24,7 +26,7 @@ export function startUrgeControlEventState(state: BloomLocalState, input: StartU
   return updateUrgeControl(state, (urge) => {
     if (!hasFields(input, ["eventId", "startedAt"]) || !isValidBloomIsoTimestamp(input.startedAt) ||
       urge.activeEvent !== null || urge.records.some((record) => record.id === input.eventId)) return null;
-    return { ...urge, activeEvent: { id: input.eventId, status: "active", startedAt: input.startedAt } };
+    return { ...urge, activeEvent: { id: input.eventId, flowVersion: 2, status: "active", startedAt: input.startedAt } };
   });
 }
 
@@ -38,7 +40,7 @@ export function completeUrgeControlInterruptState(state: BloomLocalState, input:
 
 export function selectUrgeControlTechniqueState(state: BloomLocalState, input: SelectUrgeControlTechniqueInput): BloomLocalState {
   return updateActiveEvent(state, (event) => {
-    if (!hasFields(input, ["technique"]) || event.interruptCompletedAt === undefined ||
+    if (event.flowVersion === 2 || !hasFields(input, ["technique"]) || event.interruptCompletedAt === undefined ||
       event.phoneAwayStartedAt !== undefined || event.selectedTechnique === input.technique) return null;
     return { ...event, selectedTechnique: input.technique };
   });
@@ -46,7 +48,7 @@ export function selectUrgeControlTechniqueState(state: BloomLocalState, input: S
 
 export function startUrgeControlPhoneAwayState(state: BloomLocalState, input: StartUrgeControlPhoneAwayInput): BloomLocalState {
   return updateActiveEvent(state, (event) => {
-    if (!hasFields(input, ["startedAt"]) || !isValidBloomIsoTimestamp(input.startedAt) ||
+    if (event.flowVersion === 2 || !hasFields(input, ["startedAt"]) || !isValidBloomIsoTimestamp(input.startedAt) ||
       event.interruptCompletedAt === undefined || event.selectedTechnique === undefined ||
       event.phoneAwayStartedAt !== undefined || Date.parse(input.startedAt) < Date.parse(event.interruptCompletedAt)) return null;
     return { ...event, phoneAwayStartedAt: input.startedAt };
@@ -55,7 +57,7 @@ export function startUrgeControlPhoneAwayState(state: BloomLocalState, input: St
 
 export function endUrgeControlPhoneAwayState(state: BloomLocalState, input: EndUrgeControlPhoneAwayInput): BloomLocalState {
   return updateActiveEvent(state, (event) => {
-    if (!hasFields(input, ["endedAt"]) || !isValidBloomIsoTimestamp(input.endedAt) ||
+    if (event.flowVersion === 2 || !hasFields(input, ["endedAt"]) || !isValidBloomIsoTimestamp(input.endedAt) ||
       event.phoneAwayStartedAt === undefined || event.phoneAwayEndedAt !== undefined ||
       Date.parse(input.endedAt) < Date.parse(event.phoneAwayStartedAt)) return null;
     return { ...event, phoneAwayEndedAt: input.endedAt };
@@ -64,7 +66,11 @@ export function endUrgeControlPhoneAwayState(state: BloomLocalState, input: EndU
 
 export function recordUrgeControlOutcomeState(state: BloomLocalState, input: RecordUrgeControlOutcomeInput): BloomLocalState {
   return updateActiveEvent(state, (event) => {
-    if (!hasFields(input, ["outcome"]) || event.phoneAwayEndedAt === undefined || event.outcome === input.outcome) return null;
+    if (!hasFields(input, ["outcome"]) || event.outcome === input.outcome) return null;
+    if (event.flowVersion === 2) {
+      return event.interruptCompletedAt === undefined ? null : { ...event, outcome: input.outcome };
+    }
+    if (event.phoneAwayEndedAt === undefined) return null;
     const clearSecondLine = input.outcome === "reduced" && event.secondLineAction !== undefined;
     // This is an in-progress answer correction, not an external action.
     const updated = { ...event, outcome: input.outcome };
@@ -75,14 +81,25 @@ export function recordUrgeControlOutcomeState(state: BloomLocalState, input: Rec
 
 export function recordUrgeControlTriggerState(state: BloomLocalState, input: RecordUrgeControlTriggerInput): BloomLocalState {
   return updateActiveEvent(state, (event) => {
-    if (!hasFields(input, ["trigger"]) || event.outcome === undefined || event.trigger === input.trigger) return null;
+    if (event.flowVersion === 2 || !hasFields(input, ["trigger"]) || event.outcome === undefined || event.trigger === input.trigger) return null;
     return { ...event, trigger: input.trigger };
+  });
+}
+
+// Finalizing [] is an explicit skip. Copy observations in caller order; cues
+// are descriptive facts and do not invoke any behavior/tracker transition.
+export function recordUrgeControlTriggersState(state: BloomLocalState, input: RecordUrgeControlTriggersInput): BloomLocalState {
+  return updateActiveEvent(state, (event) => {
+    if (event.flowVersion !== 2 || !hasFields(input, ["triggers"]) || !Array.isArray(input.triggers) ||
+      event.outcome === undefined || (event.triggers !== undefined && event.triggers.length === input.triggers.length &&
+        event.triggers.every((trigger, index) => trigger === input.triggers[index]))) return null;
+    return { ...event, triggers: [...input.triggers] };
   });
 }
 
 export function selectUrgeControlSecondLineActionState(state: BloomLocalState, input: SelectUrgeControlSecondLineActionInput): BloomLocalState {
   return updateActiveEvent(state, (event) => {
-    if (!hasFields(input, ["action"]) || event.outcome === undefined || event.outcome === "reduced" ||
+    if (event.flowVersion === 2 || !hasFields(input, ["action"]) || event.outcome === undefined || event.outcome === "reduced" ||
       event.secondLineAction === input.action) return null;
     return { ...event, secondLineAction: input.action };
   });
@@ -92,9 +109,22 @@ export function completeUrgeControlEventState(state: BloomLocalState, input: Com
   return updateUrgeControl(state, (urge) => {
     const event = urge.activeEvent;
     if (!hasFields(input, ["completedAt"]) || !isValidBloomIsoTimestamp(input.completedAt) || event === null ||
-      event.interruptCompletedAt === undefined || event.selectedTechnique === undefined ||
+      event.interruptCompletedAt === undefined || event.outcome === undefined ||
+      Date.parse(input.completedAt) < Date.parse(event.interruptCompletedAt) ||
+      Date.parse(input.completedAt) < Date.parse(event.startedAt)) return null;
+    if (event.flowVersion === 2) {
+      if (event.triggers === undefined) return null;
+      return {
+        activeEvent: null,
+        records: [...urge.records, {
+          ...event, status: "completed", interruptCompletedAt: event.interruptCompletedAt,
+          outcome: event.outcome, triggers: event.triggers, completedAt: input.completedAt
+        }]
+      };
+    }
+    if (event.selectedTechnique === undefined ||
       event.phoneAwayStartedAt === undefined || event.phoneAwayEndedAt === undefined ||
-      event.outcome === undefined || event.trigger === undefined || !hasOrderedSteps(event) ||
+      event.trigger === undefined || !hasOrderedSteps(event) ||
       Date.parse(input.completedAt) < Date.parse(event.phoneAwayEndedAt) ||
       Date.parse(input.completedAt) < Date.parse(event.startedAt)) return null;
     return {
@@ -143,6 +173,10 @@ function updateUrgeControl(
 // or silently removing earlier answers. Explicit outcome correction may remove
 // an unnecessary second-line choice; historical completed records stay intact.
 function hasOrderedSteps(event: ActiveUrgeControlEvent): boolean {
+  if (event.flowVersion === 2) {
+    return (event.outcome === undefined || event.interruptCompletedAt !== undefined) &&
+      (event.triggers === undefined || event.outcome !== undefined);
+  }
   return (event.selectedTechnique === undefined || event.interruptCompletedAt !== undefined) &&
     (event.phoneAwayStartedAt === undefined || (event.interruptCompletedAt !== undefined && event.selectedTechnique !== undefined)) &&
     (event.phoneAwayEndedAt === undefined || event.phoneAwayStartedAt !== undefined) &&

@@ -66,6 +66,7 @@ export {
   endUrgeControlPhoneAwayState,
   recordUrgeControlOutcomeState,
   recordUrgeControlTriggerState,
+  recordUrgeControlTriggersState,
   selectUrgeControlSecondLineActionState,
   completeUrgeControlEventState,
   discardActiveUrgeControlEventState,
@@ -76,6 +77,7 @@ export {
   type EndUrgeControlPhoneAwayInput,
   type RecordUrgeControlOutcomeInput,
   type RecordUrgeControlTriggerInput,
+  type RecordUrgeControlTriggersInput,
   type SelectUrgeControlSecondLineActionInput,
   type CompleteUrgeControlEventInput
 } from "./bloomUrgeControlTransitions";

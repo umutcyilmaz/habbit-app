@@ -354,67 +354,67 @@ The existing direct Reset/Content-Free commands and screens remain intact. Undo 
 
 ## UrgeControlEvent
 
-Source: [`UrgeControlEvent.ts`](../src/domain/models/UrgeControlEvent.ts).
+Source: [`UrgeControlEvent.ts`](../src/domain/models/UrgeControlEvent.ts). `UrgeControlEvent` is a union of `CurrentUrgeControlEvent` and `LegacyUrgeControlEvent`. Urge Control is optional acute support, independent of Tracking, Content-Free, Reset, and onboarding. Outcomes and triggers are descriptive observations; they do not diagnose, score success, or promise urge reduction.
 
-Urge Control is optional acute support for a brief choice moment, independent of Tracking, Content-Free, Reset, and onboarding. It does not diagnose, promise urge reduction, or assign success/failure. Its event follows this progression:
+New events use `flowVersion: 2` and follow **interrupt → outcome → optional multi-trigger → complete**. Current active facts are `{ id, flowVersion: 2, status: "active", startedAt, interruptCompletedAt?, outcome?, triggers? }`. Current completed records require `{ id, flowVersion: 2, status: "completed", startedAt, interruptCompletedAt, outcome, triggers, completedAt }`. No current event accepts technique, phone-away, singular `trigger`, or second-line fields.
 
-1. Urge begins.
-2. A short interrupt.
-3. A coping technique.
-4. A phone-away period.
-5. An outcome report.
-6. A trigger report.
-7. An optional second-line action.
+`triggers` carries lifecycle meaning: absence/undefined means the trigger step has not been finalized; `[]` records an explicit skip; a non-empty array records one or more selected observations in caller order. Completion requires explicit finalization, including an empty array.
 
-An event has a stable `id` and `startedAt`. Its lifecycle union distinguishes `active` from `completed`. `selectedTechnique`, `outcome`, and `trigger` are optional during an active event and required on a completed event alongside `completedAt`. Optional `interruptCompletedAt`, `phoneAwayStartedAt`, and `phoneAwayEndedAt` represent intermediate progress without prescribing timer lengths. `secondLineAction` remains optional.
+| Current concept | Values |
+| --- | --- |
+| `UrgeControlOutcome` | `reduced`, `stillStrong`, `stronger`, `unchanged` |
+| `CurrentUrgeControlTrigger` | `boredom`, `stress`, `loneliness`, `fatigue`, `explicitContentCue`, `habitAutomatic`, `specificSituation`, `other` |
 
-| Concept | Values |
+`explicitContentCue` describes encountering a cue. It is not intentional explicit-content behavior and never calls Behavior Slip or changes a tracker. `specificSituation` intentionally stays broad. Current triggers never infer a diagnosis or start/reset any product system.
+
+Legacy events have no persisted `flowVersion`. Their existing active/completed union retains `selectedTechnique`, singular `trigger`, optional `interruptCompletedAt`, `phoneAwayStartedAt`, `phoneAwayEndedAt`, and `secondLineAction`. Legacy completed records require technique, outcome, trigger, and completion time; historically optional intermediate facts stay optional on load.
+
+| Legacy concept | Values |
 | --- | --- |
 | Technique | `changeEnvironment`, `grounding54321`, `cognitiveTask`, `urgeSurfing`, `personalReminder` |
-| Outcome | `reduced`, `stillStrong`, `stronger`, `unchanged` |
-| Trigger | `boredom`, `stress`, `loneliness`, `sleeplessnessNighttime`, `sexualDesire`, `habitAutomatic`, `notSure` |
+| `LegacyUrgeControlTrigger` (also exported as the compatibility alias `UrgeControlTrigger`) | `boredom`, `stress`, `loneliness`, `sleeplessnessNighttime`, `sexualDesire`, `habitAutomatic`, `notSure` |
 | Optional second-line action | `putPhoneInAnotherRoom`, `doAnotherTask`, `messageSupportPerson` |
 
-A selected second-line action is only a recorded choice; it does not send a message, control the phone, schedule anything, or execute a technique. It is allowed after `stillStrong`, `stronger`, or `unchanged`; completion never requires it. Changing an active outcome to `reduced` clears a prior choice. No external action or UI is implemented here.
+Normalization preserves historical accepted shapes, including older partial/unordered facts, without adding a discriminator, creating a triggers array, mapping answers, removing facts, or forcing writeback solely because a record is legacy. Existing chronology and corruption guards remain. Unknown flow versions and mixed current/legacy fields are rejected. Current fields are exact, trigger values must be supported and unique, active records cannot contain `completedAt`, and completed records require every current completion fact.
 
-The container in [`UrgeControlState.ts`](../src/domain/models/UrgeControlState.ts) holds one active event or null and completed `records`, using `Extract` aliases. Fresh and migrated defaults are `{ activeEvent: null, records: [] }`. The active event survives app close/reload without automatic expiry, completion, or cancellation. Completed records are append-only in this phase; editing, deletion, and undo remain deferred.
+The container in [`UrgeControlState.ts`](../src/domain/models/UrgeControlState.ts) still holds one `activeEvent` or null and completed `records`. Histories may mix both event versions, with IDs unique across records and the active slot. Fresh and migrated defaults remain `{ activeEvent: null, records: [] }`. App restart never expires, completes, or discards an event. Starting/completing a current event preserves legacy history. Persistence stays version 7 / `bloom.localState.v7`, with no new top-level slice or migration.
 
 ### Urge Control transitions
 
-The ten pure APIs in [`bloomUrgeControlTransitions.ts`](../src/storage/bloomUrgeControlTransitions.ts) are re-exported from `bloomState.ts`. Every identity and canonical timestamp is caller-supplied. Invalid input, wrong lifecycle, unsafe chronology, and repeated completed steps return the original state without partial changes. All actions preserve every slice except `urgeControl`, including during active Reset or a Masturbation Session.
+The eleven pure APIs in [`bloomUrgeControlTransitions.ts`](../src/storage/bloomUrgeControlTransitions.ts) are re-exported from `bloomState.ts`. IDs and canonical timestamps are supplied explicitly. Invalid input, wrong version/lifecycle, unsafe chronology, and repeated completed steps return the exact original state. Every successful action changes only `urgeControl`; other slices retain their references.
 
 | API | Effect and preconditions |
 | --- | --- |
-| `startUrgeControlEventState(state, { eventId, startedAt })` | Requires no active event, a valid event ID absent from completed records, and canonical start. Creates only `{ id, status: "active", startedAt }`; other features and onboarding impose no prerequisite. |
-| `completeUrgeControlInterruptState(state, { completedAt })` | Requires an active event with no completed interrupt and `completedAt >= event.startedAt`. Stores the actual interrupt completion time once. |
-| `selectUrgeControlTechniqueState(state, { technique })` | Requires a completed interrupt and no phone-away start. Records or replaces a valid technique; selecting the current choice is a no-op. |
-| `startUrgeControlPhoneAwayState(state, { startedAt })` | Requires completed interrupt, technique, no prior phone-away start, and `startedAt >= interruptCompletedAt`. Stores only that start fact. |
-| `endUrgeControlPhoneAwayState(state, { endedAt })` | Requires phone-away start, no prior end, and `endedAt >= phoneAwayStartedAt`. Retains the actual end rather than a target-duration timestamp. |
-| `recordUrgeControlOutcomeState(state, { outcome })` | Requires the completed phone-away step. Sets or corrects a valid descriptive outcome before completion, clearing `secondLineAction` when changing to `reduced`. |
-| `recordUrgeControlTriggerState(state, { trigger })` | Requires outcome. Sets or corrects a valid supplied trigger; no trigger is inferred. |
-| `selectUrgeControlSecondLineActionState(state, { action })` | Requires a non-reduced outcome. Records an optional valid choice with no external side effect. |
-| `completeUrgeControlEventState(state, { completedAt })` | Requires interrupt, technique, phone-away start/end, outcome, and trigger, with `completedAt >= phoneAwayEndedAt` and event start. Appends the completed event once with all retained facts and clears `activeEvent`. |
-| `discardActiveUrgeControlEventState(state)` | Clears only an existing active event. Creates no completed record or tombstone and leaves completed history untouched. |
+| `startUrgeControlEventState(state, { eventId, startedAt })` | Requires no active event and an ID absent from completed history. Creates only `{ id, flowVersion: 2, status: "active", startedAt }`. |
+| `completeUrgeControlInterruptState(state, { completedAt })` | Both versions: stores interrupt completion once, at or after event start. No minimum duration or timer persistence. |
+| `recordUrgeControlOutcomeState(state, { outcome })` | Current: requires interrupt completion. Legacy: retains the ended phone-away prerequisite and removes a prior second-line choice when correcting to `reduced`. Records/corrects one of the four outcomes; an identical answer is a no-op. |
+| `recordUrgeControlTriggersState(state, { triggers })` | Current only, after outcome. Accepts an empty, single, or multiple selection; rejects duplicates, unsupported values, and extra input fields. Copies the caller array in order. Identical ordered selections are exact no-ops; a different valid selection replaces the prior finalization while active. |
+| `completeUrgeControlEventState(state, { completedAt })` | Current: requires interrupt, outcome, finalized triggers (including `[]`), and completion at/after event start and interrupt completion. Legacy: retains interrupt, technique, phone-away start/end, outcome, singular trigger, ordered-step and time requirements. Atomically appends the completed event and clears the active slot. |
+| `discardActiveUrgeControlEventState(state)` | Both versions: removes only the active event, without a record, tombstone, or new ID reservation. |
+| `selectUrgeControlTechniqueState(state, { technique })` | Legacy only: requires interrupt completion and no phone-away start. A technique can be replaced before phone-away begins. |
+| `startUrgeControlPhoneAwayState(state, { startedAt })` | Legacy only: requires interrupt, technique, no prior phone-away start, and time at/after interrupt completion. |
+| `endUrgeControlPhoneAwayState(state, { endedAt })` | Legacy only: requires phone-away start, no prior end, and end at/after start. |
+| `recordUrgeControlTriggerState(state, { trigger })` | Legacy only: requires outcome and records/corrects the singular legacy trigger. |
+| `selectUrgeControlSecondLineActionState(state, { action })` | Legacy only: requires a non-reduced outcome; records an optional choice with no external side effect. |
 
-Technique becomes immutable once phone-away starts. Outcome and trigger remain correctable while active; identical valid choices are no-ops. New transitions require the full ordered prerequisites for the resulting stage, including all earlier guided steps. Neither interrupt nor phone-away has an exact enforced duration, and later/earlier returns never fabricate timestamps. Completion retains identity, actual times, answers, and optional second-line choice; a non-reduced outcome may complete without escalation.
+Legacy transitions reject current events; current `recordTriggers` rejects legacy events. Legacy ordered-step guards are unchanged: supplying a missing prerequisite may recover an older partial event only when the resulting active facts are ordered. Identical reduced outcomes do not silently clear historical second-line facts; explicit correction retains the existing behavior. Historical completed records are never rewritten.
 
-Existing persistence validation remains compatible with older valid active/completed records whose optional intermediate fields lack the new guided ordering. It still rejects malformed chronology and duplicate IDs. New transitions do not silently repair those historical facts or invent missing times; an explicitly supplied missing step may proceed only when the resulting event has valid ordered prerequisites. No background mutation, session, pause, violation, Tracking permission change, or Reset progress change is derived from an Urge Control event.
+Current completion requires no technique, phone-away, second-line action, or 60-second wait. Any outcome can complete. The future “Başka bir şey dene” intervention remains deferred. Completed-event editing, deletion, and undo remain deferred for both versions.
 
 ### Urge Control progress
 
-[`getUrgeControlProgress(urgeControl, now)`](../src/domain/urgeControl/getUrgeControlProgress.ts) is a pure domain selector with an explicit canonical clock. It returns null without an active event or for invalid time, and otherwise derives `{ stage, elapsedEventSeconds, phoneAwayElapsedSeconds? }` from existing facts:
+[`getUrgeControlProgress(urgeControl, now)`](../src/domain/urgeControl/getUrgeControlProgress.ts) is a pure, version-aware selector with an explicit canonical clock. It returns null without an active event or for invalid time.
 
-| First missing fact | Stage |
+| Current first missing fact | Stage |
 | --- | --- |
 | Interrupt completion | `interrupt` |
-| Technique | `technique` |
-| Phone-away start | `phoneAwayReady` |
-| Phone-away end | `phoneAwayActive` |
 | Outcome | `outcome` |
-| Trigger | `trigger` |
-| No required fact is missing | `readyToComplete` |
+| Finalized `triggers` | `triggers` |
+| None, including finalized `[]` | `readyToComplete` |
 
-Elapsed event seconds are `max(0, floor((now - event.startedAt) / 1000))`. Phone-away seconds are absent until its start, then use `max(0, floor(((phoneAwayEndedAt ?? now) - phoneAwayStartedAt) / 1000))`; ending freezes that interval. A clock before the relevant start clamps display duration to zero. Reading progress never persists ticking counters, changes stages in storage, or automatically completes/discards an event.
+Legacy stages remain `interrupt`, `technique`, `phoneAwayReady`, `phoneAwayActive`, `outcome`, `trigger`, and `readyToComplete`, following the earliest missing historical fact. Both versions derive `elapsedEventSeconds = max(0, floor((now - startedAt) / 1000))`. Only legacy progress may expose `phoneAwayElapsedSeconds`, from phone-away start to end or caller time; its end freezes the interval. Clock skew safely clamps elapsed values to zero.
+
+No selector persists counters or advances a lifecycle. Home keeps its existing priority and returns `resumeUrgeControl` with either version's exact stage. The Urge Control route remains `featurePending`; no Panic route or screen/controller is added.
 
 ## Onboarding Domain Boundary
 
