@@ -102,6 +102,23 @@ A later false-to-true edit may safely reapply its own undone link, retaining its
 
 Deletion without a linked event leaves Content-Free unchanged. An already-undone link remains intact after deletion. A recorded link requires the same latest-event restoration guards and `deletedAt >= recordedAt`; its snapshot is restored and it becomes undone at `deletedAt` in the same returned snapshot that removes the session. A changed/inactive activation, later effective event, or required completed-activation replay blocks the whole deletion. Session-derived events are corrected only through this owning transaction, never through standalone manual undo. All successful results retain existing v7 validation and source-uniqueness rules; no schema, key, or migration change is required.
 
+## TrackingResetRecommendation (derived, Phase 2A)
+
+Source: [`getTrackingResetRecommendation.ts`](../src/domain/reset/getTrackingResetRecommendation.ts). API: `getTrackingResetRecommendation(tracking: MasturbationTrackingState, at: ISODateString): TrackingResetRecommendation | null`. This type is not part of `BloomLocalState`, any persisted entity, or onboarding recommendations.
+
+The result discriminates on `status`:
+
+- `insufficientData`: `eligibleSessionCount` and literal `requiredSessionCount: 6`, with no padded evidence.
+- `noCurrentRecommendation` or `recommended`: `eligibleSessionCount`, literal `windowSize: 3`, `evidence`, and all observed `TrackingResetRecommendationSignal` codes.
+
+Evidence contains `previousAverageErectionQuality`, `recentAverageErectionQuality`, `previousFirmnessDecreaseCount`, `recentFirmnessDecreaseCount`, `previousExplicitContentRatio`, `recentExplicitContentRatio`, and `recentAverageIntervalSeconds`. Means and ratios are unrounded arithmetic values; zero remains zero. Recent interval is the sum of the two adjacent recent start-time differences divided by two and then 1000, preserving fractional seconds.
+
+Only historical completed sessions ending at or before the explicit canonical timestamp count. Active/awaiting-feedback work and future ends are excluded before window selection. The selector does not read Tracking enablement or `currentSession`. It sorts copied observations by ascending start time, then by ascending ID using code-unit comparison rather than locale order. The latest six form two windows of three; older eligible observations affect only the total count. Invalid containers, unreadable required observation facts, duplicate eligible IDs, invalid timestamps, or impossible eligible start/end chronology return null rather than partial evidence. Storage continues to own full session-shape validation and integer feedback enforcement.
+
+`erectionQualityDownwardTrend` means a recent mean at least 1.0 below the previous mean. Equal-sized window totals are compared against a difference of 3 to preserve the exact boundary without rounding divided means. `repeatedFirmnessDecrease` requires a recent count of at least two and strictly more than the previous count. `recentExplicitContentPattern` requires at least two recent intentional-content sessions. The recommendation requires either response signal plus the explicit-content signal; signals have the stable order listed here. The previous explicit ratio and recent interval are descriptive only: frequency alone never recommends Reset. This is a product heuristic, not a medical or causal conclusion.
+
+Feedback corrections are reflected on the next read; there is no recommendation history, tombstone, ID, or `recommendedAt`. The selector neither inspects nor mutates Reset, Content-Free, onboarding, or Urge Control, and never modifies Tracking. Persistence remains v7 / `bloom.localState.v7`; Home consumption, recommendation screens, and activation remain deferred.
+
 ## ContentFreeState
 
 Source: [`ContentFreeState.ts`](../src/domain/models/ContentFreeState.ts).
@@ -323,7 +340,7 @@ The historical answers describe perceived change and allow uncertainty. Readines
 
 Completed journeys may omit `assessment`. When present, it must still have a valid nonempty ID, known enum answers, exact journey/attempt/baseline references, and a canonical submission time at or after period completion. Invalid assessment data is rejected rather than removed. Historical completion times are preserved under the existing structural and temporal checks; hydration does not recalculate them from today's clock or impose new duration arithmetic. Unrelated product and legacy slices remain semantically unchanged. Persistence remains version 7 at `bloom.localState.v7`, with existing older-version migrations intact.
 
-These facts support later descriptive reports; no clinical interpretation is derived. Report generation, post-Reset session comparison, and tracking-based Reset recommendations remain outside this phase.
+These facts support later descriptive reports; no clinical interpretation is derived. Report generation and post-Reset session comparison remain deferred. Phase 2A's separate Tracking recommendation read does not consume baseline or assessment facts; its Home/presentation integration remains deferred.
 
 ## Manual Behavior Slip Coordination
 
@@ -554,4 +571,4 @@ The v7 storage boundary checks record shapes, discriminated lifecycle fields, ca
 - Consistency of attempt history and identity, progress, baseline, completion timestamps, and assessment references.
 - Atomic, acknowledged cross-system effects when one event affects both Reset and Content-Free.
 
-Phase 1O adds pure Home priority and tracker composition using existing v7 shapes; none of the derived output is persisted. Disabled Tracking with unfinished work remains valid, and session times, durations, and pause history remain immutable. Home/Today integration, legacy next-action replacement, provider/UI wiring, active/awaiting-session correction, awaiting-feedback deletion, Reset history rewriting, completed Urge Control editing/deletion/undo, same-day calendar collapse, arbitrary historical replay, post-Reset reports/comparisons, and tracking-based Reset recommendations remain deferred. There is no new backend, authentication, sync metadata, analytics, or AI dependency.
+Phase 1O adds pure Home priority and tracker composition using existing v7 shapes; none of the derived output is persisted. Disabled Tracking with unfinished work remains valid, and session times, durations, and pause history remain immutable. Phase 2A adds only the separate derived Tracking recommendation. Home/Today integration, legacy next-action replacement, active/awaiting-session correction, awaiting-feedback deletion, Reset history rewriting, completed Urge Control editing/deletion/undo, same-day calendar collapse, arbitrary historical replay, post-Reset reports/comparisons, and Tracking recommendation presentation/activation remain deferred. There is no new backend, authentication, sync metadata, analytics, or AI dependency.

@@ -4,6 +4,16 @@
 
 The app should be built as a production-minded mobile app, not a quick prototype. The architecture should keep product logic testable, privacy decisions explicit, and future backend sync possible without requiring a backend in the MVP.
 
+## Phase 2A: Derived Tracking Reset Recommendation
+
+[`getTrackingResetRecommendation(tracking, at)`](../src/domain/reset/getTrackingResetRecommendation.ts) is a standalone pure domain selector with only type imports. It consumes completed Tracking history and an explicit canonical timestamp. It reads no wall clock, generates no facts, and has no provider, persistence, navigation, React, onboarding, or other lifecycle dependency. Its semantic result types are exported alongside it; no presentation strings or persisted recommendation entity are added.
+
+After excluding future-ended and noncompleted sessions, it copies observations into chronological start/ID order. Fewer than six produces `insufficientData`; otherwise exactly the latest six form preceding/recent three-session windows. A recommendation requires a response signal (mean quality down at least 1.0, or at least two recent firmness-decrease endings with a count greater than the preceding window) together with at least two recent intentional-content observations. All signals and unrounded descriptive evidence are returned. Recent start-to-start interval and previous explicit-content ratio never influence status. This deterministic product heuristic draws no medical or causal conclusion, and frequency alone never recommends Reset.
+
+The read reflects completed-feedback corrections directly, without cached advice, history, IDs, timestamps, or a transition to Reset `recommended`. Input arrays and sessions are not mutated. [DATA_MODEL.md](DATA_MODEL.md#trackingresetrecommendation-derived-phase-2a) defines the result and defensive input boundary; [PRODUCT_SPEC.md](PRODUCT_SPEC.md#tracking-based-reset-recommendation--phase-2a) defines product semantics.
+
+[`verify-bloom-reset-recommendation.ts`](../scripts/verify-bloom-reset-recommendation.ts) runs within `verify:persistence`. It covers window/cutoff boundaries, all signal combinations, integer-mean precision boundaries, interval independence, deterministic ties, canonical corrections, frozen reads, and malformed input. Routes remain nine ready and two pending; Reset recommendation is still pending. Home, onboarding, UI, commands, persisted models/schema/version/key, and existing lifecycles are unchanged. Persistence remains v7 / `bloom.localState.v7`.
+
 ## Proposed Stack
 
 - React Native

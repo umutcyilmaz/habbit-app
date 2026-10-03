@@ -38,6 +38,8 @@ Phase 1Y changes new Urge Control events to a versioned interrupt → outcome �
 
 Phase 1Z makes Panic entry and current/legacy Urge resume executable using simple shared components and durable-save navigation. It preserves domain lifecycles, Behavior Slip rules, persistence v7, Home priority, and bottom tabs. Final V4 visuals and the second intervention remain deferred.
 
+Phase 2A adds only a deterministic Tracking-based Reset recommendation selector. It is a derived domain read, with no screen, Home action changes, command, lifecycle mutation, or persisted recommendation. Both recommendation routes remain pending.
+
 The Expo Router architecture and local-first approach remain technical constraints. Older inventories in [ARCHITECTURE.md](ARCHITECTURE.md) and product references in [DECISIONS.md](DECISIONS.md) describe earlier stages; they do not require a new flow to depend on Protect. Existing navigation remains unchanged in this phase.
 
 ## Product Summary
@@ -175,9 +177,27 @@ At start, the canonical pure Tracking snapshot helper includes all completed ses
 
 There is no current assessment submission API, form, Home action, semantic flow intent, or `/bloom/reset/assessment` route. A valid v7 `assessment_pending` journey normalizes to completed using its existing baseline, final attempt, completion timestamps, best progress, and histories, without fabricating an assessment. Historical completed journeys retain their existing assessment and timestamps. Durable completion returns to existing Today; the final result UI and new Home experience remain deferred.
 
-Baseline/assessment reports, future post-Reset session comparisons, and tracking-based Reset recommendations remain deferred. Reset completion generates no report, comparison score, medical interpretation, or session.
+Baseline/assessment reports and future post-Reset session comparisons remain deferred. Phase 2A adds the separate Tracking-derived read below; its presentation and activation remain deferred. Reset completion generates no report, comparison score, medical interpretation, or session.
 
 No numeric score thresholds, diagnosis, guaranteed benefit, or medical interpretation is defined here.
+
+## Tracking-Based Reset Recommendation — Phase 2A
+
+[`getTrackingResetRecommendation`](../src/domain/reset/getTrackingResetRecommendation.ts) detects a conservative within-user pattern in recorded observations. It is a deterministic product heuristic, not a diagnosis, risk level, addiction score, dysfunction detection, or evidence that explicit content caused a change. No onboarding answers substitute for actual sessions.
+
+At least six completed historical sessions with `endedAt <= at` are required. Current active/awaiting-feedback sessions and future-ended records are excluded. Tracking enablement does not affect historical observations. Sessions are ordered by start time with a deterministic ID tie-breaker; only the latest six are analyzed as the preceding three versus the recent three. The total eligible count is returned separately.
+
+The observed signals are:
+
+- `erectionQualityDownwardTrend`: recent mean erection quality is at least 1.0 lower than the preceding mean, including exactly 1.0.
+- `repeatedFirmnessDecrease`: at least two recent sessions ended with `firmnessDecreased`, and that count exceeds the preceding window's count.
+- `recentExplicitContentPattern`: at least two of the recent three sessions used intentional explicit content, regardless of the preceding ratio.
+
+Recommendation requires at least one of the two response signals **and** the recent explicit-content pattern. All observed signals are returned, even when their combination yields no current recommendation. No weighted score or confidence percentage is produced; other ending reasons add no response signal.
+
+Evidence preserves both quality means, both firmness counts, both explicit-content ratios, and the recent average start-to-start interval without rounding. The three recent starts produce two intervals; their mean in seconds is display context only. Neither session frequency nor the preceding explicit-content ratio participates in the decision. Frequency alone never recommends Reset.
+
+The result is `insufficientData`, `noCurrentRecommendation`, or `recommended`; invalid time or unsafe observation input returns null. Corrections to canonical completed feedback naturally change later derived results. Nothing is saved, no IDs/timestamps are created, and Reset never enters a persisted `recommended` status through this selector. Reset, Tracking, Content-Free, onboarding, Urge Control, routes, and Home behavior remain unchanged; persistence remains v7 / `bloom.localState.v7`.
 
 ## Manual Behavior Slips
 

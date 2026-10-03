@@ -34,6 +34,7 @@ import { verifyBloomOnboardingPersistence } from "./verify-bloom-onboarding-pers
 import { verifyBloomPlanAcceptance } from "./verify-bloom-plan-acceptance";
 import { verifyBloomResetBaseline } from "./verify-bloom-reset-baseline";
 import { verifyBloomResetTrackingSnapshot } from "./verify-bloom-reset-tracking-snapshot";
+import { verifyBloomResetRecommendation } from "./verify-bloom-reset-recommendation";
 import { verifyBloomResetViolations } from "./verify-bloom-reset-violations";
 import { verifyBloomResetViolationUndo } from "./verify-bloom-reset-violation-undo";
 import { verifyBloomResetCompletion } from "./verify-bloom-reset-completion";
@@ -97,6 +98,7 @@ async function verifyBloomPersistence() {
   await verifyBloomPlanAcceptance();
   await verifyBloomResetBaseline();
   verifyBloomResetTrackingSnapshot();
+  verifyBloomResetRecommendation();
   await verifyBloomResetViolations();
   await verifyBloomResetViolationUndo();
   await verifyBloomResetCompletion();
