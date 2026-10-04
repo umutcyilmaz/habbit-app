@@ -108,6 +108,20 @@ export function useResetFeature(mode: ResetRouteMode) {
       undoViolation: (violationId: string) => invoke(() => controller.undoViolation(violationId, reset)),
       completeElapsed: () => invoke(() => controller.completeElapsed(reset)),
       retry: () => invoke(controller.retry),
+      openPanic: () => {
+        const snapshot = controller.getSnapshot();
+        if (!mounted.current || currentController.current !== controller || locked ||
+          snapshot.busy || (snapshot.result !== null && !snapshot.result.ok && snapshot.result.accepted) ||
+          mode !== "progress" || view.kind !== "active" || getAcceptedState().resetJourney !== reset) return;
+        const currentView = getResetRouteView(reset, { mode, journeyId, attemptId }, readDisplayTime());
+        if (currentView.kind !== "active" || currentView.progress.isPeriodComplete) return;
+        try {
+          allowNavigation();
+          if (!navigateBloomProductFlow(router, { flow: "panic" })) {
+            setNavigationError("Panic ekranı açılamadı. Lütfen tekrar dene.");
+          }
+        } catch { setNavigationError("Panic ekranı açılamadı. Lütfen tekrar dene."); }
+      },
       continueAfterSave: () => {
         if (!mounted.current || currentController.current !== controller || controller.getSnapshot().busy ||
           !canContinue || acceptedReset === null || getAcceptedState().resetJourney !== acceptedReset) return;

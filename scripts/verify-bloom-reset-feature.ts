@@ -406,7 +406,7 @@ async function verifyHookWiring() {
       startFromBaseline: (answers: CurrentResetBaselineSelfReport) => void;
       recordViolation: (reason: ResetViolation["reason"]) => void; undoViolation: (id: string) => void;
       completeElapsed: () => void;
-      retry: () => void; continueAfterSave: () => void; continueToCompletion: () => void; close: () => void;
+      retry: () => void; openPanic: () => void; continueAfterSave: () => void; continueToCompletion: () => void; close: () => void;
     };
   };
   const useFeature = module.exports.useResetFeature as (mode: ResetRouteInput["mode"]) => Feature;
@@ -462,6 +462,10 @@ async function verifyHookWiring() {
   mode = "progress";
   params = { journeyId: active.id, attemptId: active.currentAttempt.id };
   feature = render();
+  feature.actions.openPanic();
+  assert((navigation.pop()?.intent as { flow?: string } | undefined)?.flow === "panic" &&
+    h.counts().mutationCalls === 1,
+    "Panic must use the existing semantic route without issuing a Reset mutation.");
   const oldProgress = feature.actions;
   const occurredAt = shift(startedAt, 2 * day + 1000);
   h.setTime(occurredAt);
@@ -470,6 +474,7 @@ async function verifyHookWiring() {
   feature.actions.recordViolation("intentionalExplicitContent");
   feature.actions.recordViolation("intentionalExplicitContent");
   feature = render();
+  feature.actions.openPanic();
   const restarted = h.runtime.getState().resetJourney;
   assert(restarted.status === "active" && restarted.currentAttempt.id !== active.currentAttempt.id &&
     feature.view.kind === "mismatch" && feature.recoveryTarget === "progress" && feature.busy && !feature.canContinue,
@@ -619,8 +624,14 @@ function verifySourceAndForms() {
     view.includes("getResetProgress(reset, at)") && view.includes("getResetRestrictionStatus(reset, at)"),
   "Reset event handlers and progress must reuse the canonical provider getter, flow hook, and domain selectors.");
   assert(screen.includes("view.restriction.isRestrictionActive") && screen.includes("view.progress.isPeriodComplete") &&
-    screen.includes("view.progress.remainingSeconds") && screen.includes("view.bestCompletedDays"),
-  "Progress and restriction presentation must consume selector-derived facts, including live best progress.");
+    screen.includes("progress.completedDays") && screen.includes("progress.currentDay") &&
+    screen.includes("progress.remainingDays") && screen.includes("view.bestCompletedDays") &&
+    screen.includes("Array.from({ length: 15 }") &&
+    !screen.includes("remainingSeconds") && !screen.includes("formatResetRemainingSeconds"),
+  "Progress must consume selector-derived day facts and never display a live seconds countdown.");
+  assert(screen.includes('onPress={actions.openPanic}') && screen.includes('testID="bloom.reset.panic"') &&
+    screen.includes('testID="bloom.reset.violation.toggle"') && screen.includes('testID="bloom.reset.history.toggle"'),
+    "Panic must be prominent while direct violation entry and history remain locally expandable.");
   assert(screen.includes("view.undoCandidateId === violation.id") && screen.includes("onUndo(violation.id)") &&
     screen.includes('violation.source.kind === "masturbationSession"') && screen.includes('violation.status === "undone"'),
   "History must preserve canonical source/status and expose only the exact candidate for Reset-owned undo.");
@@ -725,83 +736,72 @@ function verifyAnswerForm(
   name: string, prefix: string, options: Record<string, readonly string[]>, values: Record<string, string>,
   compileForms: (hooks: ReturnType<typeof createControlledHooks>) => Record<string, (props: Record<string, unknown>) => FormElement>
 ) {
-  const hooks = createControlledHooks();
-  const forms = compileForms(hooks);
-  const submissions: unknown[] = [];
-  const render = (locked = false) => hooks.render(() => forms[name]!({ locked, onSubmit: (answers: unknown) => submissions.push(answers) }));
-  let tree = render();
-  render();
-  assert(submissions.length === 0, "Rendering a baseline form must never submit.");
-  equal(findFormElements(tree).filter((element) => element.props.accessibilityRole === "radiogroup").map((element) => element.props.accessibilityLabel), [
+  const questions = [
     "Ereksiyonunda bir düşüş fark ediyor musun?",
     "Aynı seviyede uyarılmak için daha sert ya da daha hızlı yapman gerekiyor mu?",
     "Boşalmak eskisine göre daha mı uzun sürüyor?",
     "İçerik olmadan uyarılmakta zorlanıyor musun?"
-  ], "The current form must present exactly the four product questions in order.");
+  ];
   const labels: Record<string, readonly string[]> = {
     erectionDecline: ["Evet, belirgin", "Evet, hafif", "Hayır", "Emin değilim"],
     needsStrongerOrFasterStimulation: ["Evet, belirgin", "Biraz", "Hayır"],
     climaxTakesLonger: ["Evet, belirgin", "Biraz", "Hayır", "Emin değilim"],
     difficultyArousingWithoutExplicitContent: ["Evet", "Bazen", "Hayır", "Denemedim"]
   };
-  for (const [field, expected] of Object.entries(options)) {
-    const choices = findFormElements(tree).filter((element) => String(element.props.testID).startsWith(`bloom.reset.${prefix}.${field}.`));
-    equal(choices.map((element) => String(element.props.testID).split(".").pop()), expected,
-      "Every self-report field must expose exactly its canonical domain values, with no notSure option for Q2.");
-    equal(choices.map((element) => element.props.children), labels[field], "Each canonical semantic answer must retain the exact product label.");
-    assert(choices.every((element) => (element.props.accessibilityState as { checked: boolean }).checked === false),
-      "Self-report choices must start unanswered rather than preselecting a derived/default answer.");
-  }
-  assert(formElement(tree, `bloom.reset.${prefix}.submit`).props.disabled === true,
-    "The submit button must be disabled until every required answer is explicit.");
-  pressForm(tree, `bloom.reset.${prefix}.submit`);
-  assert(submissions.length === 0, "Direct incomplete submission must preserve an empty answer history.");
-  for (const [field, value] of Object.entries(values)) {
-    pressForm(tree, `bloom.reset.${prefix}.${field}.${value}`);
-    tree = render();
-    if (field !== Object.keys(values)[Object.keys(values).length - 1]) {
-      assert(formElement(tree, `bloom.reset.${prefix}.submit`).props.disabled === true,
-        "The current form must remain disabled until all four explicit choices have been made.");
-      pressForm(tree, `bloom.reset.${prefix}.submit`);
-      assert(submissions.length === 0, "Partially answered forms must not dispatch even when their callback is directly invoked.");
+  const fields = Object.keys(options);
+  const runScenario = (chosen: Record<string, string>, checkBack: boolean) => {
+    const hooks = createControlledHooks();
+    const forms = compileForms(hooks);
+    const submissions: unknown[] = [];
+    const render = (locked = false) => hooks.render(() => forms[name]!({ locked, onSubmit: (answers: unknown) => submissions.push(answers) }));
+    let tree = render();
+    render();
+    assert(submissions.length === 0, "Rendering the baseline form must never start Reset.");
+    for (const [index, field] of fields.entries()) {
+      equal(findFormElements(tree).filter((element) => element.props.accessibilityRole === "radiogroup").map((element) => element.props.accessibilityLabel),
+        [questions[index]], "Each step must display only its current canonical question.");
+      const choices = findFormElements(tree).filter((element) => String(element.props.testID).startsWith(`bloom.reset.${prefix}.${field}.`));
+      equal(choices.map((element) => String(element.props.testID).split(".").pop()), options[field],
+        "Each question must retain exactly its canonical enum choices.");
+      equal(choices.map((element) => element.props.label), labels[field],
+        "Each canonical answer must retain the exact product label.");
+      assert(choices.every((element) => (element.props.accessibilityState as { checked: boolean }).checked === false),
+        "A new question must not preselect an answer.");
+      assert(formElement(tree, `bloom.reset.${prefix}.next`).props.disabled === true,
+        "Next must require an explicit answer to the current question.");
+      pressForm(tree, `bloom.reset.${prefix}.next`);
+      assert(submissions.length === 0, "An incomplete step must not submit Reset even through a direct callback.");
+      pressForm(tree, `bloom.reset.${prefix}.${field}.${chosen[field]}`);
+      tree = render();
+      assert((formElement(tree, `bloom.reset.${prefix}.${field}.${chosen[field]}`).props.accessibilityState as { checked: boolean }).checked,
+        "The selected answer must be exposed through radio semantics.");
+      if (checkBack && index === 1) {
+        pressForm(tree, `bloom.reset.${prefix}.back`);
+        tree = render();
+        assert((formElement(tree, `bloom.reset.${prefix}.${fields[0]}.${chosen[fields[0]!]}`).props.accessibilityState as { checked: boolean }).checked,
+          "Moving backward must preserve the first local answer.");
+        pressForm(tree, `bloom.reset.${prefix}.next`);
+        tree = render();
+        assert((formElement(tree, `bloom.reset.${prefix}.${field}.${chosen[field]}`).props.accessibilityState as { checked: boolean }).checked,
+          "Moving forward must preserve the second local answer.");
+      }
+      pressForm(tree, `bloom.reset.${prefix}.next`);
+      tree = render();
     }
-  }
-  assert(formElement(tree, `bloom.reset.${prefix}.submit`).props.disabled === false,
-    "Every complete descriptive answer set must be submittable without scoring or eligibility restrictions.");
-  pressForm(tree, `bloom.reset.${prefix}.submit`);
-  equal(JSON.parse(JSON.stringify(submissions)), [values], "Forms must submit only exact semantic answer fields, with no generated links, IDs, scores, or timestamps.");
-  tree = render(true);
-  pressForm(tree, `bloom.reset.${prefix}.submit`);
-  assert(Number(submissions.length) === 1, "Locked baseline callbacks must never dispatch even if directly invoked.");
-  const selected = { ...values };
+    assert(findFormElements(tree).every((element) => element.props.accessibilityRole !== "radiogroup") &&
+      formElement(tree, `bloom.reset.${prefix}.submit`).props.disabled === false,
+      "The explanation step must appear after all four answers and only then enable the start action.");
+    assert(submissions.length === 0, "Completing Question 4 must not start Reset.");
+    pressForm(tree, `bloom.reset.${prefix}.submit`);
+    equal(JSON.parse(JSON.stringify(submissions)), [chosen],
+      "Only the final start CTA may submit exactly the four canonical answers.");
+    tree = render(true);
+    pressForm(tree, `bloom.reset.${prefix}.submit`);
+    assert(Number(submissions.length) === 1, "A locked retained start callback must not dispatch.");
+  };
+  runScenario(values, true);
   for (const [field, choices] of Object.entries(options)) {
-    for (const value of choices) {
-      tree = render();
-      pressForm(tree, `bloom.reset.${prefix}.${field}.${value}`);
-      tree = render();
-      selected[field] = value;
-      assert(formElement(tree, `bloom.reset.${prefix}.submit`).props.disabled === false,
-        "Every specified answer option must be eligible for descriptive submission.");
-      pressForm(tree, `bloom.reset.${prefix}.submit`);
-      equal(JSON.parse(JSON.stringify(submissions[submissions.length - 1])), selected,
-        "Every answer option must emit only the current four semantic fields, without aggregates or medical interpretation.");
-    }
-  }
-  for (const unanswered of Object.keys(values)) {
-    const partialHooks = createControlledHooks();
-    const partialForm = compileForms(partialHooks)[name]!;
-    let partialSubmissions = 0;
-    const renderPartial = () => partialHooks.render(() => partialForm({ locked: false, onSubmit: () => { partialSubmissions++; } }));
-    let partialTree = renderPartial();
-    for (const [field, value] of Object.entries(values)) {
-      if (field === unanswered) continue;
-      pressForm(partialTree, `bloom.reset.${prefix}.${field}.${value}`);
-      partialTree = renderPartial();
-    }
-    assert(formElement(partialTree, `bloom.reset.${prefix}.submit`).props.disabled === true,
-      `The form must require ${unanswered}, even when every other answer is present.`);
-    pressForm(partialTree, `bloom.reset.${prefix}.submit`);
-    assert(partialSubmissions === 0, "Omitting any one required answer must prevent direct submission.");
+    for (const value of choices) runScenario({ ...values, [field]: value }, false);
   }
 }
 
