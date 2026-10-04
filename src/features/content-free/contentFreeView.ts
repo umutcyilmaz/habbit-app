@@ -16,12 +16,24 @@ export function getContentFreeFeatureView(content: ContentFreeState, now: ISODat
   return {
     progress: getContentFreeProgress(content, now),
     activationId: content.status === "active" ? content.activationId : null,
+    currentStreakStartedAt: content.status === "active" ? content.currentStreakStartedAt : null,
+    currentActivationHasEffectiveViolation: content.status === "active" &&
+      content.violations.some((entry) =>
+        entry.status === "recorded" && entry.activationId === content.activationId),
+    hasPriorActivation: content.pastActivations.length > 0,
     // Sort a copy for presentation; retain canonical record identities and
     // array order in persisted state. Later array entries win equal-time ties.
     history: [...content.violations].reverse().sort((left, right) =>
       Date.parse(right.recordedAt) - Date.parse(left.recordedAt)),
     manualUndoCandidateId: getLatestManualContentFreeUndoCandidate(content)?.id ?? null
   };
+}
+
+export function formatContentFreeDate(timestamp: string): string {
+  const time = new Date(timestamp);
+  return Number.isFinite(time.getTime()) ? time.toLocaleDateString(undefined, {
+    year: "numeric", month: "long", day: "numeric"
+  }) : "Tarih bilinmiyor";
 }
 
 export function formatContentFreeStreakSeconds(seconds: number): string {

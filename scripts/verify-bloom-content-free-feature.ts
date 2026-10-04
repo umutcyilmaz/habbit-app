@@ -234,7 +234,33 @@ function verifyViews() {
   assert(view.activationId === "feature-activation" && view.manualUndoCandidateId === "manual-event" &&
     getLatestManualContentFreeUndoCandidate(state.contentFree) === state.contentFree.violations[0],
   "The view must expose the current recorded manual candidate without recreating its identity.");
+  assert(state.contentFree.status === "active" &&
+    view.currentStreakStartedAt === state.contentFree.currentStreakStartedAt &&
+    view.currentStreakStartedAt !== state.contentFree.activatedAt &&
+    view.currentActivationHasEffectiveViolation,
+    "After a current-activation violation, the displayed start must be the restarted streak date and the new-streak condition must be true.");
   const first = state.contentFree.violations[0]!;
+  const freshActivation = recordedState();
+  assert(freshActivation.contentFree.status === "active", "Fresh-activation view fixture requires active Content-Free.");
+  freshActivation.contentFree.pastActivations = [{
+    id: freshActivation.contentFree.activationId,
+    startedAt: activatedAt,
+    endedAt: shift(activatedAt, 2 * day)
+  }];
+  freshActivation.contentFree.activationId = "fresh-activation";
+  freshActivation.contentFree.activatedAt = shift(activatedAt, 3 * day);
+  freshActivation.contentFree.currentStreakStartedAt = freshActivation.contentFree.activatedAt;
+  const freshView = getContentFreeFeatureView(freshActivation.contentFree, shift(activatedAt, 3 * day + 1000));
+  assert(freshView.progress?.status === "active" && freshView.progress.currentCompletedDays === 0 &&
+    freshView.progress.hasEffectiveViolation && !freshView.currentActivationHasEffectiveViolation &&
+    freshView.currentStreakStartedAt === freshActivation.contentFree.currentStreakStartedAt,
+    "An effective violation from a previous activation must not produce the new-streak badge after reactivation.");
+  const undoneCurrent = {
+    ...state.contentFree,
+    violations: [{ ...first, status: "undone" as const, undoneAt: shift(first.recordedAt, 1000) }]
+  };
+  assert(!getContentFreeFeatureView(undoneCurrent, at).currentActivationHasEffectiveViolation,
+    "An undone current-activation violation must not produce the new-streak badge.");
   const later = { ...first, id: "session-event", recordedAt: shift(first.recordedAt, 2000), source: { kind: "masturbationSession" as const, sessionId: "session-source" } };
   const tombstone: ContentFreeViolation = { ...first, id: "undone-event", recordedAt: shift(first.recordedAt, 3000), status: "undone", undoneAt: at };
   state.contentFree.violations = [first, later, tombstone];
@@ -251,6 +277,9 @@ function verifyViews() {
   const inactiveView = getContentFreeFeatureView(inactive, at);
   assert(inactiveView.activationId === null && inactiveView.manualUndoCandidateId === null && inactiveView.progress?.status === "inactive",
     "Inactive display must retain historical best without inventing a current activation or undo target.");
+  assert(inactiveView.currentStreakStartedAt === null && !inactiveView.currentActivationHasEffectiveViolation &&
+    !inactiveView.hasPriorActivation,
+    "Inactive presentation must not invent a current streak date or current-activation violation.");
   assert(getContentFreeFeatureView(state.contentFree, "invalid").progress === null, "Invalid display time must not fabricate progress.");
   const beforeReads = JSON.stringify(state);
   for (const elapsed of [0, 1, day, 20 * day]) getContentFreeFeatureView(state.contentFree, shift(at, elapsed));
@@ -279,12 +308,23 @@ function verifyFeatureWiring() {
   for (const component of ["AppScreen", "AppCard", "AppText", "AppButton"]) {
     assert(screen.includes(`import { ${component} }`), `The feature must use shared ${component} UI.`);
   }
-  assert(screen.includes("Accidental exposure doesn’t count") && screen.includes("Record intentional explicit-content use") &&
-    screen.includes("From session feedback") && screen.includes('violation.status === "undone"'),
-  "History/copy must distinguish intentional manual use, session feedback, and undone entries without an accidental-exposure action.");
+  assert(screen.includes("Kazara gördüğün içerikler sayılmaz") && screen.includes("Evet, bilinçli kullandım") &&
+    screen.includes("Oturum geri bildiriminden") && screen.includes('violation.status === "undone"'),
+    "History/copy must distinguish intentional manual use, session feedback, and undone entries without an accidental-exposure action.");
+  assert(screen.includes("progress.currentCompletedDays") && screen.includes("effectiveBestStreakSeconds") &&
+    !screen.includes("formatContentFreeStreakSeconds"),
+    "The detail must present canonical current and best streaks as completed days, without a seconds ticker.");
+  assert(screen.includes("formatContentFreeDate(view.currentStreakStartedAt)") &&
+    screen.includes("progress.currentCompletedDays === 0 && view.currentActivationHasEffectiveViolation") &&
+    !screen.includes("progress.hasEffectiveViolation"),
+    "The displayed start date and new-streak badge must use current-streak/current-activation facts only.");
+  assert(screen.includes('onPress={actions.openPanic}') &&
+    screen.includes('onPress={actions.deactivate}') === false,
+    "Panic must be a navigation-only action and deactivation must require local confirmation.");
   assert(screen.includes("view.manualUndoCandidateId === violation.id") && screen.includes("actions.undoManualViolation(violation.id)"),
     "Only the explicit canonical candidate may expose the manual undo command, using its exact row ID.");
   verifyConfirmationComponent(screen);
+  verifyDeactivationComponent(screen);
 }
 
 async function verifyHookWiring() {
@@ -306,6 +346,9 @@ async function verifyHookWiring() {
       state: h.runtime.getState(), durableState: h.runtime.getDurableState(),
       getAcceptedState: h.runtime.getState, retryPersistedMutation: h.runtime.retryPersistence, hasHydrated, hydrationStatus
     }) },
+    "../../app/navigation/navigateBloomProductFlow": {
+      navigateBloomProductFlow: (_router: unknown, intent: unknown) => { navigation.push(intent); return true; }
+    },
     "../../constants/navigation": { routes: { home: "/existing-home" } },
     "../../shared/navigation/usePersistenceNavigationGuard": { usePersistenceNavigationGuard: () => () => undefined },
     "./contentFreeController": { createContentFreeController },
@@ -326,7 +369,7 @@ async function verifyHookWiring() {
     busy: boolean; locked: boolean; canRetry: boolean; message: string | null;
     saveState: "loading" | "unavailable" | "saving" | "saved" | "unconfirmed";
     actions: { activate: () => void; deactivate: () => void; recordManualViolation: () => void;
-      undoManualViolation: (id: string) => void; retry: () => void; close: () => void; };
+      undoManualViolation: (id: string) => void; retry: () => void; openPanic: () => void; close: () => void; };
   };
   const useFeature = module.exports.useContentFreeFeature as () => Feature;
   const render = () => hooks.render(useFeature);
@@ -359,6 +402,7 @@ async function verifyHookWiring() {
   assert(feature.busy && feature.locked && feature.saveState === "saving" && h.counts().mutationCalls === 1,
     "Only an explicit activation may dispatch, with duplicate presses sharing one pending operation.");
   feature.actions.close();
+  feature.actions.openPanic();
   assert(navigation.length === 0, "Close must not navigate while a save is pending.");
   h.attempts[0]!.fail();
   await flush();
@@ -366,6 +410,8 @@ async function verifyHookWiring() {
   assert(feature.view.progress?.status === "active" && feature.locked && feature.canRetry &&
     feature.saveState === "unconfirmed" && feature.message !== null && navigation.length === 0,
   "Accepted activation must display unconfirmed save/retry state, not optimistic durable success.");
+  feature.actions.openPanic();
+  assert(navigation.length === 0, "Panic navigation must stay locked while an accepted save is not durable.");
   const activationCounts = h.counts();
   feature.actions.retry();
   feature.actions.retry();
@@ -375,6 +421,9 @@ async function verifyHookWiring() {
   equal(h.counts(), activationCounts, "Actual hook retry must not regenerate activation facts or replay its mutation.");
   assert(feature.saveState === "saved" && !feature.locked && navigation.length === 0,
     "Durable activation must remain on Content-Free rather than trigger navigation from changed status.");
+  feature.actions.openPanic();
+  assert((navigation.pop() as { flow?: string } | undefined)?.flow === "panic",
+    "The active Panic action must use the existing semantic product flow.");
   const beforeTicks = h.runtime.getState();
   const beforeTickCounts = h.counts();
   displayTime = Date.parse(shift(activatedAt, day + 1999));
@@ -450,6 +499,7 @@ async function verifyHookWiring() {
   retained.activate();
   retained.retry();
   retained.close();
+  retained.openPanic();
   equal(h.counts(), prior.counts, "Callbacks retained from an earlier controller must not generate facts or dispatch.");
   assert(h.attempts.length === prior.writes && navigation.length === prior.navigation,
     "Stale controller actions must neither save nor navigate.");
@@ -457,6 +507,7 @@ async function verifyHookWiring() {
   feature.actions.activate();
   feature.actions.retry();
   feature.actions.close();
+  feature.actions.openPanic();
   equal(h.counts(), prior.counts, "Unmounted hook actions must not issue commands or regenerate facts.");
   assert(h.attempts.length === prior.writes && navigation.length === prior.navigation,
     "Unmounted actions must neither save nor navigate.");
@@ -522,6 +573,62 @@ function verifyConfirmationComponent(screen: string) {
   tree = render();
   press(tree, ".confirm");
   assert(Number(calls) === 2, "A distinct explicitly reopened confirmation may represent a later logical event.");
+}
+
+function verifyDeactivationComponent(screen: string) {
+  const parsed = ts.createSourceFile("ContentFreeScreen.tsx", screen, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const component = parsed.statements.find((node) => ts.isFunctionDeclaration(node) && node.name?.text === "DeactivateAction");
+  assert(component !== undefined, "Deactivation must have an explicit local confirmation interaction.");
+  const hooks = createControlledHooks();
+  let calls = 0;
+  type Element = { type: unknown; props: Record<string, unknown> };
+  const jsx = (type: unknown, props: Record<string, unknown>) => ({ type, props });
+  const module = { exports: {} as Record<string, unknown> };
+  const compiled = ts.transpileModule(`export ${component.getText(parsed)}`, {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, jsx: ts.JsxEmit.ReactJSX }
+  });
+  runInNewContext(compiled.outputText, {
+    module, exports: module.exports, useState: hooks.react.useState, useRef: hooks.react.useRef,
+    AppCard: "AppCard", AppText: "AppText", AppButton: "AppButton", styles: {},
+    require: (name: string) => { assert(name === "react/jsx-runtime", "The isolated deactivation must use only JSX rendering."); return { jsx, jsxs: jsx, Fragment: "Fragment" }; }
+  });
+  const renderComponent = module.exports.DeactivateAction as (props: { locked: boolean; onDeactivate: () => void }) => Element;
+  const render = (locked = false) => hooks.render(() => renderComponent({ locked, onDeactivate: () => { calls++; } }));
+  const find = (node: unknown, id: string): Element | undefined => {
+    if (Array.isArray(node)) {
+      for (const child of node) { const found = find(child, id); if (found !== undefined) return found; }
+    } else if (typeof node === "object" && node !== null && "props" in node) {
+      const element = node as Element;
+      return element.props.testID === id ? element : find(element.props.children, id);
+    }
+    return undefined;
+  };
+  const press = (tree: Element, id: string) => {
+    const button = find(tree, id);
+    assert(button !== undefined && typeof button.props.onPress === "function", "Expected deactivation confirmation control.");
+    (button.props.onPress as () => void)();
+    return button.props.onPress as () => void;
+  };
+  let tree = render();
+  render();
+  press(tree, "bloom.content-free.deactivate");
+  tree = render();
+  assert(calls === 0, "Opening deactivation confirmation must not issue a command.");
+  const cancelledConfirm = find(tree, "bloom.content-free.deactivate.confirm")?.props.onPress as (() => void) | undefined;
+  press(tree, "bloom.content-free.deactivate.cancel");
+  cancelledConfirm?.();
+  assert(calls === 0, "Cancelling deactivation must leave no confirmable action.");
+  tree = render();
+  press(tree, "bloom.content-free.deactivate");
+  tree = render(true);
+  const lockedConfirm = find(tree, "bloom.content-free.deactivate.confirm");
+  assert(lockedConfirm?.props.disabled === true, "Locked state must disable deactivation confirmation.");
+  press(tree, "bloom.content-free.deactivate.confirm");
+  assert(calls === 0, "A retained locked confirmation handler must not deactivate.");
+  tree = render();
+  const staleConfirm = press(tree, "bloom.content-free.deactivate.confirm");
+  staleConfirm();
+  assert(Number(calls) === 1, "One confirmation must dispatch exactly one deactivation command.");
 }
 
 // Runs actual hook/component code with controlled dependency lifecycles. This

@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 
 import { useBloomProductFlowActions } from "../../app/flows/useBloomProductFlowActions";
 import { useBloomLocalState } from "../../app/providers/BloomLocalStateProvider";
+import { navigateBloomProductFlow } from "../../app/navigation/navigateBloomProductFlow";
 import { routes } from "../../constants/navigation";
 import { usePersistenceNavigationGuard } from "../../shared/navigation/usePersistenceNavigationGuard";
 import { createContentFreeController } from "./contentFreeController";
@@ -37,7 +38,7 @@ export function useContentFreeFeature() {
   const content = state.contentFree;
   const view = hasHydrated
     ? getContentFreeFeatureView(content, new Date(nowMilliseconds).toISOString())
-    : { progress: null, activationId: null, history: [], manualUndoCandidateId: null };
+    : { progress: null, activationId: null, currentStreakStartedAt: null, currentActivationHasEffectiveViolation: false, hasPriorActivation: false, history: [], manualUndoCandidateId: null };
   const locked = !hasHydrated || operation.busy ||
     (operation.result !== null && !operation.result.ok && operation.result.accepted);
   const canRetry = !operation.busy && operation.result !== null && !operation.result.ok && operation.result.retryable;
@@ -64,6 +65,19 @@ export function useContentFreeFeature() {
       recordManualViolation: () => invoke(() => controller.recordManualViolation(content)),
       undoManualViolation: (violationId: string) => invoke(() => controller.undoManualViolation(violationId, content)),
       retry: () => invoke(controller.retry),
+      openPanic: () => {
+        const snapshot = controller.getSnapshot();
+        if (!mounted.current || currentController.current !== controller || locked ||
+          snapshot.busy || (snapshot.result !== null && !snapshot.result.ok && snapshot.result.accepted)) return;
+        try {
+          allowNavigation();
+          if (!navigateBloomProductFlow(router, { flow: "panic" })) {
+            setNavigationError("Panic ekranı açılamadı. Lütfen tekrar dene.");
+          }
+        } catch {
+          setNavigationError("Panic ekranı açılamadı. Lütfen tekrar dene.");
+        }
+      },
       close: () => {
         if (!mounted.current || currentController.current !== controller || controller.getSnapshot().busy) return;
         try {
