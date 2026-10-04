@@ -1,5 +1,5 @@
-import { TodayScreen } from "../../src/features/today/screens/TodayScreen";
+import { BloomHomeScreen } from "../../src/features/home/screens/BloomHomeScreen";
 
 export default function TodayRoute() {
-  return <TodayScreen />;
+  return <BloomHomeScreen />;
 }

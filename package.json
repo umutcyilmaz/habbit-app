@@ -19,6 +19,7 @@
     "verify:journey": "node scripts/run-bloom-journey-verification.cjs",
     "verify:protection-reset": "node scripts/run-bloom-protection-reset-verification.cjs",
     "verify:guided-flows": "node scripts/run-bloom-guided-flows-verification.cjs",
+    "verify:home-ui": "node scripts/run-bloom-home-ui-verification.cjs",
     "verify:e2e-runtime": "node scripts/run-bloom-e2e-runtime-verification.cjs",
     "verify:e2e-app-identity": "node scripts/verify-bloom-e2e-app-identity.cjs",
     "verify:release-debug-guards": "node scripts/verify-bloom-release-debug-guards.cjs",
