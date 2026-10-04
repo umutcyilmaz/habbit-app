@@ -202,15 +202,16 @@ function verifyScreen() {
   const dependencies: Record<string, unknown> = {
     "react/jsx-runtime": { jsx, jsxs: jsx, Fragment: "Fragment" },
     "react-native": { View: "View", StyleSheet: { create: (styles: unknown) => styles } },
-    "../../../shared/design-system/theme": { theme: { spacing: { lg: 12 } } },
+    "../../../shared/design-system/v4/theme": { theme: { spacing: { md: 16, sm: 12, lg: 20, xl2: 32, xl3: 48 }, radius: { lg: 16 }, colors: { bg: { surface: "surface" } } } },
     "../useResetRecommendationFeature": { useResetRecommendationFeature: () => feature }
   };
-  for (const name of ["AppScreen", "AppCard", "AppText", "AppButton"]) dependencies[`../../../shared/components/${name}`] = { [name]: name };
+  for (const name of ["AppScreen", "AppCard", "AppText", "AppButton"]) dependencies[`../../../shared/components/v4/${name}`] = { [name]: name };
   const screen = compileModule(source, dependencies).ResetRecommendationScreen as () => Element;
   let tree = screen();
-  for (const part of ["evidence", "previous-quality", "recent-quality", "explicit-ratio", "interval", "signal.erectionQualityDownwardTrend", "signal.recentExplicitContentPattern", "accept", "close"]) {
+  for (const part of ["evidence", "previous-quality", "recent-quality", "explicit-ratio", "signal.erectionQualityDownwardTrend", "signal.recentExplicitContentPattern", "accept", "close"]) {
     required(tree, `bloom.reset-recommendation.${part}`);
   }
+  assert(element(tree, "bloom.reset-recommendation.interval") === null, "Session interval must not appear as a recommendation signal or prominent evidence.");
   assert(element(tree, "bloom.reset-recommendation.persisted") === null, "Tracking evidence screen must not claim a persisted recommendation.");
   let accepts = 0;
   feature = { ...feature, actions: { ...feature.actions, accept: () => { accepts++; } } };
@@ -218,6 +219,8 @@ function verifyScreen() {
   feature = { ...feature, view: getResetRecommendationView(persistedState(), at) }; tree = screen();
   required(tree, "bloom.reset-recommendation.persisted");
   assert(element(tree, "bloom.reset-recommendation.evidence") === null, "Compatibility screen must fabricate no Tracking evidence.");
+  assert(!elements(tree).some((item) => typeof item.props.testID === "string" && item.props.testID.startsWith("bloom.reset-recommendation.signal.")),
+    "Persisted advice must fabricate no recommendation signals.");
   feature = { ...feature, recovery: true, locked: true, canRetry: true, canContinue: false, view: { kind: "unavailable" }, saveState: "unconfirmed" }; tree = screen();
   required(tree, "bloom.reset-recommendation.recovery"); required(tree, "bloom.reset-recommendation.retry");
   assert(required(tree, "bloom.reset-recommendation.continue").props.disabled === true && required(tree, "bloom.reset-recommendation.close").props.disabled === true &&

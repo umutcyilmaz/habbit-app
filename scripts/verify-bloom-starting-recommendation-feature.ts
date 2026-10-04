@@ -54,7 +54,10 @@ function verifyViews() {
     if (plan !== "reset_and_content_free") assert(fresh.recommendation !== plan, "Historical fixture must differ from a current rescore.");
     const before = JSON.stringify(state);
     freeze(state);
-    equal(getStartingRecommendationView(state), { kind: "recommendation", recommendation: plan }, "View must return exactly the stored historical recommendation, never rescore it.");
+    equal(getStartingRecommendationView(state), { kind: "recommendation", recommendation: plan, result: stored }, "View must return exactly the stored historical result, never rescore it.");
+    const view = getStartingRecommendationView(state);
+    assert(view.kind === "recommendation" && view.result === stored && view.result.dimensions === stored.dimensions,
+      "Presentation must receive the original stored result and dimensions by reference.");
     assert(JSON.stringify(state) === before && state.productOnboarding.result === stored, "Frozen view reads preserve all facts and references.");
     const accepted = acceptProductOnboardingRecommendationState(state, { acceptedAt: at, resetJourneyId: "view-reset", contentFreeActivationId: "view-content" });
     assert(accepted !== state && getStartingRecommendationView(accepted).kind === "unavailable", "Accepted plans disappear from the ordinary review view.");
@@ -163,7 +166,9 @@ async function verifyHooks() {
   const changed = h.runtime.applyAcknowledgedMutation((state) => ({ ...state, productOnboarding: entryState("content_free").productOnboarding }));
   old.actions.accept(); assert(h.calls.length === 0, "A retained handler for plan A must not knowingly accept plan B.");
   h.attempts[0]!.succeed(); await changed;
-  equal(ui.render().view, { kind: "recommendation", recommendation: "content_free" }, "The parameter-free route must show latest accepted plan B."); ui.hooks.unmount();
+  const latest = h.runtime.getState().productOnboarding;
+  assert(latest.status === "completed", "Latest plan B result required.");
+  equal(ui.render().view, { kind: "recommendation", recommendation: "content_free", result: latest.result }, "The parameter-free route must show latest accepted plan B."); ui.hooks.unmount();
   for (const replace of [false, true]) {
     const h = harness(entryState("reset_and_content_free")); const ui = hookHarness(h); const feature = ui.render(); feature.actions.accept();
     if (replace) { ui.replaceFlow(); ui.render(); } else ui.hooks.unmount();
@@ -228,20 +233,36 @@ function verifyScreen() {
   const dependencies: Record<string, unknown> = {
     "react/jsx-runtime": { jsx, jsxs: jsx, Fragment: "Fragment" },
     "react-native": { View: "View", StyleSheet: { create: (styles: unknown) => styles } },
-    "../../../shared/design-system/theme": { theme: { spacing: { lg: 12 } } },
+    "../../../shared/design-system/v4/theme": { theme: { spacing: { md: 16, sm: 12, lg: 20, xl2: 32, xl3: 48 }, radius: { lg: 16 }, colors: { bg: { surface: "surface", infoSubtle: "info" }, border: { info: "info" } } } },
     "../useStartingRecommendationFeature": { useStartingRecommendationFeature: () => feature }
   };
-  for (const name of ["AppScreen", "AppCard", "AppText", "AppButton"]) dependencies[`../../../shared/components/${name}`] = { [name]: name };
+  for (const name of ["AppScreen", "AppCard", "AppText", "AppButton"]) dependencies[`../../../shared/components/v4/${name}`] = { [name]: name };
   const screen = compileModule(readFileSync("src/features/starting-recommendation/screens/StartingRecommendationScreen.tsx", "utf8"), dependencies).StartingRecommendationScreen as () => Element;
   let accepts = 0;
   for (const plan of plans) {
     feature = { ...feature, view: getStartingRecommendationView(entryState(plan)), actions: { ...feature.actions, accept: () => { accepts++; } } };
     const tree = screen(); required(tree, `bloom.starting-recommendation.plan.${plan}`);
+    for (const dimension of ["contentDysregulation", "erectionResponseConcern", "stimulationPattern"]) {
+      required(tree, `bloom.starting-recommendation.signal.${dimension}`);
+    }
     press(tree, "bloom.starting-recommendation.accept");
   }
   assert(accepts === 4, "Each stored plan renders and wires the same acceptance action.");
+  const storedView = getStartingRecommendationView(entryState());
+  assert(storedView.kind === "recommendation", "Stored presentation result required.");
+  feature = { ...feature, view: { ...storedView, result: { ...storedView.result,
+    dimensions: { ...storedView.result.dimensions, contentDysregulation: "high", erectionResponseConcern: "medium", stimulationPattern: "uncertain" },
+    safetyFlag: "reported" } } };
+  let tree = screen();
+  assert(JSON.stringify(tree).includes("Belirgin sinyal") && JSON.stringify(tree).includes("Orta düzeyde sinyal") && JSON.stringify(tree).includes("Belirsiz"),
+    "Stored qualitative dimensions must receive user-facing wording.");
+  required(tree, "bloom.starting-recommendation.safety");
+  assert(!JSON.stringify(tree).includes("normalizedScore"), "Internal onboarding scores must not be rendered.");
+  feature = { ...feature, view: { ...storedView, result: { ...storedView.result, safetyFlag: "noneReported" } } };
+  tree = screen();
+  assert(element(tree, "bloom.starting-recommendation.safety") === null, "No reported safety signal must not show the health card.");
   feature = { ...feature, recovery: true, locked: true, canRetry: true, canContinue: false, canClose: false, saveState: "unconfirmed", view: { kind: "unavailable" } };
-  const tree = screen(); required(tree, "bloom.starting-recommendation.recovery"); required(tree, "bloom.starting-recommendation.retry");
+  tree = screen(); required(tree, "bloom.starting-recommendation.recovery"); required(tree, "bloom.starting-recommendation.retry");
   assert(required(tree, "bloom.starting-recommendation.close").props.disabled === true && required(tree, "bloom.starting-recommendation.continue").props.disabled === true &&
     element(tree, "bloom.starting-recommendation.accept") === null, "Unavailable ordinary view must retain Retry while blocking duplicate acceptance and exit.");
   ui.hooks.unmount();

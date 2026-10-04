@@ -8,7 +8,8 @@ export type AcceptedStartingRecommendation = StartingRecommendationFacts & {
   productOnboarding: Extract<ProductOnboardingState, { status: "completed" }> & { planAcceptance: ProductPlanAcceptance };
 };
 export type StartingRecommendationView =
-  | { kind: "recommendation"; recommendation: Extract<ProductOnboardingState, { status: "completed" }>["result"]["recommendation"] }
+  | { kind: "recommendation"; recommendation: Extract<ProductOnboardingState, { status: "completed" }>["result"]["recommendation"];
+      result: Extract<ProductOnboardingState, { status: "completed" }>["result"] }
   | { kind: "unavailable" };
 
 export function sameStartingRecommendationFacts(left: StartingRecommendationFacts, right: StartingRecommendationFacts): boolean {
@@ -22,7 +23,7 @@ export function getStartingRecommendationView(state: Pick<StartingRecommendation
     normalizeProductOnboarding(state.productOnboarding);
     const onboarding = state.productOnboarding;
     return onboarding.status === "completed" && onboarding.planAcceptance === null
-      ? { kind: "recommendation", recommendation: onboarding.result.recommendation }
+      ? { kind: "recommendation", recommendation: onboarding.result.recommendation, result: onboarding.result }
       : { kind: "unavailable" };
   } catch {
     return { kind: "unavailable" };

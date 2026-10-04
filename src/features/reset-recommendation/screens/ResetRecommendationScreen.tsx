@@ -1,61 +1,101 @@
 import { StyleSheet, View } from "react-native";
+
 import type { TrackingResetRecommendationSignal } from "../../../domain/reset/getTrackingResetRecommendation";
-import { AppButton } from "../../../shared/components/AppButton";
-import { AppCard } from "../../../shared/components/AppCard";
-import { AppScreen } from "../../../shared/components/AppScreen";
-import { AppText } from "../../../shared/components/AppText";
-import { theme } from "../../../shared/design-system/theme";
+import { AppButton } from "../../../shared/components/v4/AppButton";
+import { AppCard } from "../../../shared/components/v4/AppCard";
+import { AppScreen } from "../../../shared/components/v4/AppScreen";
+import { AppText } from "../../../shared/components/v4/AppText";
+import { theme } from "../../../shared/design-system/v4/theme";
 import { useResetRecommendationFeature } from "../useResetRecommendationFeature";
 
 const signalLabels: Record<TrackingResetRecommendationSignal, string> = {
-  erectionQualityDownwardTrend: "Son üç kayıtta ereksiyon kalitesi önceki üç kayda göre daha düşük.",
-  repeatedFirmnessDecrease: "Son kayıtlarda sertlik azalması daha sık kaydedildi.",
-  recentExplicitContentPattern: "Son üç kaydın en az ikisinde açık içerik kullanımı kaydedildi."
+  erectionQualityDownwardTrend: "Son kayıtlarında ereksiyon kalitesi daha düşük seyrediyor.",
+  repeatedFirmnessDecrease: "Sertlik azalması son kayıtlarda daha sık görülüyor.",
+  recentExplicitContentPattern: "Son kayıtlarda açık içerik kullanımı tekrar ediyor."
 };
 const saveLabels = {
   loading: "Kayıtlar yükleniyor…", unavailable: "Kaydetme durumu kullanılamıyor", saving: "Bu cihaza kaydediliyor…",
-  saved: "Bu cihazda kayıtlı", unconfirmed: "Kaydetme henüz doğrulanmadı"
+  saved: "Bu cihaza kaydedildi", unconfirmed: "Kaydetme henüz doğrulanmadı"
 };
 
 export function ResetRecommendationScreen() {
   const feature = useResetRecommendationFeature();
   const { view, actions, locked } = feature;
+  const needsStatusPanel = feature.saveState !== "saved" || feature.message !== null || feature.canRetry;
+
   return (
-    <AppScreen>
-      <View testID="bloom.reset-recommendation" style={styles.stack}>
-        <AppText variant="heading" accessibilityRole="header">15-Day Reset</AppText>
-        <AppText testID="bloom.reset-recommendation.save-state" variant="bodySmall" tone="secondary" accessibilityLiveRegion="polite">
-          {saveLabels[feature.saveState]}
-        </AppText>
-        {feature.message !== null ? <AppText testID="bloom.reset-recommendation.message" tone="danger" accessibilityRole="alert">{feature.message}</AppText> : null}
-        {feature.canRetry ? <AppButton testID="bloom.reset-recommendation.retry" variant="secondary" disabled={feature.busy} onPress={actions.retry}>Yeniden kaydet</AppButton> : null}
+    <AppScreen scroll includeBottomNavClearance={false}>
+      <View testID="bloom.reset-recommendation" style={styles.page}>
+        <View style={styles.header}>
+          <AppText variant="overline" tone="accent">15-Day Reset</AppText>
+          <AppText variant="display" accessibilityRole="header">{view.kind === "unavailable" && !feature.recovery ? "Reset önerisi" : "Bir Reset dönemi değerlendirebilirsin"}</AppText>
+          <AppText variant="bodyLarge" tone="secondary">{view.kind === "trackingRecommendation"
+            ? "Son kayıtlarında birlikte görülen bazı değişimler nedeniyle 15 günlük Reset’i değerlendirebilirsin. Bu isteğe bağlı bir gözlemdir; tıbbi tanı değildir."
+            : "15 günlük Reset isteğe bağlıdır. Dönem henüz başlamadı; devam etmek istersen önce başlangıç sorularını tamamlarsın."}</AppText>
+        </View>
+        <View style={needsStatusPanel ? styles.statusPanel : styles.statusLine}>
+          <AppText testID="bloom.reset-recommendation.save-state" variant="bodySmall" tone={feature.saveState === "unconfirmed" ? "warning" : "secondary"} accessibilityLiveRegion="polite">{saveLabels[feature.saveState]}</AppText>
+          {feature.message !== null ? <AppText testID="bloom.reset-recommendation.message" tone="danger" accessibilityRole="alert">{feature.message}</AppText> : null}
+          {feature.canRetry ? <AppButton testID="bloom.reset-recommendation.retry" label="Yeniden kaydet" variant="secondary" disabled={feature.busy} onPress={actions.retry} /> : null}
+        </View>
+
         {feature.recovery ? (
-          <AppCard testID="bloom.reset-recommendation.recovery" style={styles.stack}>
-            <AppText>{feature.canContinue ? "Reset hazırlığın kaydedildi. Başlangıç sorularına devam edebilirsin." : "Başlangıç sorularına geçmeden önce kaydetmenin doğrulanması gerekiyor."}</AppText>
-            <AppButton testID="bloom.reset-recommendation.continue" disabled={!feature.canContinue || feature.busy} onPress={actions.continueAfterSave}>Devam et</AppButton>
+          <AppCard variant="hero" testID="bloom.reset-recommendation.recovery" style={styles.cardStack}>
+            <AppText variant="heading1">Sonraki adım</AppText>
+            <AppText tone="secondary">{feature.canContinue ? "Reset hazırlığın kaydedildi. Başlangıç sorularına devam edebilirsin." : "Başlangıç sorularına geçmeden önce kaydetmenin doğrulanması gerekiyor."}</AppText>
+            <AppButton testID="bloom.reset-recommendation.continue" label="Devam et" disabled={!feature.canContinue || feature.busy} onPress={actions.continueAfterSave} />
           </AppCard>
         ) : view.kind === "unavailable" ? (
-          <AppCard testID="bloom.reset-recommendation.unavailable"><AppText tone="secondary">Şu an değerlendirilecek bir Reset önerisi yok.</AppText></AppCard>
-        ) : (
-          <AppCard style={styles.stack}>
-            {view.kind === "trackingRecommendation" ? (
-              <View testID="bloom.reset-recommendation.evidence" style={styles.stack}>
-                <AppText>Son Tracking kayıtlarında değerlendirebileceğin bir örüntü var. Reset isteğe bağlı bir öneridir.</AppText>
-                <AppText testID="bloom.reset-recommendation.previous-quality">Önceki üç kaydın ortalama ereksiyon kalitesi: {view.recommendation.evidence.previousAverageErectionQuality.toFixed(1)}</AppText>
-                <AppText testID="bloom.reset-recommendation.recent-quality">Son üç kaydın ortalama ereksiyon kalitesi: {view.recommendation.evidence.recentAverageErectionQuality.toFixed(1)}</AppText>
-                <AppText testID="bloom.reset-recommendation.explicit-ratio">Son üç kayıtta açık içerik kullanım oranı: %{Math.round(view.recommendation.evidence.recentExplicitContentRatio * 100)}</AppText>
-                <AppText testID="bloom.reset-recommendation.interval">Son üç kaydın başlangıçları arasındaki ortalama süre: {(view.recommendation.evidence.recentAverageIntervalSeconds / 3600).toFixed(1)} saat</AppText>
-                {view.recommendation.signals.map((signal) => <AppText key={signal} testID={`bloom.reset-recommendation.signal.${signal}`}>{signalLabels[signal]}</AppText>)}
-              </View>
-            ) : <AppText testID="bloom.reset-recommendation.persisted">Kayıtlı bir Reset önerin var. İstersen başlangıç sorularına geçebilirsin.</AppText>}
-            <AppText tone="secondary">Devam etmek yalnızca Reset hazırlığını oluşturur. 15 günlük dönem başlangıç sorularını tamamladığında başlar.</AppText>
-            <AppButton testID="bloom.reset-recommendation.accept" disabled={locked} onPress={actions.accept}>Reset’i değerlendir</AppButton>
+          <AppCard variant="hero" testID="bloom.reset-recommendation.unavailable" style={styles.cardStack}>
+            <AppText variant="heading2">Şu an bir Reset önerisi gösterilemiyor</AppText>
+            <AppText tone="secondary">Kayıtların hazır olduğunda uygun bir öneri burada görünebilir.</AppText>
           </AppCard>
+        ) : (
+          <View style={styles.stack}>
+            {view.kind === "trackingRecommendation" ? (
+              <View style={styles.stack}>
+                <View style={styles.cardStack}>
+                  <AppText variant="heading2">Son kayıtlarında görülenler</AppText>
+                  {view.recommendation.signals.map((signal) => (
+                    <AppCard key={signal} testID={`bloom.reset-recommendation.signal.${signal}`} style={styles.signalCard}>
+                      <AppText>{signalLabels[signal]}</AppText>
+                    </AppCard>
+                  ))}
+                </View>
+                <AppCard testID="bloom.reset-recommendation.evidence" style={styles.cardStack}>
+                  <AppText variant="title">Tracking özeti</AppText>
+                  <AppText variant="bodySmall" tone="secondary">Son üç kayıt ve önceki üç kayıt üzerinden betimleyici bir özet.</AppText>
+                  <AppText testID="bloom.reset-recommendation.previous-quality" variant="bodySmall" tone="secondary">Önceki üç kaydın ortalama ereksiyon kalitesi: {view.recommendation.evidence.previousAverageErectionQuality.toFixed(1)}</AppText>
+                  <AppText testID="bloom.reset-recommendation.recent-quality" variant="bodySmall" tone="secondary">Son üç kaydın ortalama ereksiyon kalitesi: {view.recommendation.evidence.recentAverageErectionQuality.toFixed(1)}</AppText>
+                  <AppText testID="bloom.reset-recommendation.explicit-ratio" variant="bodySmall" tone="secondary">Son üç kayıtta açık içerik kullanım oranı: %{Math.round(view.recommendation.evidence.recentExplicitContentRatio * 100)}</AppText>
+                </AppCard>
+              </View>
+            ) : (
+              <AppCard testID="bloom.reset-recommendation.persisted" style={styles.cardStack}>
+                <AppText variant="heading2">Kaydedilmiş önerin</AppText>
+                <AppText tone="secondary">Daha önce kaydedilmiş bir Reset önerin var. İstersen başlangıç sorularına geçebilirsin.</AppText>
+              </AppCard>
+            )}
+            <AppCard variant="hero" style={styles.cardStack}>
+              <AppText variant="overline" tone="accent">KARAR SENİN</AppText>
+              <AppText variant="heading2">Hazırsan sonraki adıma geç</AppText>
+              <AppText tone="secondary">Devam ettiğinde dört başlangıç sorusuna geçersin. Reset bu sorular tamamlandıktan sonra başlar.</AppText>
+              <AppButton testID="bloom.reset-recommendation.accept" label="Reset’i değerlendir" disabled={locked} onPress={actions.accept} />
+            </AppCard>
+          </View>
         )}
-        <AppButton testID="bloom.reset-recommendation.close" variant="ghost" disabled={feature.saveState === "saving" || feature.saveState === "unconfirmed"} onPress={actions.close}>Kapat</AppButton>
+        <AppButton testID="bloom.reset-recommendation.close" label="Kapat" variant="ghost" disabled={feature.saveState === "saving" || feature.saveState === "unconfirmed"} onPress={actions.close} />
       </View>
     </AppScreen>
   );
 }
 
-const styles = StyleSheet.create({ stack: { gap: theme.spacing.lg } });
+const styles = StyleSheet.create({
+  page: { gap: theme.spacing.xl2, paddingBottom: theme.spacing.xl3 },
+  header: { gap: theme.spacing.md },
+  stack: { gap: theme.spacing.lg },
+  cardStack: { gap: theme.spacing.md },
+  signalCard: { minHeight: 64, justifyContent: "center" },
+  statusLine: { alignItems: "center" },
+  statusPanel: { gap: theme.spacing.sm, padding: theme.spacing.md, borderRadius: theme.radius.lg, backgroundColor: theme.colors.bg.surface }
+});
