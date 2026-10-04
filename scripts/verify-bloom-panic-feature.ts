@@ -256,12 +256,17 @@ function verifyScreen() {
     press(tree, "bloom.panic.slip"); tree = render(); oldStart();
     assert(Number(actions.length) === 1 && required(tree, "bloom.panic.slip.confirm").props.disabled === true,
       "Opening slip must disable unanswered confirmation and invalidate a retained triggered handler.");
-    equal(elements(tree).filter((item) => item.props.accessibilityRole === "radio").map((item) => [item.props.testID, item.props.children]), [
+    equal(elements(tree).filter((item) => item.props.accessibilityRole === "radio").map((item) => [item.props.testID, item.props.label]), [
       ["bloom.panic.slip.reason.masturbation", "Mastürbasyon"],
       ["bloom.panic.slip.reason.intentionalExplicitContent", "Açık içerik"],
       ["bloom.panic.slip.reason.masturbationWithExplicitContent", "İkisi de"]
     ], "Slip choices must expose exactly the existing semantic reasons and labels.");
     press(tree, `bloom.panic.slip.reason.${reason}`); tree = render();
+    const impact = getPanicView(entryState(), reason, at);
+    assert(impact.kind === "choices" &&
+      (element(tree, "bloom.panic.slip.preview.reset") !== null) === (impact.impact?.reset === "restart") &&
+      (element(tree, "bloom.panic.slip.preview.content-free") !== null) === (impact.impact?.contentFree === "resetStreak"),
+    "Slip preview must show only trackers affected by the canonical impact.");
     assert(required(tree, "bloom.panic.slip.confirm").props.disabled === false, "An affected canonical preview must permit explicit confirmation.");
     const oldConfirm = press(tree, "bloom.panic.slip.confirm");
     equal(actions, ["start", reason], "Slip confirmation must submit its selected semantic reason only.");
@@ -384,10 +389,13 @@ function compileScreen(source: string, hooks: ReturnType<typeof controlledHooks>
   const dependencies: Record<string, unknown> = {
     react: hooks.react, "react/jsx-runtime": { jsx, jsxs: jsx, Fragment: "Fragment" },
     "react-native": { View: "View", StyleSheet: { create: (styles: unknown) => styles } },
-    "../../../shared/design-system/theme": { theme: { spacing: { lg: 12 } } },
+    "../../../shared/design-system/v4/theme": { theme: {
+      spacing: { xl2: 32, xl3: 48, md: 16, lg: 20, sm: 12, xs: 8 },
+      radius: { lg: 14 }, colors: { bg: { surface: "surface" } }
+    } },
     "../usePanicFeature": { usePanicFeature: useFeature }
   };
-  for (const name of ["AppScreen", "AppCard", "AppText", "AppButton"]) dependencies[`../../../shared/components/${name}`] = { [name]: name };
+  for (const name of ["AppScreen", "AppCard", "AppText", "AppButton"]) dependencies[`../../../shared/components/v4/${name}`] = { [name]: name };
   return compileModule(source, dependencies).PanicScreen as () => Element;
 }
 function compileModule(source: string, dependencies: Record<string, unknown>, globals: Record<string, unknown> = {}) {

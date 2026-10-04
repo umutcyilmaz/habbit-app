@@ -345,8 +345,11 @@ function verifyScreensAndDraft() {
   const jsx = (type: unknown, props: Record<string, unknown>): Element => ({ type, props });
   const dependencies: Record<string, unknown> = { react: hooks.react, "react-native": { View: "View", StyleSheet: { create: (value: unknown) => value } },
     "react/jsx-runtime": { jsx, jsxs: jsx, Fragment: "Fragment" },
-    "../../../shared/design-system/theme": { theme: { spacing: { lg: 12 } } }, "../useUrgeControlFeature": { useUrgeControlFeature: () => feature } };
-  for (const name of ["AppButton", "AppCard", "AppScreen", "AppText"]) dependencies[`../../../shared/components/${name}`] = { [name]: name };
+    "../../../shared/design-system/v4/theme": { theme: {
+      spacing: { xl2: 32, xl3: 48, xs: 8, lg: 20, md: 16, sm: 12 },
+      radius: { lg: 14, pill: 9999 }, colors: { bg: { surface: "surface" } }
+    } }, "../useUrgeControlFeature": { useUrgeControlFeature: () => feature } };
+  for (const name of ["AppButton", "AppCard", "AppScreen", "AppText"]) dependencies[`../../../shared/components/v4/${name}`] = { [name]: name };
   const module = compile("src/features/urge-control/screens/UrgeControlResumeScreen.tsx", dependencies);
   const render = () => hooks.render(() => expand((module.UrgeControlResumeScreen as () => Element)()));
   let tree = render();
@@ -367,7 +370,23 @@ function verifyScreensAndDraft() {
   feature = { ...feature, view: getUrgeControlRouteView(initial().urgeControl, "urge-feature", at) }; tree = render();
   const interruptButton = nodes(tree).find((node) => node.props.testID === "bloom.urge.interrupt.complete");
   assert(interruptButton?.props.disabled === false, "Interrupt completion is available immediately without a 60-second UI lock.");
+  assert(ids(tree, "bloom.urge.interrupt.").includes("bloom.urge.interrupt.breathe") &&
+    ids(tree, "bloom.urge.interrupt.").includes("bloom.urge.interrupt.notice") &&
+    !nodes(tree).some((node) => node.type === "AppText" && /\d+\s*(?:\/\s*60|saniye)/.test(String(node.props.children))),
+  "Current interrupt must offer both local touch targets without a visible seconds target.");
   press(tree, "bloom.urge.interrupt.complete"); equal(submitted[4], ["completeInterrupt"], "Interrupt screen invokes only the existing completion command.");
+  urge = { activeEvent: { id: "urge-feature", flowVersion: 2, status: "active", startedAt: at,
+    interruptCompletedAt: at, outcome: "reduced", triggers: ["stress", "fatigue"] }, records: [] };
+  feature = { ...feature, view: getUrgeControlRouteView(urge, "urge-feature", at) }; tree = render();
+  const reviewText = nodes(tree).filter((node) => node.type === "AppText").map((node) => node.props.children);
+  assert(reviewText.includes("Dalga geçti") && reviewText.includes("Azaldı") && reviewText.includes("Stres, Yorgunluk"),
+    "Current final review must display the canonical outcome and selected trigger labels.");
+  press(tree, "bloom.urge.complete"); equal(submitted[5], ["complete"], "Final CTA invokes only the existing completion command.");
+  urge = { activeEvent: { id: "urge-feature", flowVersion: 2, status: "active", startedAt: at,
+    interruptCompletedAt: at, outcome: "reduced", triggers: [] }, records: [] };
+  feature = { ...feature, view: getUrgeControlRouteView(urge, "urge-feature", at) }; tree = render();
+  assert(nodes(tree).some((node) => node.type === "AppText" && node.props.children === "Tetikleyici seçilmedi"),
+    "An explicitly skipped trigger question must not invent a trigger on final review.");
   for (const [stage, extra, expected] of [
     ["technique", { interruptCompletedAt: at }, ["changeEnvironment", "grounding54321", "cognitiveTask", "urgeSurfing", "personalReminder"]],
     ["trigger", { interruptCompletedAt: at, selectedTechnique: "urgeSurfing", phoneAwayStartedAt: at, phoneAwayEndedAt: at, outcome: "reduced" }, ["boredom", "stress", "loneliness", "sleeplessnessNighttime", "sexualDesire", "habitAutomatic", "notSure"]]
