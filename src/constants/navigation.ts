@@ -1,7 +1,7 @@
 export const tabRoutes = [
   {
     name: "today",
-    title: "Today"
+    title: "Home"
   },
   {
     name: "log",

@@ -116,7 +116,7 @@ function SessionPage({ feature, title, testID, children }: PropsWithChildren<{ f
   return <AppScreen scroll includeBottomNavClearance={false}>
     <View testID={testID} style={styles.page}>
       <View style={styles.header}>
-        <View style={styles.headerText}><AppText variant="overline" tone="accent">MASTÜRBASYON TAKİBİ</AppText><AppText variant="heading2" accessibilityRole="header">{title}</AppText></View>
+        <View style={styles.headerText}><AppText variant="overline" tone="accent">MASTURBATION TRACKING</AppText><AppText variant="heading2" accessibilityRole="header">{title}</AppText></View>
         <AppButton testID="bloom.masturbation.close" label="Kapat" variant="ghost" style={styles.closeButton} disabled={feature.busy} onPress={feature.actions.close} />
       </View>
       {feature.busy || feature.message !== null || feature.canRetry ? <AppCard style={styles.cardStack}>
@@ -316,7 +316,7 @@ const styles = StyleSheet.create({
   progressSegmentActive: { backgroundColor: theme.colors.accent.primary },
   questionHeading: { gap: theme.spacing.sm },
   ratingGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", gap: theme.spacing.xs },
-  ratingChoice: { width: "17%", minHeight: theme.size.touch.min, borderRadius: theme.radius.md, borderColor: theme.colors.border.strong, borderWidth: theme.size.stroke.hairline, backgroundColor: theme.colors.bg.surface, alignItems: "center", justifyContent: "center" },
+  ratingChoice: { width: "22%", minWidth: theme.size.touch.min, minHeight: theme.size.touch.min, borderRadius: theme.radius.md, borderColor: theme.colors.border.strong, borderWidth: theme.size.stroke.hairline, backgroundColor: theme.colors.bg.surface, alignItems: "center", justifyContent: "center" },
   ratingChoiceSelected: { backgroundColor: theme.colors.action.primary, borderColor: theme.colors.border.accent },
   choiceRow: { flexDirection: "row", gap: theme.spacing.sm },
   contentChoice: { flex: 1, minHeight: theme.size.control.lg, borderRadius: theme.radius.lg, borderColor: theme.colors.border.strong, borderWidth: theme.size.stroke.hairline, backgroundColor: theme.colors.bg.surface, alignItems: "center", justifyContent: "center" },

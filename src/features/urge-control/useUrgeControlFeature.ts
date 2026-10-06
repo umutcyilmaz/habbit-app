@@ -53,7 +53,7 @@ export function useUrgeControlFeature() {
   persisted.current = (action, accepted) => {
     if (action !== "complete" && action !== "discardActive") return;
     try { navigateSaved(accepted); }
-    catch { setNavigationError("Kayıt kaydedildi. Today ekranını açmak için Devam et düğmesini kullanın."); }
+    catch { setNavigationError("Kayıt kaydedildi. Home ekranını açmak için Devam et düğmesini kullanın."); }
   };
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   useEffect(() => { setNavigationError(null); }, [controller]);
@@ -97,12 +97,12 @@ export function useUrgeControlFeature() {
       retry: () => invoke(controller.retry, true),
       continueAfterSave: () => {
         if (!mounted.current || currentController.current !== controller || controller.getSnapshot().busy || !canContinue || acceptedUrge === null) return;
-        try { navigateSaved(acceptedUrge); } catch { setNavigationError("Today açılamadı. Yeniden deneyin."); }
+        try { navigateSaved(acceptedUrge); } catch { setNavigationError("Home açılamadı. Yeniden deneyin."); }
       },
       closeUnavailable: () => {
         if (!mounted.current || currentController.current !== controller || locked || controller.getSnapshot().busy ||
           getAcceptedState().urgeControl !== urge || view.kind === "current" || view.kind === "legacy") return;
-        try { allowNavigation(); router.replace(routes.home); } catch { setNavigationError("Today açılamadı. Yeniden deneyin."); }
+        try { allowNavigation(); router.replace(routes.home); } catch { setNavigationError("Home açılamadı. Yeniden deneyin."); }
       }
     }
   };

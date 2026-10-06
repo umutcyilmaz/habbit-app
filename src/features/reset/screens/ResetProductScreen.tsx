@@ -79,7 +79,7 @@ function ResetContent({ mode, feature }: { mode: ResetMode; feature: ResetFeatur
         ) : (
           <>
             <AppButton testID="bloom.reset.panic" label="Panic" disabled={locked} onPress={actions.openPanic} />
-            <AppText variant="bodySmall" tone="secondary" style={styles.centerText}>Mastürbasyon Tracking yeni oturumlar için bu Reset boyunca beklemede.</AppText>
+            <AppText variant="bodySmall" tone="secondary" style={styles.centerText}>Masturbation Tracking yeni oturumlar için bu Reset boyunca beklemede.</AppText>
             <ManualViolationSection key={`${view.reset.id}:${view.reset.currentAttempt.id}`} locked={locked} onRecord={actions.recordViolation} />
           </>
         )}
@@ -146,9 +146,9 @@ function RecoveryCard({ feature }: { feature: ResetFeature }) {
   return (
     <AppCard variant="hero" testID="bloom.reset.recovery" style={styles.cardStack}>
       <AppText variant="heading1">Sonraki adım</AppText>
-      <AppText tone="secondary">{target === "today" ? "Bugün ekranına dönebilirsin." : "Güncel Reset ilerlemene devam edebilirsin."}</AppText>
+      <AppText tone="secondary">{target === "today" ? "Home ekranına dönebilirsin." : "Güncel Reset ilerlemene devam edebilirsin."}</AppText>
       {!feature.canContinue ? <AppText variant="bodySmall" tone="secondary">Devam etme seçeneği kayıt doğrulandığında açılır.</AppText> : null}
-      <AppButton testID="bloom.reset.continue" label={target === "today" ? "Bugün’e dön" : "Devam"} disabled={feature.locked || !feature.canContinue} onPress={feature.actions.continueAfterSave} />
+      <AppButton testID="bloom.reset.continue" label={target === "today" ? "Home’a dön" : "Devam"} disabled={feature.locked || !feature.canContinue} onPress={feature.actions.continueAfterSave} />
     </AppCard>
   );
 }

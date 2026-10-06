@@ -49,7 +49,7 @@ export function BloomHomeScreen() {
       {isResetFirst ? <ContentFreeCard tracker={contentFreeTracker} onOpen={feature.openContentFree} /> : null}
       {model.trackingAvailability.enabled ? <TrackingCard model={model} summary={feature.tracking} onAction={feature.openAction} restrained={isResetFirst} /> : null}
       {!isResetFirst ? <ContentFreeCard tracker={contentFreeTracker} onOpen={feature.openContentFree} /> : null}
-      {!isResetFirst ? <AppButton testID="bloom.home.panic" label="Panic button" variant="secondary" onPress={feature.openPanic} /> : null}
+      {!isResetFirst ? <AppButton testID="bloom.home.panic" label="Panic" variant="secondary" onPress={feature.openPanic} /> : null}
       {model.resetRecommendationAction !== null && model.primaryAction?.id !== "reviewResetRecommendation" ? (
         <AppCard testID="bloom.home.reset-recommendation" style={styles.card}>
           <AppText variant="title">Reset önerisi</AppText>
@@ -88,10 +88,10 @@ function ResetCard({ model, onAction, onPanic }: { model: BloomHomeReadModel; on
         <AppText testID="bloom.home.reset.current-day" style={styles.bigNumber}>{progress.currentDay}</AppText>
         <AppText variant="heading2" tone="secondary">/ 15 gün</AppText>
       </View>
-      <View testID="bloom.home.reset.progress" accessibilityLabel={`${progress.currentDay} / 15 gün`} style={styles.dots}>
+      <View testID="bloom.home.reset.progress" accessible accessibilityLabel={`${progress.currentDay} / 15 gün`} style={styles.dots}>
         {Array.from({ length: 15 }, (_, index) => <View key={index} style={[styles.dot, index < progress.currentDay ? styles.dotActive : null]} />)}
       </View>
-      <AppButton testID="bloom.home.panic" label="Panic button" onPress={onPanic} />
+      <AppButton testID="bloom.home.panic" label="Panic" onPress={onPanic} />
       {action !== null ? <AppButton testID="bloom.home.reset.action" label="Reset'i görüntüle" variant="ghost" onPress={() => onAction(action)} /> : null}
     </AppCard>
   );
@@ -103,7 +103,7 @@ function ContentFreeCard({ tracker, onOpen }: { tracker: ContentFreeHomeTracker 
       <AppText variant="overline" tone="accent">CONTENT-FREE</AppText>
       {tracker === null ? (
         <>
-          <AppText variant="heading1">Porn-free sayacı</AppText>
+          <AppText variant="heading1">Content-Free sayacı</AppText>
           <AppText tone="secondary">İkinci bir sayaç · takibin devam eder</AppText>
           <AppButton testID="bloom.home.content-free.action" label="Sayacını başlat" variant="secondary" onPress={onOpen} />
         </>
@@ -127,7 +127,7 @@ function TrackingCard({ model, summary, onAction, restrained }: { model: BloomHo
     <AppCard testID="bloom.home.tracking" variant="hero" style={[styles.card, restrained ? styles.restrained : null]}>
       <View style={styles.rowBetween}>
         <AppText variant="overline" tone={restrained ? "muted" : "primary"}>MASTURBATION TRACKING</AppText>
-        {restrained ? <AppText variant="labelSmall" tone="secondary" style={styles.badge}>Donduruldu</AppText> : null}
+        {restrained ? <AppText variant="labelSmall" tone="secondary" style={styles.badge}>Reset boyunca beklemede</AppText> : null}
       </View>
       <View style={styles.metrics}>
         <View style={styles.metric}><AppText tone="secondary">Ortalama aralık</AppText><AppText testID="bloom.home.tracking.average-interval" variant="heading1">{formatAverageInterval(summary.averageIntervalSeconds)}</AppText></View>
@@ -142,18 +142,18 @@ function TrackingCard({ model, summary, onAction, restrained }: { model: BloomHo
 const styles = StyleSheet.create({
   page: { gap: theme.spacing.lg },
   header: { gap: theme.spacing.xs, marginBottom: theme.spacing.sm },
-  greeting: { fontSize: 32, lineHeight: 40 },
+  greeting: { fontSize: theme.typography.numericTimer.fontSize, lineHeight: theme.typography.numericTimer.lineHeight },
   card: { gap: theme.spacing.lg },
   attention: { gap: theme.spacing.md, borderColor: theme.colors.border.accent },
   resetCard: { borderColor: theme.colors.accent.primary, borderWidth: 1.5 },
-  rowBetween: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: theme.spacing.sm },
+  rowBetween: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: theme.spacing.sm },
   bigValueRow: { flexDirection: "row", alignItems: "baseline", gap: theme.spacing.md },
   bigNumber: { color: theme.colors.text.primary, fontSize: 48, lineHeight: 58, fontFamily: theme.typography.display.fontFamily },
-  dots: { flexDirection: "row", gap: 5, overflow: "hidden" },
-  dot: { height: 12, flex: 1, borderRadius: 6, backgroundColor: theme.colors.bg.surfaceElevated },
+  dots: { flexDirection: "row", gap: theme.spacing.xs2 },
+  dot: { height: theme.spacing.sm, flex: 1, minWidth: 0, borderRadius: theme.radius.pill, backgroundColor: theme.colors.bg.surfaceElevated },
   dotActive: { backgroundColor: theme.colors.accent.primary },
-  metrics: { flexDirection: "row", gap: theme.spacing.sm },
-  metric: { flex: 1, minWidth: 0, minHeight: 100, padding: theme.spacing.md, borderRadius: theme.radius.lg, backgroundColor: theme.colors.bg.surfaceElevated, gap: theme.spacing.md },
-  restrained: { opacity: 0.55 },
-  badge: { backgroundColor: theme.colors.bg.surfaceElevated, borderRadius: theme.radius.lg, paddingHorizontal: theme.spacing.sm, paddingVertical: theme.spacing.xs }
+  metrics: { flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.sm },
+  metric: { flexGrow: 1, flexBasis: 120, minWidth: 0, minHeight: 100, padding: theme.spacing.md, borderRadius: theme.radius.lg, backgroundColor: theme.colors.bg.surfaceElevated, gap: theme.spacing.md },
+  restrained: { backgroundColor: theme.colors.bg.surface },
+  badge: { alignSelf: "flex-start", backgroundColor: theme.colors.bg.surfaceElevated, borderRadius: theme.radius.lg, paddingHorizontal: theme.spacing.sm, paddingVertical: theme.spacing.xs }
 });

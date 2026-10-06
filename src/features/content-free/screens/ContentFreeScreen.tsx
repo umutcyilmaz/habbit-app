@@ -31,7 +31,7 @@ export function ContentFreeScreen() {
         <View style={styles.header}>
           <View style={styles.headerText}>
             <AppText variant="overline" tone="accent">CONTENT-FREE</AppText>
-            <AppText variant="heading2" accessibilityRole="header">Porn-free sayacı</AppText>
+            <AppText variant="heading2" accessibilityRole="header">Content-Free sayacı</AppText>
           </View>
           <AppButton testID="bloom.content-free.close" label="Kapat" variant="ghost" style={styles.closeButton} disabled={busy} onPress={actions.close} />
         </View>
@@ -249,6 +249,6 @@ const styles = StyleSheet.create({
   centerText: { textAlign: "center" },
   newStreakBadge: { backgroundColor: theme.colors.bg.successSubtle, borderColor: theme.colors.border.success, borderWidth: theme.size.stroke.hairline, borderRadius: theme.radius.pill, paddingHorizontal: theme.spacing.md, paddingVertical: theme.spacing.xs },
   statRow: { flexDirection: "row", gap: theme.spacing.sm },
-  statCard: { flex: 1, width: "auto", gap: theme.spacing.sm },
+  statCard: { flex: 1, minWidth: 0, width: "auto", gap: theme.spacing.sm },
   historyList: { gap: theme.spacing.sm }
 });

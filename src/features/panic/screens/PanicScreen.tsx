@@ -70,7 +70,7 @@ export function PanicScreen() {
           <AppCard variant="hero" testID="bloom.panic.recovery" style={styles.cardStack}>
             <AppText variant="heading1">Sonraki adım</AppText>
             <AppText tone="secondary">{feature.canContinue ? "Kaydın kaydedildi. Devam edebilirsin." : "Devam etmeden önce kaydetmenin doğrulanması gerekiyor."}</AppText>
-            <AppButton testID="bloom.panic.continue" label={feature.recoveryTarget === "today" ? "Bugüne dön" : "Devam et"} disabled={!feature.canContinue || feature.busy} onPress={actions.continueAfterSave} />
+            <AppButton testID="bloom.panic.continue" label={feature.recoveryTarget === "today" ? "Home’a dön" : "Devam et"} disabled={!feature.canContinue || feature.busy} onPress={actions.continueAfterSave} />
           </AppCard>
         ) : view.kind === "resume" ? (
           <AppCard variant="hero" style={styles.cardStack}>

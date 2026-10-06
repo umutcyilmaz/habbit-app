@@ -27,7 +27,7 @@ export function ResetRecommendationScreen() {
     <AppScreen scroll includeBottomNavClearance={false}>
       <View testID="bloom.reset-recommendation" style={styles.page}>
         <View style={styles.header}>
-          <AppText variant="overline" tone="accent">15-Day Reset</AppText>
+          <AppText variant="overline" tone="accent">15-DAY RESET</AppText>
           <AppText variant="display" accessibilityRole="header">{view.kind === "unavailable" && !feature.recovery ? "Reset önerisi" : "Bir Reset dönemi değerlendirebilirsin"}</AppText>
           <AppText variant="bodyLarge" tone="secondary">{view.kind === "trackingRecommendation"
             ? "Son kayıtlarında birlikte görülen bazı değişimler nedeniyle 15 günlük Reset’i değerlendirebilirsin. Bu isteğe bağlı bir gözlemdir; tıbbi tanı değildir."

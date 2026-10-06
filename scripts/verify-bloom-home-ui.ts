@@ -23,9 +23,9 @@ const compiled = ts.transpileModule(screenSource, { fileName: screenPath, compil
 } });
 const module_ = { exports: {} as Record<string, unknown> };
 const theme = {
-  spacing: { xs: 8, sm: 12, md: 16, lg: 20, xl: 24, layout: { navClearance: 88 } },
-  colors: { border: { accent: "blue" }, accent: { primary: "blue" }, text: { primary: "white" }, bg: { surfaceElevated: "gray" } },
-  radius: { lg: 16 }, typography: { display: { fontFamily: "Inter" } }
+  spacing: { xs2: 4, xs: 8, sm: 12, md: 16, lg: 20, xl: 24, layout: { navClearance: 88 } },
+  colors: { border: { accent: "blue" }, accent: { primary: "blue" }, text: { primary: "white" }, bg: { surface: "dark", surfaceElevated: "gray" } },
+  radius: { lg: 16, pill: 999 }, typography: { display: { fontFamily: "Inter" }, numericTimer: { fontSize: 32, lineHeight: 40 } }
 };
 const jsx = (type: Tree["type"], props: Record<string, unknown>): Tree => ({ type, props });
 const required = (name: string): unknown => {
@@ -136,7 +136,7 @@ assert(reset.entries.findIndex((n) => n.props.testID === "bloom.home.reset") <
   reset.entries.findIndex((n) => n.props.testID === "bloom.home.content-free") &&
   reset.entries.findIndex((n) => n.props.testID === "bloom.home.content-free") <
   reset.entries.findIndex((n) => n.props.testID === "bloom.home.tracking"), "Reset composition order must match reference.");
-assert(reset.text().includes("Donduruldu") && !reset.id("bloom.home.tracking.action") &&
+assert(reset.text().includes("Reset boyunca beklemede") && !reset.id("bloom.home.tracking.action") &&
   resetState.masturbationTracking.enabled, "Reset restrains Tracking presentation without changing enabled state.");
 reset.press("bloom.home.reset.action");
 assert((reset.calls[0] as { id: string }).id === "viewActiveReset", "Reset action must retain canonical identity.");

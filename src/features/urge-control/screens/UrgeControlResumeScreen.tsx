@@ -133,7 +133,7 @@ export function UrgeControlResumeScreen() {
                     </View>
                   )}
                 </AppCard>
-                <AppButton testID="bloom.urge.complete" label="Anasayfaya dön" disabled={locked} onPress={actions.complete} />
+                <AppButton testID="bloom.urge.complete" label="Home’a dön" disabled={locked} onPress={actions.complete} />
               </View>
             ) : null}
             <AppButton testID="bloom.urge.discard" label="Çık ve bu kaydı bırak" variant="ghost" disabled={locked} onPress={actions.discardActive} />
@@ -141,7 +141,7 @@ export function UrgeControlResumeScreen() {
         ) : (
           <AppCard variant="hero" style={styles.cardStack}>
             <AppText testID="bloom.urge.unavailable" variant="heading2">{feature.saveState === "loading" ? "Kayıt yükleniyor." : "Bu bağlantı için devam edilebilecek bir kayıt bulunamadı."}</AppText>
-            <AppButton testID="bloom.urge.close" label="Bugün ekranına dön" variant="ghost" disabled={locked} onPress={actions.closeUnavailable} />
+            <AppButton testID="bloom.urge.close" label="Home’a dön" variant="ghost" disabled={locked} onPress={actions.closeUnavailable} />
           </AppCard>
         )}
       </View>
@@ -189,12 +189,12 @@ const styles = StyleSheet.create({
   cardStack: { gap: theme.spacing.md },
   statusLine: { alignItems: "center" },
   statusPanel: { gap: theme.spacing.sm, padding: theme.spacing.md, borderRadius: theme.radius.lg, backgroundColor: theme.colors.bg.surface },
-  circleRow: { flexDirection: "row", justifyContent: "center", gap: theme.spacing.md },
-  circleButton: { width: 116, height: 116, borderRadius: theme.radius.pill, paddingHorizontal: theme.spacing.sm },
+  circleRow: { flexDirection: "row", justifyContent: "center", gap: theme.spacing.md, width: "100%" },
+  circleButton: { flex: 1, width: "auto", maxWidth: 116, aspectRatio: 1, borderRadius: theme.radius.pill, paddingHorizontal: theme.spacing.sm },
   centerText: { textAlign: "center" },
   choiceList: { gap: theme.spacing.sm },
   triggerGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", gap: theme.spacing.xs },
-  triggerChoice: { width: "48%", paddingHorizontal: theme.spacing.sm },
+  triggerChoice: { flexGrow: 1, flexBasis: 132, width: "auto", paddingHorizontal: theme.spacing.sm },
   reviewHero: { alignItems: "center", gap: theme.spacing.md },
   summaryRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: theme.spacing.md }
 });

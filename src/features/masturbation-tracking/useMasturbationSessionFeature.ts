@@ -63,7 +63,7 @@ export function useMasturbationSessionFeature(mode: "start" | "active" | "feedba
         navigateSession(sessionId);
       }
     } catch {
-      setNavigationError("Your change was saved, but this screen could not close. Use Continue or Back to Today.");
+      setNavigationError("Değişikliğin kaydedildi ancak ekran kapatılamadı. Kapat veya Devam et düğmesini yeniden deneyebilirsin.");
     }
   };
 
