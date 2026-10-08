@@ -1290,10 +1290,11 @@ async function verifyPersistenceUiRegressions() {
     "utf8"
   );
   assert(
-    indexSource.includes("const { durableState } = useBloomLocalState();") &&
-      indexSource.includes("if (!durableState.onboarding.completed)") &&
-      !indexSource.includes("const { state } = useBloomLocalState();"),
-    "The root journey redirect must read durable onboarding state, never accepted-only state."
+    indexSource.includes("const { durableState, hydrationStatus } = useBloomLocalState();") &&
+      indexSource.includes('hydrationStatus !== "ready"') &&
+      indexSource.includes("productOnboardingEntryRoute(durableState.productOnboarding)") &&
+      !indexSource.includes("durableState.onboarding.completed"),
+    "The root entry redirect must wait for hydration and read durable product onboarding state."
   );
 
   const mainPracticeSource = readFileSync(

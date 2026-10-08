@@ -1,3 +1,3 @@
-import { OnboardingIntroScreen } from "../../src/features/onboarding/screens/OnboardingIntroScreen";
+import { ProductOnboardingIntroScreen } from "../../src/features/product-onboarding/ProductOnboardingIntroScreen";
 
-export default OnboardingIntroScreen;
+export default ProductOnboardingIntroScreen;

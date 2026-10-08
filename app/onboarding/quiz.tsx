@@ -1,3 +1,3 @@
-import { OnboardingQuizScreen } from "../../src/features/onboarding/screens/OnboardingQuizScreen";
+import { ProductOnboardingQuizScreen } from "../../src/features/product-onboarding/ProductOnboardingQuizScreen";
 
-export default OnboardingQuizScreen;
+export default ProductOnboardingQuizScreen;
