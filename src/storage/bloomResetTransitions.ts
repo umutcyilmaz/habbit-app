@@ -1,3 +1,5 @@
+import { reconcileResetContentFreeCredit } from "./bloomResetContentFreeContinuity";
+import { getContentFreeStreakSeconds } from "../domain/contentFree/getContentFreeStreakSeconds";
 import type { BehaviorEventSource } from "../domain/models/BehaviorEventSource";
 import type { ContentFreeState } from "../domain/models/ContentFreeState";
 import type { CurrentResetBaselineSelfReport } from "../domain/models/ResetBaseline";
@@ -156,7 +158,7 @@ export function recordActiveResetViolationState(
           currentStreakStartedAt: contentFree.currentStreakStartedAt,
           bestStreakSeconds: contentFree.bestStreakSeconds
         };
-        const elapsedSeconds = Math.floor((Date.parse(occurredAt) - Date.parse(streakBefore.currentStreakStartedAt)) / 1000);
+        const elapsedSeconds = getContentFreeStreakSeconds(contentFree, streakBefore.currentStreakStartedAt, occurredAt);
         const updated: ContentFreeState = {
           ...contentFree,
           currentStreakStartedAt: occurredAt,
@@ -240,7 +242,7 @@ export function undoActiveResetViolationState(
         entry.status === "recorded" && entry.activationId === violation.activationId);
       if (effectiveContent[effectiveContent.length - 1] !== violation ||
         effectiveContent.some((entry) => Date.parse(entry.occurredAt) > Date.parse(violation.occurredAt))) return state;
-      const endedSeconds = Math.floor((Date.parse(violation.occurredAt) - Date.parse(violation.streakBefore.currentStreakStartedAt)) / 1000);
+      const endedSeconds = getContentFreeStreakSeconds(contentFree, violation.streakBefore.currentStreakStartedAt, violation.occurredAt, violation.activationId, violation.id);
       if (contentFree.bestStreakSeconds !== Math.max(violation.streakBefore.bestStreakSeconds, endedSeconds)) return state;
       contentFree = {
         ...contentFree,
@@ -259,6 +261,8 @@ export function undoActiveResetViolationState(
       violations: reset.violations.map((violation) => violation === target ? { ...violation, status: "undone", undoneAt } : violation)
     };
     normalizeResetJourney(resetJourney);
+    contentFree = reconcileResetContentFreeCredit(contentFree, resetJourney);
+    normalizeContentFree(contentFree);
     return { ...state, resetJourney, contentFree };
   } catch {
     return state;

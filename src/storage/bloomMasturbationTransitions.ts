@@ -1,3 +1,4 @@
+import { getContentFreeStreakSeconds } from "../domain/contentFree/getContentFreeStreakSeconds";
 import type { ContentFreeState } from "../domain/models/ContentFreeState";
 import type { CompletedMasturbationPause, MasturbationSessionFeedback } from "../domain/models/MasturbationSession";
 import type { CompletedMasturbationSession, MasturbationTrackingState } from "../domain/models/MasturbationTrackingState";
@@ -171,7 +172,7 @@ export function completeMasturbationSessionFeedbackState(
         const updated: ContentFreeState = {
           ...contentFree,
           currentStreakStartedAt: occurredAt,
-          bestStreakSeconds: Math.max(contentFree.bestStreakSeconds, elapsedSeconds(contentFree.currentStreakStartedAt, occurredAt)),
+          bestStreakSeconds: Math.max(contentFree.bestStreakSeconds, getContentFreeStreakSeconds(contentFree, contentFree.currentStreakStartedAt, occurredAt)),
           violations: [...contentFree.violations, {
             id: violationId,
             activationId: contentFree.activationId,

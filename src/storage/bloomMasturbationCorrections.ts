@@ -1,3 +1,4 @@
+import { getContentFreeStreakSeconds } from "../domain/contentFree/getContentFreeStreakSeconds";
 import type { ContentFreeState, ContentFreeViolation } from "../domain/models/ContentFreeState";
 import type { MasturbationSessionFeedback } from "../domain/models/MasturbationSession";
 import type { CompletedMasturbationSession } from "../domain/models/MasturbationTrackingState";
@@ -111,7 +112,7 @@ function addOrReapplyViolation(
     return {
       ...content,
       currentStreakStartedAt: linked.occurredAt,
-      bestStreakSeconds: Math.max(content.bestStreakSeconds, elapsedSeconds(content.currentStreakStartedAt, linked.occurredAt)),
+      bestStreakSeconds: Math.max(content.bestStreakSeconds, getContentFreeStreakSeconds(content, content.currentStreakStartedAt, linked.occurredAt)),
       violations: content.violations.map((entry) => entry === linked ? reapplied : entry)
     };
   }
@@ -124,7 +125,7 @@ function addOrReapplyViolation(
   return {
     ...content,
     currentStreakStartedAt: session.endedAt,
-    bestStreakSeconds: Math.max(content.bestStreakSeconds, elapsedSeconds(content.currentStreakStartedAt, session.endedAt)),
+    bestStreakSeconds: Math.max(content.bestStreakSeconds, getContentFreeStreakSeconds(content, content.currentStreakStartedAt, session.endedAt)),
     violations: [...content.violations, {
       id: violationId,
       activationId: content.activationId,
@@ -166,7 +167,7 @@ function undoSessionViolation(
   if (effective[effective.length - 1] !== linked ||
     effective.some((entry) => Date.parse(entry.occurredAt) > Date.parse(linked.occurredAt)) ||
     effective.some((entry) => entry !== linked && Date.parse(entry.occurredAt) > Date.parse(linked.streakBefore.currentStreakStartedAt))) return null;
-  const endedSeconds = elapsedSeconds(linked.streakBefore.currentStreakStartedAt, linked.occurredAt);
+  const endedSeconds = getContentFreeStreakSeconds(content, linked.streakBefore.currentStreakStartedAt, linked.occurredAt, linked.activationId, linked.id);
   if (content.bestStreakSeconds !== Math.max(linked.streakBefore.bestStreakSeconds, endedSeconds)) return null;
   return {
     ...content,
@@ -197,10 +198,6 @@ function findSessionViolation(content: ContentFreeState, sessionId: UUID): Conte
 
 function sameFeedback(left: MasturbationSessionFeedback, right: MasturbationSessionFeedback): boolean {
   return left.erectionQuality === right.erectionQuality && left.usedExplicitContent === right.usedExplicitContent && left.endingReason === right.endingReason;
-}
-
-function elapsedSeconds(startedAt: ISODateString, endedAt: ISODateString): number {
-  return Math.floor((Date.parse(endedAt) - Date.parse(startedAt)) / 1000);
 }
 
 function hasFields(value: unknown, required: readonly string[], optional: readonly string[] = []): boolean {

@@ -20,6 +20,7 @@ import type {
   UrgeControlEvent,
   UrgeControlState
 } from "../domain/models";
+import type { ResetContentFreeCredit } from "../domain/models/ContentFreeState";
 import { isValidBloomIsoTimestamp } from "./bloomValueValidation";
 
 const endingReasons = [
@@ -160,7 +161,7 @@ export function normalizeContentFree(value: unknown): ContentFreeState {
   };
   let state: ContentFreeState;
   if (status === "inactive") {
-    absent(record, ["activationId", "activatedAt", "currentStreakStartedAt"], path);
+    absent(record, ["activationId", "activatedAt", "currentStreakStartedAt", "resetCredit"], path);
     state = { status, ...history };
   } else {
     const activatedAt = timestamp(record.activatedAt, `${path}.activatedAt`);
@@ -171,7 +172,8 @@ export function normalizeContentFree(value: unknown): ContentFreeState {
       status,
       activationId: identityString(record.activationId, `${path}.activationId`),
       activatedAt,
-      currentStreakStartedAt
+      currentStreakStartedAt,
+      ...normalizeOptionalResetCredit(record, activatedAt, path)
     };
   }
   const activations: Array<{ id: string; startedAt: string; endedAt?: string }> = [...state.pastActivations];
@@ -180,6 +182,12 @@ export function normalizeContentFree(value: unknown): ContentFreeState {
   }
   uniqueIds(activations, `${path}.activations`);
   nonOverlapping(activations, `${path}.activations`);
+  for (const activation of [...state.pastActivations, ...(state.status === "active" ? [{ id: state.activationId, startedAt: state.activatedAt, resetCredit: state.resetCredit }] : [])]) {
+    if (activation.resetCredit === undefined) continue;
+    ensure(state.bestStreakSeconds >= activation.resetCredit.bestStreakSecondsBefore, path, "cannot lose pre-credit historical best");
+    // Credit describes independently verified Reset time, not an extension of
+    // the real activation interval. Archived durations are never added to it.
+  }
   uniqueIds(state.violations, `${path}.violations`);
   uniqueSources(state.violations, `${path}.violations`);
   for (const violation of state.violations) {
@@ -199,7 +207,21 @@ function normalizeActivation(value: unknown, path: string): CompletedContentFree
   const startedAt = timestamp(record.startedAt, `${path}.startedAt`);
   const endedAt = timestamp(record.endedAt, `${path}.endedAt`);
   notBefore(endedAt, startedAt, `${path}.endedAt`);
-  return { id: identityString(record.id, `${path}.id`), startedAt, endedAt };
+  return { id: identityString(record.id, `${path}.id`), startedAt, endedAt, ...normalizeOptionalResetCredit(record, startedAt, path) };
+}
+
+function normalizeOptionalResetCredit(record: Record<string, unknown>, activatedAt: string, path: string): { resetCredit?: ResetContentFreeCredit } {
+  // Old v7 activations have no credit. Absence means exactly zero; no history
+  // is inferred or rewritten during hydration.
+  if (!Object.prototype.hasOwnProperty.call(record, "resetCredit")) return {};
+  const credit = object(record.resetCredit, `${path}.resetCredit`);
+  ensure(Object.keys(credit).length === 4 && Object.keys(credit).every((key) =>
+    ["resetJourneyId", "earnedStartedAt", "earnedUntil", "bestStreakSecondsBefore"].includes(key)), path, "has invalid credit fields");
+  const earnedStartedAt = timestamp(credit.earnedStartedAt, `${path}.resetCredit.earnedStartedAt`);
+  const earnedUntil = timestamp(credit.earnedUntil, `${path}.resetCredit.earnedUntil`);
+  ensure(Date.parse(earnedUntil) > Date.parse(earnedStartedAt), path, "requires positive earned time");
+  notBefore(activatedAt, earnedUntil, `${path}.resetCredit.earnedUntil`);
+  return { resetCredit: { bestStreakSecondsBefore: nonnegativeInteger(credit.bestStreakSecondsBefore, `${path}.resetCredit.bestStreakSecondsBefore`), resetJourneyId: identityString(credit.resetJourneyId, `${path}.resetCredit.resetJourneyId`), earnedStartedAt, earnedUntil } };
 }
 
 function normalizeContentViolation(value: unknown, path: string): ContentFreeViolation {
@@ -306,6 +328,16 @@ export function normalizeResetJourney(
         journey = { ...finished, status };
       }
     }
+  }
+  if (Object.prototype.hasOwnProperty.call(record, "contentFreeContinuation")) {
+    ensure(journey.status === "completed", path, "requires completed Reset for a continuation decision");
+    const decision = object(record.contentFreeContinuation, `${path}.contentFreeContinuation`);
+    ensure(Object.keys(decision).length === 2, path, "has invalid continuation decision fields");
+    const decidedAt = timestamp(decision.decidedAt, `${path}.contentFreeContinuation.decidedAt`);
+    notBefore(decidedAt, journey.completedAt, `${path}.contentFreeContinuation.decidedAt`);
+    journey = { ...journey, contentFreeContinuation: {
+      decision: choice(decision.decision, ["accepted", "declined"], `${path}.contentFreeContinuation.decision`), decidedAt
+    } };
   }
   validateResetReferences(journey, path);
   return journey;

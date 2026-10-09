@@ -1,3 +1,7 @@
+import { getResetContentFreeContinuationOffer } from "../src/domain/contentFree/getResetContentFreeCredit";
+import { getBloomContentFreeEntryIntent } from "../src/app/flows/getBloomContentFreeEntryIntent";
+import { createResetContinuityFixture } from "./fixtures/resetContinuity";
+import { completeElapsedResetPeriodState } from "../src/storage/bloomState";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -67,7 +71,7 @@ function render(state: BloomLocalState, clock = at, activationOverrides: Partial
   const trackingActivation = { busy: false, locked: false, canRetry: false, message: null,
     enable: () => calls.push("enableTracking"), retry: () => calls.push("retryTracking"), ...activationOverrides };
   currentFeature = { hydrationStatus: "ready", model, tracking: getTrackingSummary(state.masturbationTracking, clock),
-    contentFree: state.contentFree, openAction: (action: unknown) => calls.push(action),
+    contentFreeContinuation: getResetContentFreeContinuationOffer(state, state), contentFree: state.contentFree, openAction: (action: unknown) => calls.push(action),
     openContentFree: () => calls.push("contentFree"), openPanic: () => calls.push("panic"), trackingActivation };
   const entries = nodes(BloomHomeScreen());
   return { model, entries, calls,
@@ -229,6 +233,16 @@ assert(advised.model.primaryAction?.id === "startMasturbationSession" && advised
   "Optional derived Reset advice must coexist with ordinary Tracking.");
 advised.press("bloom.home.reset-recommendation.action");
 assert((advised.calls[0] as { id: string }).id === "reviewResetRecommendation", "Optional advice must navigate by semantic action.");
+
+const continuityFixture = createResetContinuityFixture();
+const pendingReset = completeElapsedResetPeriodState(continuityFixture.state, { observedAt: continuityFixture.observeDays(20) });
+const pendingHome = render(pendingReset, continuityFixture.observeDays(20));
+assert(pendingHome.id("bloom.home.content-free.action")?.props.label === "Reset serinle devam et" && !pendingHome.text().includes("Sayacını başlat"),
+  "Home's inactive Content-Free card must guide to continuation while the decision is pending.");
+assert(getBloomContentFreeEntryIntent(pendingReset, continuityFixture.observeDays(20)).flow === "resetCompletion",
+  "The Home Content-Free entry intent must preserve the acknowledged continuation route.");
+assert(hookSource.includes("getBloomContentFreeEntryIntent(durableState, new Date().toISOString())"),
+  "Home must use the durable continuation-aware entry intent for its Content-Free action.");
 
 currentFeature = { hydrationStatus: "loading", model: null };
 assert(nodes(BloomHomeScreen()).some((n) => n.props.testID === "bloom.home.loading"), "Pending hydration gets loading state.");

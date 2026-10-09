@@ -62,6 +62,21 @@ function ResetContent({ mode, feature }: { mode: ResetMode; feature: ResetFeatur
   const { view, locked, actions } = feature;
   // An accepted operation may change the attempt before the old route updates.
   // The exact accepted successor retains retry/continue controls here.
+  if (mode === "completion" && view.kind === "completed" && feature.continuationOffer) return (
+    <AppCard variant="hero" testID="bloom.reset.content-free-offer" style={styles.cardStack}>
+      <AppText variant="heading1">15 günlük Reset'i tamamladın!</AppText>
+      <AppText tone="secondary">Bu dönemde açık içerikten uzak kaldığın süreyi Content-Free ile devam ettirebilirsin.</AppText>
+      <AppText testID="bloom.reset.content-free.credit" tone="secondary">{feature.continuationOffer.completedDays} tamamlanmış gün</AppText>
+      <AppButton testID="bloom.reset.content-free.accept" label={feature.continuationOffer.primaryLabel} disabled={locked} onPress={() => actions.decideContinuation("accepted")} />
+      <AppButton testID="bloom.reset.content-free.decline" label="Şimdilik değil" variant="secondary" disabled={locked} onPress={() => actions.decideContinuation("declined")} />
+    </AppCard>
+  );
+  if (mode === "completion" && view.kind === "completed" && feature.recoveryTarget === null) return (
+    <AppCard variant="hero" style={styles.cardStack}>
+      <AppText variant="heading1">Reset tamamlandı</AppText>
+      <AppButton label="Home’a dön" disabled={locked} onPress={actions.close} />
+    </AppCard>
+  );
   if (feature.recoveryTarget !== null) return <RecoveryCard feature={feature} />;
   if (mode === "baseline" && view.kind === "baseline") {
     return <ResetBaselineForm key={view.reset.id} locked={locked} onSubmit={actions.startFromBaseline} />;

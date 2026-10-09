@@ -12,6 +12,7 @@
     "android": "expo start --android --port 8082",
     "web": "expo start --web --port 8082",
     "typecheck": "tsc --noEmit",
+    "verify:reset-continuity": "node scripts/run-bloom-reset-continuity-verification.cjs",
     "verify:persistence": "node scripts/run-bloom-persistence-verification.cjs",
     "verify:persistence-acknowledgement": "node scripts/run-bloom-persistence-acknowledgement-verification.cjs",
     "verify:quiz": "node scripts/run-bloom-quiz-verification.cjs",

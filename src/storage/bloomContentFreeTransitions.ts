@@ -1,3 +1,5 @@
+import { getContentFreeStreakSeconds } from "../domain/contentFree/getContentFreeStreakSeconds";
+import { canOfferResetContentFreeContinuation, getResetContentFreeCredit } from "../domain/contentFree/getResetContentFreeCredit";
 import type { ContentFreeState } from "../domain/models/ContentFreeState";
 import type { ISODateString, UUID } from "../domain/models/shared";
 import { getResetRestrictionStatus } from "../domain/productPolicy/getResetRestrictionStatus";
@@ -16,6 +18,10 @@ export type RecordManualContentFreeViolationInput = {
 export type UndoManualContentFreeViolationInput = { violationId: UUID; undoneAt: ISODateString };
 
 export function activateContentFreeState(state: BloomLocalState, input: ActivateContentFreeInput): BloomLocalState {
+  return activateWithResetCredit(state, input, false);
+}
+
+function activateWithResetCredit(state: BloomLocalState, input: ActivateContentFreeInput, allowCompletedReset: boolean): BloomLocalState {
   const content = state.contentFree;
   if (content.status !== "inactive") return state;
   try {
@@ -24,8 +30,13 @@ export function activateContentFreeState(state: BloomLocalState, input: Activate
     if (content.pastActivations.some((activation) => activation.id === input.activationId ||
       Date.parse(input.activatedAt) < Date.parse(activation.endedAt)) ||
       content.violations.some((violation) => violation.activationId === input.activationId || violation.id === input.activationId)) return state;
+    normalizeResetJourney(state.resetJourney);
+    if (!allowCompletedReset && canOfferResetContentFreeContinuation(state, state)) return state;
+    const resetCredit = state.resetJourney.status === "active" || allowCompletedReset
+      ? getResetContentFreeCredit(state.resetJourney, content, input.activatedAt) : null;
     const contentFree: ContentFreeState = {
       ...content,
+      ...(resetCredit === null ? {} : { resetCredit }),
       status: "active",
       activationId: input.activationId,
       activatedAt: input.activatedAt,
@@ -48,8 +59,8 @@ export function deactivateContentFreeState(state: BloomLocalState, input: Deacti
       Date.parse(input.endedAt) < Date.parse(content.currentStreakStartedAt)) return state;
     const contentFree: ContentFreeState = {
       status: "inactive",
-      bestStreakSeconds: Math.max(content.bestStreakSeconds, elapsedSeconds(content.currentStreakStartedAt, input.endedAt)),
-      pastActivations: [...content.pastActivations, { id: content.activationId, startedAt: content.activatedAt, endedAt: input.endedAt }],
+      bestStreakSeconds: Math.max(content.bestStreakSeconds, getContentFreeStreakSeconds(content, content.currentStreakStartedAt, input.endedAt)),
+      pastActivations: [...content.pastActivations, { id: content.activationId, startedAt: content.activatedAt, endedAt: input.endedAt, ...(content.resetCredit === undefined ? {} : { resetCredit: content.resetCredit }) }],
       violations: content.violations
     };
     // Also prevents archiving an end before any event in this activation.
@@ -83,7 +94,7 @@ export function recordManualContentFreeViolationState(
     const contentFree: ContentFreeState = {
       ...content,
       currentStreakStartedAt: input.occurredAt,
-      bestStreakSeconds: Math.max(content.bestStreakSeconds, elapsedSeconds(content.currentStreakStartedAt, input.occurredAt)),
+      bestStreakSeconds: Math.max(content.bestStreakSeconds, getContentFreeStreakSeconds(content, content.currentStreakStartedAt, input.occurredAt)),
       violations: [...content.violations, {
         id: input.violationId,
         activationId: content.activationId,
@@ -133,7 +144,7 @@ export function undoManualContentFreeViolationState(
       effective.some((violation) => Date.parse(violation.occurredAt) > Date.parse(target.occurredAt)) ||
       effective.some((violation) => violation !== target &&
         Date.parse(violation.occurredAt) > Date.parse(target.streakBefore.currentStreakStartedAt))) return state;
-    const endedSeconds = elapsedSeconds(target.streakBefore.currentStreakStartedAt, target.occurredAt);
+    const endedSeconds = getContentFreeStreakSeconds(content, target.streakBefore.currentStreakStartedAt, target.occurredAt, target.activationId, target.id);
     if (content.bestStreakSeconds !== Math.max(target.streakBefore.bestStreakSeconds, endedSeconds)) return state;
     const contentFree: ContentFreeState = {
       ...content,
@@ -150,12 +161,32 @@ export function undoManualContentFreeViolationState(
   }
 }
 
-function elapsedSeconds(startedAt: ISODateString, endedAt: ISODateString): number {
-  return Math.floor((Date.parse(endedAt) - Date.parse(startedAt)) / 1000);
-}
-
 function hasFields(value: unknown, required: readonly string[]): boolean {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
   const keys = Object.keys(value);
   return keys.length === required.length && required.every((key) => keys.includes(key));
+}
+
+// One atomic, acknowledged decision. IDs/time are prepared by the flow factory.
+// Repeated acceptance, decline, or later activation cannot consume it twice.
+export function decideResetContentFreeContinuationState(
+  state: BloomLocalState,
+  input: { decision: "accepted" | "declined"; decidedAt: ISODateString; activationId: UUID }
+): BloomLocalState {
+  const reset = state.resetJourney;
+  if (reset.status !== "completed" || reset.contentFreeContinuation !== undefined || state.contentFree.status !== "inactive") return state;
+  try {
+    normalizeResetJourney(reset);
+    normalizeContentFree(state.contentFree);
+    if (!canOfferResetContentFreeContinuation(state, state)) return state;
+    if (!hasFields(input, ["decision", "decidedAt", "activationId"]) ||
+      !["accepted", "declined"].includes(input.decision) || !isValidBloomIsoTimestamp(input.decidedAt) ||
+      Date.parse(input.decidedAt) < Date.parse(reset.completedAt)) return state;
+    const activated = input.decision === "accepted"
+      ? activateWithResetCredit(state, { activationId: input.activationId, activatedAt: input.decidedAt }, true) : state;
+    if (input.decision === "accepted" && activated === state) return state;
+    const resetJourney = { ...reset, contentFreeContinuation: { decision: input.decision, decidedAt: input.decidedAt } };
+    normalizeResetJourney(resetJourney);
+    return { ...activated, resetJourney };
+  } catch { return state; }
 }

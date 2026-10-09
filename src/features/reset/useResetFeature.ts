@@ -6,6 +6,7 @@ import { navigateBloomProductFlow } from "../../app/navigation/navigateBloomProd
 import { useBloomLocalState } from "../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../constants/navigation";
 import type { ResetJourney, ResetViolation } from "../../domain/models/ResetJourney";
+import { getResetContentFreeContinuationOffer } from "../../domain/contentFree/getResetContentFreeCredit";
 import { getResetProgress } from "../../domain/reset/getResetProgress";
 import { usePersistenceNavigationGuard } from "../../shared/navigation/usePersistenceNavigationGuard";
 import { createResetController, type ResetBaselineAnswers, type ResetOperation } from "./resetController";
@@ -56,7 +57,9 @@ export function useResetFeature(mode: ResetRouteMode) {
       router.replace(routes.home);
     }
   };
-  onPersisted.current = (_operation, acceptedReset) => {
+  onPersisted.current = (savedOperation, acceptedReset) => {
+    // Stay on this completion URL to present the saved continuation decision.
+    if (savedOperation === "completeElapsed" && getAcceptedState().contentFree.status === "inactive") return;
     try { navigateAcceptedReset(acceptedReset); }
     catch { setNavigationError("Your change was saved, but the next screen could not open. Use Continue to try again."); }
   };
@@ -72,6 +75,7 @@ export function useResetFeature(mode: ResetRouteMode) {
   }, []);
 
   const reset = state.resetJourney;
+  const continuationOffer = hasHydrated && mode === "completion" ? getResetContentFreeContinuationOffer(state, durableState) : null;
   const view: ResetRouteView = hasHydrated
     ? getResetRouteView(reset, { mode, journeyId: params.journeyId, attemptId: params.attemptId }, new Date(nowMilliseconds).toISOString())
     : { kind: "unavailable" };
@@ -80,7 +84,7 @@ export function useResetFeature(mode: ResetRouteMode) {
   const canRetry = !operation.busy && operation.result !== null && !operation.result.ok && operation.result.retryable;
   const saveState: "loading" | "unavailable" | "saving" | "saved" | "unconfirmed" = !hasHydrated
     ? hydrationStatus === "error" ? "unavailable" : "loading"
-    : operation.busy ? "saving" : reset === durableState.resetJourney ? "saved" : "unconfirmed";
+    : operation.busy ? "saving" : reset === durableState.resetJourney && state.contentFree === durableState.contentFree ? "saved" : "unconfirmed";
 
   // A legitimate restart/undo changes the attempt before the old URL changes.
   // Keep that operation's receipt/retry UI visible without trusting the old URL
@@ -100,13 +104,17 @@ export function useResetFeature(mode: ResetRouteMode) {
     if (pending !== null) void pending.catch(() => {});
   };
   return {
-    view, busy: operation.busy, locked, message: navigationError ?? operation.message,
+    view, continuationOffer, busy: operation.busy, locked, message: navigationError ?? operation.message,
     canRetry, saveState, recoveryTarget, canContinue, canOpenCompletion,
     actions: {
       startFromBaseline: (answers: ResetBaselineAnswers) => invoke(() => controller.startFromBaseline(answers, reset)),
       recordViolation: (reason: ResetViolation["reason"]) => invoke(() => controller.recordViolation(reason, reset)),
       undoViolation: (violationId: string) => invoke(() => controller.undoViolation(violationId, reset)),
       completeElapsed: () => invoke(() => controller.completeElapsed(reset)),
+      decideContinuation: (decision: "accepted" | "declined") => {
+        if (!continuationOffer || locked) return;
+        invoke(() => controller.decideContinuation(decision, reset));
+      },
       retry: () => invoke(controller.retry),
       openPanic: () => {
         const snapshot = controller.getSnapshot();

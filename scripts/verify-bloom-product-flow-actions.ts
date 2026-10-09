@@ -62,7 +62,7 @@ export async function verifyBloomProductFlowActions() {
   assert(exactResetAcceptanceFlowInput, "Reset recommendation acceptance must take no rendered evidence, state, IDs, or timestamps.");
   const cases = flowCases();
   const paths = new Set(cases.map((item) => item.path));
-  assert(paths.size === 33, "Every new-product command must have a flow/preparation or semantic-passthrough verification case.");
+  assert(paths.size === 34, "Every new-product command must have a flow/preparation or semantic-passthrough verification case.");
   assert(!("completeAssessment" in recordingHarness().flow.reset), "The current flow API must not expose a Reset assessment command.");
   for (const [index, item] of cases.entries()) await verifyPreparedInputs(item, index);
   verifyDefaultIdConvention();
@@ -74,7 +74,7 @@ export async function verifyBloomProductFlowActions() {
   await verifyNoOpAndRuntimeBlocks();
   verifyIsolation();
   assert(BLOOM_PERSISTENCE_VERSION === 7 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v7", "Flow integration must preserve the established v7 persistence contract.");
-  console.log(`Bloom product flow-action verification passed (all 33 paths; ${cases.length} exact-input cases; one-time mechanical facts, Reset recommendation acceptance/retry, current Urge lifecycle/resume/trigger retry, legacy operations, atomic behavior-slip retry/no-op safety, and v7 isolation).`);
+  console.log(`Bloom product flow-action verification passed (all 34 paths; ${cases.length} exact-input cases; one-time mechanical facts, Reset recommendation acceptance/retry, current Urge lifecycle/resume/trigger retry, legacy operations, atomic behavior-slip retry/no-op safety, and v7 isolation).`);
 }
 
 async function verifyPreparedInputs(item: FlowCase, index: number) {
@@ -136,6 +136,7 @@ function flowCases(): FlowCase[] {
     { path: "reset.startFromBaseline", invoke: (f) => f.reset.startFromBaseline(selfReport), args: [{ resetBaselineId: id("reset-baseline"), capturedAt: at, selfReport, resetAttemptId: id("reset-attempt"), startedAt: at }], prefixes: ["reset-baseline", "reset-attempt"] },
     { path: "reset.recordViolation", invoke: (f) => f.reset.recordViolation({ reason: "masturbationWithExplicitContent", source: { kind: "manual" } }), args: [resetViolation("masturbationWithExplicitContent", { kind: "manual", logActionId: id("log-action") }, at)], prefixes: ["reset-violation", "reset-attempt", "content-free-violation", "log-action"] },
     { path: "reset.undoViolation", invoke: (f) => f.reset.undoViolation({ violationId: "existing-reset-violation" }), args: [{ violationId: "existing-reset-violation", undoneAt: at }], prefixes: [] },
+    { path: "reset.decideContentFreeContinuation", invoke: (f) => f.reset.decideContentFreeContinuation("accepted"), args: [{ decision: "accepted", decidedAt: at, activationId: id("content-free-activation") }], prefixes: ["content-free-activation"] },
     { path: "reset.completeElapsed", invoke: (f) => f.reset.completeElapsed(), args: [{ observedAt: at }], prefixes: [] },
     { path: "tracking.enable", invoke: (f) => f.tracking.enable(), args: [], prefixes: [], prepared: false },
     { path: "tracking.disable", invoke: (f) => f.tracking.disable(), args: [], prefixes: [], prepared: false },

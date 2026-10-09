@@ -16,6 +16,7 @@ import {
   startMasturbationSessionState, startMasturbationPauseState, endMasturbationPauseState,
   endMasturbationSessionState, completeMasturbationSessionFeedbackState, discardActiveMasturbationSessionState,
   editCompletedMasturbationSessionFeedbackState, deleteCompletedMasturbationSessionState,
+  decideResetContentFreeContinuationState,
   activateContentFreeState, deactivateContentFreeState, recordManualContentFreeViolationState, undoManualContentFreeViolationState,
   startUrgeControlEventState, completeUrgeControlInterruptState, selectUrgeControlTechniqueState,
   startUrgeControlPhoneAwayState, endUrgeControlPhoneAwayState, recordUrgeControlOutcomeState,
@@ -55,6 +56,7 @@ type ExpectedProductActions = {
     startFromBaseline: Acknowledged<typeof startResetFromBaselineState>;
     recordViolation: Acknowledged<typeof recordActiveResetViolationState>;
     undoViolation: Acknowledged<typeof undoActiveResetViolationState>;
+    decideContentFreeContinuation: Acknowledged<typeof decideResetContentFreeContinuationState>;
     completeElapsed: Acknowledged<typeof completeElapsedResetPeriodState>;
   };
   tracking: {
@@ -104,15 +106,15 @@ export async function verifyBloomProductActions() {
   verifyFactoryIsolation();
   const cases = commandCases();
   const api = createBloomProductAcknowledgedActions({ applyAcknowledgedMutation: async () => success(1) });
-  equal(commandPaths(api).sort(), cases.map((item) => item.name).sort(), "The facade must expose exactly the 33 grouped command paths covered by delegation tests.");
-  assert(cases.length === 33 && !("completeAssessment" in api.reset), "Every current product transition must have one focused command case; Reset assessment must no longer be a command.");
+  equal(commandPaths(api).sort(), cases.map((item) => item.name).sort(), "The facade must expose exactly the 34 grouped command paths covered by delegation tests.");
+  assert(cases.length === 34 && !("completeAssessment" in api.reset), "Every current product transition must have one focused command case; Reset assessment must no longer be a command.");
   equal(Object.keys(api.behaviorSlip), ["record"], "The shared behavior-slip facade must not introduce a generic undo command.");
   for (const item of cases) {
     await verifyDelegation(item);
     await verifyResultPassthrough(item);
   }
   await verifyRapidSequentialCommands();
-  console.log("Bloom product-action facade verification passed (all 33 grouped commands; exact transition delegation, caller facts, runtime-supplied current state, no-ops, acknowledgement passthrough, and rapid sequential commands).");
+  console.log("Bloom product-action facade verification passed (all 34 grouped commands; exact transition delegation, caller facts, runtime-supplied current state, no-ops, acknowledgement passthrough, and rapid sequential commands).");
   await verifyBloomProductActionsRuntime();
 }
 
@@ -258,6 +260,7 @@ function commandCases(): CommandCase[] {
     command("reset.startFromBaseline", accepted, startResetFromBaselineState, (a) => a.reset.startFromBaseline, baselineInput),
     command("reset.recordViolation", resetActive, recordActiveResetViolationState, (a) => a.reset.recordViolation, violationInput),
     command("reset.undoViolation", violated, undoActiveResetViolationState, (a) => a.reset.undoViolation, { violationId: violationInput.violationId, undoneAt: shift(at, 3 * day + 2_456) }),
+    command("reset.decideContentFreeContinuation", completeElapsedResetPeriodState({ ...resetActive, contentFree: blank.contentFree }, { observedAt: shift(at, 15 * day) }), decideResetContentFreeContinuationState, (a) => a.reset.decideContentFreeContinuation, { decision: "accepted", decidedAt: shift(at, 15 * day), activationId: "caller-continuation" }),
     command("reset.completeElapsed", resetActive, completeElapsedResetPeriodState, (a) => a.reset.completeElapsed, { observedAt: shift(at, 15 * day + 567) }),
     command("tracking.enable", blank, enableMasturbationTrackingState, (a) => a.tracking.enable),
     command("tracking.disable", enabled, disableMasturbationTrackingState, (a) => a.tracking.disable),

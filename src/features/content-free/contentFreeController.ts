@@ -3,6 +3,7 @@ import type {
   BloomPersistedMutationResult,
   BloomPersistenceRetryToken
 } from "../../app/providers/bloomLocalStateMutationRuntime";
+import { canOfferResetContentFreeContinuation } from "../../domain/contentFree/getResetContentFreeCredit";
 import type { ContentFreeState } from "../../domain/models/ContentFreeState";
 import type { BloomLocalState } from "../../storage/bloomState";
 import { getLatestManualContentFreeUndoCandidate } from "./contentFreeView";
@@ -66,7 +67,12 @@ export function createContentFreeController(options: Options) {
 
     // React handlers carry the immutable slice they displayed. Re-read accepted
     // truth before dispatch, including changes that have not rendered yet.
-    const content = options.getState().contentFree;
+    const state = options.getState();
+    const content = state.contentFree;
+    if (operation === "activate" && canOfferResetContentFreeContinuation(state, state)) {
+      publish({ ...snapshot, message: "Reset ile kazandığın süreyi korumak için önce devam etme seçimini tamamla." });
+      return null;
+    }
     const expectedStatus = operation === "activate" ? "inactive" : "active";
     if (content !== expectedContent || content.status !== expectedStatus ||
       (operation === "undoManualViolation" &&

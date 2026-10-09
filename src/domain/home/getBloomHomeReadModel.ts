@@ -1,3 +1,5 @@
+import { canOfferResetContentFreeContinuation } from "../contentFree/getResetContentFreeCredit";
+import { getResetProgress } from "../reset/getResetProgress";
 import type { ContentFreeState } from "../models/ContentFreeState";
 import type { MasturbationTrackingState } from "../models/MasturbationTrackingState";
 import type { ProductOnboardingState } from "../models/ProductOnboardingState";
@@ -28,6 +30,7 @@ export type BloomHomeAction =
   | { id: "finishMasturbationSessionFeedback"; sessionId: UUID }
   | { id: "resumeUrgeControl"; eventId: UUID; stage: UrgeControlProgress["stage"] }
   | { id: "recordResetElapsedCompletion"; journeyId: UUID; attemptId: UUID; progress: ResetProgress }
+  | { id: "reviewResetContentFreeContinuation"; journeyId: UUID; attemptId: UUID; progress: ResetProgress }
   | { id: "completeResetBaseline"; journeyId: UUID }
   | { id: "viewActiveReset"; journeyId: UUID; attemptId: UUID; progress: ResetProgress }
   | { id: "reviewStartingRecommendation" }
@@ -80,7 +83,7 @@ export function getBloomHomeReadModel(state: BloomHomeState, at: ISODateString):
       : contentFreeTracker;
 
     return {
-      primaryAction: getPrimaryAction(state, trackingAvailability, urgeControlProgress, primaryTracker),
+      primaryAction: getPrimaryAction(state, trackingAvailability, urgeControlProgress, primaryTracker, at),
       primaryTracker,
       secondaryTracker: trackingAvailability.enabled ? contentFreeTracker : null,
       trackingAvailability,
@@ -105,7 +108,8 @@ function getPrimaryAction(
   state: BloomHomeState,
   trackingAvailability: MasturbationTrackingAvailability,
   urgeProgress: UrgeControlProgress | null,
-  primaryTracker: BloomHomeTracker | null
+  primaryTracker: BloomHomeTracker | null,
+  at: ISODateString
 ): BloomHomeAction | null {
   // Unfinished work wins even when permission flags or another feature's
   // lifecycle conflict with that work. This read never resolves the conflict.
@@ -133,6 +137,10 @@ function getPrimaryAction(
   }
   if (reset.status === "recommended") return { id: "reviewResetRecommendation" };
 
+  if (reset.status === "completed" && canOfferResetContentFreeContinuation(state, state)) {
+    const progress = getResetProgress(reset, at);
+    if (progress !== null) return { id: "reviewResetContentFreeContinuation", journeyId: reset.id, attemptId: reset.currentAttempt.id, progress };
+  }
   if (primaryTracker?.kind === "masturbationTracking" && trackingAvailability.canStartSession) return { id: "startMasturbationSession" };
   if (primaryTracker?.kind === "contentFree") return { id: "viewContentFree" };
   return null;

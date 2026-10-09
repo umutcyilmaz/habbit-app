@@ -90,5 +90,6 @@ export type ResetJourney = ResetJourneyHistory &
         status: "completed";
         // Retained historical metadata; current completion collects no assessment.
         assessment?: PostResetAssessment;
+        contentFreeContinuation?: { decision: "accepted" | "declined"; decidedAt: ISODateString };
       })
   );

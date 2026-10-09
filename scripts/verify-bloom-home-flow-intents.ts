@@ -88,6 +88,20 @@ const cases = {
       stage: "phoneAwayActive"
     }
   },
+  reviewResetContentFreeContinuation: {
+    action: {
+      id: "reviewResetContentFreeContinuation",
+      journeyId: "flow-elapsed-journey",
+      attemptId: "flow-elapsed-attempt",
+      progress: completedProgress
+    },
+    expected: {
+      flow: "resetCompletion",
+      journeyId: "flow-elapsed-journey",
+      attemptId: "flow-elapsed-attempt",
+      progress: completedProgress
+    }
+  },
   recordResetElapsedCompletion: {
     action: {
       id: "recordResetElapsedCompletion",
@@ -194,7 +208,7 @@ export function verifyBloomHomeFlowIntents() {
     "Starting review must carry no stored recommendation payload.");
   verifyMappingDependencies();
   console.log(
-    "Bloom Home flow-intent verification passed (all 10 current actions, no assessment action or intent, exact payloads, frozen/deterministic mapping, and dependency isolation)."
+    "Bloom Home flow-intent verification passed (all 11 current actions, no assessment action or intent, exact payloads, frozen/deterministic mapping, and dependency isolation)."
   );
 }
 

@@ -1,6 +1,8 @@
 import type { ContentFreeState } from "../models/ContentFreeState";
 import type { ISODateString } from "../models/shared";
 
+import { getContentFreeStreakSeconds } from "./getContentFreeStreakSeconds";
+
 type ContentFreeProgressHistory = {
   effectiveBestStreakSeconds: number;
   hasEffectiveViolation: boolean;
@@ -22,7 +24,11 @@ export function getContentFreeProgress(contentFree: ContentFreeState, now: ISODa
   }
   if (contentFree.status !== "active" || !isCanonicalTimestamp(contentFree.currentStreakStartedAt) ||
     !isCanonicalTimestamp(contentFree.activatedAt) || Date.parse(contentFree.currentStreakStartedAt) < Date.parse(contentFree.activatedAt)) return null;
-  const currentStreakSeconds = Math.max(0, Math.floor((Date.parse(now) - Date.parse(contentFree.currentStreakStartedAt)) / 1000));
+  const credit = contentFree.resetCredit;
+  if (credit !== undefined && (!isCanonicalTimestamp(credit.earnedStartedAt) || !isCanonicalTimestamp(credit.earnedUntil) ||
+    Date.parse(credit.earnedStartedAt) >= Date.parse(credit.earnedUntil) || Date.parse(credit.earnedUntil) > Date.parse(contentFree.activatedAt) ||
+    !Number.isInteger(credit.bestStreakSecondsBefore) || credit.bestStreakSecondsBefore < 0)) return null;
+  const currentStreakSeconds = Date.parse(now) < Date.parse(contentFree.activatedAt) ? 0 : getContentFreeStreakSeconds(contentFree, contentFree.currentStreakStartedAt, now);
   return {
     status: "active",
     currentStreakSeconds,

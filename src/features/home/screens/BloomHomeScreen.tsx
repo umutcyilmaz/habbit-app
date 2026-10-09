@@ -15,6 +15,7 @@ const attentionCopy: Partial<Record<BloomHomeAction["id"], { title: string; butt
   resumeMasturbationSession: { title: "Devam eden oturum", button: "Oturuma devam et" },
   finishMasturbationSessionFeedback: { title: "Oturum geri bildirimi bekliyor", button: "Kaydı tamamla" },
   resumeUrgeControl: { title: "Devam eden dürtü kontrolü", button: "Devam et" },
+  reviewResetContentFreeContinuation: { title: "15 günlük Reset'i tamamladın!", button: "Content-Free ile devam et" },
   recordResetElapsedCompletion: { title: "15 gün tamamlandı", button: "Sonucu gör" },
   completeResetBaseline: { title: "Reset başlangıç soruları hazır", button: "Devam et" },
   reviewStartingRecommendation: { title: "Başlangıç önerin hazır", button: "Öneriyi gör" },
@@ -47,10 +48,10 @@ export function BloomHomeScreen() {
       <AttentionCard action={model.primaryAction} onAction={feature.openAction} />
 
       {isResetFirst ? <ResetCard model={model} onAction={feature.openAction} onPanic={feature.openPanic} /> : null}
-      {contentFreeFirst ? <ContentFreeCard tracker={contentFreeTracker} onOpen={feature.openContentFree} /> : null}
+      {contentFreeFirst ? <ContentFreeCard tracker={contentFreeTracker} onOpen={feature.openContentFree} continuationPending={feature.contentFreeContinuation != null} /> : null}
       {model.trackingAvailability.enabled ? <TrackingCard model={model} summary={feature.tracking} onAction={feature.openAction} restrained={isResetFirst} />
         : model.trackingAvailability.canEnableTracking ? <InactiveTrackingCard activation={feature.trackingActivation} /> : null}
-      {!contentFreeFirst ? <ContentFreeCard tracker={contentFreeTracker} onOpen={feature.openContentFree} /> : null}
+      {!contentFreeFirst ? <ContentFreeCard tracker={contentFreeTracker} onOpen={feature.openContentFree} continuationPending={feature.contentFreeContinuation != null} /> : null}
       {!isResetFirst ? <AppButton testID="bloom.home.panic" label="Panic" variant="secondary" onPress={feature.openPanic} /> : null}
       {model.resetRecommendationAction !== null && model.primaryAction?.id !== "reviewResetRecommendation" ? (
         <AppCard testID="bloom.home.reset-recommendation" style={styles.card}>
@@ -112,15 +113,15 @@ function ResetCard({ model, onAction, onPanic }: { model: BloomHomeReadModel; on
   );
 }
 
-function ContentFreeCard({ tracker, onOpen }: { tracker: ContentFreeHomeTracker | null; onOpen: () => void }) {
+function ContentFreeCard({ tracker, onOpen, continuationPending }: { tracker: ContentFreeHomeTracker | null; onOpen: () => void; continuationPending: boolean }) {
   return (
     <AppCard testID="bloom.home.content-free" variant="hero" style={styles.card}>
       <AppText variant="overline" tone="accent">CONTENT-FREE</AppText>
       {tracker === null ? (
         <>
           <AppText variant="heading1">Content-Free sayacı</AppText>
-          <AppText tone="secondary">İkinci bir sayaç · takibin devam eder</AppText>
-          <AppButton testID="bloom.home.content-free.action" label="Sayacını başlat" variant="secondary" onPress={onOpen} />
+          <AppText tone="secondary">{continuationPending ? "Reset ile kazandığın süreyle devam edebilirsin." : "İkinci bir sayaç · takibin devam eder"}</AppText>
+          <AppButton testID="bloom.home.content-free.action" label={continuationPending ? "Reset serinle devam et" : "Sayacını başlat"} variant="secondary" onPress={onOpen} />
         </>
       ) : (
         <>

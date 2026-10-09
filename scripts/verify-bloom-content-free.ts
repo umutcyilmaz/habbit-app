@@ -3,7 +3,7 @@ import { isDeepStrictEqual } from "node:util";
 import type { ContentFreeState, ContentFreeViolation } from "../src/domain/models";
 import { getContentFreeProgress } from "../src/domain/contentFree/getContentFreeProgress";
 import {
-  activateContentFreeState, deactivateContentFreeState, recordManualContentFreeViolationState,
+  decideResetContentFreeContinuationState, activateContentFreeState, deactivateContentFreeState, recordManualContentFreeViolationState,
   undoManualContentFreeViolationState, recordActiveResetViolationState, undoActiveResetViolationState,
   createDefaultBloomState, type BloomLocalState
 } from "../src/storage/bloomState";
@@ -346,7 +346,9 @@ function createInactiveState(history: boolean): BloomLocalState {
     pastActivations: [...prior.pastActivations, { id: prior.activationId, startedAt: prior.activatedAt, endedAt: "2026-09-01T10:00:00.000Z" }],
     violations: prior.violations
   } : createDefaultBloomState().contentFree;
-  return state;
+  // Standalone lifecycle tests explicitly decline any pending Reset offer;
+  // the dedicated continuity suite verifies that the undecided path is blocked.
+  return decideResetContentFreeContinuationState(state, { decision: "declined", decidedAt: activatedAt, activationId: "standalone-declined" });
 }
 
 function makeActive(history: boolean): BloomLocalState {

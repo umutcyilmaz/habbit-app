@@ -1,6 +1,15 @@
 import type { BehaviorEventSource } from "./BehaviorEventSource";
 import type { ISODateString, UUID } from "./shared";
 
+// Verified Reset time is separate from the independently managed activation.
+// The gap between earnedUntil and activatedAt never contributes to progress.
+export type ResetContentFreeCredit = {
+  resetJourneyId: UUID;
+  bestStreakSecondsBefore: number;
+  earnedStartedAt: ISODateString;
+  earnedUntil: ISODateString;
+};
+
 export type ContentFreeStreakSnapshot = {
   currentStreakStartedAt: ISODateString;
   bestStreakSeconds: number;
@@ -10,6 +19,7 @@ export type CompletedContentFreeActivation = {
   id: UUID;
   startedAt: ISODateString;
   endedAt: ISODateString;
+  resetCredit?: ResetContentFreeCredit;
 };
 
 type ContentFreeViolationRecord = {
@@ -48,6 +58,7 @@ export type ContentFreeState = ContentFreeHistory &
         status: "active";
         activationId: UUID;
         activatedAt: ISODateString;
+        resetCredit?: ResetContentFreeCredit;
         currentStreakStartedAt: ISODateString;
       }
   );

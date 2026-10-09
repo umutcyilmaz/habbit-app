@@ -65,6 +65,12 @@ export function ContentFreeScreen() {
                 : "İlerleme şu anda kontrol edilemiyor. Ekranı kapatıp tekrar dene."}
             </AppText>
           </AppCard>
+        ) : feature.continuationOffer != null ? (
+          <AppCard variant="hero" testID="bloom.content-free.reset-continuation" style={styles.cardStack}>
+            <AppText variant="heading1">Reset ile kazandığın süreyi koru</AppText>
+            <AppText tone="secondary">{feature.continuationOffer.completedDays} tamamlanmış gününü Content-Free ile devam ettirebilirsin.</AppText>
+            <AppButton testID="bloom.content-free.continuation.open" label="Devam etme seçimini aç" disabled={locked} onPress={actions.openContinuation} />
+          </AppCard>
         ) : progress.status === "inactive" ? (
           <View style={styles.stack}>
             <View style={styles.intro}>

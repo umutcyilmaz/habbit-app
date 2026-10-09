@@ -47,6 +47,7 @@ export function mapBloomHomeActionToFlowIntent(
         eventId: action.eventId,
         stage: action.stage
       };
+    case "reviewResetContentFreeContinuation":
     case "recordResetElapsedCompletion":
       return {
         flow: "resetCompletion",

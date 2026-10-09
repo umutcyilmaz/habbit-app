@@ -23,6 +23,10 @@ import { BLOOM_PERSISTENCE_VERSION } from "../src/storage/bloomStateSchema";
 import type { StorageClient } from "../src/storage/storageAdapters";
 import { createPopulatedState } from "./verify-bloom-product-persistence";
 import { createActiveState } from "./verify-bloom-reset-violations";
+import { createResetContinuityFixture } from "./fixtures/resetContinuity";
+import { completeElapsedResetPeriodState, decideResetContentFreeContinuationState } from "../src/storage/bloomState";
+import { getResetContentFreeContinuationOffer } from "../src/domain/contentFree/getResetContentFreeCredit";
+import { getBloomContentFreeEntryIntent } from "../src/app/flows/getBloomContentFreeEntryIntent";
 import { createContentFreeController } from "../src/features/content-free/contentFreeController";
 import {
   getContentFreeFeatureView,
@@ -48,14 +52,17 @@ export async function verifyBloomContentFreeFeature() {
   verifyViews();
   verifyFeatureWiring();
   await verifyHookWiring();
+  const resetFixture = createResetContinuityFixture();
+  await verifyHookWiring(completeElapsedResetPeriodState(resetFixture.state, { observedAt: resetFixture.observeDays(20) }));
   console.log(
     "Bloom Content-Free feature verification passed (explicit lifecycle, canonical progress/history, stale-event guards, acknowledged retry without replay, Reset ownership, v7 reloads, and controlled hook/screen wiring).",
   );
 }
 
 async function verifyLifecycle() {
-  const initial = createPopulatedState();
-  initial.contentFree = createDefaultBloomState().contentFree;
+  const populated = createPopulatedState();
+  populated.contentFree = createDefaultBloomState().contentFree;
+  const initial = decideResetContentFreeContinuationState(populated, { decision: "declined", decidedAt: activatedAt, activationId: "declined-feature-fixture" });
   const original = JSON.stringify(initial);
   const h = createHarness(initial);
   const unsubscribe = h.controller.subscribe(() => undefined);
@@ -673,8 +680,8 @@ function verifyFeatureWiring() {
   verifyDeactivationComponent(screen);
 }
 
-async function verifyHookWiring() {
-  const h = createHarness();
+async function verifyHookWiring(pendingContinuation?: BloomLocalState) {
+  const h = createHarness(pendingContinuation);
   const hooks = createControlledHooks();
   const timers = new Map<number, () => void>();
   const navigation: unknown[] = [];
@@ -710,6 +717,8 @@ async function verifyHookWiring() {
     "../../shared/navigation/usePersistenceNavigationGuard": {
       usePersistenceNavigationGuard: () => () => undefined,
     },
+    "../../domain/contentFree/getResetContentFreeCredit": { getResetContentFreeContinuationOffer },
+    "../../app/flows/getBloomContentFreeEntryIntent": { getBloomContentFreeEntryIntent },
     "./contentFreeController": { createContentFreeController },
     "./contentFreeView": { getContentFreeFeatureView },
   };
@@ -748,6 +757,7 @@ async function verifyHookWiring() {
     clearInterval: (id: number) => timers.delete(id),
   });
   type Feature = {
+    continuationOffer: ReturnType<typeof getResetContentFreeContinuationOffer>;
     view: ReturnType<typeof getContentFreeFeatureView>;
     busy: boolean;
     locked: boolean;
@@ -755,6 +765,7 @@ async function verifyHookWiring() {
     message: string | null;
     saveState: "loading" | "unavailable" | "saving" | "saved" | "unconfirmed";
     actions: {
+      openContinuation: () => void;
       activate: () => void;
       deactivate: () => void;
       recordManualViolation: () => void;
@@ -815,6 +826,20 @@ async function verifyHookWiring() {
     "Opening Content-Free must remain inactive and never save or navigate automatically.",
   );
 
+  if (pendingContinuation !== undefined) {
+    assert(feature.continuationOffer?.completedDays === 15, "Direct Content-Free entry must expose saved Reset credit instead of ordinary activation.");
+    feature.actions.openContinuation();
+    feature.actions.activate();
+    assert(Number(navigation.length) === 2 && navigation.every((intent) => (intent as { flow?: string }).flow === "resetCompletion"),
+      "Both continuation entry and retained ordinary activation handler must guide to the decision route.");
+    equal(h.counts(), { clockCalls: 0, idCalls: 0, mutationCalls: 0 }, "Entry must not bypass the acknowledged continuation transaction.");
+    assert(h.runtime.getState() === pendingContinuation && h.attempts.length === 0, "Direct entry never activates or rewrites state.");
+    await roundTrip(pendingContinuation);
+    hooks.unmount();
+    feature.actions.openContinuation();
+    assert(Number(navigation.length) === 2, "Unmounted continuation handlers cannot navigate.");
+    return;
+  }
   feature.actions.activate();
   feature.actions.activate();
   feature = render();

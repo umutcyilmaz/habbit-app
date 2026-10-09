@@ -103,6 +103,12 @@ export function createBloomProductFlowActions({
         const { timestamp } = captureOperation();
         return productActions.reset.undoViolation({ ...input, undoneAt: timestamp });
       },
+      decideContentFreeContinuation: (decision: "accepted" | "declined") => {
+        const { operationTime, timestamp } = captureOperation();
+        return productActions.reset.decideContentFreeContinuation({
+          decision, decidedAt: timestamp, activationId: createId("content-free-activation", operationTime)
+        });
+      },
       completeElapsed: () => {
         const { timestamp } = captureOperation();
         return productActions.reset.completeElapsed({ observedAt: timestamp });

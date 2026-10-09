@@ -4,6 +4,8 @@ import { useRouter } from "expo-router";
 import { useBloomProductFlowActions } from "../../app/flows/useBloomProductFlowActions";
 import { useBloomLocalState } from "../../app/providers/BloomLocalStateProvider";
 import { navigateBloomProductFlow } from "../../app/navigation/navigateBloomProductFlow";
+import { getBloomContentFreeEntryIntent } from "../../app/flows/getBloomContentFreeEntryIntent";
+import { getResetContentFreeContinuationOffer } from "../../domain/contentFree/getResetContentFreeCredit";
 import { routes } from "../../constants/navigation";
 import { usePersistenceNavigationGuard } from "../../shared/navigation/usePersistenceNavigationGuard";
 import { createContentFreeController } from "./contentFreeController";
@@ -36,6 +38,7 @@ export function useContentFreeFeature() {
   }, []);
 
   const content = state.contentFree;
+  const continuationOffer = hasHydrated ? getResetContentFreeContinuationOffer(state, durableState) : null;
   const view = hasHydrated
     ? getContentFreeFeatureView(content, new Date(nowMilliseconds).toISOString())
     : { progress: null, activationId: null, currentStreakStartedAt: null, currentActivationHasEffectiveViolation: false, hasPriorActivation: false, history: [], manualUndoCandidateId: null };
@@ -56,11 +59,24 @@ export function useContentFreeFeature() {
     if (pending !== null) void pending.catch(() => {});
   };
 
+  const openContinuation = () => {
+    if (!mounted.current || currentController.current !== controller || locked || controller.getSnapshot().busy) return;
+    const current = getAcceptedState();
+    if (getResetContentFreeContinuationOffer(current, durableState) === null) return;
+    try {
+      allowNavigation();
+      navigateBloomProductFlow(router, getBloomContentFreeEntryIntent(current, new Date().toISOString()), "replace");
+    } catch { setNavigationError("Reset devam etme seçimi açılamadı. Lütfen tekrar dene."); }
+  };
   return {
-    view, busy: operation.busy, locked, canRetry, saveState,
+    continuationOffer, view, busy: operation.busy, locked, canRetry, saveState,
     message: navigationError ?? operation.message,
     actions: {
-      activate: () => invoke(() => controller.activate(content)),
+      openContinuation,
+      activate: () => {
+        if (getResetContentFreeContinuationOffer(getAcceptedState(), durableState) !== null) openContinuation();
+        else invoke(() => controller.activate(content));
+      },
       deactivate: () => invoke(() => controller.deactivate(content)),
       recordManualViolation: () => invoke(() => controller.recordManualViolation(content)),
       undoManualViolation: (violationId: string) => invoke(() => controller.undoManualViolation(violationId, content)),

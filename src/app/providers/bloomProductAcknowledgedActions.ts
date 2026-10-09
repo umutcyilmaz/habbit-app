@@ -1,6 +1,7 @@
 import {
   acceptProductOnboardingRecommendationState,
   acceptResetRecommendationState,
+  decideResetContentFreeContinuationState,
   activateContentFreeState,
   completeElapsedResetPeriodState,
   completeMasturbationSessionFeedbackState,
@@ -69,6 +70,7 @@ export function createBloomProductAcknowledgedActions({
       startFromBaseline: acknowledge(startResetFromBaselineState),
       recordViolation: acknowledge(recordActiveResetViolationState),
       undoViolation: acknowledge(undoActiveResetViolationState),
+      decideContentFreeContinuation: acknowledge(decideResetContentFreeContinuationState),
       completeElapsed: acknowledge(completeElapsedResetPeriodState)
     },
     tracking: {

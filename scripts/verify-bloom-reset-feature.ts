@@ -7,6 +7,7 @@ import { runInNewContext } from "node:vm";
 import { createBloomProductFlowActions } from "../src/app/flows/bloomProductFlowActions";
 import { createBloomProductAcknowledgedActions } from "../src/app/providers/bloomProductAcknowledgedActions";
 import { createBloomLocalStateMutationRuntime } from "../src/app/providers/bloomLocalStateMutationRuntime";
+import { getResetContentFreeContinuationOffer } from "../src/domain/contentFree/getResetContentFreeCredit";
 import { getResetProgress } from "../src/domain/reset/getResetProgress";
 import { getResetRestrictionStatus } from "../src/domain/productPolicy/getResetRestrictionStatus";
 import { getMasturbationTrackingAvailability } from "../src/domain/productPolicy/getMasturbationTrackingAvailability";
@@ -43,6 +44,8 @@ export async function verifyBloomResetFeature() {
   verifyViewsAndBoundary();
   verifySourceAndForms();
   await verifyHookWiring();
+  await verifyHookWiring("accepted");
+  await verifyHookWiring("declined");
   console.log("Bloom Reset feature verification passed (explicit baseline, restart/undo atomicity, elapsed boundaries, direct completion, preserved Tracking preferences, stale route guards, durable-only navigation/retry, v7 reloads, and controlled hook/forms).");
 }
 
@@ -356,13 +359,15 @@ function verifyViewsAndBoundary() {
     "A restarted attempt must not finish at the older overall journey's boundary.");
   const completed = completedState().resetJourney;
   for (const mode of ["baseline", "progress", "completion"] as const) {
-    assert(getResetRouteView(completed, routeFor(completed, mode), startedAt).kind === "mismatch",
-      "A completed Reset must not expose another active step through a stale Reset route.");
+    assert(getResetRouteView(completed, routeFor(completed, mode), startedAt).kind === (mode === "completion" ? "completed" : "mismatch"),
+      "A completed Reset exposes only its completed view and never another active step.");
   }
 }
 
-async function verifyHookWiring() {
-  const h = createHarness();
+async function verifyHookWiring(continuationDecision: "accepted" | "declined" | null = null) {
+  const initial = baselinePendingState();
+  if (continuationDecision !== null) initial.contentFree = createDefaultBloomState().contentFree;
+  const h = createHarness(initial);
   const hooks = createControlledHooks();
   const navigation: Array<{ intent?: unknown; mode?: unknown; path?: unknown }> = [];
   const timers = new Map<number, () => void>();
@@ -383,6 +388,7 @@ async function verifyHookWiring() {
     }) },
     "../../app/navigation/navigateBloomProductFlow": { navigateBloomProductFlow: (_router: unknown, intent: unknown, mode: unknown) => navigation.push({ intent, mode }) },
     "../../constants/navigation": { routes: { home: "/existing-today" } },
+    "../../domain/contentFree/getResetContentFreeCredit": { getResetContentFreeContinuationOffer },
     "../../domain/reset/getResetProgress": { getResetProgress },
     "../../shared/navigation/usePersistenceNavigationGuard": { usePersistenceNavigationGuard: () => () => undefined },
     "./resetController": { createResetController },
@@ -399,6 +405,7 @@ async function verifyHookWiring() {
     clearInterval: (id: number) => timers.delete(id)
   });
   type Feature = {
+    continuationOffer: ReturnType<typeof getResetContentFreeContinuationOffer>;
     view: ReturnType<typeof getResetRouteView>; busy: boolean; locked: boolean; canRetry: boolean;
     saveState: "loading" | "unavailable" | "saving" | "saved" | "unconfirmed";
     recoveryTarget: "progress" | "today" | null; canContinue: boolean; canOpenCompletion: boolean;
@@ -406,6 +413,7 @@ async function verifyHookWiring() {
       startFromBaseline: (answers: CurrentResetBaselineSelfReport) => void;
       recordViolation: (reason: ResetViolation["reason"]) => void; undoViolation: (id: string) => void;
       completeElapsed: () => void;
+      decideContinuation: (decision: "accepted" | "declined") => void;
       retry: () => void; openPanic: () => void; continueAfterSave: () => void; continueToCompletion: () => void; close: () => void;
     };
   };
@@ -479,7 +487,7 @@ async function verifyHookWiring() {
   assert(restarted.status === "active" && restarted.currentAttempt.id !== active.currentAttempt.id &&
     feature.view.kind === "mismatch" && feature.recoveryTarget === "progress" && feature.busy && !feature.canContinue,
   "A restart must preserve acknowledgement/recovery UI while the stale URL retains its old attempt ID.");
-  assert(Number(navigation.length) === 1 && h.counts().mutationCalls === 2 && h.runtime.getState().contentFree.violations.length > 0,
+  assert(Number(navigation.length) === 1 && h.counts().mutationCalls === 2 && (continuationDecision === null ? h.runtime.getState().contentFree.violations.length > 0 : h.runtime.getState().contentFree.violations.length === 0),
     "Manual confirmation must issue one atomic Reset command and no navigation to unsaved replacement work.");
   h.attempts[2]!.fail();
   await flush();
@@ -595,7 +603,32 @@ async function verifyHookWiring() {
   feature.actions.retry();
   await receipt(6);
   equal(h.counts(), completionCounts, "Hook completion retry must persist the same completed journey without a second transition.");
-  assertNavigation(4, { path: "/existing-today" }, "Only durable elapsed completion may return directly to the existing Today route.");
+  feature = render();
+  if (continuationDecision === null) {
+    assertNavigation(4, { path: "/existing-today" }, "Only durable elapsed completion may return directly to the existing Today route.");
+    assert(!feature.continuationOffer, "Existing active Content-Free must not get an offer.");
+  } else {
+    assert(Number(navigation.length) === 4 && feature.continuationOffer !== null && feature.view.kind === "completed",
+      "Durable inactive completion stays on the completion route and displays the offer.");
+    feature.actions.decideContinuation(continuationDecision);
+    feature.actions.decideContinuation(continuationDecision);
+    feature = render();
+    const decisionCounts = h.counts();
+    const decisionState = h.runtime.getState();
+    assert(feature.busy && !feature.continuationOffer && !feature.canContinue,
+      "An accepted but unsaved decision hides the offer and must not claim success.");
+    h.attempts[7]!.fail(); await flush(); feature = render();
+    assert(feature.canRetry && feature.locked && !feature.continuationOffer && Number(navigation.length) === 4,
+      "Failed decision retains retry and never navigates or reoffers activation.");
+    feature.actions.retry(); feature.actions.retry(); await receipt(8); feature = render();
+    equal(h.counts(), decisionCounts, "Decision retry must not regenerate IDs or replay activation.");
+    assert(h.runtime.getState() === decisionState && decisionState.resetJourney.status === "completed" &&
+      decisionState.resetJourney.contentFreeContinuation?.decision === continuationDecision,
+      "The exact accepted decision must become durable.");
+    assert(decisionState.contentFree.status === (continuationDecision === "accepted" ? "active" : "inactive"),
+      "Only explicit acceptance activates the tracker.");
+    assertNavigation(4, { path: "/existing-today" }, "Only saved decision returns to Home.");
+  }
   feature = render();
   assert(feature.canContinue && feature.recoveryTarget === "today", "The saved completion receipt must retain a safe Today recovery action.");
   await roundTrip(h.runtime.getState());

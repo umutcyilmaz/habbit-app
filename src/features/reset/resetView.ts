@@ -7,6 +7,7 @@ export type ResetRouteMode = "baseline" | "progress" | "completion";
 export type ResetRouteInput = { mode: ResetRouteMode; journeyId: unknown; attemptId?: unknown };
 export type ResetRouteView =
   | { kind: "missing" | "invalid" | "mismatch" | "unavailable" }
+  | { kind: "completed"; reset: Extract<ResetJourney, { status: "completed" }> }
   | { kind: "baseline"; reset: Extract<ResetJourney, { status: "baseline_pending" }> }
   | {
       kind: "active";
@@ -35,6 +36,7 @@ export function getResetRouteView(reset: ResetJourney, route: ResetRouteInput, a
     return reset.status === "baseline_pending" ? { kind: "baseline", reset } : { kind: "mismatch" };
   }
   if (!("currentAttempt" in reset) || reset.currentAttempt.id !== route.attemptId) return { kind: "mismatch" };
+  if (reset.status === "completed" && route.mode === "completion") return { kind: "completed", reset };
   if (reset.status !== "active") return { kind: "mismatch" };
   const progress = getResetProgress(reset, at);
   const restriction = getResetRestrictionStatus(reset, at);

@@ -435,3 +435,37 @@ Private notes and sensitive reflection details must not be sent through analytic
 ### Executable Starting Recommendation — Phase 2C
 
 The parameter-free `/bloom/starting-recommendation` feature reads the existing stored product onboarding result without rescoring. It invokes only `flowActions.onboarding.acceptRecommendation()` and the existing unchanged atomic transition. Tracking/Content-Free plans return to Today after durable save; Reset/combined plans go to baseline with the actual accepted journey ID. Failed saves retain the entire successor and retry only the same persistence snapshot without regenerating facts. No new persisted fields, acceptance semantics, schema, migration, or v7 key change is introduced. The new feature suite runs through `verify:persistence`; all eleven current routes are ready. Legacy onboarding/Today, final V4 presentation, and tab cutover remain deferred.
+
+### Phase 10: Reset-earned Content-Free continuity
+
+New optional v7 fields preserve real activation boundaries: `resetCredit` on
+active/archived Content-Free activations and `contentFreeContinuation` on a
+completed Reset. Old v7 records without these fields retain zero imported
+credit and their original histories. New fields validate rather than being
+silently dropped. Full-state validation checks credit against available source
+Reset history and checks accepted decisions against their credited activation.
+
+`getResetContentFreeCredit` derives earned intervals from connected effective
+attempts and explicit-content violations, capped at the actual Reset period
+end. Masturbation-only restarts preserve eligible time. Manual deactivation
+preserves independently verified Reset credit and actual activation history.
+Independent activation periods remain disjoint; archived durations are never
+summed with imported credit. Ordinary
+activation during active Reset can import eligible time; after completion,
+import requires `decideResetContentFreeContinuationState` acceptance. Decline
+persists only the decision. Pending offers block ordinary activation at the
+transition boundary. Home and direct Content-Free entry guide users to the
+acknowledged decision. Offer labels derive completed days from the canonical
+credit selector. Completion itself never changes Content-Free.
+
+`getContentFreeStreakSeconds` adds the credited interval's milliseconds only
+to the activation's first streak, floors the combined duration once, and
+excludes gaps after Reset ended. Violation, archive, and undo calculations
+share it. Reset undo reconciles both current/archived credits, ended bests,
+and later snapshots, including credit retraction when an earlier restored
+attempt moves the verified end earlier.
+
+Run `npm run verify:reset-continuity` to exercise the isolated fixture clock
+and acknowledged persistence flow. No fixture clock is imported by app code,
+no production time/storage is altered, and legacy date offsets are unused.
+See `docs/phase10-reset-content-free-continuity.md` for the full change report.

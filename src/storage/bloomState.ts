@@ -43,6 +43,7 @@ export {
   type StartMasturbationSessionInput
 } from "./bloomMasturbationTransitions";
 export {
+  decideResetContentFreeContinuationState,
   activateContentFreeState,
   deactivateContentFreeState,
   recordManualContentFreeViolationState,

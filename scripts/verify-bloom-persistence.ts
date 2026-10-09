@@ -40,6 +40,7 @@ import { verifyBloomResetViolations } from "./verify-bloom-reset-violations";
 import { verifyBloomResetViolationUndo } from "./verify-bloom-reset-violation-undo";
 import { verifyBloomResetCompletion } from "./verify-bloom-reset-completion";
 import { verifyBloomMasturbationSessions } from "./verify-bloom-masturbation-sessions";
+import { verifyBloomResetContinuity } from "./verify-bloom-reset-continuity";
 import { verifyBloomContentFree } from "./verify-bloom-content-free";
 import { verifyBloomSessionCorrections } from "./verify-bloom-session-corrections";
 import { verifyBloomUrgeControl } from "./verify-bloom-urge-control";
@@ -110,6 +111,7 @@ async function verifyBloomPersistence() {
   await verifyBloomResetCompletion();
   await verifyBloomMasturbationSessions();
   await verifyBloomContentFree();
+  await verifyBloomResetContinuity();
   await verifyBloomBehaviorSlip();
   await verifyBloomSessionCorrections();
   await verifyBloomUrgeControl();

@@ -7,7 +7,7 @@ import type { BloomLocalState } from "../../storage/bloomState";
 import { getLatestResetUndoCandidate, getResetRouteView, type ResetRouteInput } from "./resetView";
 
 export type ResetBaselineAnswers = CurrentResetBaselineSelfReport;
-export type ResetOperation = "startFromBaseline" | "recordViolation" | "undoViolation" | "completeElapsed";
+export type ResetOperation = "startFromBaseline" | "recordViolation" | "undoViolation" | "completeElapsed" | "acceptContinuation" | "declineContinuation";
 export type ResetOperationSnapshot = {
   busy: boolean;
   operation: ResetOperation | null;
@@ -66,6 +66,7 @@ export function createResetController(options: Options) {
     const view = getResetRouteView(reset, route, options.getDisplayTime());
     const valid = reset === expectedReset && (
       operation === "startFromBaseline" ? route.mode === "baseline" && view.kind === "baseline" :
+      operation === "acceptContinuation" || operation === "declineContinuation" ? route.mode === "completion" && view.kind === "completed" :
       operation === "completeElapsed" ? route.mode === "completion" && view.kind === "active" && view.progress.isPeriodComplete :
       route.mode === "progress" && view.kind === "active" &&
         (operation !== "undoViolation" || (typeof violationId === "string" && violationId.trim().length > 0 &&
@@ -109,6 +110,10 @@ export function createResetController(options: Options) {
     ),
     completeElapsed: (expectedReset: ResetJourney) => run(
       "completeElapsed", expectedReset, options.flowActions.reset.completeElapsed
+    ),
+    decideContinuation: (decision: "accepted" | "declined", expectedReset: ResetJourney) => run(
+      decision === "accepted" ? "acceptContinuation" : "declineContinuation", expectedReset,
+      () => options.flowActions.reset.decideContentFreeContinuation(decision)
     ),
     retry: (): Promise<BloomPersistedMutationResult> | null => {
       if (snapshot.busy) return inFlight;

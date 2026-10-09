@@ -61,6 +61,7 @@ import {
   normalizeResetJourney,
   normalizeUrgeControl
 } from "./bloomProductStateSchema";
+import { validateResetContentFreeContinuity } from "./bloomResetContentFreeContinuity";
 import { normalizeProductOnboarding } from "./bloomOnboardingSchema";
 
 export {
@@ -296,6 +297,7 @@ export function validateAndNormalizeBloomState(
           : defaults.productOnboarding
     };
 
+    validateResetContentFreeContinuity(state.contentFree, state.resetJourney);
     return {
       success: true,
       state,

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useRouter } from "expo-router";
 
+import { getBloomContentFreeEntryIntent } from "../../app/flows/getBloomContentFreeEntryIntent";
+import { getResetContentFreeContinuationOffer } from "../../domain/contentFree/getResetContentFreeCredit";
 import { mapBloomHomeActionToFlowIntent } from "../../app/flows/mapBloomHomeActionToFlowIntent";
 import { useBloomProductFlowActions } from "../../app/flows/useBloomProductFlowActions";
 import { navigateBloomProductFlow } from "../../app/navigation/navigateBloomProductFlow";
@@ -34,7 +36,11 @@ export function useBloomHomeFeature() {
     navigateBloomProductFlow(router, mapBloomHomeActionToFlowIntent(action));
   }, [router]);
   const openPanic = useCallback(() => { navigateBloomProductFlow(router, { flow: "panic" }); }, [router]);
-  const openContentFree = useCallback(() => { navigateBloomProductFlow(router, { flow: "contentFree" }); }, [router]);
+  const contentFreeContinuation = hydrationStatus === "ready" ? getResetContentFreeContinuationOffer(durableState, durableState) : null;
+  const openContentFree = useCallback(() => {
+    if (hydrationStatus !== "ready") return;
+    navigateBloomProductFlow(router, getBloomContentFreeEntryIntent(durableState, new Date().toISOString()));
+  }, [router, durableState, hydrationStatus]);
 
   const activationUnconfirmed = state.masturbationTracking.enabled && !durableState.masturbationTracking.enabled;
   const enableTracking = useCallback(() => {
@@ -47,7 +53,7 @@ export function useBloomHomeFeature() {
     if (pending !== null) void pending.catch(() => {});
   }, [activationController]);
 
-  return { hydrationStatus, model, tracking, openAction, openPanic, openContentFree,
+  return { hydrationStatus, model, tracking, openAction, openPanic, openContentFree, contentFreeContinuation,
     trackingActivation: {
       busy: activation.busy,
       locked: activation.busy || activationUnconfirmed || activation.result?.ok === true ||
