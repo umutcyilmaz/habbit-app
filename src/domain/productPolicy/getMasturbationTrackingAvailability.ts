@@ -12,6 +12,7 @@ export type MasturbationTrackingStartBlockReason =
 
 export type MasturbationTrackingAvailability = {
   enabled: boolean;
+  canEnableTracking: boolean;
   currentSessionStatus: "none" | "active" | "awaiting_feedback";
   resetRestriction: ResetRestrictionStatus;
 } & (
@@ -37,8 +38,14 @@ export function getMasturbationTrackingAvailability(
     : currentSessionStatus === "awaiting_feedback" ? "awaitingFeedback"
     : resetRestriction.isRestrictionActive ? "resetRestriction"
     : null;
-  const facts = { enabled: tracking.enabled, currentSessionStatus, resetRestriction } as const;
+  const facts = { enabled: tracking.enabled, canEnableTracking: !tracking.enabled && canEnableMasturbationTracking(state.resetJourney), currentSessionStatus, resetRestriction } as const;
   return blockReason === null
     ? { ...facts, canStartSession: true, blockReason: null }
     : { ...facts, canStartSession: false, blockReason };
+}
+
+// Manual activation follows the persisted Reset lifecycle. An elapsed active
+// attempt still needs its completion transition before Tracking can be enabled.
+export function canEnableMasturbationTracking(resetJourney: ResetJourney): boolean {
+  return resetJourney.status === "inactive" || resetJourney.status === "recommended" || resetJourney.status === "completed";
 }

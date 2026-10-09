@@ -135,7 +135,8 @@ function verifyAvailabilityMatrix() {
     assert(restriction !== null, "Valid matrix fixture must have an effective Reset policy.");
     const blockReason = !enabled ? "trackingDisabled" : current === "active" ? "activeSession" : current === "awaiting_feedback" ? "awaitingFeedback" : restriction.isRestrictionActive ? "resetRestriction" : null;
     equal(getMasturbationTrackingAvailability(state, clock), {
-      enabled, currentSessionStatus: current, canStartSession: blockReason === null, blockReason, resetRestriction: restriction
+      enabled, canEnableTracking: !enabled && ["inactive", "recommended", "completed"].includes(state.resetJourney.status),
+      currentSessionStatus: current, canStartSession: blockReason === null, blockReason, resetRestriction: restriction
     }, "Availability must expose independent permission/session/Reset facts with deterministic disabled → active → awaiting-feedback → Reset precedence.");
     assert(JSON.stringify(state) === before, "Availability must remain a pure read, including after elapsed active Reset completion.");
     count++;

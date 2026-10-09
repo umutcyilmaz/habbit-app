@@ -1,4 +1,5 @@
 import { normalizeMasturbationTracking, normalizeResetJourney } from "./bloomProductStateSchema";
+import { canEnableMasturbationTracking } from "../domain/productPolicy/getMasturbationTrackingAvailability";
 import type { BloomLocalState } from "./bloomState";
 
 // Manual activation respects persisted Reset lifecycle, independently of the
@@ -9,16 +10,9 @@ export function enableMasturbationTrackingState(state: BloomLocalState): BloomLo
     normalizeMasturbationTracking(tracking);
     if (tracking.enabled) return state;
     normalizeResetJourney(state.resetJourney);
-    switch (state.resetJourney.status) {
-      case "inactive":
-      case "recommended":
-      case "completed":
-        return { ...state, masturbationTracking: { ...tracking, enabled: true } };
-      case "baseline_pending":
-      case "active":
-      default:
-        return state;
-    }
+    return canEnableMasturbationTracking(state.resetJourney)
+      ? { ...state, masturbationTracking: { ...tracking, enabled: true } }
+      : state;
   } catch {
     return state;
   }

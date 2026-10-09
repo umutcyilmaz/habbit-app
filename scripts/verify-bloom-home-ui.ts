@@ -58,13 +58,17 @@ function textOf(tree: unknown): string {
   if (tree !== null && typeof tree === "object" && "props" in tree) return textOf((tree as Tree).props.children);
   return "";
 }
-function render(state: BloomLocalState, clock = at) {
+function render(state: BloomLocalState, clock = at, activationOverrides: Partial<{
+  busy: boolean; locked: boolean; canRetry: boolean; message: string | null;
+}> = {}) {
   const model = getBloomHomeReadModel(state, clock);
   assert(model !== null, "Fixture must produce a Home read model.");
   const calls: unknown[] = [];
+  const trackingActivation = { busy: false, locked: false, canRetry: false, message: null,
+    enable: () => calls.push("enableTracking"), retry: () => calls.push("retryTracking"), ...activationOverrides };
   currentFeature = { hydrationStatus: "ready", model, tracking: getTrackingSummary(state.masturbationTracking, clock),
     contentFree: state.contentFree, openAction: (action: unknown) => calls.push(action),
-    openContentFree: () => calls.push("contentFree"), openPanic: () => calls.push("panic") };
+    openContentFree: () => calls.push("contentFree"), openPanic: () => calls.push("panic"), trackingActivation };
   const entries = nodes(BloomHomeScreen());
   return { model, entries, calls,
     id: (id: string) => entries.find((entry) => entry.props.testID === id),
@@ -116,11 +120,35 @@ assert(getTrackingSummary(future.masturbationTracking, at).completedSessionCount
   "Completed sessions ending after observation time must be excluded.");
 
 const contentOnly = render(base(false, true));
-assert(!contentOnly.id("bloom.home.tracking") && contentOnly.id("bloom.home.content-free.current")?.props.children === 2,
-  "Active Content-Free must render independently with completed days.");
+assert(!contentOnly.id("bloom.home.tracking") && contentOnly.id("bloom.home.tracking.inactive") &&
+  contentOnly.id("bloom.home.tracking.enable")?.props.label === "Takibi başlat" &&
+  contentOnly.id("bloom.home.tracking.enable")?.props.variant === "secondary" &&
+  contentOnly.id("bloom.home.content-free.current")?.props.children === 2,
+  "Active Content-Free must retain its streak while offering optional Tracking activation.");
+assert(contentOnly.entries.findIndex((n) => n.props.testID === "bloom.home.content-free") <
+  contentOnly.entries.findIndex((n) => n.props.testID === "bloom.home.tracking.inactive"),
+  "Active Content-Free must appear before optional Tracking activation.");
+assert(contentOnly.text().includes("Bu takip, Content-Free sayacından bağımsız çalışır.") &&
+  !contentOnly.text().includes("Content-Free serin etkilenmez"), "Inactive Tracking copy must apply even without a Content-Free streak.");
+const noActivePlan = render(base(false, false));
+assert(noActivePlan.text().includes("Bu takip, Content-Free sayacından bağımsız çalışır."),
+  "Optional Tracking copy must also be accurate before Content-Free activation.");
+contentOnly.press("bloom.home.tracking.enable");
+assert(contentOnly.calls[0] === "enableTracking" && !contentOnly.id("bloom.home.tracking.action"),
+  "Inactive Tracking enables permission without starting a session.");
 assert(contentOnly.id("bloom.home.content-free.best") && contentOnly.text().includes("42 gün"), "Best streak must use completed days.");
 contentOnly.press("bloom.home.content-free.action");
-assert(contentOnly.calls[0] === "contentFree", "Active Content-Free management must navigate.");
+assert(contentOnly.calls[1] === "contentFree", "Active Content-Free management must navigate.");
+const saving = render(base(false, true), at, { busy: true, locked: true });
+assert(saving.id("bloom.home.tracking.enable")?.props.loading === true &&
+  saving.id("bloom.home.tracking.enable")?.props.disabled === true && !saving.id("bloom.home.tracking.action"),
+  "Pending activation shows saving and never offers a session action.");
+const failed = render(base(false, true), at, { locked: true, canRetry: true, message: "Kaydetme henüz doğrulanmadı." });
+assert(failed.id("bloom.home.tracking.activation-message") && failed.id("bloom.home.tracking.retry") &&
+  !failed.id("bloom.home.tracking.enable") && !failed.id("bloom.home.tracking.action"),
+  "Failed persistence shows feedback and only the safe retry action.");
+failed.press("bloom.home.tracking.retry");
+assert(failed.calls[0] === "retryTracking", "Failure retry uses its own handler without session navigation.");
 const together = render(base(true, true));
 assert(together.id("bloom.home.tracking") && together.id("bloom.home.content-free.current"), "Both active trackers must coexist.");
 assert(together.entries.findIndex((n) => n.props.testID === "bloom.home.tracking") <
@@ -143,6 +171,12 @@ assert((reset.calls[0] as { id: string }).id === "viewActiveReset", "Reset actio
 reset.press("bloom.home.panic");
 assert(reset.calls[1] === "panic" && reset.entries.filter((n) => n.props.testID === "bloom.home.panic").length === 1,
   "Reset Home must expose exactly one Panic entry.");
+const disabledResetState = createActiveState(false, true);
+disabledResetState.masturbationTracking.enabled = false;
+disabledResetState.urgeControl.activeEvent = null;
+const disabledReset = render(disabledResetState, "2026-09-03T12:00:00.000Z");
+assert(!disabledReset.id("bloom.home.tracking.inactive") && !disabledReset.id("bloom.home.tracking.enable") &&
+  !disabledReset.id("bloom.home.tracking.action"), "Active Reset must not offer Tracking activation or a new session.");
 
 const activeSession = base();
 activeSession.masturbationTracking.currentSession = { id: "active", status: "active", startedAt: "2026-09-04T11:00:00.000Z", pauses: [] };
@@ -202,8 +236,9 @@ currentFeature = { hydrationStatus: "ready", model: null };
 assert(nodes(BloomHomeScreen()).some((n) => n.props.testID === "bloom.home.unavailable"), "Null composition gets unavailable state.");
 assert(hookSource.includes("getBloomHomeReadModel(durableState, observationTime)") &&
   hookSource.includes("mapBloomHomeActionToFlowIntent(action)") && hookSource.includes("navigateBloomProductFlow(router,") &&
-  !hookSource.includes("productActions") && !hookSource.includes("getNextBloomAction"),
-  "Home hook must read durable product facts and navigate canonical actions without commands or legacy priority.");
+  hookSource.includes("activationController.enable(durableState.masturbationTracking)") &&
+  !hookSource.includes("getNextBloomAction"),
+  "Home hook must read durable product facts, activate through the controller, and navigate canonical actions.");
 assert(!screenSource.includes("14 gün sonra") && !screenSource.includes("remainingSeconds") &&
   !screenSource.includes("tracking.disable"), "Home cannot promise automatic remeasurement, show seconds, or disable Tracking.");
-console.log("Bloom Home UI verification passed (16 state combinations, presentation metrics, card ordering, semantic actions, hydration, and read-only hook wiring).");
+console.log("Bloom Home UI verification passed (inactive activation, saving/retry feedback, presentation metrics, card ordering, semantic actions, hydration, and durable hook wiring).");

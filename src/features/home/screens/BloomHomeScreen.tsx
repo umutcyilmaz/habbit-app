@@ -35,6 +35,7 @@ export function BloomHomeScreen() {
     ? model.trackingAvailability.resetRestriction.progress : null;
   const contentFreeTracker = model.primaryTracker?.kind === "contentFree" ? model.primaryTracker : model.secondaryTracker;
   const isResetFirst = resetProgress !== null;
+  const contentFreeFirst = isResetFirst || (!model.trackingAvailability.enabled && contentFreeTracker !== null);
 
   return (
     <AppScreen scroll testID="bloom.home" contentContainerStyle={styles.page}>
@@ -46,9 +47,10 @@ export function BloomHomeScreen() {
       <AttentionCard action={model.primaryAction} onAction={feature.openAction} />
 
       {isResetFirst ? <ResetCard model={model} onAction={feature.openAction} onPanic={feature.openPanic} /> : null}
-      {isResetFirst ? <ContentFreeCard tracker={contentFreeTracker} onOpen={feature.openContentFree} /> : null}
-      {model.trackingAvailability.enabled ? <TrackingCard model={model} summary={feature.tracking} onAction={feature.openAction} restrained={isResetFirst} /> : null}
-      {!isResetFirst ? <ContentFreeCard tracker={contentFreeTracker} onOpen={feature.openContentFree} /> : null}
+      {contentFreeFirst ? <ContentFreeCard tracker={contentFreeTracker} onOpen={feature.openContentFree} /> : null}
+      {model.trackingAvailability.enabled ? <TrackingCard model={model} summary={feature.tracking} onAction={feature.openAction} restrained={isResetFirst} />
+        : model.trackingAvailability.canEnableTracking ? <InactiveTrackingCard activation={feature.trackingActivation} /> : null}
+      {!contentFreeFirst ? <ContentFreeCard tracker={contentFreeTracker} onOpen={feature.openContentFree} /> : null}
       {!isResetFirst ? <AppButton testID="bloom.home.panic" label="Panic" variant="secondary" onPress={feature.openPanic} /> : null}
       {model.resetRecommendationAction !== null && model.primaryAction?.id !== "reviewResetRecommendation" ? (
         <AppCard testID="bloom.home.reset-recommendation" style={styles.card}>
@@ -58,6 +60,19 @@ export function BloomHomeScreen() {
         </AppCard>
       ) : null}
     </AppScreen>
+  );
+}
+
+function InactiveTrackingCard({ activation }: { activation: Feature["trackingActivation"] }) {
+  return (
+    <AppCard testID="bloom.home.tracking.inactive" variant="hero" style={styles.card}>
+      <AppText variant="overline" tone="muted">MASTURBATION TRACKING</AppText>
+      <AppText variant="title">Takibe kendi zamanında başla</AppText>
+      <AppText tone="secondary">Oturumlarını ve ilerlemeni ayrı takip edebilirsin. Bu takip, Content-Free sayacından bağımsız çalışır.</AppText>
+      {activation.message !== null ? <AppText testID="bloom.home.tracking.activation-message" tone="secondary">{activation.message}</AppText> : null}
+      {activation.canRetry ? <AppButton testID="bloom.home.tracking.retry" label="Yeniden kaydet" loading={activation.busy} onPress={activation.retry} />
+        : <AppButton testID="bloom.home.tracking.enable" label="Takibi başlat" variant="secondary" loading={activation.busy} loadingLabel="Kaydediliyor…" disabled={activation.locked} onPress={activation.enable} />}
+    </AppCard>
   );
 }
 
