@@ -43,11 +43,11 @@ function verifyHookStructure(source: string) {
   const bindingStatement = hook.body.statements[0]!;
   assert(ts.isVariableStatement(bindingStatement), "The hook must obtain provider commands through a local binding.");
   const binding = bindingStatement.declarationList.declarations[0];
-  assert(binding !== undefined && ts.isObjectBindingPattern(binding.name) && binding.name.elements.length === 1 &&
-    binding.name.elements[0]!.name.getText(parsed) === "productActions" &&
+  assert(binding !== undefined && ts.isObjectBindingPattern(binding.name) && binding.name.elements.length === 2 &&
+    binding.name.elements[0]!.name.getText(parsed) === "productActions" && binding.name.elements[1]!.name.getText(parsed) === "now" &&
     binding.initializer !== undefined && ts.isCallExpression(binding.initializer) &&
     binding.initializer.expression.getText(parsed) === "useBloomLocalState",
-  "Only productActions may be destructured from the provider; product state must remain outside the adapter.");
+  "Only productActions and the runtime clock may be read; product state remains outside the adapter.");
   const returned = hook.body.statements[1]!;
   assert(ts.isReturnStatement(returned) && returned.expression !== undefined && ts.isCallExpression(returned.expression),
     "The adapter must return one memoized flow-factory construction.");
@@ -55,9 +55,9 @@ function verifyHookStructure(source: string) {
   assert(memo.expression.getText(parsed) === "useMemo" && memo.arguments.length === 2,
     "Flow actions must be memoized with an explicit dependency list.");
   const dependencies = memo.arguments[1]!;
-  assert(ts.isArrayLiteralExpression(dependencies) && dependencies.elements.length === 1 &&
-    dependencies.elements[0]!.getText(parsed) === "productActions",
-  "Only the acknowledged command reference may invalidate flow-action memoization.");
+  assert(ts.isArrayLiteralExpression(dependencies) && dependencies.elements.length === 2 &&
+    dependencies.elements[0]!.getText(parsed) === "productActions" && dependencies.elements[1]!.getText(parsed) === "now",
+  "Only acknowledged commands and the scoped clock may invalidate flow-action memoization.");
   const calls: string[] = [];
   const inspect = (node: import("typescript").Node) => {
     if (ts.isCallExpression(node)) calls.push(node.expression.getText(parsed));
@@ -95,11 +95,11 @@ async function verifyHookDependencyWiring(source: string) {
   };
   const factory = (options: Parameters<typeof createBloomProductFlowActions>[0]) => {
     factoryBuilds++;
-    assert(Object.keys(options).length === 1 && options.productActions === currentContext.productActions,
-      "The hook must pass only the provider's existing productActions to the Phase 1Q factory.");
+    assert(Object.keys(options).length === 2 && options.productActions === currentContext.productActions && options.now === currentContext.now,
+      "The hook must pass the provider's existing commands and clock to the factory.");
     return createBloomProductFlowActions({
       ...options,
-      now: () => { clockCalls++; return new Date(at); },
+      now: () => { clockCalls++; return options.now!(); },
       createId: (prefix) => { idCalls++; return `${prefix}-react-test-${idCalls}`; }
     });
   };
@@ -140,9 +140,9 @@ async function verifyHookDependencyWiring(source: string) {
   const replacementFlow = useFlow();
   assert(replacementFlow !== initialFlow && Number(factoryBuilds) === 2,
     "Replacing the acknowledged command object must rebuild flow actions rather than retain stale command closures.");
-  assert(dependencySnapshots.length === 3 && dependencySnapshots.every((entries) => entries.length === 1) &&
+  assert(dependencySnapshots.length === 3 && dependencySnapshots.every((entries) => entries.length === 2 && entries[1] === providerNow) &&
     dependencySnapshots[0]![0] === first.actions && dependencySnapshots[1]![0] === first.actions && dependencySnapshots[2]![0] === second.actions,
-  "The actual useMemo calls must depend solely on the current provider command reference.");
+  "The actual useMemo calls depend only on current commands and the stable runtime clock.");
   assert(clockCalls === 0 && idCalls === 0 && first.calls.length === 0 && second.calls.length === 0,
     "Mounting and rerendering the adapter must not generate identities/timestamps, invoke commands, or navigate.");
 
@@ -174,14 +174,22 @@ async function verifyHookDependencyWiring(source: string) {
   assert(await acceptingReset === resetResult && useFlow() === replacementFlow && Number(factoryBuilds) === 2 &&
     Number(clockCalls) === 2 && Number(idCalls) === 2,
   "Recommendation acknowledgement and rerenders must not replay acceptance, rebuild stable commands, or regenerate its mechanical facts.");
+  const replacementNow = () => new Date("2026-10-20T00:00:00.000Z");
+  currentContext = providerContext(second.actions, 5, replacementNow);
+  const changedClockFlow = useFlow();
+  assert(changedClockFlow !== replacementFlow && Number(factoryBuilds) === 3, "Replacing the scoped clock must invalidate stale flow closures.");
+  changedClockFlow.tracking.session.start();
+  assert(second.calls[1]?.startedAt === replacementNow().toISOString(), "Explicit mutations must use the injected runtime clock.");
 }
 
-function providerContext(productActions: BloomProductAcknowledgedActions, revision: number) {
-  const target = { productActions, state: { revision }, durableState: { revision: revision - 1 }, persistenceError: null };
+const providerNow = () => new Date(at);
+
+function providerContext(productActions: BloomProductAcknowledgedActions, revision: number, now = providerNow) {
+  const target = { productActions, now, state: { revision }, durableState: { revision: revision - 1 }, persistenceError: null };
   return new Proxy(target, {
     get(object, property) {
-      if (property !== "productActions") throw new Error(`React flow hook read unrelated provider property: ${String(property)}`);
-      return object.productActions;
+      if (property !== "productActions" && property !== "now") throw new Error(`React flow hook read unrelated provider property: ${String(property)}`);
+      return property === "now" ? object.now : object.productActions;
     },
     ownKeys() { throw new Error("React flow hook enumerated the full provider context."); }
   });

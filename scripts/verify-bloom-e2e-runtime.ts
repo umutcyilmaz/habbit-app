@@ -1,3 +1,4 @@
+import { verifyBloomPhase10Qa } from "./verify-bloom-phase10-qa";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
@@ -145,3 +146,4 @@ function assert(condition: boolean, message: string): asserts condition {
 }
 
 verifyE2ERuntime();
+void verifyBloomPhase10Qa().catch((error: unknown) => { console.error(error); process.exitCode = 1; });

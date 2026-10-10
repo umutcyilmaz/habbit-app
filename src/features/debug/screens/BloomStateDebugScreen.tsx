@@ -37,6 +37,8 @@ import {
   type QuizFlags
 } from "../../../storage/bloomState";
 
+import { phase10QaEnabled } from "../phase10/phase10QaMode";
+
 type PendingDebugProfileRetry = {
   profileId: DebugProfileId;
   retryToken: BloomPersistenceRetryToken;
@@ -183,6 +185,8 @@ export function BloomStateDebugScreen() {
         title="Bloom local state"
         subtitle="Inspect MVP state and simulate day changes."
       />
+
+      {phase10QaEnabled ? <AppButton testID="bloom.debug.phase10" onPress={() => router.push("/debug/phase10")}>Open Phase 10 QA</AppButton> : null}
 
       <View style={styles.stack}>
         {isLoading ? (

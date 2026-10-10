@@ -241,8 +241,8 @@ assert(pendingHome.id("bloom.home.content-free.action")?.props.label === "Reset 
   "Home's inactive Content-Free card must guide to continuation while the decision is pending.");
 assert(getBloomContentFreeEntryIntent(pendingReset, continuityFixture.observeDays(20)).flow === "resetCompletion",
   "The Home Content-Free entry intent must preserve the acknowledged continuation route.");
-assert(hookSource.includes("getBloomContentFreeEntryIntent(durableState, new Date().toISOString())"),
-  "Home must use the durable continuation-aware entry intent for its Content-Free action.");
+assert(hookSource.includes("getBloomContentFreeEntryIntent(durableState, (now ?? readSystemTime)().toISOString())"),
+  "Home must use the durable continuation-aware entry intent and scoped clock for its Content-Free action.");
 
 currentFeature = { hydrationStatus: "loading", model: null };
 assert(nodes(BloomHomeScreen()).some((n) => n.props.testID === "bloom.home.loading"), "Pending hydration gets loading state.");

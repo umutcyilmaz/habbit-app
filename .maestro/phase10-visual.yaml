@@ -1,0 +1,50 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Phase 10 real V4 screen visual inspection
+# Run only against npm run start:e2e:phase10. No clearState and no device clock changes.
+---
+- launchApp
+- openLink: "tms-e2e:///debug/phase10"
+- runFlow:
+    when:
+      visible: "Open"
+    commands:
+      - tapOn: "Open"
+- extendedWaitUntil:
+    visible:
+      id: "bloom.qa.phase10"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: "bloom.qa.phase10.${SCENARIO}"
+    direction: DOWN
+- tapOn:
+    id: "bloom.qa.phase10.${SCENARIO}"
+- scrollUntilVisible:
+    element:
+      id: "bloom.qa.phase10.${TARGET}"
+    direction: DOWN
+- tapOn:
+    id: "bloom.qa.phase10.${TARGET}"
+- extendedWaitUntil:
+    visible:
+      id: "${SCREEN_ID}"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      text: "${EXPECTED_TEXT}"
+    direction: DOWN
+- assertVisible: "${EXPECTED_TEXT}"
+- runFlow:
+    when:
+      true: ${TARGET == 'content-free' && (SCENARIO == 'day10-credit' || SCENARIO == 'continuation-accepted' || SCENARIO == 'completed-existing')}
+    commands:
+      - assertVisible:
+          id: "bloom.content-free.current-streak"
+          text: "${SCENARIO == 'completed-existing' ? '20' : SCENARIO == 'day10-credit' ? '9' : '15'}"
+- runFlow:
+    when:
+      true: ${TARGET == 'reset' && (SCENARIO == 'completed-existing' || SCENARIO == 'continuation-accepted' || SCENARIO == 'continuation-declined')}
+    commands:
+      - assertNotVisible:
+          id: "bloom.reset.content-free-offer"
+- takeScreenshot: "phase10-${SCENARIO}-${TARGET}"

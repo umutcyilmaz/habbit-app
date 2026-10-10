@@ -7,9 +7,9 @@ import {
 } from "./bloomProductFlowActions";
 
 export function useBloomProductFlowActions(): BloomProductFlowActions {
-  const { productActions } = useBloomLocalState();
+  const { productActions, now } = useBloomLocalState();
   return useMemo(
-    () => createBloomProductFlowActions({ productActions }),
-    [productActions]
+    () => createBloomProductFlowActions({ productActions, now }),
+    [productActions, now]
   );
 }

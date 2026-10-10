@@ -9,7 +9,7 @@ import { theme } from "../../shared/design-system/theme";
 import { useBloomLocalState } from "./BloomLocalStateProvider";
 import { useLocalDataLifecycle } from "./LocalDataLifecycleProvider";
 
-export function BloomHydrationBoundary({ children }: PropsWithChildren) {
+export function BloomHydrationBoundary({ children, keepChildrenMountedDuringLoading = false }: PropsWithChildren<{ keepChildrenMountedDuringLoading?: boolean }>) {
   const { hydrationStatus, hydrationError, retryHydration } =
     useBloomLocalState();
   const {
@@ -55,6 +55,10 @@ export function BloomHydrationBoundary({ children }: PropsWithChildren) {
       </SafeAreaView>
     );
   }
+
+  // The isolated QA menu reloads fixtures in place; retain its navigation tree.
+  // Feature hooks continue to disable commands until hydration is ready.
+  if (hydrationStatus === "loading" && keepChildrenMountedDuringLoading) return children;
 
   if (hydrationStatus === "loading") {
     return (

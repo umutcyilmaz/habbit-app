@@ -74,7 +74,9 @@ sub-day interval uses “Kazandığım süreyle devam et”. No shorter interval
 `npm run verify:reset-continuity` runs an isolated fixture and injected clock.
 `observeDays(15)` reaches the exact elapsed boundary without device time changes,
 production storage, production fake timestamps, or legacy ten-day offsets.
-The fixture is under `scripts/fixtures` and is unreachable from app code.
+The fixture is shared with the guarded DEV/E2E Simulator runtime via
+`scripts/fixtures/resetContinuity.ts`; see
+[Simulator QA](phase10-simulator-visual-qa.md). Release builds cannot open its controls.
 
 Regression coverage includes all 15 requested groups plus fractional duration,
 real Day-10 display semantics, activation-boundary violations, multiple attempts,
@@ -108,9 +110,9 @@ the new saved offer while retaining the existing active-user behavior.
 Historical gaps or noncanonical historical completion boundaries do not create
 unsupported continuation credit. Existing historical records remain intact.
 Manual deactivation preserves activation boundaries and verified Reset credit.
-A full device-rendered visual/E2E pass is not part of
-the deterministic Node/hook verification, so physical-device layout remains
-unverified.
+The deterministic Node/hook suite is supplemented by the isolated
+[Simulator QA](phase10-simulator-visual-qa.md) workflow. Physical-device layout
+remains unverified.
 
 ## Changed files
 

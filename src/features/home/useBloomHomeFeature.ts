@@ -11,21 +11,24 @@ import { getBloomHomeReadModel, type BloomHomeAction } from "../../domain/home/g
 import { getTrackingSummary } from "./homePresentation";
 import { createHomeTrackingActivationController } from "./homeTrackingActivationController";
 
+const readSystemTime = () => new Date();
+
 export function useBloomHomeFeature() {
   const router = useRouter();
   const flowActions = useBloomProductFlowActions();
-  const { state, durableState, getAcceptedState, retryPersistedMutation, hydrationStatus } = useBloomLocalState();
+  const { state, durableState, now, getAcceptedState, retryPersistedMutation, hydrationStatus } = useBloomLocalState();
   const activationController = useMemo(() => createHomeTrackingActivationController({
     flowActions, getState: getAcceptedState, retryPersistedMutation
   }), [flowActions, getAcceptedState, retryPersistedMutation]);
   const activation = useSyncExternalStore(activationController.subscribe, activationController.getSnapshot, activationController.getSnapshot);
-  const [observationTime, setObservationTime] = useState(() => new Date().toISOString());
+  const [observationTime, setObservationTime] = useState(() => (now ?? readSystemTime)().toISOString());
 
   useEffect(() => {
-    const refresh = () => setObservationTime(new Date().toISOString());
+    const refresh = () => setObservationTime((now ?? readSystemTime)().toISOString());
+    refresh();
     const interval = setInterval(refresh, 60_000);
     return () => clearInterval(interval);
-  }, []);
+  }, [now, durableState.resetJourney, durableState.contentFree]);
 
   const model = useMemo(() => hydrationStatus === "ready"
     ? getBloomHomeReadModel(durableState, observationTime)
@@ -39,8 +42,8 @@ export function useBloomHomeFeature() {
   const contentFreeContinuation = hydrationStatus === "ready" ? getResetContentFreeContinuationOffer(durableState, durableState) : null;
   const openContentFree = useCallback(() => {
     if (hydrationStatus !== "ready") return;
-    navigateBloomProductFlow(router, getBloomContentFreeEntryIntent(durableState, new Date().toISOString()));
-  }, [router, durableState, hydrationStatus]);
+    navigateBloomProductFlow(router, getBloomContentFreeEntryIntent(durableState, (now ?? readSystemTime)().toISOString()));
+  }, [router, durableState, hydrationStatus, now]);
 
   const activationUnconfirmed = state.masturbationTracking.enabled && !durableState.masturbationTracking.enabled;
   const enableTracking = useCallback(() => {

@@ -14,7 +14,7 @@ import { getResetRouteView, type ResetRouteMode, type ResetRouteView } from "./r
 
 // Read-only selector clock. Mutation IDs/timestamps are created exclusively by
 // the existing flow factory, including on the completion screen.
-const readDisplayTime = () => new Date(Date.now()).toISOString();
+const readSystemTime = () => new Date(Date.now());
 
 export function useResetFeature(mode: ResetRouteMode) {
   const router = useRouter();
@@ -22,8 +22,9 @@ export function useResetFeature(mode: ResetRouteMode) {
   const journeyId = typeof params.journeyId === "string" ? params.journeyId : null;
   const attemptId = typeof params.attemptId === "string" ? params.attemptId : null;
   const flowActions = useBloomProductFlowActions();
-  const { state, durableState, getAcceptedState, retryPersistedMutation, hasHydrated, hydrationStatus } = useBloomLocalState();
-  const [nowMilliseconds, setNowMilliseconds] = useState(Date.now);
+  const { state, durableState, now, getAcceptedState, retryPersistedMutation, hasHydrated, hydrationStatus } = useBloomLocalState();
+  const readDisplayTime = useMemo(() => () => (now ?? readSystemTime)().toISOString(), [now]);
+  const [nowMilliseconds, setNowMilliseconds] = useState(() => (now ?? readSystemTime)().getTime());
   const [navigationError, setNavigationError] = useState<string | null>(null);
   const mounted = useRef(false);
   const currentController = useRef<ReturnType<typeof createResetController> | null>(null);
@@ -38,7 +39,7 @@ export function useResetFeature(mode: ResetRouteMode) {
       }
     });
     return instance;
-  }, [flowActions, getAcceptedState, retryPersistedMutation, mode, journeyId, attemptId]);
+  }, [flowActions, getAcceptedState, retryPersistedMutation, mode, journeyId, attemptId, readDisplayTime]);
   currentController.current = controller;
   const operation = useSyncExternalStore(controller.subscribe, controller.getSnapshot, controller.getSnapshot);
   const allowNavigation = usePersistenceNavigationGuard(operation.busy);
@@ -70,9 +71,9 @@ export function useResetFeature(mode: ResetRouteMode) {
   }, []);
   useEffect(() => { setNavigationError(null); }, [controller]);
   useEffect(() => {
-    const interval = setInterval(() => setNowMilliseconds(Date.now()), 1000);
+    const interval = setInterval(() => setNowMilliseconds((now ?? readSystemTime)().getTime()), 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [now]);
 
   const reset = state.resetJourney;
   const continuationOffer = hasHydrated && mode === "completion" ? getResetContentFreeContinuationOffer(state, durableState) : null;

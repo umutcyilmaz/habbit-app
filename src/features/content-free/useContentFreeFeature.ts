@@ -11,11 +11,13 @@ import { usePersistenceNavigationGuard } from "../../shared/navigation/usePersis
 import { createContentFreeController } from "./contentFreeController";
 import { getContentFreeFeatureView } from "./contentFreeView";
 
+const readSystemTime = () => new Date(Date.now());
+
 export function useContentFreeFeature() {
   const router = useRouter();
   const flowActions = useBloomProductFlowActions();
-  const { state, durableState, getAcceptedState, retryPersistedMutation, hasHydrated, hydrationStatus } = useBloomLocalState();
-  const [nowMilliseconds, setNowMilliseconds] = useState(Date.now);
+  const { state, durableState, now, getAcceptedState, retryPersistedMutation, hasHydrated, hydrationStatus } = useBloomLocalState();
+  const [nowMilliseconds, setNowMilliseconds] = useState(() => (now ?? readSystemTime)().getTime());
   const [navigationError, setNavigationError] = useState<string | null>(null);
   const mounted = useRef(false);
   const currentController = useRef<ReturnType<typeof createContentFreeController> | null>(null);
@@ -33,9 +35,9 @@ export function useContentFreeFeature() {
   // Display-only clock: the selector derives progress from canonical facts.
   // No flow command or persisted counter is updated on mount or on a tick.
   useEffect(() => {
-    const interval = setInterval(() => setNowMilliseconds(Date.now()), 1000);
+    const interval = setInterval(() => setNowMilliseconds((now ?? readSystemTime)().getTime()), 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [now]);
 
   const content = state.contentFree;
   const continuationOffer = hasHydrated ? getResetContentFreeContinuationOffer(state, durableState) : null;
@@ -65,7 +67,7 @@ export function useContentFreeFeature() {
     if (getResetContentFreeContinuationOffer(current, durableState) === null) return;
     try {
       allowNavigation();
-      navigateBloomProductFlow(router, getBloomContentFreeEntryIntent(current, new Date().toISOString()), "replace");
+      navigateBloomProductFlow(router, getBloomContentFreeEntryIntent(current, (now ?? readSystemTime)().toISOString()), "replace");
     } catch { setNavigationError("Reset devam etme seçimi açılamadı. Lütfen tekrar dene."); }
   };
   return {

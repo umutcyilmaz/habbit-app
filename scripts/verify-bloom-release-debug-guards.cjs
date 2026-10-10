@@ -545,6 +545,28 @@ function verifyNoPersistenceCoupling() {
   }
 }
 
+function verifyPhase10QaGuards() {
+  const modePath = "src/features/debug/phase10/phase10QaMode.ts";
+  const source = read(modePath);
+  const output = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText;
+  function evaluate(dev, e2e, flag, bundle) {
+    const module = { exports: {} };
+    vm.runInNewContext(output, {
+      __DEV__: dev, module, exports: module.exports, process: { env: { EXPO_PUBLIC_PHASE10_QA: flag } },
+      require: (name) => name === "expo-constants" ? { default: { expoConfig: { ios: { bundleIdentifier: bundle } } } } : { isE2EMode: e2e }
+    });
+    return module.exports.phase10QaEnabled;
+  }
+  for (const dev of [false, true]) for (const e2e of [false, true]) for (const flag of [undefined, "1", "true"]) for (const bundle of [undefined, "com.umutcyilmaz.bloom", "com.umutcyilmaz.bloom.e2e"]) {
+    assertInvariant(evaluate(dev, e2e, flag, bundle) === (dev && e2e && flag === "1" && bundle === "com.umutcyilmaz.bloom.e2e"), modePath + ": QA needs DEV, E2E, explicit QA flag and E2E identity.");
+  }
+  const route = read("app/debug/phase10.tsx");
+  assertInvariant(route.includes('if (!phase10QaEnabled) return <Redirect href="/" />;') && route.indexOf("if (!phase10QaEnabled)") < route.indexOf("return <Phase10QaScreen"), "Phase 10 route must reject release access before mounting controls.");
+  assertInvariant(read("src/app/providers/AppProviders.tsx").includes("phase10QaEnabled ? <Phase10QaProvider>"), "Phase 10 fixtures/storage must only be initialized behind the same guard.");
+  assertInvariant(read("src/features/debug/phase10/Phase10QaProvider.tsx").includes("phase10QaEnabled ? createPhase10QaSession(storageClient) : null"), "QA provider must independently reject unguarded initialization.");
+}
+
+verifyPhase10QaGuards();
 verifyDebugBoundary();
 verifyQuizPreview();
 verifyDebugRoute();

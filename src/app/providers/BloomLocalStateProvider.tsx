@@ -89,7 +89,22 @@ export type BloomLocalDataDeletionRequest = {
   settlement: Promise<void>;
 };
 
+export type BloomLocalStateRuntime = {
+  now: () => Date;
+  load: typeof loadBloomLocalState;
+  save: typeof saveBloomLocalState;
+  deleteAll: typeof deleteAllPersistedBloomData;
+};
+
+const defaultRuntime: BloomLocalStateRuntime = {
+  now: () => new Date(),
+  load: loadBloomLocalState,
+  save: saveBloomLocalState,
+  deleteAll: deleteAllPersistedBloomData
+};
+
 type BloomLocalStateContextValue = {
+  now: () => Date;
   state: BloomLocalState;
   durableState: BloomLocalState;
   getAcceptedState: () => BloomLocalState;
@@ -177,7 +192,7 @@ type BloomLocalStateContextValue = {
 
 const BloomLocalStateContext = createContext<BloomLocalStateContextValue | undefined>(undefined);
 
-export function BloomLocalStateProvider({ children }: PropsWithChildren) {
+export function BloomLocalStateProvider({ children, runtime = defaultRuntime }: PropsWithChildren<{ runtime?: BloomLocalStateRuntime }>) {
   const initialStateRef = useRef<BloomLocalState | null>(null);
   if (initialStateRef.current === null) {
     initialStateRef.current = createDefaultBloomState();
@@ -217,7 +232,7 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
   if (mutationRuntimeRef.current === null) {
     mutationRuntimeRef.current = createBloomLocalStateMutationRuntime({
       initialState: initialStateRef.current,
-      persistState: saveBloomLocalState,
+      persistState: runtime.save,
       onStateChange(nextState) {
         projection.setAcceptedState(nextState);
       },
@@ -264,7 +279,7 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
     if (hydrationOperation === null) {
       const attemptId = hydrationAttemptRef.current + 1;
       hydrationAttemptRef.current = attemptId;
-      const operation = loadBloomLocalState()
+      const operation = runtime.load()
         .then((loadResult) => {
           if (
             !isMountedRef.current ||
@@ -364,7 +379,7 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
 
     hydrationPromiseRef.current = watchedHydration;
     return watchedHydration;
-  }, [mutationRuntime]);
+  }, [mutationRuntime, runtime]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -447,7 +462,7 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
       setHydrationStatus("error");
     }
 
-    const deletionPromise = deleteAllPersistedBloomData()
+    const deletionPromise = runtime.deleteAll()
       .then(() => {
         if (!isMountedRef.current) {
           return;
@@ -480,7 +495,7 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
       acknowledgement: waitForBloomLocalDataDeletion(deletionPromise),
       settlement: deletionPromise
     };
-  }, [mutationRuntime]);
+  }, [mutationRuntime, runtime]);
 
   const finishBloomLocalDataReset = useCallback(() => {
     mutationRuntime.finishResetNavigation();
@@ -728,6 +743,7 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
 
   const value = useMemo(
     () => ({
+      now: runtime.now,
       state,
       durableState,
       getAcceptedState,
@@ -793,6 +809,7 @@ export function BloomLocalStateProvider({ children }: PropsWithChildren) {
       finishBloomLocalDataReset,
       hasHydrated,
       getAcceptedState,
+      runtime,
       hydrationError,
       hydrationStatus,
       isLoading,

@@ -121,7 +121,7 @@ function persistenceMessage(result: Exclude<BloomPersistedMutationResult, { ok: 
   if (result.reason === "persistenceUnknown") return "Saving has not been confirmed yet. Try saving again to check the same change.";
   if (result.reason === "persistenceSuperseded" || result.reason === "persistenceInvalidated") return "This request was replaced by a newer change. Close and reopen Content-Free to continue.";
   if (result.accepted) return result.retryable
-    ? "Your change is held here, but it could not be saved. Try saving again before continuing."
+    ? "Değişikliğin bu ekranda korunuyor, ancak kaydedilemedi. Devam etmeden önce kaydetmeyi tekrar dene."
     : "Your change was accepted, but saving could not be confirmed. Close and reopen Content-Free to continue.";
   if (result.reason === "hydrationPending" || result.reason === "stateUnavailable" || result.reason === "deletionInProgress") return "Local data is not ready for this action. Please try again when it is available.";
   // Includes invalidSession. Do not infer Reset ownership or duplicate its

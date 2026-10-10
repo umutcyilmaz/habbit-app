@@ -1,0 +1,141 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Phase 10 real continuation buttons and acknowledged persistence
+---
+- runFlow:
+    file: phase10-visual.yaml
+    env:
+      TARGET: reset
+      SCENARIO: before-completion
+      SCREEN_ID: bloom.reset.progress
+      EXPECTED_TEXT: "15 gün tamamlandı"
+- openLink: "tms-e2e:///debug/phase10"
+- scrollUntilVisible:
+    element:
+      id: "bloom.qa.phase10.fail-save"
+    direction: DOWN
+- tapOn:
+    id: "bloom.qa.phase10.fail-save"
+- scrollUntilVisible:
+    element:
+      id: "bloom.qa.phase10.reset"
+    direction: UP
+- tapOn:
+    id: "bloom.qa.phase10.reset"
+- scrollUntilVisible:
+    element:
+      id: "bloom.reset.continue"
+    direction: DOWN
+- tapOn:
+    id: "bloom.reset.continue"
+- assertNotVisible:
+    id: "bloom.reset.content-free-offer"
+- scrollUntilVisible:
+    element:
+      id: "bloom.reset.complete"
+    direction: DOWN
+- tapOn:
+    id: "bloom.reset.complete"
+- extendedWaitUntil:
+    visible:
+      id: "bloom.reset.retry"
+    timeout: 30000
+- assertNotVisible:
+    id: "bloom.reset.content-free-offer"
+- assertVisible: "Değişikliğin bu ekranda korunuyor, ancak kaydedilemedi. Devam etmeden önce kaydetmeyi tekrar dene."
+- takeScreenshot: phase10-completion-save-failure
+- tapOn:
+    id: "bloom.reset.retry"
+- extendedWaitUntil:
+    visible:
+      id: "bloom.reset.content-free.accept"
+    timeout: 30000
+- takeScreenshot: phase10-real-completion-offer
+- tapOn:
+    id: "bloom.reset.content-free.accept"
+- extendedWaitUntil:
+    visible:
+      id: "bloom.home"
+    timeout: 30000
+- stopApp
+- launchApp
+- openLink: "tms-e2e:///debug/phase10"
+- extendedWaitUntil:
+    visible: "Reset: completed · Content-Free: active · Days: 15 · Decision: accepted"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: "bloom.qa.phase10.content-free"
+    direction: DOWN
+- tapOn:
+    id: "bloom.qa.phase10.content-free"
+- assertVisible: "AKTİF SERİ"
+- assertVisible:
+    id: "bloom.content-free.current-streak"
+    text: "15"
+- takeScreenshot: phase10-interactive-accepted
+- runFlow:
+    file: phase10-visual.yaml
+    env:
+      TARGET: reset
+      SCENARIO: completed-pending
+      SCREEN_ID: bloom.reset.completion
+      EXPECTED_TEXT: "15 günlük serimle devam et"
+- tapOn:
+    id: "bloom.reset.content-free.decline"
+- extendedWaitUntil:
+    visible:
+      id: "bloom.home"
+    timeout: 30000
+- stopApp
+- launchApp
+- openLink: "tms-e2e:///debug/phase10"
+- extendedWaitUntil:
+    visible: "Reset: completed · Content-Free: inactive · Days: 0 · Decision: declined"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: "bloom.qa.phase10.content-free"
+    direction: DOWN
+- tapOn:
+    id: "bloom.qa.phase10.content-free"
+- assertVisible: "HENÜZ BAŞLAMADI"
+- assertNotVisible:
+    id: "bloom.content-free.reset-continuation"
+- takeScreenshot: phase10-interactive-declined
+- runFlow:
+    file: phase10-visual.yaml
+    env:
+      TARGET: reset
+      SCENARIO: completed-pending
+      SCREEN_ID: bloom.reset.completion
+      EXPECTED_TEXT: "15 günlük serimle devam et"
+- openLink: "tms-e2e:///debug/phase10"
+- scrollUntilVisible:
+    element:
+      id: "bloom.qa.phase10.fail-save"
+    direction: DOWN
+- tapOn:
+    id: "bloom.qa.phase10.fail-save"
+- scrollUntilVisible:
+    element:
+      id: "bloom.qa.phase10.reset"
+    direction: UP
+- tapOn:
+    id: "bloom.qa.phase10.reset"
+- tapOn:
+    id: "bloom.reset.content-free.accept"
+- extendedWaitUntil:
+    visible:
+      id: "bloom.reset.retry"
+    timeout: 30000
+- assertVisible: "Kaydetme henüz doğrulanmadı"
+- assertVisible: "Değişikliğin bu ekranda korunuyor, ancak kaydedilemedi. Devam etmeden önce kaydetmeyi tekrar dene."
+- takeScreenshot: phase10-real-save-failure
+- tapOn:
+    id: "bloom.reset.retry"
+- extendedWaitUntil:
+    visible:
+      id: "bloom.home"
+    timeout: 30000
+- openLink: "tms-e2e:///debug/phase10"
+- assertVisible: "Reset: completed · Content-Free: active · Days: 15 · Decision: accepted"
