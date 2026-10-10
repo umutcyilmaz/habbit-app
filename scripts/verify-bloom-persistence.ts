@@ -46,6 +46,7 @@ import { verifyBloomSessionCorrections } from "./verify-bloom-session-correction
 import { verifyBloomUrgeControl } from "./verify-bloom-urge-control";
 import { verifyBloomProductPolicy } from "./verify-bloom-product-policy";
 import { verifyBloomHome } from "./verify-bloom-home";
+import { verifyBloomProgress } from "./verify-bloom-progress";
 import { verifyBloomHomeActivation } from "./verify-bloom-home-activation";
 import { verifyBloomProductActions } from "./verify-bloom-product-actions";
 import { verifyBloomProductFlowActions } from "./verify-bloom-product-flow-actions";
@@ -118,6 +119,7 @@ async function verifyBloomPersistence() {
   await verifyBloomUrgeControl();
   await verifyBloomProductPolicy();
   await verifyBloomHome();
+  await verifyBloomProgress();
   await verifyBloomHomeActivation();
   await verifyBloomProductActions();
   await verifyBloomProductFlowActions();
