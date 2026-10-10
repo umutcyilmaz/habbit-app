@@ -6,7 +6,7 @@ import type {
 import type { MasturbationSessionFeedback } from "../../domain/models/MasturbationSession";
 import type { BloomLocalState } from "../../storage/bloomState";
 
-export type SessionOperation = "start" | "startPause" | "endPause" | "end" | "completeFeedback";
+export type SessionOperation = "start" | "startPause" | "endPause" | "end" | "completeFeedback" | "confirmCurrentSave";
 export type MasturbationSessionOperationSnapshot = {
   busy: boolean;
   operation: SessionOperation | null;
@@ -19,6 +19,7 @@ type Options = {
   flowActions: BloomProductFlowActions;
   getState: () => BloomLocalState;
   getRouteSessionId: () => unknown;
+  confirmCurrentPersistence?: () => Promise<BloomPersistedMutationResult>;
   retryPersistedMutation: (token: BloomPersistenceRetryToken) => Promise<BloomPersistedMutationResult>;
   onPersisted?: (operation: SessionOperation, sessionId: string | null) => void;
 };
@@ -46,12 +47,12 @@ export function createMasturbationSessionController(options: Options) {
     const observed = promise.then((result) => {
       inFlight = null;
       if (operation === "start" && result.accepted) acceptedStart = observed;
-      publish({ busy: false, operation, sessionId, result, message: result.ok ? null : persistenceMessage(result) });
-      if (result.ok) options.onPersisted?.(operation, sessionId);
+      publish({ busy: false, operation, sessionId, result, message: result.ok ? (operation === "confirmCurrentSave" ? "Güncel durum kaydedildi. Kapatıp güncel ekrana dönebilirsin." : null) : persistenceMessage(result) });
+      if (result.ok && operation !== "confirmCurrentSave") options.onPersisted?.(operation, sessionId);
       return result;
     }, (error: unknown) => {
       inFlight = null;
-      publish({ ...snapshot, busy: false, message: "Bloom could not finish this request. Please return to Today and reopen the session." });
+      publish({ ...snapshot, busy: false, message: "İstek tamamlanamadı. Güncel durumun kaydını kontrol et." });
       throw error;
     });
     inFlight = observed;
@@ -64,7 +65,7 @@ export function createMasturbationSessionController(options: Options) {
   ): Promise<BloomPersistedMutationResult> | null {
     if (snapshot.busy) return snapshot.operation === operation ? inFlight : null;
     if (operation === "start" && acceptedStart !== null) return acceptedStart;
-    if (locked()) return null;
+    if (locked() || snapshot.operation === "confirmCurrentSave") return null;
     let sessionId: string | null = null;
     if (operation !== "start") {
       const routeId = options.getRouteSessionId();
@@ -85,7 +86,7 @@ export function createMasturbationSessionController(options: Options) {
       publish({ ...snapshot, sessionId });
       return observe(promise, operation, sessionId);
     } catch (error) {
-      publish({ ...snapshot, busy: false, message: "Bloom could not finish this request. Please return to Today and reopen the session." });
+      publish({ ...snapshot, busy: false, message: "İstek tamamlanamadı. Güncel durumun kaydını kontrol et." });
       return Promise.reject(error);
     }
   }
@@ -103,6 +104,12 @@ export function createMasturbationSessionController(options: Options) {
     completeFeedback: (feedback: MasturbationSessionFeedback) => run(
       "completeFeedback", () => options.flowActions.tracking.session.completeFeedback(feedback)
     ),
+    confirmCurrentSave: (): Promise<BloomPersistedMutationResult> | null => {
+      if (snapshot.busy) return inFlight;
+      if (options.confirmCurrentPersistence === undefined) return null;
+      publish({ ...snapshot, busy: true, operation: "confirmCurrentSave", sessionId: null, result: null, message: null });
+      return observe(options.confirmCurrentPersistence(), "confirmCurrentSave", null);
+    },
     retry: (): Promise<BloomPersistedMutationResult> | null => {
       if (snapshot.busy) return inFlight;
       const { result, operation, sessionId } = snapshot;
@@ -115,10 +122,10 @@ export function createMasturbationSessionController(options: Options) {
 
 function persistenceMessage(result: Exclude<BloomPersistedMutationResult, { ok: true }>): string {
   if (result.reason === "persistenceUnknown") return "Local storage has not confirmed this change yet. Retry checks the same save; it does not repeat the session action.";
-  if (result.reason === "persistenceSuperseded" || result.reason === "persistenceInvalidated") return "This request was replaced by a newer change. Reopen your current session to continue.";
+  if (result.reason === "persistenceSuperseded" || result.reason === "persistenceInvalidated") return "Önceki isteğin kayıt onayı artık kullanılamıyor. Güncel durumun kaydını kontrol et.";
   if (result.accepted) return result.retryable
     ? "Your change is held in this session, but it could not be saved. Retry saving before continuing."
-    : "Your change was accepted, but its save could not be confirmed. Reopen your current session to continue.";
+    : "Kayıt doğrulanamadı. Güncel durumun kaydını kontrol et.";
   if (result.reason === "hydrationPending" || result.reason === "stateUnavailable" || result.reason === "deletionInProgress") return "Local data is not ready for this action. Please try again when it is available.";
   return "This session action is unavailable now. Your existing session and settings have been preserved.";
 }

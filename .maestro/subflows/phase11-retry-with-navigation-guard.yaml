@@ -1,0 +1,33 @@
+appId: com.umutcyilmaz.bloom.e2e
+# A failed receipt must keep its actual screen/controller mounted.
+---
+- scrollUntilVisible:
+    element:
+      id: "${RETRY_ID}"
+    direction: UP
+- assertVisible:
+    id: "bloom.persistence.recovery-guidance"
+- scrollUntilVisible:
+    element:
+      id: "${CLOSE_ID}"
+    direction: UP
+- assertVisible:
+    id: "${CLOSE_ID}"
+    enabled: false
+- tapOn:
+    id: "${CLOSE_ID}"
+- assertVisible:
+    id: "${SCREEN_ID}"
+- swipe:
+    start: "1%, 50%"
+    end: "95%, 50%"
+    duration: 600
+- assertVisible:
+    id: "${SCREEN_ID}"
+- scrollUntilVisible:
+    element:
+      id: "${RETRY_ID}"
+    direction: DOWN
+- takeScreenshot: "phase11-${CASE}-guarded-failure"
+- tapOn:
+    id: "${RETRY_ID}"

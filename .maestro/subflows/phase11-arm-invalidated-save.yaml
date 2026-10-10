@@ -1,0 +1,20 @@
+appId: com.umutcyilmaz.bloom.e2e
+# Only the isolated Phase 10 runtime; never clear normal Bloom data.
+---
+- openLink: "tms-e2e:///debug/phase10"
+- extendedWaitUntil:
+    visible:
+      id: "bloom.qa.phase10"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: "bloom.qa.phase11.invalidate-save"
+    direction: DOWN
+- tapOn:
+    id: "bloom.qa.phase11.invalidate-save"
+- scrollUntilVisible:
+    element:
+      id: "bloom.qa.phase10.${TARGET}"
+    direction: UP
+- tapOn:
+    id: "bloom.qa.phase10.${TARGET}"

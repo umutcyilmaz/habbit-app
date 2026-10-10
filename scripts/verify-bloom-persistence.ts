@@ -52,6 +52,7 @@ import { verifyBloomProductFlowActions } from "./verify-bloom-product-flow-actio
 import { verifyBloomHomeFlowIntents } from "./verify-bloom-home-flow-intents";
 import { verifyBloomProductReactFlows } from "./verify-bloom-product-react-flows";
 import { verifyBloomProductRoutes } from "./verify-bloom-product-routes";
+import { verifyBloomNonretryableRecovery } from "./verify-bloom-nonretryable-recovery";
 import { verifyBloomMasturbationFeature } from "./verify-bloom-masturbation-feature";
 import { verifyBloomContentFreeFeature } from "./verify-bloom-content-free-feature";
 import { verifyBloomResetFeature } from "./verify-bloom-reset-feature";
@@ -123,6 +124,7 @@ async function verifyBloomPersistence() {
   await verifyBloomHomeFlowIntents();
   await verifyBloomProductReactFlows();
   await verifyBloomProductRoutes();
+  await verifyBloomNonretryableRecovery();
   await verifyBloomMasturbationFeature();
   await verifyBloomContentFreeFeature();
   await verifyBloomResetFeature();

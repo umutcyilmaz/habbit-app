@@ -8,6 +8,7 @@ import { routes } from "../../constants/navigation";
 import type { ResetJourney, ResetViolation } from "../../domain/models/ResetJourney";
 import { getResetContentFreeContinuationOffer } from "../../domain/contentFree/getResetContentFreeCredit";
 import { getResetProgress } from "../../domain/reset/getResetProgress";
+import { getBloomPersistenceRecovery } from "../../shared/navigation/bloomPersistenceRecovery";
 import { usePersistenceNavigationGuard } from "../../shared/navigation/usePersistenceNavigationGuard";
 import { createResetController, type ResetBaselineAnswers, type ResetOperation } from "./resetController";
 import { getResetRouteView, type ResetRouteMode, type ResetRouteView } from "./resetView";
@@ -22,7 +23,7 @@ export function useResetFeature(mode: ResetRouteMode) {
   const journeyId = typeof params.journeyId === "string" ? params.journeyId : null;
   const attemptId = typeof params.attemptId === "string" ? params.attemptId : null;
   const flowActions = useBloomProductFlowActions();
-  const { state, durableState, now, getAcceptedState, retryPersistedMutation, hasHydrated, hydrationStatus } = useBloomLocalState();
+  const { state, durableState, now, getAcceptedState, getDurableState, confirmCurrentPersistence, retryPersistedMutation, hasHydrated, hydrationStatus } = useBloomLocalState();
   const readDisplayTime = useMemo(() => () => (now ?? readSystemTime)().toISOString(), [now]);
   const [nowMilliseconds, setNowMilliseconds] = useState(() => (now ?? readSystemTime)().getTime());
   const [navigationError, setNavigationError] = useState<string | null>(null);
@@ -33,19 +34,20 @@ export function useResetFeature(mode: ResetRouteMode) {
     const instance = createResetController({
       flowActions, getState: getAcceptedState,
       getRoute: () => ({ mode, journeyId, attemptId }),
-      getDisplayTime: readDisplayTime, retryPersistedMutation,
+      getDisplayTime: readDisplayTime, retryPersistedMutation, confirmCurrentPersistence,
       onPersisted: (operation, acceptedReset) => {
         if (mounted.current && currentController.current === instance) onPersisted.current(operation, acceptedReset);
       }
     });
     return instance;
-  }, [flowActions, getAcceptedState, retryPersistedMutation, mode, journeyId, attemptId, readDisplayTime]);
+  }, [flowActions, getAcceptedState, getDurableState, confirmCurrentPersistence, retryPersistedMutation, mode, journeyId, attemptId, readDisplayTime]);
   currentController.current = controller;
   const operation = useSyncExternalStore(controller.subscribe, controller.getSnapshot, controller.getSnapshot);
-  const allowNavigation = usePersistenceNavigationGuard(operation.busy);
+  const { navigationBlocked, canConfirmCurrentSave, recoveryGuidance } = getBloomPersistenceRecovery(operation, state, durableState);
+  const allowNavigation = usePersistenceNavigationGuard(navigationBlocked);
 
   const navigateAcceptedReset = (acceptedReset: ResetJourney) => {
-    if (getAcceptedState().resetJourney !== acceptedReset) return;
+    if (getAcceptedState().resetJourney !== acceptedReset || getAcceptedState() !== getDurableState()) return;
     if (acceptedReset.status === "active") {
       const progress = getResetProgress(acceptedReset, readDisplayTime());
       if (progress === null) return;
@@ -80,12 +82,12 @@ export function useResetFeature(mode: ResetRouteMode) {
   const view: ResetRouteView = hasHydrated
     ? getResetRouteView(reset, { mode, journeyId: params.journeyId, attemptId: params.attemptId }, new Date(nowMilliseconds).toISOString())
     : { kind: "unavailable" };
-  const locked = !hasHydrated || operation.busy ||
+  const locked = !hasHydrated || navigationBlocked || operation.operation === "confirmCurrentSave" ||
     (operation.result !== null && !operation.result.ok && operation.result.accepted);
   const canRetry = !operation.busy && operation.result !== null && !operation.result.ok && operation.result.retryable;
   const saveState: "loading" | "unavailable" | "saving" | "saved" | "unconfirmed" = !hasHydrated
     ? hydrationStatus === "error" ? "unavailable" : "loading"
-    : operation.busy ? "saving" : reset === durableState.resetJourney && state.contentFree === durableState.contentFree ? "saved" : "unconfirmed";
+    : operation.busy ? "saving" : state === durableState ? "saved" : "unconfirmed";
 
   // A legitimate restart/undo changes the attempt before the old URL changes.
   // Keep that operation's receipt/retry UI visible without trusting the old URL
@@ -93,7 +95,7 @@ export function useResetFeature(mode: ResetRouteMode) {
   const acceptedReset = hasHydrated && operation.acceptedReset === reset ? operation.acceptedReset : null;
   const recoveryTarget: "progress" | "today" | null = acceptedReset?.status === "active" ? "progress" :
     acceptedReset?.status === "completed" ? "today" : null;
-  const canContinue = !operation.busy && operation.result?.ok === true &&
+  const canContinue = !navigationBlocked && operation.result?.ok === true &&
     recoveryTarget !== null && acceptedReset === durableState.resetJourney;
   const canOpenCompletion = !locked && mode === "progress" && view.kind === "active" &&
     view.progress.isPeriodComplete && reset === durableState.resetJourney;
@@ -105,7 +107,7 @@ export function useResetFeature(mode: ResetRouteMode) {
     if (pending !== null) void pending.catch(() => {});
   };
   return {
-    view, continuationOffer, busy: operation.busy, locked, message: navigationError ?? operation.message,
+    view, continuationOffer, busy: operation.busy, navigationBlocked, canConfirmCurrentSave, recoveryGuidance, locked, message: navigationError ?? operation.message,
     canRetry, saveState, recoveryTarget, canContinue, canOpenCompletion,
     actions: {
       startFromBaseline: (answers: ResetBaselineAnswers) => invoke(() => controller.startFromBaseline(answers, reset)),
@@ -116,11 +118,17 @@ export function useResetFeature(mode: ResetRouteMode) {
         if (!continuationOffer || locked) return;
         invoke(() => controller.decideContinuation(decision, reset));
       },
+      confirmCurrentSave: () => {
+        if (getBloomPersistenceRecovery(controller.getSnapshot(), getAcceptedState(), getDurableState()).canConfirmCurrentSave) {
+          invoke(controller.confirmCurrentSave);
+        }
+      },
       retry: () => invoke(controller.retry),
       openPanic: () => {
         const snapshot = controller.getSnapshot();
         if (!mounted.current || currentController.current !== controller || locked ||
-          snapshot.busy || (snapshot.result !== null && !snapshot.result.ok && snapshot.result.accepted) ||
+          getBloomPersistenceRecovery(snapshot, getAcceptedState(), getDurableState()).navigationBlocked ||
+          (snapshot.result !== null && !snapshot.result.ok && snapshot.result.accepted) ||
           mode !== "progress" || view.kind !== "active" || getAcceptedState().resetJourney !== reset) return;
         const currentView = getResetRouteView(reset, { mode, journeyId, attemptId }, readDisplayTime());
         if (currentView.kind !== "active" || currentView.progress.isPeriodComplete) return;
@@ -151,8 +159,11 @@ export function useResetFeature(mode: ResetRouteMode) {
         } catch { setNavigationError("The completion screen could not open. Please try Continue again."); }
       },
       close: () => {
-        if (!mounted.current || currentController.current !== controller || controller.getSnapshot().busy ||
-          getAcceptedState().resetJourney !== reset) return;
+        const snapshot = controller.getSnapshot();
+        if (!mounted.current || currentController.current !== controller || snapshot.busy ||
+          getBloomPersistenceRecovery(snapshot, getAcceptedState(), getDurableState()).navigationBlocked ||
+          (getAcceptedState().resetJourney !== reset && snapshot.operation !== "confirmCurrentSave" &&
+            !(snapshot.result !== null && !snapshot.result.ok && snapshot.result.accepted && !snapshot.result.retryable))) return;
         try { allowNavigation(); router.replace(routes.home); }
         catch { setNavigationError("This screen could not close. Please try Close again."); }
       }

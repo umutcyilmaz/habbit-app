@@ -45,7 +45,7 @@ export function ContentFreeScreen() {
             label="Kapat"
             variant="ghost"
             style={styles.closeButton}
-            disabled={busy}
+            disabled={feature.navigationBlocked}
             onPress={actions.close}
           />
         </View>
@@ -225,6 +225,10 @@ function SaveStatus({ feature }: { feature: ContentFreeFeature }) {
           {feature.message}
         </AppText>
       ) : null}
+      {feature.recoveryGuidance !== null ? <AppText testID="bloom.persistence.recovery-guidance" accessibilityLiveRegion="polite" variant="bodySmall" tone="warning">
+        {feature.recoveryGuidance}
+      </AppText> : null}
+      {feature.canConfirmCurrentSave ? <AppButton testID="bloom.persistence.confirm-current" label="Güncel durumu kaydet" variant="secondary" onPress={feature.actions.confirmCurrentSave} /> : null}
       {feature.canRetry ? (
         <AppButton
           testID="bloom.content-free.retry"

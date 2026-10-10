@@ -108,6 +108,8 @@ type BloomLocalStateContextValue = {
   state: BloomLocalState;
   durableState: BloomLocalState;
   getAcceptedState: () => BloomLocalState;
+  getDurableState: () => BloomLocalState;
+  confirmCurrentPersistence: () => Promise<BloomPersistedMutationResult>;
   productActions: BloomProductAcknowledgedActions;
   isLoading: boolean;
   hasHydrated: boolean;
@@ -411,6 +413,9 @@ export function BloomLocalStateProvider({ children, runtime = defaultRuntime }: 
   // Event-time reads must observe accepted runtime truth, including changes
   // committed before React has rendered the next context snapshot.
   const getAcceptedState = useCallback(() => mutationRuntime.getState(), [mutationRuntime]);
+
+  const getDurableState = useCallback(() => mutationRuntime.getDurableState(), [mutationRuntime]);
+  const confirmCurrentPersistence = useCallback(() => mutationRuntime.confirmCurrentPersistence(), [mutationRuntime]);
 
   const productActions = useMemo(
     () =>
@@ -747,6 +752,8 @@ export function BloomLocalStateProvider({ children, runtime = defaultRuntime }: 
       state,
       durableState,
       getAcceptedState,
+      getDurableState,
+      confirmCurrentPersistence,
       productActions,
       isLoading,
       hasHydrated,
@@ -809,6 +816,8 @@ export function BloomLocalStateProvider({ children, runtime = defaultRuntime }: 
       finishBloomLocalDataReset,
       hasHydrated,
       getAcceptedState,
+      getDurableState,
+      confirmCurrentPersistence,
       runtime,
       hydrationError,
       hydrationStatus,

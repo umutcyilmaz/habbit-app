@@ -54,6 +54,7 @@ export function Phase10QaScreen() {
       <AppButton testID="bloom.qa.phase10.content-free" label="Open real Content-Free screen" disabled={busy || !hasHydrated} onPress={() => router.push(bloomProductRoutePaths.contentFree)} />
       <AppButton testID="bloom.qa.phase10.home" label="Open real Home" disabled={busy || !hasHydrated} onPress={() => router.push(routes.home)} />
       <AppButton testID="bloom.qa.phase10.reload" label="Reload saved QA state (no reseed)" variant="secondary" disabled={busy || !hasHydrated || state !== durableState} onPress={() => { void run(); }} />
+      <AppButton testID="bloom.qa.phase11.invalidate-save" label="Invalidate next QA save once" variant="ghost" disabled={busy || !hasHydrated} onPress={() => { qa.invalidateNextSave(); setMessage("Next QA receipt will be invalidated. Open a screen and use Save current state to recover."); }} />
       <AppButton testID="bloom.qa.phase10.fail-save" label="Fail next QA save once" variant="ghost" disabled={busy || !hasHydrated} onPress={() => { qa.failNextSave(); setMessage("Next QA write will fail. Open a screen, act, then use its real retry button."); }} />
     </AppScreen>
   );

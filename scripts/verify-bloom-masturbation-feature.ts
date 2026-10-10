@@ -1,3 +1,4 @@
+import { getBloomPersistenceRecovery } from "../src/shared/navigation/bloomPersistenceRecovery";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -330,15 +331,17 @@ async function verifyHookMountAndPersistenceNavigation() {
     useSyncExternalStore: (_subscribe: unknown, getSnapshot: () => unknown) => { cursor++; return getSnapshot(); }
   };
   const router = { replace: (path: unknown) => navigation.push({ path }) };
+  let navigationBlocked = false;
   const dependencies: Record<string, unknown> = {
     react,
     "expo-router": { useRouter: () => router, useLocalSearchParams: () => params },
     "../../app/flows/useBloomProductFlowActions": { useBloomProductFlowActions: () => h.flowActions },
-    "../../app/providers/BloomLocalStateProvider": { useBloomLocalState: () => ({ state: h.runtime.getState(), durableState: h.runtime.getDurableState(), getAcceptedState: h.runtime.getState, retryPersistedMutation: h.runtime.retryPersistence }) },
+    "../../app/providers/BloomLocalStateProvider": { useBloomLocalState: () => ({ state: h.runtime.getState(), durableState: h.runtime.getDurableState(), getAcceptedState: h.runtime.getState, getDurableState: h.runtime.getDurableState, confirmCurrentPersistence: h.runtime.confirmCurrentPersistence, retryPersistedMutation: h.runtime.retryPersistence }) },
     "../../app/navigation/navigateBloomProductFlow": { navigateBloomProductFlow: (_router: unknown, intent: unknown, mode: unknown) => navigation.push({ intent, mode }) },
     "../../constants/navigation": { routes: { home: "/existing-home" } },
     "../../domain/productPolicy/getMasturbationTrackingAvailability": { getMasturbationTrackingAvailability },
-    "../../shared/navigation/usePersistenceNavigationGuard": { usePersistenceNavigationGuard: () => () => undefined },
+    "../../shared/navigation/bloomPersistenceRecovery": { getBloomPersistenceRecovery },
+    "../../shared/navigation/usePersistenceNavigationGuard": { usePersistenceNavigationGuard: (blocked: boolean) => { navigationBlocked = blocked; return () => undefined; } },
     "./masturbationSessionController": { createMasturbationSessionController },
     "./masturbationSessionView": { getMasturbationSessionRouteView }
   };
@@ -355,6 +358,7 @@ async function verifyHookMountAndPersistenceNavigation() {
     busy: boolean; locked: boolean; canRetry: boolean; canContinue: boolean;
     actions: {
       start: () => void; startPause: () => void; end: () => void;
+      completeFeedback: (feedback: { erectionQuality: 8; usedExplicitContent: boolean; endingReason: "other" }) => void;
       retry: () => void; continueSession: () => void; close: () => void;
     };
   };
@@ -382,6 +386,8 @@ async function verifyHookMountAndPersistenceNavigation() {
   feature = render();
   assert(feature.locked && feature.canRetry && !feature.canContinue && navigation.length === 0,
     "The actual hook must retain accepted-unsaved recovery feedback and never navigate on failed persistence.");
+  feature.actions.close();
+  assert(navigationBlocked && navigation.length === 0, "Failed start must block close/back/gestures and retain its exact retry owner.");
   const counts = h.counts();
   feature.actions.retry();
   h.attempts[1]!.succeed();
@@ -442,6 +448,39 @@ async function verifyHookMountAndPersistenceNavigation() {
   assert(h.runtime.getState() === beforeStaleHandlers.state && h.attempts.length === beforeStaleHandlers.writes &&
     navigation.length === beforeStaleHandlers.navigations,
   "Unmounted action closures must not save state or execute navigation.");
+
+  // Restore this valid route, then exercise terminal saves through the actual
+  // hook. Accepted end/feedback remove the old actionable domain state.
+  for (const effect of effectSlots) effect.cleanup = effect.setup() ?? undefined;
+  for (const terminal of ["end", "feedback"] as const) {
+    mode = terminal === "end" ? "active" : "feedback";
+    params = { sessionId: current.id };
+    feature = render();
+    const writeIndex = h.attempts.length;
+    const beforeNavigation: number = navigation.length;
+    const retainedClose = feature.actions.close;
+    if (terminal === "end") feature.actions.end();
+    else feature.actions.completeFeedback({ erectionQuality: 8, usedExplicitContent: false, endingReason: "other" });
+    const successor = h.runtime.getState();
+    const terminalCounts = h.counts();
+    retainedClose();
+    assert(navigation.length === beforeNavigation, "A retained Close must recheck pending terminal work before rerender.");
+    h.attempts[writeIndex]!.fail();
+    await new Promise<void>((done) => setImmediate(done));
+    feature = render();
+    retainedClose(); feature.actions.close();
+    assert(navigationBlocked && feature.locked && feature.canRetry && navigation.length === beforeNavigation,
+      `Failed ${terminal} must keep close/back/gestures and conflicting actions locked with retry available.`);
+    feature.actions.retry(); feature.actions.retry();
+    assert(h.attempts[writeIndex + 1]!.state === successor, "Terminal retry must save exactly the original successor.");
+    h.attempts[writeIndex + 1]!.succeed();
+    await new Promise<void>((done) => setImmediate(done));
+    feature = render();
+    equal(h.counts(), terminalCounts, "Terminal retries must never regenerate facts or replay transitions.");
+    assert(!navigationBlocked && navigation.length === beforeNavigation + 1,
+      "Only the confirmed terminal receipt may navigate, exactly once.");
+  }
+
 }
 
 function createHarness(initialState = enabledState()) {

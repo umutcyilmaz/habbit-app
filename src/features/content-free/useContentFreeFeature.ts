@@ -7,6 +7,7 @@ import { navigateBloomProductFlow } from "../../app/navigation/navigateBloomProd
 import { getBloomContentFreeEntryIntent } from "../../app/flows/getBloomContentFreeEntryIntent";
 import { getResetContentFreeContinuationOffer } from "../../domain/contentFree/getResetContentFreeCredit";
 import { routes } from "../../constants/navigation";
+import { getBloomPersistenceRecovery } from "../../shared/navigation/bloomPersistenceRecovery";
 import { usePersistenceNavigationGuard } from "../../shared/navigation/usePersistenceNavigationGuard";
 import { createContentFreeController } from "./contentFreeController";
 import { getContentFreeFeatureView } from "./contentFreeView";
@@ -16,17 +17,18 @@ const readSystemTime = () => new Date(Date.now());
 export function useContentFreeFeature() {
   const router = useRouter();
   const flowActions = useBloomProductFlowActions();
-  const { state, durableState, now, getAcceptedState, retryPersistedMutation, hasHydrated, hydrationStatus } = useBloomLocalState();
+  const { state, durableState, now, getAcceptedState, getDurableState, confirmCurrentPersistence, retryPersistedMutation, hasHydrated, hydrationStatus } = useBloomLocalState();
   const [nowMilliseconds, setNowMilliseconds] = useState(() => (now ?? readSystemTime)().getTime());
   const [navigationError, setNavigationError] = useState<string | null>(null);
   const mounted = useRef(false);
   const currentController = useRef<ReturnType<typeof createContentFreeController> | null>(null);
   const controller = useMemo(() => createContentFreeController({
-    flowActions, getState: getAcceptedState, retryPersistedMutation
-  }), [flowActions, getAcceptedState, retryPersistedMutation]);
+    flowActions, getState: getAcceptedState, confirmCurrentPersistence, retryPersistedMutation
+  }), [flowActions, getAcceptedState, getDurableState, confirmCurrentPersistence, retryPersistedMutation]);
   currentController.current = controller;
   const operation = useSyncExternalStore(controller.subscribe, controller.getSnapshot, controller.getSnapshot);
-  const allowNavigation = usePersistenceNavigationGuard(operation.busy);
+  const { navigationBlocked, canConfirmCurrentSave, recoveryGuidance } = getBloomPersistenceRecovery(operation, state, durableState);
+  const allowNavigation = usePersistenceNavigationGuard(navigationBlocked);
 
   useEffect(() => {
     mounted.current = true;
@@ -44,13 +46,13 @@ export function useContentFreeFeature() {
   const view = hasHydrated
     ? getContentFreeFeatureView(content, new Date(nowMilliseconds).toISOString())
     : { progress: null, activationId: null, currentStreakStartedAt: null, currentActivationHasEffectiveViolation: false, hasPriorActivation: false, history: [], manualUndoCandidateId: null };
-  const locked = !hasHydrated || operation.busy ||
+  const locked = !hasHydrated || navigationBlocked || operation.operation === "confirmCurrentSave" ||
     (operation.result !== null && !operation.result.ok && operation.result.accepted);
   const canRetry = !operation.busy && operation.result !== null && !operation.result.ok && operation.result.retryable;
   const saveState: "loading" | "unavailable" | "saving" | "saved" | "unconfirmed" = !hasHydrated
     ? hydrationStatus === "error" ? "unavailable" : "loading"
     : operation.busy ? "saving" :
-    content === durableState.contentFree ? "saved" : "unconfirmed";
+    state === durableState ? "saved" : "unconfirmed";
 
   const invoke = (command: () => ReturnType<typeof controller.activate>) => {
     if (!mounted.current || currentController.current !== controller) return;
@@ -71,7 +73,7 @@ export function useContentFreeFeature() {
     } catch { setNavigationError("Reset devam etme seçimi açılamadı. Lütfen tekrar dene."); }
   };
   return {
-    continuationOffer, view, busy: operation.busy, locked, canRetry, saveState,
+    continuationOffer, view, busy: operation.busy, navigationBlocked, canConfirmCurrentSave, recoveryGuidance, locked, canRetry, saveState,
     message: navigationError ?? operation.message,
     actions: {
       openContinuation,
@@ -82,11 +84,16 @@ export function useContentFreeFeature() {
       deactivate: () => invoke(() => controller.deactivate(content)),
       recordManualViolation: () => invoke(() => controller.recordManualViolation(content)),
       undoManualViolation: (violationId: string) => invoke(() => controller.undoManualViolation(violationId, content)),
+      confirmCurrentSave: () => {
+        if (getBloomPersistenceRecovery(controller.getSnapshot(), getAcceptedState(), getDurableState()).canConfirmCurrentSave) {
+          invoke(controller.confirmCurrentSave);
+        }
+      },
       retry: () => invoke(controller.retry),
       openPanic: () => {
         const snapshot = controller.getSnapshot();
         if (!mounted.current || currentController.current !== controller || locked ||
-          snapshot.busy || (snapshot.result !== null && !snapshot.result.ok && snapshot.result.accepted)) return;
+          snapshot.busy || getBloomPersistenceRecovery(snapshot, getAcceptedState(), getDurableState()).navigationBlocked) return;
         try {
           allowNavigation();
           if (!navigateBloomProductFlow(router, { flow: "panic" })) {
@@ -97,7 +104,9 @@ export function useContentFreeFeature() {
         }
       },
       close: () => {
-        if (!mounted.current || currentController.current !== controller || controller.getSnapshot().busy) return;
+        const snapshot = controller.getSnapshot();
+        if (!mounted.current || currentController.current !== controller || snapshot.busy ||
+          getBloomPersistenceRecovery(snapshot, getAcceptedState(), getDurableState()).navigationBlocked) return;
         try {
           allowNavigation();
           router.replace(routes.home);

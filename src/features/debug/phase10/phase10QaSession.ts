@@ -34,6 +34,7 @@ export function createPhase10QaSession(client: StorageClient) {
   const fixture = createResetContinuityFixture();
   let observationTime = fixture.now().toISOString();
   let failNextWrite = false;
+  let invalidateNextWrite = false;
   let preparing = false;
   const now = () => new Date(observationTime);
   const storage: StorageClient = {
@@ -44,7 +45,13 @@ export function createPhase10QaSession(client: StorageClient) {
     }
   };
   const persistence = createBloomStatePersistenceCoordinator(storage, now);
-  const runtime = { now, load: persistence.load, save: persistence.enqueueWrite, deleteAll: persistence.deleteAll };
+  const runtime = { now, load: persistence.load, save: (state: Parameters<typeof persistence.enqueueWrite>[0]) => {
+    if (invalidateNextWrite) {
+      invalidateNextWrite = false;
+      return Promise.resolve({ status: "invalidated" as const, writeId: 0, generation: 0 });
+    }
+    return persistence.enqueueWrite(state);
+  }, deleteAll: persistence.deleteAll };
   return {
     runtime,
     async restoreClock() {
@@ -54,7 +61,8 @@ export function createPhase10QaSession(client: StorageClient) {
         observationTime = value;
       }
     },
-    failNextSave() { failNextWrite = true; },
+    failNextSave() { failNextWrite = true; invalidateNextWrite = false; },
+    invalidateNextSave() { invalidateNextWrite = true; failNextWrite = false; },
     async prepareScenario(id: Phase10ScenarioId, beforeCompletion = false) {
       if (preparing) throw new Error("QA setup already in progress");
       const scenario = phase10Scenarios.find((entry) => entry.id === id);
@@ -62,6 +70,7 @@ export function createPhase10QaSession(client: StorageClient) {
       if (beforeCompletion && id !== "completed-pending") throw new Error("Completion preparation is only available for Scenario 3");
       preparing = true;
       failNextWrite = false;
+      invalidateNextWrite = false;
       try {
         const initial = createDefaultBloomState();
         const mutation = createBloomLocalStateMutationRuntime({ initialState: initial, persistState: persistence.enqueueWrite });

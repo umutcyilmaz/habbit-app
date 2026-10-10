@@ -7,7 +7,7 @@ import type { BloomLocalState } from "../../storage/bloomState";
 import { getLatestResetUndoCandidate, getResetRouteView, type ResetRouteInput } from "./resetView";
 
 export type ResetBaselineAnswers = CurrentResetBaselineSelfReport;
-export type ResetOperation = "startFromBaseline" | "recordViolation" | "undoViolation" | "completeElapsed" | "acceptContinuation" | "declineContinuation";
+export type ResetOperation = "startFromBaseline" | "recordViolation" | "undoViolation" | "completeElapsed" | "acceptContinuation" | "declineContinuation" | "confirmCurrentSave";
 export type ResetOperationSnapshot = {
   busy: boolean;
   operation: ResetOperation | null;
@@ -21,6 +21,7 @@ type Options = {
   getState: () => BloomLocalState;
   getRoute: () => ResetRouteInput;
   getDisplayTime: () => ISODateString;
+  confirmCurrentPersistence?: () => Promise<BloomPersistedMutationResult>;
   retryPersistedMutation: (token: BloomPersistenceRetryToken) => Promise<BloomPersistedMutationResult>;
   onPersisted?: (operation: ResetOperation, acceptedReset: ResetJourney) => void;
 };
@@ -43,12 +44,12 @@ export function createResetController(options: Options) {
   ): Promise<BloomPersistedMutationResult> {
     const observed = promise.then((result) => {
       inFlight = null;
-      publish({ busy: false, operation, violationId, acceptedReset, result, message: result.ok ? null : persistenceMessage(result) });
+      publish({ busy: false, operation, violationId, acceptedReset, result, message: result.ok ? (operation === "confirmCurrentSave" ? "Güncel durum kaydedildi. Kapatıp güncel ekrana dönebilirsin." : null) : persistenceMessage(result) });
       if (result.ok && acceptedReset !== null) options.onPersisted?.(operation, acceptedReset);
       return result;
     }, (error: unknown) => {
       inFlight = null;
-      publish({ ...snapshot, busy: false, message: "Bloom could not finish this request. Close and reopen the Reset screen to continue." });
+      publish({ ...snapshot, busy: false, message: "İstek tamamlanamadı. Güncel durumun kaydını kontrol et." });
       throw error;
     });
     inFlight = observed;
@@ -60,7 +61,7 @@ export function createResetController(options: Options) {
     command: (reset: ResetJourney) => Promise<BloomPersistedMutationResult>, violationId: unknown = null
   ): Promise<BloomPersistedMutationResult> | null {
     if (snapshot.busy) return snapshot.operation === operation && snapshot.violationId === violationId ? inFlight : null;
-    if (snapshot.result !== null && !snapshot.result.ok && snapshot.result.accepted) return null;
+    if (snapshot.operation === "confirmCurrentSave" || (snapshot.result !== null && !snapshot.result.ok && snapshot.result.accepted)) return null;
     const reset = options.getState().resetJourney;
     const route = options.getRoute();
     const view = getResetRouteView(reset, route, options.getDisplayTime());
@@ -87,7 +88,7 @@ export function createResetController(options: Options) {
       publish({ ...snapshot, acceptedReset });
       return observe(pending, operation, targetId, acceptedReset);
     } catch (error) {
-      publish({ ...snapshot, busy: false, message: "Bloom could not finish this request. Close and reopen the Reset screen to continue." });
+      publish({ ...snapshot, busy: false, message: "İstek tamamlanamadı. Güncel durumun kaydını kontrol et." });
       return Promise.reject(error);
     }
   }
@@ -115,6 +116,12 @@ export function createResetController(options: Options) {
       decision === "accepted" ? "acceptContinuation" : "declineContinuation", expectedReset,
       () => options.flowActions.reset.decideContentFreeContinuation(decision)
     ),
+    confirmCurrentSave: (): Promise<BloomPersistedMutationResult> | null => {
+      if (snapshot.busy) return inFlight;
+      if (options.confirmCurrentPersistence === undefined) return null;
+      publish({ ...snapshot, busy: true, operation: "confirmCurrentSave", acceptedReset: null, result: null, message: null });
+      return observe(options.confirmCurrentPersistence(), "confirmCurrentSave", null, null);
+    },
     retry: (): Promise<BloomPersistedMutationResult> | null => {
       if (snapshot.busy) return inFlight;
       const { result, operation, violationId, acceptedReset } = snapshot;
@@ -127,10 +134,10 @@ export function createResetController(options: Options) {
 
 function persistenceMessage(result: Exclude<BloomPersistedMutationResult, { ok: true }>): string {
   if (result.reason === "persistenceUnknown") return "Saving has not been confirmed yet. Try saving again to check the same change.";
-  if (result.reason === "persistenceSuperseded" || result.reason === "persistenceInvalidated") return "This request was replaced by a newer change. Close and reopen the current Reset route to continue.";
+  if (result.reason === "persistenceSuperseded" || result.reason === "persistenceInvalidated") return "Önceki isteğin kayıt onayı artık kullanılamıyor. Güncel durumun kaydını kontrol et.";
   if (result.accepted) return result.retryable
     ? "Değişikliğin bu ekranda korunuyor, ancak kaydedilemedi. Devam etmeden önce kaydetmeyi tekrar dene."
-    : "Your change was accepted, but saving could not be confirmed. Close and reopen the current Reset route to continue.";
+    : "Kayıt doğrulanamadı. Güncel durumun kaydını kontrol et.";
   if (result.reason === "hydrationPending" || result.reason === "stateUnavailable" || result.reason === "deletionInProgress") return "Local data is not ready for this action. Please try again when it is available.";
   return unavailable;
 }

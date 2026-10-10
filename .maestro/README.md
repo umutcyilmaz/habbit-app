@@ -190,3 +190,38 @@ maestro studio
 
 Prefer visible text for meaningful assertions. Use the focused `bloom.*` test IDs when repeated
 labels or scrolling would otherwise make interaction ambiguous.
+
+## Phase 11.1 failed-save recovery
+
+Use the existing isolated QA runtime (`npm run start:e2e:phase10`), then run:
+
+```sh
+maestro test .maestro/phase11-save-recovery.yaml --test-output-dir /tmp/bloom-phase11-1/recovery
+maestro test .maestro/phase10-continuation.yaml --test-output-dir /tmp/bloom-phase11-1/continuity
+```
+
+The recovery flow seeds only the Phase 10 private E2E namespace and injects a single failed
+save before real Content-Free activation/deactivation, Reset restart/undo/completion and both
+continuation decisions, and session start/end/feedback. Each failure checks the disabled Close
+button, attempts an edge swipe, verifies that the recovery screen and retry remain available,
+and uses the real retry. It also checks acknowledged re-entry and a saved-session relaunch.
+No normal Bloom data or device clock is changed. The deterministic `verify:persistence` suite
+also covers baseline start, exact successor/identity preservation, acknowledgement timeout with
+late confirmation, and the shared removal/hardware-back guard. Native baseline start and Android
+hardware back are not assertions in this iOS flow.
+
+### Obsolete, nonretryable save receipts
+
+With the same isolated runtime, run:
+
+```sh
+maestro test .maestro/phase11-obsolete-save-recovery.yaml --test-output-dir /tmp/bloom-phase11-1-review/obsolete-native
+```
+
+A DEV + E2E + Phase 10 guarded injector returns one invalidated save receipt without writing.
+The three real feature screens must offer “Güncel durumu kaydet” with ordinary Retry absent,
+keep Close/back gestures blocked while current state is unconfirmed, and enable Close after
+current confirmation without executing the obsolete operation's success navigation. This fixture
+exercises the real runtime's invalidated-receipt path; supersession, completed deletion, races and
+repeated storage failure are covered by the deterministic runtime/actual-hook regressions in
+`verify:persistence`. It does not reproduce an OS storage fault or certify Android navigation.

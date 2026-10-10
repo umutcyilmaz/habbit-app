@@ -1,3 +1,4 @@
+import { getBloomPersistenceRecovery } from "../src/shared/navigation/bloomPersistenceRecovery";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -370,6 +371,7 @@ async function verifyHookWiring(continuationDecision: "accepted" | "declined" | 
   const h = createHarness(initial);
   const hooks = createControlledHooks();
   const navigation: Array<{ intent?: unknown; mode?: unknown; path?: unknown }> = [];
+  let navigationBlocked = false;
   const timers = new Map<number, () => void>();
   let timerId = 0;
   let displayTime = Date.parse(startedAt);
@@ -384,13 +386,14 @@ async function verifyHookWiring(continuationDecision: "accepted" | "declined" | 
     "../../app/flows/useBloomProductFlowActions": { useBloomProductFlowActions: () => h.flowActions },
     "../../app/providers/BloomLocalStateProvider": { useBloomLocalState: () => ({
       state: h.runtime.getState(), durableState: h.runtime.getDurableState(),
-      getAcceptedState: h.runtime.getState, retryPersistedMutation: h.runtime.retryPersistence, hasHydrated, hydrationStatus
+      getAcceptedState: h.runtime.getState, getDurableState: h.runtime.getDurableState, confirmCurrentPersistence: h.runtime.confirmCurrentPersistence, retryPersistedMutation: h.runtime.retryPersistence, hasHydrated, hydrationStatus
     }) },
     "../../app/navigation/navigateBloomProductFlow": { navigateBloomProductFlow: (_router: unknown, intent: unknown, mode: unknown) => navigation.push({ intent, mode }) },
     "../../constants/navigation": { routes: { home: "/existing-today" } },
     "../../domain/contentFree/getResetContentFreeCredit": { getResetContentFreeContinuationOffer },
     "../../domain/reset/getResetProgress": { getResetProgress },
-    "../../shared/navigation/usePersistenceNavigationGuard": { usePersistenceNavigationGuard: () => () => undefined },
+    "../../shared/navigation/bloomPersistenceRecovery": { getBloomPersistenceRecovery },
+    "../../shared/navigation/usePersistenceNavigationGuard": { usePersistenceNavigationGuard: (blocked: boolean) => { navigationBlocked = blocked; return () => undefined; } },
     "./resetController": { createResetController },
     "./resetView": { getResetRouteView }
   };
@@ -457,6 +460,9 @@ async function verifyHookWiring(continuationDecision: "accepted" | "declined" | 
   feature = render();
   assert(feature.locked && feature.canRetry && feature.saveState === "unconfirmed" && !feature.canContinue,
     "Accepted unsaved baseline must retain retry instead of replaying its start or allowing continuation.");
+  const beforeFailedClose = navigation.length;
+  feature.actions.close();
+  assert(navigationBlocked && navigation.length === beforeFailedClose, "Failed baseline must retain the mounted retry owner against close/back/gestures.");
   const baselineCounts = h.counts();
   feature.actions.retry();
   feature.actions.retry();
@@ -494,6 +500,8 @@ async function verifyHookWiring(continuationDecision: "accepted" | "declined" | 
   feature = render();
   assert(feature.canRetry && feature.locked && feature.recoveryTarget === "progress",
     "A failed restart must preserve its recovery target instead of treating the old URL as the new attempt.");
+  feature.actions.close();
+  assert(navigationBlocked && navigation.length === beforeFailedClose + 1, "Failed restart must block close/back/gesture removal.");
   const restartCounts = h.counts();
   feature.actions.retry();
   feature.actions.retry();
@@ -598,6 +606,8 @@ async function verifyHookWiring(continuationDecision: "accepted" | "declined" | 
     "Failed completion must retain retry for the accepted completed journey without allowing continuation.");
   feature.actions.continueAfterSave();
   assert(Number(navigation.length) === 4, "Failed completion must never return to Today through Continue.");
+  feature.actions.close();
+  assert(navigationBlocked && navigation.length === beforeFailedClose + 4, "Failed completion must block close/back/gesture removal.");
   const completionCounts = h.counts();
   feature.actions.retry();
   feature.actions.retry();
@@ -620,7 +630,11 @@ async function verifyHookWiring(continuationDecision: "accepted" | "declined" | 
     h.attempts[7]!.fail(); await flush(); feature = render();
     assert(feature.canRetry && feature.locked && !feature.continuationOffer && Number(navigation.length) === 4,
       "Failed decision retains retry and never navigates or reoffers activation.");
+    feature.actions.close();
+    assert(navigationBlocked && Number(navigation.length) === 4,
+      "Both failed continuation decisions must retain their retry owner against close/back/gesture removal.");
     feature.actions.retry(); feature.actions.retry(); await receipt(8); feature = render();
+    assert(!navigationBlocked, "Acknowledged continuation restores navigation.");
     equal(h.counts(), decisionCounts, "Decision retry must not regenerate IDs or replay activation.");
     assert(h.runtime.getState() === decisionState && decisionState.resetJourney.status === "completed" &&
       decisionState.resetJourney.contentFreeContinuation?.decision === continuationDecision,

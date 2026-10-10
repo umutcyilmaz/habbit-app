@@ -117,12 +117,16 @@ function SessionPage({ feature, title, testID, children }: PropsWithChildren<{ f
     <View testID={testID} style={styles.page}>
       <View style={styles.header}>
         <View style={styles.headerText}><AppText variant="overline" tone="accent">MASTURBATION TRACKING</AppText><AppText variant="heading2" accessibilityRole="header">{title}</AppText></View>
-        <AppButton testID="bloom.masturbation.close" label="Kapat" variant="ghost" style={styles.closeButton} disabled={feature.busy} onPress={feature.actions.close} />
+        <AppButton testID="bloom.masturbation.close" label="Kapat" variant="ghost" style={styles.closeButton} disabled={feature.navigationBlocked} onPress={feature.actions.close} />
       </View>
-      {feature.busy || feature.message !== null || feature.canRetry ? <AppCard style={styles.cardStack}>
+      {feature.recoveryGuidance !== null || feature.navigationBlocked || feature.message !== null || feature.canRetry ? <AppCard style={styles.cardStack}>
         {feature.busy ? <AppText accessibilityLiveRegion="polite" variant="bodySmall">Bu cihaza kaydediliyor…</AppText> : null}
         {feature.message !== null ? <AppText testID="bloom.masturbation.message" accessibilityLiveRegion="polite" accessibilityRole="alert" variant="bodySmall" tone="danger">{feature.message}</AppText> : null}
-        {feature.canRetry ? <AppButton testID="bloom.masturbation.retry" label="Kaydetmeyi tekrar dene" variant="secondary" disabled={feature.busy} loading={feature.busy} onPress={feature.actions.retry} /> : null}
+        {feature.recoveryGuidance !== null ? <AppText testID="bloom.persistence.recovery-guidance" accessibilityLiveRegion="polite" variant="bodySmall" tone="warning">
+        {feature.recoveryGuidance}
+      </AppText> : null}
+        {feature.canConfirmCurrentSave ? <AppButton testID="bloom.persistence.confirm-current" label="Güncel durumu kaydet" variant="secondary" onPress={feature.actions.confirmCurrentSave} /> : null}
+      {feature.canRetry ? <AppButton testID="bloom.masturbation.retry" label="Kaydetmeyi tekrar dene" variant="secondary" disabled={feature.busy} loading={feature.busy} onPress={feature.actions.retry} /> : null}
       </AppCard> : null}
       {children}
     </View>
@@ -169,7 +173,7 @@ function CompletedSessionCard({ feature }: { feature: SessionFeature }) {
       <AppText variant="title">Duraklamalar</AppText>
       {session.pauses.map((pause, index) => <SummaryRow key={`${pause.startedAt}-${index}`} label={`${index + 1}. Duraklama`} value={formatMasturbationElapsedSeconds(pause.durationSeconds)} />)}
     </AppCard> : null}
-    <AppButton label={feature.isDurablyCompleted ? "Tamam" : "Kapat"} disabled={feature.busy} onPress={feature.actions.close} />
+    <AppButton label={feature.isDurablyCompleted ? "Tamam" : "Kapat"} disabled={feature.navigationBlocked} onPress={feature.actions.close} />
   </View>;
 }
 

@@ -73,6 +73,15 @@ export async function verifyBloomPhase10Qa() {
   assert((await runtime.retryPersistence(failed.retryToken)).ok && runtime.getDurableState() === exactSuccessor, "Real retry persists exact accepted successor");
   const loaded = await session.runtime.load();
   assert(loaded.status === "success" && loaded.state.contentFree.status === "active", "Acknowledged acceptance actually rehydrates");
+  const invalidationInitial = await session.prepareScenario("continuation-declined");
+  const invalidationRuntime = createBloomLocalStateMutationRuntime({ initialState: invalidationInitial, initialHydrationStatus: "ready", persistState: session.runtime.save });
+  const invalidationFlow = createBloomProductFlowActions({ productActions: createBloomProductAcknowledgedActions({ applyAcknowledgedMutation: invalidationRuntime.applyAcknowledgedMutation }), now: session.runtime.now });
+  session.invalidateNextSave();
+  const invalidated = await invalidationFlow.contentFree.activate();
+  assert(!invalidated.ok && invalidated.accepted && !invalidated.retryable && invalidated.reason === "persistenceInvalidated", "Isolated QA invalidation returns the real nonretryable result without saving");
+  const invalidationSuccessor = invalidationRuntime.getState();
+  assert(invalidationRuntime.getDurableState() === invalidationInitial && (await invalidationRuntime.confirmCurrentPersistence()).ok && invalidationRuntime.getDurableState() === invalidationSuccessor,
+    "Isolated current-save recovery confirms the exact authoritative successor without replay");
   await session.runtime.deleteAll();
   assert(await storage.getItem(BLOOM_STATE_STORAGE_KEY) === canonical && await storage.getItem("bloom.localState.v6") === "legacy sentinel" && await storage.getItem("bloom.localState.corrupt.sentinel") === "backup sentinel", "Isolated deletion protects canonical/legacy/corruption data");
   assert((await createPhase10StorageClient(storage).getAllKeys()).every((key) => !key.startsWith(PHASE10_STORAGE_PREFIX)), "Namespace enumeration translates keys once");

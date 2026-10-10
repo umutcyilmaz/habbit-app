@@ -1,3 +1,4 @@
+import { getBloomPersistenceRecovery } from "../src/shared/navigation/bloomPersistenceRecovery";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -51,7 +52,9 @@ export async function verifyBloomContentFreeFeature() {
   await verifyDomainOwnership();
   verifyViews();
   verifyFeatureWiring();
+  verifyRecoveryNavigationGuard();
   await verifyHookWiring();
+  await verifyHookWiring(undefined, true);
   const resetFixture = createResetContinuityFixture();
   await verifyHookWiring(completeElapsedResetPeriodState(resetFixture.state, { observedAt: resetFixture.observeDays(20) }));
   console.log(
@@ -680,11 +683,70 @@ function verifyFeatureWiring() {
   verifyDeactivationComponent(screen);
 }
 
-async function verifyHookWiring(pendingContinuation?: BloomLocalState) {
-  const h = createHarness(pendingContinuation);
+// Execute the existing shared guard, including route removal, gesture options,
+// hardware back, the success allowance and its expiry. No native renderer is claimed.
+function verifyRecoveryNavigationGuard() {
+  const hooks = createControlledHooks();
+  const timeouts = new Map<number, () => void>();
+  let nextTimer = 0;
+  let prevented = false;
+  let gestures = true;
+  let hardwareBack: (() => boolean) | null = null;
+  let removal: ((event: { data: { action: unknown } }) => void) | null = null;
+  const dispatched: unknown[] = [];
+  const navigation = {
+    setOptions: (options: { gestureEnabled: boolean }) => { gestures = options.gestureEnabled; },
+    dispatch: (action: unknown) => dispatched.push(action)
+  };
+  const dependencies: Record<string, unknown> = {
+    react: { ...hooks.react, useCallback: (callback: unknown) => callback },
+    "@react-navigation/native": { usePreventRemove: (blocked: boolean, callback: typeof removal) => { prevented = blocked; removal = callback; } },
+    "expo-router": { useNavigation: () => navigation },
+    "react-native": { Platform: { OS: "ios" }, BackHandler: { addEventListener: (_event: string, callback: () => boolean) => {
+      hardwareBack = callback; return { remove: () => { hardwareBack = null; } };
+    } } }
+  };
+  const module = { exports: {} as Record<string, unknown> };
+  const compiled = ts.transpileModule(readFileSync("src/shared/navigation/usePersistenceNavigationGuard.ts", "utf8"), {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 }
+  });
+  runInNewContext(compiled.outputText, {
+    module, exports: module.exports,
+    require: (name: string) => { assert(name in dependencies, `Unexpected guard dependency ${name}.`); return dependencies[name]; },
+    setTimeout: (callback: () => void) => { const id = ++nextTimer; timeouts.set(id, callback); return id; },
+    clearTimeout: (id: number) => timeouts.delete(id)
+  });
+  const useGuard = module.exports.usePersistenceNavigationGuard as (blocked: boolean) => () => void;
+  const render = (blocked: boolean) => hooks.render(() => useGuard(blocked));
+  render(false);
+  assert(!prevented && gestures && hardwareBack === null, "Saved routes allow ordinary navigation.");
+  let allow = render(true);
+  const action = { type: "GO_BACK" };
+  const remove = () => { if (prevented) removal!({ data: { action } }); else navigation.dispatch(action); };
+  remove();
+  assert(prevented && !gestures && hardwareBack!() && dispatched.length === 0,
+    "Pending saves block route removal, iOS gestures and hardware back.");
+  // Busy -> settled accepted failure remains blocked, including repeated back.
+  allow = render(true); remove(); remove();
+  assert(dispatched.length === 0, "A settled failure must never release the retry owner.");
+  allow(); remove(); remove();
+  assert(Number(dispatched.length) === 1 && dispatched[0] === action, "Confirmed-success allowance is consumed once.");
+  allow();
+  for (const expire of [...timeouts.values()]) expire();
+  remove();
+  assert(Number(dispatched.length) === 1, "An unused allowance expires before a later unsafe back action.");
+  render(false); remove();
+  assert(gestures && hardwareBack === null && Number(dispatched.length) === 2,
+    "After acknowledgement, navigation and gesture options recover.");
+  hooks.unmount();
+}
+
+async function verifyHookWiring(pendingContinuation?: BloomLocalState, lateAcknowledgement = false) {
+  const h = createHarness(pendingContinuation, lateAcknowledgement ? 0 : 10000);
   const hooks = createControlledHooks();
   const timers = new Map<number, () => void>();
   const navigation: unknown[] = [];
+  let navigationBlocked = false;
   let timerId = 0;
   let displayTime = Date.parse(activatedAt);
   let flows = h.flowActions;
@@ -701,7 +763,7 @@ async function verifyHookWiring(pendingContinuation?: BloomLocalState) {
       useBloomLocalState: () => ({
         state: h.runtime.getState(),
         durableState: h.runtime.getDurableState(),
-        getAcceptedState: h.runtime.getState,
+        getAcceptedState: h.runtime.getState, getDurableState: h.runtime.getDurableState, confirmCurrentPersistence: h.runtime.confirmCurrentPersistence,
         retryPersistedMutation: h.runtime.retryPersistence,
         hasHydrated,
         hydrationStatus,
@@ -714,8 +776,9 @@ async function verifyHookWiring(pendingContinuation?: BloomLocalState) {
       },
     },
     "../../constants/navigation": { routes: { home: "/existing-home" } },
+    "../../shared/navigation/bloomPersistenceRecovery": { getBloomPersistenceRecovery },
     "../../shared/navigation/usePersistenceNavigationGuard": {
-      usePersistenceNavigationGuard: () => () => undefined,
+      usePersistenceNavigationGuard: (blocked: boolean) => { navigationBlocked = blocked; return () => undefined; },
     },
     "../../domain/contentFree/getResetContentFreeCredit": { getResetContentFreeContinuationOffer },
     "../../app/flows/getBloomContentFreeEntryIntent": { getBloomContentFreeEntryIntent },
@@ -856,6 +919,29 @@ async function verifyHookWiring(pendingContinuation?: BloomLocalState) {
     navigation.length === 0,
     "Close must not navigate while a save is pending.",
   );
+  if (lateAcknowledgement) {
+    await new Promise<void>((done) => setTimeout(done, 5));
+    feature = render();
+    feature.actions.close();
+    assert(navigationBlocked && feature.canRetry && feature.locked && !feature.busy && navigation.length === 0,
+      "An acknowledgement timeout keeps close/back/gestures blocked after busy settles.");
+    const counts = h.counts();
+    const successor = h.runtime.getState();
+    h.attempts[0]!.succeed(); await flush(); feature = render();
+    assert(feature.saveState === "saved" && navigationBlocked && feature.canRetry,
+      "A late durable receipt retains the exact-token confirmation action until the controller observes it.");
+    feature.actions.retry(); await flush(); feature = render();
+    equal(h.counts(), counts, "Late confirmation never regenerates facts or replays the accepted mutation.");
+    assert(!navigationBlocked && !feature.locked && Number(h.attempts.length) === 1 && h.runtime.getDurableState() === successor,
+      "Checking the exact late receipt unlocks navigation without another storage write.");
+    feature.actions.close();
+    assert(Number(navigation.length) === 1, "Close becomes available after exact-token confirmation.");
+    hooks.unmount();
+    h.makeController();
+    assert(h.runtime.getState() === successor && Number(h.attempts.length) === 1,
+      "Re-entry after confirmation must not create a new activation or persistence attempt.");
+    return;
+  }
   h.attempts[0]!.fail();
   await flush();
   feature = render();
@@ -868,10 +954,12 @@ async function verifyHookWiring(pendingContinuation?: BloomLocalState) {
       navigation.length === 0,
     "Accepted activation must display unconfirmed save/retry state, not optimistic durable success.",
   );
+  feature.actions.close();
   feature.actions.openPanic();
+  assert(navigationBlocked, "Failed activation must block back/gesture removal so its retry owner cannot unmount.");
   assert(
     navigation.length === 0,
-    "Panic navigation must stay locked while an accepted save is not durable.",
+    "Close and Panic navigation must stay locked while an accepted save is not durable.",
   );
   const activationCounts = h.counts();
   feature.actions.retry();
@@ -1012,9 +1100,22 @@ async function verifyHookWiring(pendingContinuation?: BloomLocalState) {
       navigation.length === 0,
     "Accepted deactivation must show saving and remain on this route.",
   );
-  h.attempts[5]!.succeed();
+  h.attempts[5]!.fail();
   await flush();
   feature = render();
+  feature.actions.close();
+  feature.actions.openPanic();
+  assert(navigationBlocked && feature.canRetry && navigation.length === 0,
+    "Failed deactivation must retain retry and block close/back/gestures even though accepted Content-Free is inactive.");
+  const deactivationCounts = h.counts();
+  const acceptedDeactivation = h.runtime.getState();
+  feature.actions.retry();
+  assert(h.attempts[6]!.state === acceptedDeactivation, "Deactivation retry saves the exact accepted successor.");
+  h.attempts[6]!.succeed();
+  await flush();
+  feature = render();
+  equal(h.counts(), deactivationCounts, "Failed deactivation retry must never replay its domain transition.");
+  assert(!navigationBlocked, "Confirmed deactivation restores back/gesture navigation.");
   assert(
     feature.view.progress?.status === "inactive" &&
       feature.saveState === "saved" &&
@@ -1413,7 +1514,7 @@ function createControlledHooks() {
   };
 }
 
-function createHarness(initialState = createDefaultBloomState()) {
+function createHarness(initialState = createDefaultBloomState(), acknowledgementTimeoutMs = 10000) {
   let at = activatedAt;
   let clockCalls = 0;
   let idCalls = 0;
@@ -1426,6 +1527,7 @@ function createHarness(initialState = createDefaultBloomState()) {
   const runtime = createBloomLocalStateMutationRuntime({
     initialState,
     initialHydrationStatus: "ready",
+    acknowledgementTimeoutMs,
     persistState: (state) =>
       new Promise<BloomStateWriteReceipt>((resolve, reject) => {
         const writeId = attempts.length + 1;

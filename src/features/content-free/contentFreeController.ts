@@ -8,7 +8,7 @@ import type { ContentFreeState } from "../../domain/models/ContentFreeState";
 import type { BloomLocalState } from "../../storage/bloomState";
 import { getLatestManualContentFreeUndoCandidate } from "./contentFreeView";
 
-export type ContentFreeOperation = "activate" | "deactivate" | "recordManualViolation" | "undoManualViolation";
+export type ContentFreeOperation = "activate" | "deactivate" | "recordManualViolation" | "undoManualViolation" | "confirmCurrentSave";
 export type ContentFreeOperationSnapshot = {
   busy: boolean;
   operation: ContentFreeOperation | null;
@@ -20,6 +20,7 @@ export type ContentFreeOperationSnapshot = {
 type Options = {
   flowActions: BloomProductFlowActions;
   getState: () => BloomLocalState;
+  confirmCurrentPersistence?: () => Promise<BloomPersistedMutationResult>;
   retryPersistedMutation: (token: BloomPersistenceRetryToken) => Promise<BloomPersistedMutationResult>;
 };
 
@@ -45,11 +46,11 @@ export function createContentFreeController(options: Options) {
   ): Promise<BloomPersistedMutationResult> {
     const observed = promise.then((result) => {
       inFlight = null;
-      publish({ busy: false, operation, violationId, result, message: result.ok ? null : persistenceMessage(result) });
+      publish({ busy: false, operation, violationId, result, message: result.ok ? (operation === "confirmCurrentSave" ? "Güncel durum kaydedildi. Kapatıp güncel ekrana dönebilirsin." : null) : persistenceMessage(result) });
       return result;
     }, (error: unknown) => {
       inFlight = null;
-      publish({ ...snapshot, busy: false, message: "Bloom could not finish this request. Close and reopen Content-Free to continue." });
+      publish({ ...snapshot, busy: false, message: "İstek tamamlanamadı. Güncel durumun kaydını kontrol et." });
       throw error;
     });
     inFlight = observed;
@@ -63,7 +64,7 @@ export function createContentFreeController(options: Options) {
     violationId: unknown = null
   ): Promise<BloomPersistedMutationResult> | null {
     if (snapshot.busy) return snapshot.operation === operation && snapshot.violationId === violationId ? inFlight : null;
-    if (snapshot.result !== null && !snapshot.result.ok && snapshot.result.accepted) return null;
+    if (snapshot.operation === "confirmCurrentSave" || (snapshot.result !== null && !snapshot.result.ok && snapshot.result.accepted)) return null;
 
     // React handlers carry the immutable slice they displayed. Re-read accepted
     // truth before dispatch, including changes that have not rendered yet.
@@ -86,7 +87,7 @@ export function createContentFreeController(options: Options) {
     try {
       return observe(command(), operation, targetId);
     } catch (error) {
-      publish({ ...snapshot, busy: false, message: "Bloom could not finish this request. Close and reopen Content-Free to continue." });
+      publish({ ...snapshot, busy: false, message: "İstek tamamlanamadı. Güncel durumun kaydını kontrol et." });
       return Promise.reject(error);
     }
   }
@@ -107,6 +108,12 @@ export function createContentFreeController(options: Options) {
       // run validates the exact ID before this flow command can be invoked.
       () => options.flowActions.contentFree.undoManualViolation({ violationId: violationId as string }), violationId
     ),
+    confirmCurrentSave: (): Promise<BloomPersistedMutationResult> | null => {
+      if (snapshot.busy) return inFlight;
+      if (options.confirmCurrentPersistence === undefined) return null;
+      publish({ ...snapshot, busy: true, operation: "confirmCurrentSave", violationId: null, result: null, message: null });
+      return observe(options.confirmCurrentPersistence(), "confirmCurrentSave", null);
+    },
     retry: (): Promise<BloomPersistedMutationResult> | null => {
       if (snapshot.busy) return inFlight;
       const { result, operation, violationId } = snapshot;
@@ -119,10 +126,10 @@ export function createContentFreeController(options: Options) {
 
 function persistenceMessage(result: Exclude<BloomPersistedMutationResult, { ok: true }>): string {
   if (result.reason === "persistenceUnknown") return "Saving has not been confirmed yet. Try saving again to check the same change.";
-  if (result.reason === "persistenceSuperseded" || result.reason === "persistenceInvalidated") return "This request was replaced by a newer change. Close and reopen Content-Free to continue.";
+  if (result.reason === "persistenceSuperseded" || result.reason === "persistenceInvalidated") return "Önceki isteğin kayıt onayı artık kullanılamıyor. Güncel durumun kaydını kontrol et.";
   if (result.accepted) return result.retryable
     ? "Değişikliğin bu ekranda korunuyor, ancak kaydedilemedi. Devam etmeden önce kaydetmeyi tekrar dene."
-    : "Your change was accepted, but saving could not be confirmed. Close and reopen Content-Free to continue.";
+    : "Kayıt doğrulanamadı. Güncel durumun kaydını kontrol et.";
   if (result.reason === "hydrationPending" || result.reason === "stateUnavailable" || result.reason === "deletionInProgress") return "Local data is not ready for this action. Please try again when it is available.";
   // Includes invalidSession. Do not infer Reset ownership or duplicate its
   // restriction/reversibility policy from a rejected transition in the UI.

@@ -1,0 +1,103 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Phase 11.1 obsolete receipt with authoritative unsaved data
+# Existing guarded Phase 10 private E2E runtime; no normal Bloom data changes.
+---
+- runFlow:
+    file: phase10-visual.yaml
+    env:
+      SCENARIO: continuation-declined
+      TARGET: content-free
+      SCREEN_ID: bloom.content-free
+      EXPECTED_TEXT: "HENÜZ BAŞLAMADI"
+- runFlow:
+    file: subflows/phase11-arm-invalidated-save.yaml
+    env:
+      TARGET: content-free
+- tapOn:
+    id: "bloom.content-free.activate"
+- runFlow:
+    file: subflows/phase11-confirm-obsolete-save.yaml
+    env:
+      CASE: content-free
+      SCREEN_ID: bloom.content-free
+      CLOSE_ID: bloom.content-free.close
+      RETRY_ID: bloom.content-free.retry
+- runFlow:
+    file: phase10-visual.yaml
+    env:
+      SCENARIO: before-completion
+      TARGET: reset
+      SCREEN_ID: bloom.reset.progress
+      EXPECTED_TEXT: "15 gün tamamlandı"
+- runFlow:
+    file: subflows/phase11-arm-invalidated-save.yaml
+    env:
+      TARGET: reset
+- scrollUntilVisible:
+    element:
+      id: "bloom.reset.continue"
+    direction: DOWN
+- tapOn:
+    id: "bloom.reset.continue"
+- scrollUntilVisible:
+    element:
+      id: "bloom.reset.complete"
+    direction: DOWN
+- tapOn:
+    id: "bloom.reset.complete"
+- runFlow:
+    file: subflows/phase11-confirm-obsolete-save.yaml
+    env:
+      CASE: reset
+      SCREEN_ID: bloom.reset.completion
+      CLOSE_ID: bloom.reset.close
+      RETRY_ID: bloom.reset.retry
+- runFlow:
+    file: phase10-visual.yaml
+    env:
+      SCENARIO: continuation-declined
+      TARGET: content-free
+      SCREEN_ID: bloom.content-free
+      EXPECTED_TEXT: "HENÜZ BAŞLAMADI"
+- tapOn:
+    id: "bloom.content-free.close"
+- scrollUntilVisible:
+    element:
+      id: "bloom.home.tracking.enable"
+    direction: DOWN
+- tapOn:
+    id: "bloom.home.tracking.enable"
+- extendedWaitUntil:
+    visible:
+      id: "bloom.home.tracking.action"
+    timeout: 30000
+- runFlow:
+    file: subflows/phase11-arm-invalidated-save.yaml
+    env:
+      TARGET: home
+- scrollUntilVisible:
+    element:
+      id: "bloom.home.tracking.action"
+    direction: DOWN
+- tapOn:
+    id: "bloom.home.tracking.action"
+- scrollUntilVisible:
+    element:
+      id: "bloom.masturbation.start.begin"
+    direction: DOWN
+- tapOn:
+    id: "bloom.masturbation.start.begin"
+- runFlow:
+    file: subflows/phase11-confirm-obsolete-save.yaml
+    env:
+      CASE: masturbation
+      SCREEN_ID: bloom.masturbation.start
+      CLOSE_ID: bloom.masturbation.close
+      RETRY_ID: bloom.masturbation.retry
+- tapOn:
+    id: "bloom.home.primary.action"
+- extendedWaitUntil:
+    visible:
+      id: "bloom.masturbation.active"
+    timeout: 30000
+- takeScreenshot: phase11-recovered-current-session

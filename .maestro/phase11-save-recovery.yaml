@@ -1,0 +1,330 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Phase 11.1 failed-save navigation and exact retry recovery
+# Run with npm run start:e2e:phase10. Synthetic QA namespace only.
+---
+- runFlow:
+    file: phase10-visual.yaml
+    env:
+      SCENARIO: continuation-declined
+      TARGET: content-free
+      SCREEN_ID: bloom.content-free
+      EXPECTED_TEXT: "HENÜZ BAŞLAMADI"
+- runFlow:
+    file: subflows/phase11-arm-save-failure.yaml
+    env:
+      TARGET: content-free
+- tapOn:
+    id: "bloom.content-free.activate"
+- runFlow:
+    file: subflows/phase11-retry-with-navigation-guard.yaml
+    env:
+      CASE: activation
+      SCREEN_ID: bloom.content-free
+      CLOSE_ID: bloom.content-free.close
+      RETRY_ID: bloom.content-free.retry
+- assertVisible: "Bu cihaza kaydedildi"
+- tapOn:
+    id: "bloom.content-free.close"
+- extendedWaitUntil:
+    visible:
+      id: "bloom.home"
+    timeout: 30000
+- openLink: "tms-e2e:///bloom/content-free"
+- assertVisible: "Bu cihaza kaydedildi"
+- assertNotVisible:
+    id: "bloom.content-free.retry"
+- runFlow:
+    file: subflows/phase11-arm-save-failure.yaml
+    env:
+      TARGET: content-free
+- scrollUntilVisible:
+    element:
+      id: "bloom.content-free.deactivate"
+    direction: DOWN
+- tapOn:
+    id: "bloom.content-free.deactivate"
+- scrollUntilVisible:
+    element:
+      id: "bloom.content-free.deactivate.confirm"
+    direction: DOWN
+- tapOn:
+    id: "bloom.content-free.deactivate.confirm"
+- runFlow:
+    file: subflows/phase11-retry-with-navigation-guard.yaml
+    env:
+      CASE: deactivation
+      SCREEN_ID: bloom.content-free
+      CLOSE_ID: bloom.content-free.close
+      RETRY_ID: bloom.content-free.retry
+- assertVisible: "Bu cihaza kaydedildi"
+- runFlow:
+    file: phase10-visual.yaml
+    env:
+      SCENARIO: day10-credit
+      TARGET: reset
+      SCREEN_ID: bloom.reset.progress
+      EXPECTED_TEXT: "15 günlük Reset"
+- runFlow:
+    file: subflows/phase11-arm-save-failure.yaml
+    env:
+      TARGET: reset
+- scrollUntilVisible:
+    element:
+      id: "bloom.reset.violation.toggle"
+    direction: DOWN
+- tapOn:
+    id: "bloom.reset.violation.toggle"
+- scrollUntilVisible:
+    element:
+      id: "bloom.reset.violation.open"
+    direction: DOWN
+- tapOn:
+    id: "bloom.reset.violation.open"
+- scrollUntilVisible:
+    element:
+      id: "bloom.reset.violation.reason.intentionalExplicitContent"
+    direction: DOWN
+- tapOn:
+    id: "bloom.reset.violation.reason.intentionalExplicitContent"
+- scrollUntilVisible:
+    element:
+      id: "bloom.reset.violation.confirm"
+    direction: DOWN
+- tapOn:
+    id: "bloom.reset.violation.confirm"
+- runFlow:
+    file: subflows/phase11-retry-with-navigation-guard.yaml
+    env:
+      CASE: reset-restart
+      SCREEN_ID: bloom.reset.progress
+      CLOSE_ID: bloom.reset.close
+      RETRY_ID: bloom.reset.retry
+- extendedWaitUntil:
+    visible:
+      id: "bloom.reset.progress"
+    timeout: 30000
+- runFlow:
+    file: subflows/phase11-arm-save-failure.yaml
+    env:
+      TARGET: reset
+- scrollUntilVisible:
+    element:
+      text: "Son kaydı geri al"
+    direction: DOWN
+- tapOn: "Son kaydı geri al"
+- runFlow:
+    file: subflows/phase11-retry-with-navigation-guard.yaml
+    env:
+      CASE: reset-undo
+      SCREEN_ID: bloom.reset.progress
+      CLOSE_ID: bloom.reset.close
+      RETRY_ID: bloom.reset.retry
+- extendedWaitUntil:
+    visible:
+      id: "bloom.reset.progress"
+    timeout: 30000
+- runFlow:
+    file: phase10-visual.yaml
+    env:
+      SCENARIO: before-completion
+      TARGET: reset
+      SCREEN_ID: bloom.reset.progress
+      EXPECTED_TEXT: "15 gün tamamlandı"
+- runFlow:
+    file: subflows/phase11-arm-save-failure.yaml
+    env:
+      TARGET: reset
+- scrollUntilVisible:
+    element:
+      id: "bloom.reset.continue"
+    direction: DOWN
+- tapOn:
+    id: "bloom.reset.continue"
+- scrollUntilVisible:
+    element:
+      id: "bloom.reset.complete"
+    direction: DOWN
+- tapOn:
+    id: "bloom.reset.complete"
+- runFlow:
+    file: subflows/phase11-retry-with-navigation-guard.yaml
+    env:
+      CASE: reset-completion
+      SCREEN_ID: bloom.reset.completion
+      CLOSE_ID: bloom.reset.close
+      RETRY_ID: bloom.reset.retry
+- extendedWaitUntil:
+    visible:
+      id: "bloom.reset.content-free.accept"
+    timeout: 30000
+- runFlow:
+    file: subflows/phase11-arm-save-failure.yaml
+    env:
+      TARGET: reset
+- scrollUntilVisible:
+    element:
+      id: "bloom.reset.content-free.accept"
+    direction: DOWN
+- tapOn:
+    id: "bloom.reset.content-free.accept"
+- runFlow:
+    file: subflows/phase11-retry-with-navigation-guard.yaml
+    env:
+      CASE: continuation-accepted
+      SCREEN_ID: bloom.reset.completion
+      CLOSE_ID: bloom.reset.close
+      RETRY_ID: bloom.reset.retry
+- extendedWaitUntil:
+    visible:
+      id: "bloom.home"
+    timeout: 30000
+- runFlow:
+    file: phase10-visual.yaml
+    env:
+      SCENARIO: completed-pending
+      TARGET: reset
+      SCREEN_ID: bloom.reset.completion
+      EXPECTED_TEXT: "15 günlük serimle devam et"
+- runFlow:
+    file: subflows/phase11-arm-save-failure.yaml
+    env:
+      TARGET: reset
+- scrollUntilVisible:
+    element:
+      id: "bloom.reset.content-free.decline"
+    direction: DOWN
+- tapOn:
+    id: "bloom.reset.content-free.decline"
+- runFlow:
+    file: subflows/phase11-retry-with-navigation-guard.yaml
+    env:
+      CASE: continuation-declined
+      SCREEN_ID: bloom.reset.completion
+      CLOSE_ID: bloom.reset.close
+      RETRY_ID: bloom.reset.retry
+- extendedWaitUntil:
+    visible:
+      id: "bloom.home"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: "bloom.home.tracking.enable"
+    direction: DOWN
+- tapOn:
+    id: "bloom.home.tracking.enable"
+- extendedWaitUntil:
+    visible:
+      id: "bloom.home.tracking.action"
+    timeout: 30000
+- runFlow:
+    file: subflows/phase11-arm-save-failure.yaml
+    env:
+      TARGET: home
+- scrollUntilVisible:
+    element:
+      id: "bloom.home.tracking.action"
+    direction: DOWN
+- tapOn:
+    id: "bloom.home.tracking.action"
+- scrollUntilVisible:
+    element:
+      id: "bloom.masturbation.start.begin"
+    direction: DOWN
+- tapOn:
+    id: "bloom.masturbation.start.begin"
+- runFlow:
+    file: subflows/phase11-retry-with-navigation-guard.yaml
+    env:
+      CASE: session-start
+      SCREEN_ID: bloom.masturbation.start
+      CLOSE_ID: bloom.masturbation.close
+      RETRY_ID: bloom.masturbation.retry
+- extendedWaitUntil:
+    visible:
+      id: "bloom.masturbation.active"
+    timeout: 30000
+- tapOn:
+    id: "bloom.masturbation.close"
+- extendedWaitUntil:
+    visible:
+      id: "bloom.home"
+    timeout: 30000
+- tapOn:
+    id: "bloom.home.primary.action"
+- extendedWaitUntil:
+    visible:
+      id: "bloom.masturbation.active"
+    timeout: 30000
+- runFlow:
+    file: subflows/phase11-arm-save-failure.yaml
+    env:
+      TARGET: home
+- tapOn:
+    id: "bloom.home.primary.action"
+- scrollUntilVisible:
+    element:
+      id: "bloom.masturbation.active.end"
+    direction: DOWN
+- tapOn:
+    id: "bloom.masturbation.active.end"
+- runFlow:
+    file: subflows/phase11-retry-with-navigation-guard.yaml
+    env:
+      CASE: session-end
+      SCREEN_ID: bloom.masturbation.active
+      CLOSE_ID: bloom.masturbation.close
+      RETRY_ID: bloom.masturbation.retry
+- extendedWaitUntil:
+    visible:
+      id: "bloom.masturbation.feedback"
+    timeout: 30000
+- runFlow:
+    file: subflows/phase11-arm-save-failure.yaml
+    env:
+      TARGET: home
+- tapOn:
+    id: "bloom.home.primary.action"
+- scrollUntilVisible:
+    element:
+      id: "bloom.masturbation.feedback.erection.7"
+    direction: DOWN
+- tapOn:
+    id: "bloom.masturbation.feedback.erection.7"
+- tapOn: "Devam et"
+- tapOn:
+    id: "bloom.masturbation.feedback.content.no"
+- tapOn: "Devam et"
+- scrollUntilVisible:
+    element:
+      id: "bloom.masturbation.feedback.ending.stoppedByChoice"
+    direction: DOWN
+- tapOn:
+    id: "bloom.masturbation.feedback.ending.stoppedByChoice"
+- scrollUntilVisible:
+    element:
+      id: "bloom.masturbation.feedback.submit"
+    direction: DOWN
+- tapOn:
+    id: "bloom.masturbation.feedback.submit"
+- runFlow:
+    file: subflows/phase11-retry-with-navigation-guard.yaml
+    env:
+      CASE: session-feedback
+      SCREEN_ID: bloom.masturbation.feedback
+      CLOSE_ID: bloom.masturbation.close
+      RETRY_ID: bloom.masturbation.retry
+- extendedWaitUntil:
+    visible:
+      id: "bloom.home"
+    timeout: 30000
+- stopApp
+- launchApp
+- openLink: "tms-e2e:///today"
+- extendedWaitUntil:
+    visible:
+      id: "bloom.home.tracking.erection-quality"
+    timeout: 30000
+- assertVisible: "7/10"
+- assertNotVisible:
+    id: "bloom.home.primary.action"
+- takeScreenshot: phase11-confirmed-session-relaunch

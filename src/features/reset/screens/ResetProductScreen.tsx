@@ -49,7 +49,7 @@ function ResetProductScreen({ mode }: { mode: ResetMode }) {
             <AppText variant="overline" tone="accent">15-DAY RESET</AppText>
             <AppText variant="heading2" accessibilityRole="header">{titles[mode]}</AppText>
           </View>
-          <AppButton testID="bloom.reset.close" label="Kapat" variant="ghost" style={styles.closeButton} disabled={feature.busy} onPress={feature.actions.close} />
+          <AppButton testID="bloom.reset.close" label="Kapat" variant="ghost" style={styles.closeButton} disabled={feature.navigationBlocked} onPress={feature.actions.close} />
         </View>
         <SaveStatus feature={feature} />
         <ResetContent mode={mode} feature={feature} />
@@ -148,6 +148,10 @@ function SaveStatus({ feature }: { feature: ResetFeature }) {
       {feature.message !== null ? (
         <AppText testID="bloom.reset.message" accessibilityLiveRegion="polite" accessibilityRole="alert" variant="bodySmall" tone="danger">{feature.message}</AppText>
       ) : null}
+      {feature.recoveryGuidance !== null ? <AppText testID="bloom.persistence.recovery-guidance" accessibilityLiveRegion="polite" variant="bodySmall" tone="warning">
+        {feature.recoveryGuidance}
+      </AppText> : null}
+      {feature.canConfirmCurrentSave ? <AppButton testID="bloom.persistence.confirm-current" label="Güncel durumu kaydet" variant="secondary" onPress={feature.actions.confirmCurrentSave} /> : null}
       {feature.canRetry ? (
         <AppButton testID="bloom.reset.retry" label="Kaydetmeyi tekrar dene" variant="secondary" disabled={feature.busy} loading={feature.busy} onPress={feature.actions.retry} />
       ) : null}

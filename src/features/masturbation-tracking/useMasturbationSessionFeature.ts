@@ -7,6 +7,7 @@ import { navigateBloomProductFlow } from "../../app/navigation/navigateBloomProd
 import { routes } from "../../constants/navigation";
 import { getMasturbationTrackingAvailability } from "../../domain/productPolicy/getMasturbationTrackingAvailability";
 import type { MasturbationSessionFeedback } from "../../domain/models/MasturbationSession";
+import { getBloomPersistenceRecovery } from "../../shared/navigation/bloomPersistenceRecovery";
 import { usePersistenceNavigationGuard } from "../../shared/navigation/usePersistenceNavigationGuard";
 import { createMasturbationSessionController, type SessionOperation } from "./masturbationSessionController";
 import { getMasturbationSessionRouteView } from "./masturbationSessionView";
@@ -18,7 +19,7 @@ export function useMasturbationSessionFeature(mode: "start" | "active" | "feedba
   // Duplicate/malformed URL values never become a scalar identity.
   const controllerRouteId = typeof routeId === "string" ? routeId : null;
   const flowActions = useBloomProductFlowActions();
-  const { state, durableState, getAcceptedState, retryPersistedMutation } = useBloomLocalState();
+  const { state, durableState, getAcceptedState, getDurableState, confirmCurrentPersistence, retryPersistedMutation } = useBloomLocalState();
   const [nowMilliseconds, setNowMilliseconds] = useState(Date.now);
   const [navigationError, setNavigationError] = useState<string | null>(null);
   const mounted = useRef(false);
@@ -29,27 +30,30 @@ export function useMasturbationSessionFeature(mode: "start" | "active" | "feedba
       flowActions,
       getState: getAcceptedState,
       getRouteSessionId: () => controllerRouteId,
-      retryPersistedMutation,
+      retryPersistedMutation, confirmCurrentPersistence,
       onPersisted: (operation, sessionId) => {
         if (mounted.current && activeController.current === instance) onPersisted.current(operation, sessionId);
       }
     });
     return instance;
-  }, [flowActions, getAcceptedState, retryPersistedMutation, controllerRouteId, mode]);
+  }, [flowActions, getAcceptedState, getDurableState, confirmCurrentPersistence, retryPersistedMutation, controllerRouteId, mode]);
   activeController.current = controller;
   const operation = useSyncExternalStore(controller.subscribe, controller.getSnapshot, controller.getSnapshot);
-  const allowNavigation = usePersistenceNavigationGuard(operation.busy);
+  const { navigationBlocked, canConfirmCurrentSave, recoveryGuidance } = getBloomPersistenceRecovery(operation, state, durableState);
+  const allowNavigation = usePersistenceNavigationGuard(navigationBlocked);
 
   const navigateSession = (sessionId: string) => {
     const current = getAcceptedState().masturbationTracking.currentSession;
-    if (current?.id !== sessionId) return;
+    if (current?.id !== sessionId || getAcceptedState() !== getDurableState()) return;
     allowNavigation();
     navigateBloomProductFlow(router, current.status === "active"
       ? { flow: "masturbationSession", mode: "resume", sessionId }
       : { flow: "masturbationSessionFeedback", sessionId }, "replace");
   };
   const close = () => {
-    if (!mounted.current || activeController.current !== controller || controller.getSnapshot().busy) return;
+    const snapshot = controller.getSnapshot();
+    if (!mounted.current || activeController.current !== controller || snapshot.busy ||
+      getBloomPersistenceRecovery(snapshot, getAcceptedState(), getDurableState()).navigationBlocked) return;
     allowNavigation();
     router.replace(routes.home);
   };
@@ -86,13 +90,13 @@ export function useMasturbationSessionFeature(mode: "start" | "active" | "feedba
     : routeId;
   const view = getMasturbationSessionRouteView(state, displayedId, nowMilliseconds);
   const durableView = getMasturbationSessionRouteView(durableState, displayedId, nowMilliseconds);
-  const canContinue = !operation.busy &&
+  const canContinue = !navigationBlocked &&
     (view.kind === "active" || view.kind === "awaitingFeedback") &&
     "session" in durableView && durableView.session === view.session;
   const isDurablyCompleted = view.kind === "completed" && durableView.kind === "completed" &&
     view.session === durableView.session;
   const availability = getMasturbationTrackingAvailability(state, new Date(nowMilliseconds).toISOString());
-  const locked = operation.busy || (operation.result !== null && !operation.result.ok && operation.result.accepted);
+  const locked = navigationBlocked || operation.operation === "confirmCurrentSave" || (operation.result !== null && !operation.result.ok && operation.result.accepted);
   const canRetry = !operation.busy && operation.result !== null && !operation.result.ok && operation.result.retryable;
   const invoke = (command: () => ReturnType<typeof controller.start>) => {
     // Discard handlers retained by an earlier route render or an unmounted
@@ -106,7 +110,7 @@ export function useMasturbationSessionFeature(mode: "start" | "active" | "feedba
   };
 
   return {
-    view, availability, busy: operation.busy, locked,
+    view, availability, busy: operation.busy, navigationBlocked, canConfirmCurrentSave, recoveryGuidance, locked,
     message: navigationError ?? operation.message,
     canRetry, canContinue, isDurablyCompleted,
     actions: {
@@ -115,6 +119,11 @@ export function useMasturbationSessionFeature(mode: "start" | "active" | "feedba
       endPause: () => invoke(controller.endPause),
       end: () => invoke(controller.end),
       completeFeedback: (feedback: MasturbationSessionFeedback) => invoke(() => controller.completeFeedback(feedback)),
+      confirmCurrentSave: () => {
+        if (getBloomPersistenceRecovery(controller.getSnapshot(), getAcceptedState(), getDurableState()).canConfirmCurrentSave) {
+          invoke(controller.confirmCurrentSave);
+        }
+      },
       retry: () => invoke(controller.retry),
       continueSession: () => {
         if (mounted.current && activeController.current === controller &&

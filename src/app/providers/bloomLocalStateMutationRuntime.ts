@@ -66,7 +66,7 @@ export const BLOOM_PERSISTENCE_RETRY_MESSAGE =
   "Bloom updated this session, but couldn’t save the change to local storage. Try again.";
 
 export const BLOOM_PERSISTENCE_PENDING_MESSAGE =
-  "Bloom is still confirming this local save. You can leave safely or try again.";
+  "Bloom is still confirming this local save. Try again to confirm the same change.";
 
 export const BLOOM_PERSISTENCE_ACKNOWLEDGEMENT_TIMEOUT_MS = 10_000;
 
@@ -868,6 +868,27 @@ export function createBloomLocalStateMutationRuntime(
     return retryPromise;
   };
 
+  // Recover authoritative current truth after an obsolete receipt. This creates
+  // only a persistence acknowledgement, never a state revision or domain fact.
+  // Reuse an exact current retry entry when possible, and let retryPersistence
+  // wait for covering attempts rather than duplicating an in-flight write.
+  const confirmCurrentPersistence = (): Promise<BloomPersistedMutationResult> => {
+    const currentEntry = Array.from(retryEntries.entries()).find(([, entry]) =>
+      entry.generation === persistenceGeneration && entry.requiredRevision === stateRevision
+    );
+    if (currentEntry !== undefined) {
+      return retryPersistence(currentEntry[0] as BloomPersistenceRetryToken);
+    }
+    const sequence = ++nextAcknowledgementSequence;
+    const blockReason = getAcknowledgedMutationBlockReason();
+    if (blockReason !== null) return Promise.resolve(createRejectedAcknowledgement(sequence, blockReason));
+    retryEntries.set(sequence, {
+      generation: persistenceGeneration,
+      requiredRevision: stateRevision
+    });
+    return retryPersistence(sequence as BloomPersistenceRetryToken);
+  };
+
   const isCurrentHydrationOperation = (
     operation: BloomHydrationOperation
   ) =>
@@ -1004,6 +1025,7 @@ export function createBloomLocalStateMutationRuntime(
     applyAcknowledgedMutation,
     rejectAcknowledgedMutation,
     retryPersistence,
+    confirmCurrentPersistence,
     beginHydration,
     completeHydration,
     failHydration,
