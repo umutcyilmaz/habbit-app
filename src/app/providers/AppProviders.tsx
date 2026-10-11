@@ -4,26 +4,28 @@ import { StatusBar } from "expo-status-bar";
 import { usePathname } from "expo-router";
 
 import { BloomHydrationBoundary } from "./BloomHydrationBoundary";
-import { BloomLocalStateProvider } from "./BloomLocalStateProvider";
+import { BloomLocalStateProvider, type BloomLocalStateRuntime } from "./BloomLocalStateProvider";
 import { DemoAppStateProvider } from "./DemoAppStateProvider";
 import { phase10QaEnabled } from "../../features/debug/phase10/phase10QaMode";
 import { Phase10QaProvider, usePhase10QaSession } from "../../features/debug/phase10/Phase10QaProvider";
 import { LocalDataLifecycleProvider } from "./LocalDataLifecycleProvider";
+import { kegelPreviewEnabled } from "../../features/kegel/kegelPreviewMode";
+import { kegelPreviewRuntime } from "../../features/kegel/kegelPreviewRuntime";
 
 export function AppProviders({ children }: PropsWithChildren) {
   return (
     <SafeAreaProvider>
-      {phase10QaEnabled ? <Phase10QaProvider>
+      {kegelPreviewEnabled ? <LocalProviders runtime={kegelPreviewRuntime}>{children}</LocalProviders> : phase10QaEnabled ? <Phase10QaProvider>
         <LocalProviders>{children}</LocalProviders>
       </Phase10QaProvider> : <LocalProviders>{children}</LocalProviders>}
     </SafeAreaProvider>
   );
 }
 
-function LocalProviders({ children }: PropsWithChildren) {
+function LocalProviders({ children, runtime }: PropsWithChildren<{runtime?:BloomLocalStateRuntime}>) {
   const qa = usePhase10QaSession();
   return (
-    <BloomLocalStateProvider {...(qa ? { runtime: qa.runtime } : {})}>
+    <BloomLocalStateProvider {...(runtime ? {runtime} : qa ? { runtime: qa.runtime } : {})}>
       <DemoAppStateProvider>
         <LocalDataLifecycleProvider>
           <StatusBar style="dark" />

@@ -1,0 +1,95 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Isolated native Kegel preview
+# Requires npm run start:e2e:kegel. No clearState, persistence seeding or clock edits.
+---
+- openLink: "tms-e2e:///debug/kegel?scenario=intro"
+- assertVisible:
+    id: "kegel.initial"
+- takeScreenshot: "01-initial"
+- tapOn:
+    id: "kegel.intro.start"
+- assertVisible:
+    id: "kegel.intro.step-1"
+- tapOn:
+    id: "kegel.intro.find-muscle"
+- assertVisible: "İşte bu. Sıkınca yukarı ve içeri kalkar."
+- takeScreenshot: "02-intro-location"
+- tapOn:
+    id: "kegel.intro.next"
+- tapOn:
+    id: "kegel.intro.option.gas"
+- takeScreenshot: "03-intro-find"
+- tapOn:
+    id: "kegel.intro.next"
+- assertVisible:
+    id: "kegel.intro.step-3"
+- takeScreenshot: "04-intro-hold"
+- tapOn:
+    id: "kegel.intro.hold"
+- assertVisible: "Biraz daha uzun: 3 saniye tut"
+- tapOn:
+    id: "kegel.intro.skip"
+- assertVisible:
+    id: "kegel.intro.step-4"
+- takeScreenshot: "04b-intro-technique"
+- tapOn:
+    id: "kegel.intro.next"
+- assertVisible:
+    id: "kegel.home"
+- assertVisible: "Henüz egzersiz geçmişi yok"
+- takeScreenshot: "05-home-empty"
+- tapOn:
+    id: "kegel.exercise.start"
+- extendedWaitUntil:
+    visible:
+      id: "kegel.exercise.contract"
+    timeout: 10000
+- takeScreenshot: "06-exercising"
+- tapOn:
+    id: "kegel.exercise.pause"
+- assertVisible:
+    id: "kegel.exercise.paused"
+- takeScreenshot: "07-paused"
+- tapOn:
+    id: "kegel.exercise.exit"
+- assertVisible: "Egzersizden çıkılsın mı?"
+- takeScreenshot: "08-exit"
+- tapOn:
+    id: "kegel.exercise.keep"
+- assertVisible:
+    id: "kegel.exercise.paused"
+- tapOn:
+    id: "kegel.exercise.pause"
+- extendedWaitUntil:
+    visible:
+      id: "kegel.exercise.relax"
+    timeout: 10000
+- takeScreenshot: "06b-relaxing"
+- extendedWaitUntil:
+    visible:
+      id: "kegel.completed"
+    timeout: 75000
+- assertVisible: "Önizleme seti · Kaydedilmedi"
+- tapOn:
+    id: "kegel.feeling.Zor"
+- assertVisible: "Kaslarını dinlendir. Geri bildirimin bu önizlemede kalır."
+- takeScreenshot: "09-completed"
+- tapOn:
+    id: "kegel.completed.done"
+- assertVisible: "Henüz egzersiz geçmişi yok"
+- tapOn:
+    id: "kegel.exercise.start"
+- tapOn:
+    id: "kegel.exercise.exit"
+- tapOn:
+    id: "kegel.exercise.confirm-exit"
+- assertVisible:
+    id: "kegel.home"
+- assertNotVisible:
+    id: "kegel.completed"
+- tapOn:
+    id: "kegel.preview.menu"
+- tapOn:
+    id: "kegel.preview.design"
+- assertVisible: "Örnek veri, Kegel önizleme seçenekleri"
+- takeScreenshot: "10-home-design-data"

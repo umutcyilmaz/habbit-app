@@ -12,6 +12,7 @@
     "android": "expo start --android --port 8082",
     "web": "expo start --web --port 8082",
     "typecheck": "tsc --noEmit",
+    "verify:kegel": "node scripts/verify-bloom-kegel.cjs",
     "verify:reset-continuity": "node scripts/run-bloom-reset-continuity-verification.cjs",
     "verify:persistence": "node scripts/run-bloom-persistence-verification.cjs",
     "verify:persistence-acknowledgement": "node scripts/run-bloom-persistence-acknowledgement-verification.cjs",
@@ -37,7 +38,8 @@
     "maestro:core": "maestro test .maestro/protection-setup.yaml .maestro/pause-entry.yaml .maestro/arousal-entry.yaml",
     "maestro:terminal": "maestro test .maestro/pause-complete.yaml .maestro/reset-complete.yaml .maestro/arousal-complete.yaml",
     "maestro:all": "maestro test .maestro/onboarding-smoke.yaml .maestro/onboarding-general.yaml .maestro/check-in-save.yaml .maestro/protection-setup.yaml .maestro/pause-entry.yaml .maestro/arousal-entry.yaml .maestro/pause-complete.yaml .maestro/reset-complete.yaml .maestro/arousal-complete.yaml",
-    "start:e2e:phase10": "APP_VARIANT=e2e EXPO_PUBLIC_E2E_MODE=1 EXPO_PUBLIC_PHASE10_QA=1 expo start --dev-client --localhost --port 8082"
+    "start:e2e:phase10": "APP_VARIANT=e2e EXPO_PUBLIC_E2E_MODE=1 EXPO_PUBLIC_PHASE10_QA=1 expo start --dev-client --localhost --port 8082",
+    "start:e2e:kegel": "APP_VARIANT=e2e EXPO_PUBLIC_E2E_MODE=1 EXPO_PUBLIC_KEGEL_PREVIEW=1 expo start --dev-client --localhost --port 8082"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",

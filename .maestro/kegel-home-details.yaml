@@ -1,0 +1,37 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Kegel home details visual inspection
+---
+- openLink: "tms-e2e:///debug/kegel?scenario=home"
+- assertVisible: "Henüz egzersiz geçmişi yok"
+- openLink: "tms-e2e:///debug/kegel?scenario=design"
+- assertVisible:
+    id: "kegel.home"
+- assertVisible: "Kegel"
+- assertVisible:
+    id: "kegel.exercise.start"
+- takeScreenshot: "12-home-top"
+- scrollUntilVisible:
+    element:
+      text: "Bu süreler ve günlük hedef tasarım örneğidir. Program ve seviye geçişleri henüz belirlenmedi."
+    direction: DOWN
+- assertVisible: "Örnek tasarım verisi · Gerçek kullanıcı geçmişi değil"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: "11-home-program"
+- scrollUntilVisible:
+    element:
+      text: "İzole önizleme · Denemeler kaydedilmez"
+    direction: DOWN
+- assertVisible: "Tekniği tekrar gör"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: "13-home-bottom"
+- scrollUntilVisible:
+    element:
+      text: "Kegel"
+    direction: UP
+- assertVisible:
+    id: "kegel.exercise.start"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: "14-home-return-top"

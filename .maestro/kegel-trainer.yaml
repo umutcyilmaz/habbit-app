@@ -1,0 +1,27 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Kegel native hold trainer
+# Uses a small, slow finger movement within the hold button, for a real 3s hold.
+---
+- openLink: "tms-e2e:///debug/kegel?scenario=step-3"
+- assertVisible:
+    id: "kegel.intro.hold"
+- swipe:
+    start: "49%,88%"
+    end: "51%,88%"
+    duration: 3200
+- assertVisible: "Güzel. 1/3 · Gevşet, sonra tekrar"
+- swipe:
+    start: "49%,88%"
+    end: "51%,88%"
+    duration: 3200
+- assertVisible: "Güzel. 2/3 · Gevşet, sonra tekrar"
+- swipe:
+    start: "49%,88%"
+    end: "51%,88%"
+    duration: 3200
+- extendedWaitUntil:
+    visible:
+      id: "kegel.intro.step-4"
+    timeout: 10000
+- assertVisible: "Doğru teknik"
+- takeScreenshot: "04c-trainer-completed"
