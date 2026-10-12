@@ -23,7 +23,7 @@ const endingReasons = ["climaxed", "stoppedBeforeClimax", "firmnessDecreased", "
 type Transition = (state: BloomLocalState, input: never) => BloomLocalState;
 
 export async function verifyBloomMasturbationSessions() {
-  assert(BLOOM_PERSISTENCE_VERSION === 7 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v7", "Session lifecycle writes existing canonical shapes and must retain persistence v7.");
+  assert(BLOOM_PERSISTENCE_VERSION === 8 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v8", "Session lifecycle writes existing canonical shapes and must retain persistence v7.");
   await verifyStartAndPersistence();
   await verifyPauseAndPhysicalEnd();
   await verifyFeedbackAndContentFree();
@@ -431,7 +431,7 @@ async function assertRoundTrip(state: BloomLocalState, status: "active" | "await
   const client = new SessionTestStorage();
   await persistBloomLocalState(state, client, now);
   const raw = client.values.get(BLOOM_STATE_STORAGE_KEY);
-  assert(raw !== undefined && (JSON.parse(raw) as { version: unknown }).version === 7, "Session lifecycle must persist using unchanged v7 envelope.");
+  assert(raw !== undefined && (JSON.parse(raw) as { version: unknown }).version === 8, "Session lifecycle must persist using unchanged v7 envelope.");
   const loaded = await loadBloomLocalState(client, now);
   assert(loaded.status === "success" && loaded.source === "current", "Persisted session state must reload as current.");
   assert((loaded.state.masturbationTracking.currentSession?.status ?? null) === status, "Loading must preserve unfinished session phase without automatically ending, discarding, or completing feedback.");
@@ -441,7 +441,7 @@ async function assertRoundTrip(state: BloomLocalState, status: "active" | "await
 
 async function assertCorruptPreserved(state: BloomLocalState, label: string) {
   assert(!validateAndNormalizeBloomState(state).success, `${label}: malformed session facts must fail direct validation instead of normalization or sorting.`);
-  const raw = JSON.stringify({ version: 7, savedAt: now().toISOString(), state });
+  const raw = JSON.stringify({ version: 8, savedAt: now().toISOString(), state });
   const client = new SessionTestStorage();
   client.values.set(BLOOM_STATE_STORAGE_KEY, raw);
   const loaded = await loadBloomLocalState(client, now);

@@ -23,7 +23,7 @@ const now = () => new Date("2026-11-01T12:00:00.000Z");
 type CurrentStatus = "none" | "active" | "awaiting_feedback";
 
 export async function verifyBloomProductPolicy() {
-  assert(BLOOM_PERSISTENCE_VERSION === 7 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v7", "Tracking controls and policy reads must retain the existing v7 schema and storage key.");
+  assert(BLOOM_PERSISTENCE_VERSION === 8 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v8", "Tracking controls and policy reads must retain the existing v7 schema and storage key.");
   const toggleCases = await verifyToggleMatrix();
   await verifyDisabledUnfinishedWork();
   await verifyRestrictionClockAndResume();

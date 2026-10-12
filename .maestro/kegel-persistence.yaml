@@ -1,0 +1,107 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Real Kegel persistence in isolated storage
+---
+- openLink: "tms-e2e:///debug/kegel-persistence"
+- assertVisible:
+    id: "kegel.initial"
+- assertVisible: "Kalıcı seans: 0"
+- tapOn:
+    id: "kegel.intro.start"
+- tapOn:
+    id: "kegel.intro.find-muscle"
+- tapOn:
+    id: "kegel.intro.next"
+- tapOn:
+    id: "kegel.intro.option.gas"
+- tapOn:
+    id: "kegel.intro.next"
+- tapOn:
+    id: "kegel.intro.skip"
+- tapOn:
+    id: "kegel.intro.next"
+- assertVisible:
+    id: "kegel.exercise"
+- extendedWaitUntil:
+    visible:
+      id: "kegel.exercise.contract"
+    timeout: 10000
+- tapOn:
+    id: "kegel.exercise.pause"
+- assertVisible:
+    id: "kegel.exercise.paused"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: "00-paused"
+- tapOn:
+    id: "kegel.exercise.pause"
+- extendedWaitUntil:
+    visible: "Bu cihaza kaydedildi"
+    timeout: 80000
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: "01-saved-completion"
+- tapOn:
+    id: "kegel.completed.done"
+- assertVisible: "Kalıcı seans: 1"
+- stopApp
+- launchApp
+- openLink: "tms-e2e:///debug/kegel-persistence"
+- assertVisible:
+    id: "kegel.home"
+- assertVisible: "Kalıcı seans: 1"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: "02-reopened-one-session"
+- tapOn:
+    id: "kegel.exercise.start"
+- extendedWaitUntil:
+    visible: "Bu cihaza kaydedildi"
+    timeout: 80000
+- tapOn:
+    id: "kegel.completed.done"
+- assertVisible: "Kalıcı seans: 2"
+- tapOn:
+    id: "kegel.qa.duplicate"
+- assertVisible: "Kalıcı seans: 2"
+- tapOn:
+    id: "kegel.exercise.start"
+- tapOn:
+    id: "kegel.exercise.exit"
+- tapOn:
+    id: "kegel.exercise.confirm-exit"
+- assertVisible: "Kalıcı seans: 2"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: "03-two-sessions-after-cancel"
+- tapOn:
+    id: "kegel.qa.fail"
+- tapOn:
+    id: "kegel.exercise.start"
+- extendedWaitUntil:
+    visible: "Kaydetme doğrulanmadı"
+    timeout: 80000
+- assertVisible:
+    id: "kegel.save.retry"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: "04-save-failure"
+- tapOn:
+    id: "kegel.save.retry"
+- assertVisible: "Bu cihaza kaydedildi"
+- tapOn:
+    id: "kegel.completed.done"
+- assertVisible: "Kalıcı seans: 3"
+- stopApp
+- launchApp
+- openLink: "tms-e2e:///debug/kegel-persistence"
+- assertVisible: "Kalıcı seans: 3"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: "05-reopened-after-retry"
+- scrollUntilVisible:
+    element:
+      text: "Kaydedilen setler · Tamamlandıkları yerel güne göre"
+    direction: DOWN
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: "06-real-calendar"

@@ -16,14 +16,14 @@ import { createActiveState, createInput } from "./verify-bloom-reset-violations"
 
 const undoneAt = "2026-09-07T12:02:00.000Z";
 const v6Key = "bloom.localState.v6";
-const historicalKeys = [v6Key, "bloom.localState.v5", "bloom.localState.v4", "bloom.localState.v3", "bloom.localState.v2", "bloom.localState.v1"] as const;
+const historicalKeys = ["bloom.localState.v7", v6Key, "bloom.localState.v5", "bloom.localState.v4", "bloom.localState.v3", "bloom.localState.v2", "bloom.localState.v1"] as const;
 const reasons = ["masturbation", "intentionalExplicitContent", "masturbationWithExplicitContent"] as const;
 const now = () => new Date("2026-10-30T12:00:00.000Z");
 type UndoInput = Parameters<typeof undoActiveResetViolationState>[1];
 type RecordInput = Parameters<typeof recordActiveResetViolationState>[1];
 
 export async function verifyBloomResetViolationUndo() {
-  assert(BLOOM_PERSISTENCE_VERSION === 7 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v7", "Undo lifecycle facts must use canonical v7 storage.");
+  assert(BLOOM_PERSISTENCE_VERSION === 8 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v8", "Undo lifecycle facts must use canonical v7 storage.");
   equal(BLOOM_LEGACY_STATE_STORAGE_KEYS, historicalKeys, "Migration sources must prefer v6 through v1.");
   await verifyImmediateUndoAndRoundTrip();
   await verifySequentialUndo();
@@ -421,7 +421,7 @@ function replaceAtPath(root: unknown, path: string, value: unknown, remove: bool
 
 async function assertCorruptPreserved(state: BloomLocalState, label: string) {
   assert(!validateAndNormalizeBloomState(state).success, `${label}: contradictory undo history must fail direct validation instead of being repaired.`);
-  const raw = envelope(7, state);
+  const raw = envelope(8, state);
   const client = new UndoTestStorage();
   client.values.set(BLOOM_STATE_STORAGE_KEY, raw);
   const result = await loadBloomLocalState(client, now);

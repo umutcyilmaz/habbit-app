@@ -26,7 +26,7 @@ export function verifyBloomResetRecommendation() {
   verifyIntervalIsolation();
   verifyPurityAndCorrections();
   verifyInvalidInputs();
-  assert(BLOOM_PERSISTENCE_VERSION === 7 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v7", "The derived recommendation must retain v7 persistence.");
+  assert(BLOOM_PERSISTENCE_VERSION === 8 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v8", "The derived recommendation must retain v7 persistence.");
   console.log("Bloom Tracking Reset recommendation verification passed (latest-six windows, 784 integer-mean boundaries, unrounded evidence, all signal combinations, interval isolation, chronological ties, cutoffs/current exclusions, canonical corrections, immutable reads, and malformed input).");
 }
 

@@ -37,7 +37,7 @@ const selfReport: CurrentResetBaselineSelfReport = {
 };
 
 export async function verifyBloomResetFeature() {
-  assert(BLOOM_PERSISTENCE_VERSION === 7 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v7",
+  assert(BLOOM_PERSISTENCE_VERSION === 8 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v8",
     "Executable Reset must retain the current v7 persistence contract.");
   await verifyLifecycle();
   await verifyReasonsAndTrackingPreferences();

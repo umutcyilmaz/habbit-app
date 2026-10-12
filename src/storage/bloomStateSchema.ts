@@ -1,3 +1,4 @@
+import { normalizeKegelState } from "./bloomKegelSchema";
 import {
   activePlanFromQuizResult,
   arousalAdultContentOptions,
@@ -70,7 +71,7 @@ export {
   isValidBloomTime
 } from "./bloomValueValidation";
 
-export const BLOOM_PERSISTENCE_VERSION = 7 as const;
+export const BLOOM_PERSISTENCE_VERSION = 8 as const;
 
 export type PersistedBloomEnvelopeV2 = {
   version: 2;
@@ -103,6 +104,12 @@ export type PersistedBloomEnvelopeV6 = {
 };
 
 export type PersistedBloomEnvelopeV7 = {
+  version: 7;
+  savedAt: string;
+  state: unknown;
+};
+
+export type PersistedBloomEnvelopeV8 = {
   version: typeof BLOOM_PERSISTENCE_VERSION;
   savedAt: string;
   state: unknown;
@@ -115,11 +122,11 @@ export type ParsedPersistedPayload =
 export type PersistedEnvelopeReadResult =
   | {
       status: "current";
-      envelope: PersistedBloomEnvelopeV7;
+      envelope: PersistedBloomEnvelopeV8;
     }
   | {
       status: "legacy";
-      sourceVersion: 2 | 3 | 4 | 5 | 6 | null;
+      sourceVersion: 2 | 3 | 4 | 5 | 6 | 7 | null;
       state: unknown;
     }
   | {
@@ -213,6 +220,7 @@ export function readPersistedEnvelope(value: unknown): PersistedEnvelopeReadResu
 
   if (
     value.version !== BLOOM_PERSISTENCE_VERSION &&
+    value.version !== 7 &&
     value.version !== 6 &&
     value.version !== 5 &&
     value.version !== 4 &&
@@ -232,7 +240,7 @@ export function readPersistedEnvelope(value: unknown): PersistedEnvelopeReadResu
     };
   }
 
-  if (value.version === 2 || value.version === 3 || value.version === 4 || value.version === 5 || value.version === 6) {
+  if (value.version === 2 || value.version === 3 || value.version === 4 || value.version === 5 || value.version === 6 || value.version === 7) {
     return {
       status: "legacy",
       sourceVersion: value.version,
@@ -252,13 +260,14 @@ export function readPersistedEnvelope(value: unknown): PersistedEnvelopeReadResu
 
 export function validateAndNormalizeBloomState(
   value: unknown,
-  mode: "current" | "v6" | "v5" | "v4" | "v3" | "legacy" = "current"
+  mode: "current" | "v7" | "v6" | "v5" | "v4" | "v3" | "legacy" = "current"
 ): BloomStateValidationResult {
   try {
     const record = requireRecord(value, "state");
     const defaults = createDefaultBloomState();
     const onboarding = normalizeOnboarding(record.onboarding, defaults.onboarding);
     const state: BloomLocalState = {
+      kegel: mode === "current" ? normalizeKegelState(record.kegel) : defaults.kegel,
       activePlan:
         onboarding.quizResult !== null
           ? activePlanFromQuizResult(onboarding.quizResult)
@@ -284,7 +293,7 @@ export function validateAndNormalizeBloomState(
         mode === "legacy"
           ? defaults.resetJourney
           : normalizeResetJourney(record.resetJourney,
-            mode === "current" ? "current" : mode === "v6" ? "v6" : "preV6"),
+            mode === "current" || mode === "v7" ? "current" : mode === "v6" ? "v6" : "preV6"),
       urgeControl:
         mode === "legacy"
           ? defaults.urgeControl
@@ -292,7 +301,7 @@ export function validateAndNormalizeBloomState(
       // V5 owns results and acceptance. V4 owns results but never acceptance.
       // V3 and older cannot supply either fact, even with similarly named fields.
       productOnboarding:
-        mode === "current" || mode === "v6" || mode === "v5" || mode === "v4"
+        mode === "current" || mode === "v7" || mode === "v6" || mode === "v5" || mode === "v4"
           ? normalizeProductOnboarding(record.productOnboarding, mode === "v4" ? "v4" : "current")
           : defaults.productOnboarding
     };

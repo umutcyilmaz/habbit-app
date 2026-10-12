@@ -4,12 +4,13 @@ import {
   parsePersistedPayload,
   readPersistedEnvelope,
   validateAndNormalizeBloomState,
-  type PersistedBloomEnvelopeV7
+  type PersistedBloomEnvelopeV8
 } from "./bloomStateSchema";
 import type { StorageClient } from "./storageAdapters";
 
-export const BLOOM_STATE_STORAGE_KEY = "bloom.localState.v7";
+export const BLOOM_STATE_STORAGE_KEY = "bloom.localState.v8";
 export const BLOOM_LEGACY_STATE_STORAGE_KEYS = [
+  "bloom.localState.v7",
   "bloom.localState.v6",
   "bloom.localState.v5",
   "bloom.localState.v4",
@@ -136,7 +137,7 @@ function serializeBloomLocalState(
   state: BloomLocalState,
   now: Clock
 ): string {
-  const envelope: PersistedBloomEnvelopeV7 = {
+  const envelope: PersistedBloomEnvelopeV8 = {
     version: BLOOM_PERSISTENCE_VERSION,
     savedAt: now().toISOString(),
     state
@@ -371,7 +372,9 @@ async function loadStoredPayload(
     storedState,
     envelopeResult.status === "current"
       ? "current"
-      : envelopeResult.sourceVersion === 6
+      : envelopeResult.sourceVersion === 7
+        ? "v7"
+        : envelopeResult.sourceVersion === 6
         ? "v6"
         : envelopeResult.sourceVersion === 5
           ? "v5"
@@ -402,7 +405,8 @@ async function loadStoredPayload(
         serializeBloomLocalState(validationResult.state, now)
       );
 
-      if (sourceKey !== BLOOM_STATE_STORAGE_KEY) {
+      // Retain v7 byte-for-byte as the pre-Kegel recovery copy.
+      if (sourceKey !== BLOOM_STATE_STORAGE_KEY && sourceKey !== "bloom.localState.v7") {
         try {
           await client.removeItem(sourceKey);
         } catch {

@@ -11,11 +11,12 @@ import { Phase10QaProvider, usePhase10QaSession } from "../../features/debug/pha
 import { LocalDataLifecycleProvider } from "./LocalDataLifecycleProvider";
 import { kegelPreviewEnabled } from "../../features/kegel/kegelPreviewMode";
 import { kegelPreviewRuntime } from "../../features/kegel/kegelPreviewRuntime";
+import { kegelPersistenceQaEnabled, kegelPersistenceQaRuntime } from "../../features/kegel/kegelPersistenceQa";
 
 export function AppProviders({ children }: PropsWithChildren) {
   return (
     <SafeAreaProvider>
-      {kegelPreviewEnabled ? <LocalProviders runtime={kegelPreviewRuntime}>{children}</LocalProviders> : phase10QaEnabled ? <Phase10QaProvider>
+      {kegelPersistenceQaEnabled ? <LocalProviders runtime={kegelPersistenceQaRuntime}>{children}</LocalProviders> : kegelPreviewEnabled ? <LocalProviders runtime={kegelPreviewRuntime}>{children}</LocalProviders> : phase10QaEnabled ? <Phase10QaProvider>
         <LocalProviders>{children}</LocalProviders>
       </Phase10QaProvider> : <LocalProviders>{children}</LocalProviders>}
     </SafeAreaProvider>

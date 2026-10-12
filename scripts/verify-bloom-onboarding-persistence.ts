@@ -21,6 +21,7 @@ import { createPopulatedState, withoutResetViolationUndoFields } from "./verify-
 
 const now = () => new Date("2026-09-11T10:00:00.000Z");
 const completedAt = "2026-09-10T09:15:00.000Z";
+const v7Key = "bloom.localState.v7";
 const v6Key = "bloom.localState.v6";
 const v5Key = "bloom.localState.v5";
 const v4Key = "bloom.localState.v4";
@@ -44,8 +45,8 @@ export async function verifyBloomOnboardingPersistence() {
 }
 
 function verifyDefaultsAndSaving() {
-  assert(BLOOM_PERSISTENCE_VERSION === 7 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v7", "Product onboarding must use canonical v7 storage.");
-  equal(BLOOM_LEGACY_STATE_STORAGE_KEYS, [v6Key, v5Key, v4Key, v3Key, v2Key, v1Key], "Migration must prefer v6, then v5, then v4, then v3, then v2, then v1.");
+  assert(BLOOM_PERSISTENCE_VERSION === 8 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v8", "Product onboarding must use canonical v7 storage.");
+  equal(BLOOM_LEGACY_STATE_STORAGE_KEYS, [v7Key, v6Key, v5Key, v4Key, v3Key, v2Key, v1Key], "Migration must prefer v6, then v5, then v4, then v3, then v2, then v1.");
   const first = createDefaultBloomState();
   const second = createDefaultBloomState();
   assertDefaultOnboarding(first, "fresh state");
@@ -94,7 +95,7 @@ async function verifyResultRoundTrips() {
   const payload = client.values.get(BLOOM_STATE_STORAGE_KEY);
   assert(payload !== undefined, "Saved onboarding must become durable.");
   const parsed = JSON.parse(payload) as { version: number; state: BloomLocalState };
-  assert(parsed.version === 7, "Saved onboarding must declare envelope version 7.");
+  assert(parsed.version === 8, "Saved onboarding must declare envelope version 7.");
   assert(JSON.stringify(parsed.state.productOnboarding.result?.answers) === rawAnswers, "Serialization must preserve the entire raw answer object byte-for-byte.");
   const loaded = await loadBloomLocalState(client, now);
   assert(loaded.status === "success" && loaded.source === "current", "Saved onboarding must load as current state.");
@@ -161,7 +162,7 @@ async function verifyV3Migration() {
     assert(!client.values.has(v3Key), `${label}: the source v3 key must be removed after migration.`);
     const rawV7 = client.values.get(BLOOM_STATE_STORAGE_KEY);
     assert(rawV7 !== undefined, `${label}: migrated v7 must be durable.`);
-    equal(JSON.parse(rawV7), { version: 7, savedAt: now().toISOString(), state: loaded.state }, `${label}: migration must write the returned v7 snapshot directly.`);
+    equal(JSON.parse(rawV7), { version: 8, savedAt: now().toISOString(), state: loaded.state }, `${label}: migration must write the returned v7 snapshot directly.`);
     const reloaded = await loadBloomLocalState(client, now);
     assert(reloaded.status === "success" && reloaded.source === "current" && !reloaded.needsPersist, `${label}: durable migration must load as stable current state.`);
     equal(reloaded.state, loaded.state, `${label}: migrated state must remain stable.`);
@@ -237,7 +238,7 @@ async function verifyVersionPrecedence() {
   v3.debug = { dateOffsetDays: 3 };
   const v2 = { ...pick(current, legacyKeys), debug: { dateOffsetDays: 2 } };
   const client = new OnboardingTestStorage();
-  client.values.set(BLOOM_STATE_STORAGE_KEY, envelope(7, current));
+  client.values.set(BLOOM_STATE_STORAGE_KEY, envelope(8, current));
   client.values.set(v6Key, envelope(6, v6));
   client.values.set(v5Key, envelope(5, v5));
   client.values.set(v4Key, envelope(4, v4));
@@ -284,7 +285,7 @@ async function verifyVersionPrecedence() {
   assert(!previous.readKeys.includes(v2Key), "Migration must not merge older v2 facts into valid v3.");
 
   const relocated = new OnboardingTestStorage();
-  relocated.values.set(v3Key, envelope(7, current));
+  relocated.values.set(v3Key, envelope(8, current));
   const relocation = await loadBloomLocalState(relocated, now);
   assert(relocation.status === "success" && relocation.source === "legacy", "A current envelope at an older key must safely relocate.");
   equal(relocation.state.productOnboarding, current.productOnboarding, "Envelope version must preserve completed onboarding during key relocation.");
@@ -382,7 +383,7 @@ async function verifyMalformedResults() {
     // non-finite cases; explicit null fixtures cover score/count coherence.
     if (typeof entry.value === "number" && !Number.isFinite(entry.value)) continue;
     const client = new OnboardingTestStorage();
-    const raw = envelope(7, malformed);
+    const raw = envelope(8, malformed);
     client.values.set(BLOOM_STATE_STORAGE_KEY, raw);
     client.values.set(v3Key, envelope(3, withoutProductOnboarding(createPopulatedState())));
     const loaded = await loadBloomLocalState(client, now);

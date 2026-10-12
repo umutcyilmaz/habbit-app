@@ -1,10 +1,12 @@
 import type {
   ContentFreeState,
+  KegelState,
   MasturbationTrackingState,
   ProductOnboardingState,
   ResetJourney,
   UrgeControlState
 } from "../domain/models";
+export { completeKegelOnboardingState, saveCompletedKegelSessionState } from "./bloomKegelTransitions";
 import type { BloomOnboardingQuizResult } from "../domain/onboarding/types";
 import { validateBloomOnboardingResult } from "../domain/onboarding/validation";
 export {
@@ -490,6 +492,7 @@ export type OnboardingState = {
 };
 
 export type BloomLocalState = {
+  kegel: KegelState;
   activePlan: ActivePlan;
   onboarding: OnboardingState;
   tenDayReset: TenDayResetState;
@@ -507,6 +510,7 @@ export type BloomLocalState = {
 
 export function createDefaultBloomState(): BloomLocalState {
   return {
+    kegel: { onboardingCompletedAt: null, sessions: [] },
     activePlan: {
       primaryPattern: "pornLoop",
       secondaryPattern: "pressurePattern",

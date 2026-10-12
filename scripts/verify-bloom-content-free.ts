@@ -21,7 +21,7 @@ const now = () => new Date("2026-11-30T12:00:00.000Z");
 type Transition = (state: BloomLocalState, input: never) => BloomLocalState;
 
 export async function verifyBloomContentFree() {
-  assert(BLOOM_PERSISTENCE_VERSION === 7 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v7", "Standalone Content-Free writes existing valid shapes and must retain persistence v7.");
+  assert(BLOOM_PERSISTENCE_VERSION === 8 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v8", "Standalone Content-Free writes existing valid shapes and must retain persistence v7.");
   await verifyActivationCycles();
   await verifyManualViolationAndUndo();
   await verifySameTimeAndSequentialUndo();
@@ -381,7 +381,7 @@ async function assertRoundTrip(state: BloomLocalState, status: "active" | "inact
   const client = new ContentTestStorage();
   await persistBloomLocalState(state, client, now);
   const raw = client.values.get(BLOOM_STATE_STORAGE_KEY);
-  assert(raw !== undefined && (JSON.parse(raw) as { version: unknown }).version === 7, "Content-Free lifecycle must retain the v7 envelope.");
+  assert(raw !== undefined && (JSON.parse(raw) as { version: unknown }).version === 8, "Content-Free lifecycle must retain the v7 envelope.");
   const loaded = await loadBloomLocalState(client, now);
   assert(loaded.status === "success" && loaded.source === "current" && loaded.state.contentFree.status === status, "Persistence must preserve activation status without starting, ending, or repairing a program on load.");
   equal(loaded.state, state, "Content-Free histories, snapshots, tombstones, and all unrelated facts must survive save/load unchanged without ticking counters.");
@@ -393,7 +393,7 @@ async function assertRoundTrip(state: BloomLocalState, status: "active" | "inact
 
 async function assertCorruptPreserved(state: BloomLocalState, label: string) {
   assert(!validateAndNormalizeBloomState(state).success, `${label}: malformed history must fail direct validation instead of normalization or repair.`);
-  const raw = JSON.stringify({ version: 7, savedAt: now().toISOString(), state });
+  const raw = JSON.stringify({ version: 8, savedAt: now().toISOString(), state });
   const client = new ContentTestStorage();
   client.values.set(BLOOM_STATE_STORAGE_KEY, raw);
   const loaded = await loadBloomLocalState(client, now);

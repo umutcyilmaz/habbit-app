@@ -259,7 +259,7 @@ function productOnly(state: BloomLocalState): HomeInput {
 }
 
 async function verifyRoundTrip(state: BloomLocalState) {
-  assert(BLOOM_PERSISTENCE_VERSION === 7 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v7", "Derived Home facts must retain the existing persistence schema and key.");
+  assert(BLOOM_PERSISTENCE_VERSION === 8 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v8", "Derived Home facts must retain the existing persistence schema and key.");
   const before = getBloomHomeReadModel(state, at);
   const storage = createMemoryStorageClient();
   await persistBloomLocalState(state, storage, () => new Date(at));

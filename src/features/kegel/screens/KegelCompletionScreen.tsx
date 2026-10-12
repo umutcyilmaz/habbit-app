@@ -1,3 +1,4 @@
+import type { CompletedKegelSession } from "../../../domain/models/KegelState";
 import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withSpring, withTiming } from "react-native-reanimated";
@@ -8,7 +9,8 @@ import { kegelColors as c } from "../kegelTheme";
 import { KegelButton, KegelCard, kegelStyles as s } from "../components/KegelUI";
 import { KegelGlow, KegelMetrics, KegelRing, KegelSymbol } from "../components/KegelVisuals";
 
-export function KegelCompletionScreen({ onDone, fromRun }: {onDone:()=>void;fromRun:boolean}) {
+export function KegelCompletionScreen({ onDone, fromRun, session, saveStatus, allowDismiss=false }: {onDone:()=>void;fromRun:boolean;session?:CompletedKegelSession;saveStatus?:"saving"|"failed"|"saved";allowDismiss?:boolean}) {
+  const workout=session?.program ?? config;
   const [feeling,setFeeling]=useState<string|null>(null);
   const [progress,setProgress]=useState(0);
   const reduceMotion=useReducedMotion();
@@ -23,19 +25,19 @@ export function KegelCompletionScreen({ onDone, fromRun }: {onDone:()=>void;from
       <Animated.View style={[styles.check,checkStyle]}><KegelSymbol name="check" size={60} color={c.text} /></Animated.View>
       {!reduceMotion && Array.from({length:10},(_,i)=><CompletionSpark key={i} index={i} />)}</View>
     <AppText variant="display" style={[s.title,{marginTop:20}]}>Set tamamlandı</AppText>
-    <AppText style={[s.subtitle,{marginTop:6}]}>{fromRun ? "Önizleme seti · Kaydedilmedi" : "Tamamlama ekranı · Örnek tasarım verisi"}</AppText>
+    <AppText accessibilityLiveRegion="polite" style={[s.subtitle,{marginTop:6}]}>{session ? saveStatus==="saved" ? "Bu cihaza kaydedildi" : saveStatus==="saving" ? "Kaydediliyor…" : "Kaydetme doğrulanmadı" : fromRun ? "Önizleme seti · Kaydedilmedi" : "Tamamlama ekranı · Örnek tasarım verisi"}</AppText>
     <KegelMetrics values={[
-      {icon:"rep",value:String(config.repetitions),label:"Tekrar"},
-      {icon:"timer",value:`${config.contractionSeconds} sn`,label:"Tutuş"},
-      {icon:"clock",value:`${Math.ceil(config.repetitions*(config.contractionSeconds+config.relaxationSeconds)/60)} dk`,label:"Süre"}
+      {icon:"rep",value:String(workout.repetitions),label:"Tekrar"},
+      {icon:"timer",value:`${workout.contractionSeconds} sn`,label:"Tutuş"},
+      {icon:"clock",value:`${Math.ceil(workout.repetitions*(workout.contractionSeconds+workout.relaxationSeconds)/60)} dk`,label:"Süre"}
     ]} />
-    <KegelCard style={{marginTop:26}}><KegelRowNote /></KegelCard>
+    <KegelCard style={{marginTop:26}}><KegelRowNote realSession={!!session} saveStatus={saveStatus} /></KegelCard>
     <KegelCard style={{marginTop:12}}><AppText variant="title" style={{fontSize:17}}>Nasıl hissettirdi?</AppText>
       <View style={styles.feelings}>{["Kolay","İyi","Zor"].map(label=><KegelButton key={label} testID={`kegel.feeling.${label}`} label={label} secondary accessibilityState={{selected:feeling===label}}
         onPress={()=>setFeeling(label)} style={[styles.feeling,feeling===label && {backgroundColor:"rgba(58,75,255,.25)",borderWidth:1.5,borderColor:c.highlight}]} />)}</View>
-      <AppText accessibilityLiveRegion="polite" style={styles.note}>{feeling==="Zor" ? "Kaslarını dinlendir. Geri bildirimin bu önizlemede kalır." : feeling ? "Geri bildirimin alındı. Önizleme programını değiştirmez." : "Nasıl hissettiğini seç. Bu önizlemede kaydedilmez."}</AppText>
+      <AppText accessibilityLiveRegion="polite" style={styles.note}>{session ? "Geri bildirimin yalnız bu ekranda kalır; programını değiştirmez." : feeling==="Zor" ? "Kaslarını dinlendir. Geri bildirimin bu önizlemede kalır." : feeling ? "Geri bildirimin alındı. Önizleme programını değiştirmez." : "Nasıl hissettiğini seç. Bu önizlemede kaydedilmez."}</AppText>
     </KegelCard>
-    <KegelButton testID="kegel.completed.done" label="Bitti" onPress={onDone} style={{marginTop:22,width:"100%"}} />
+    <KegelButton testID="kegel.completed.done" label={session && saveStatus!=="saved" && allowDismiss ? "Kaydetmeden dön" : "Bitti"} disabled={!!session && saveStatus!=="saved" && !allowDismiss} onPress={onDone} style={{marginTop:22,width:"100%"}} />
   </AppScreen>;
 }
 
@@ -46,9 +48,16 @@ function CompletionSpark({index}:{index:number}) {
   return <Animated.View accessible={false} style={[{position:"absolute",left:57,top:57,width:4,height:4,borderRadius:2,backgroundColor:c.light},style]} />;
 }
 
-function KegelRowNote() {
-  return <View style={{flexDirection:"row",alignItems:"center",gap:16}}><View style={styles.noteIcon}><KegelSymbol name="check" size={28} /></View><View style={{flex:1}}>
-    <AppText variant="title" style={{fontSize:17}}>Kaydedilmeyen deneme</AppText><AppText style={styles.note}>Bu set geçmiş, günlük seri veya başarı oluşturmaz.</AppText>
+function KegelRowNote({realSession,saveStatus}:{realSession:boolean;saveStatus:"saving"|"failed"|"saved"|undefined}) {
+  const note = !realSession
+    ? {title:"Kaydedilmeyen deneme",detail:"Bu önizleme seti kaydedilmez; geçmiş veya seri oluşturmaz."}
+    : saveStatus==="saved"
+      ? {title:"Kaydedilen set",detail:"Bu set gerçek günlük ve haftalık etkinliğine dahil edildi. Otomatik seviye veya ödül verilmez."}
+      : saveStatus==="saving"
+        ? {title:"Kaydediliyor…",detail:"Set tamamlandı. Kalıcı kayıt bekleniyor; özetlerin kayıt doğrulandığında güncellenecek."}
+        : {title:"Kaydetme doğrulanmadı",detail:"Set tamamlandı, ancak kalıcı kaydı henüz doğrulanmadı. Kayıt onayı gelene kadar kaydedilmiş olarak gösterilmez."};
+  return <View testID="kegel.completed.save-note" style={{flexDirection:"row",alignItems:"center",gap:16}}><View style={styles.noteIcon}><KegelSymbol name="check" size={28} /></View><View style={{flex:1}}>
+    <AppText variant="title" style={{fontSize:17}}>{note.title}</AppText><AppText style={styles.note}>{note.detail}</AppText>
   </View></View>;
 }
 

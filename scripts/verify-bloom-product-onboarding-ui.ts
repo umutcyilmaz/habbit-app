@@ -107,7 +107,7 @@ async function verify() {
   assert.equal(productOnboardingEntryRoute({ ...accepted.productOnboarding, planAcceptance: { acceptedAt: submitted.completedAt, recommendation: submitted.recommendation } }), "/(tabs)/today");
   assert.equal(productOnboardingSubmission.submit(answers, deps), null);
   assert.equal(commands, 1);
-  assert.equal(BLOOM_PERSISTENCE_VERSION, 7);
+  assert.equal(BLOOM_PERSISTENCE_VERSION, 8);
   await verifyBloomStartingRecommendationFeature();
   console.log("Bloom product onboarding UI verification passed.");
 }

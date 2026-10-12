@@ -29,7 +29,7 @@ type Feature = {
 };
 
 export async function verifyBloomPanicFeature() {
-  assert(BLOOM_PERSISTENCE_VERSION === 7 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v7", "Panic must retain v7 persistence.");
+  assert(BLOOM_PERSISTENCE_VERSION === 8 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v8", "Panic must retain v7 persistence.");
   verifyViews();
   await verifyControllers();
   await verifyHook();

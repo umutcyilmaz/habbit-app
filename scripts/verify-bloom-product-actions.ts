@@ -9,7 +9,7 @@ import type {
   BloomPersistenceRetryToken
 } from "../src/app/providers/bloomLocalStateMutationRuntime";
 import {
-  createDefaultBloomState, saveProductOnboardingResultState, acceptProductOnboardingRecommendationState,
+  createDefaultBloomState, completeKegelOnboardingState, saveCompletedKegelSessionState, saveProductOnboardingResultState, acceptProductOnboardingRecommendationState,
   startResetFromBaselineState, recordActiveResetViolationState, undoActiveResetViolationState,
   completeElapsedResetPeriodState, recordBehaviorSlipState, acceptResetRecommendationState,
   enableMasturbationTrackingState, disableMasturbationTrackingState,
@@ -44,6 +44,10 @@ type Acknowledged<T> = T extends (state: BloomLocalState, ...input: infer A) => 
   ? (...input: A) => Promise<BloomPersistedMutationResult>
   : never;
 type ExpectedProductActions = {
+  kegel: {
+    completeOnboarding: Acknowledged<typeof completeKegelOnboardingState>;
+    saveCompletedSession: Acknowledged<typeof saveCompletedKegelSessionState>;
+  };
   onboarding: {
     saveProductOnboardingResult: Acknowledged<typeof saveProductOnboardingResultState>;
     acceptRecommendation: Acknowledged<typeof acceptProductOnboardingRecommendationState>;
@@ -106,15 +110,15 @@ export async function verifyBloomProductActions() {
   verifyFactoryIsolation();
   const cases = commandCases();
   const api = createBloomProductAcknowledgedActions({ applyAcknowledgedMutation: async () => success(1) });
-  equal(commandPaths(api).sort(), cases.map((item) => item.name).sort(), "The facade must expose exactly the 34 grouped command paths covered by delegation tests.");
-  assert(cases.length === 34 && !("completeAssessment" in api.reset), "Every current product transition must have one focused command case; Reset assessment must no longer be a command.");
+  equal(commandPaths(api).sort(), cases.map((item) => item.name).sort(), "The facade must expose exactly the 36 grouped command paths covered by delegation tests.");
+  assert(cases.length === 36 && !("completeAssessment" in api.reset), "Every current product transition must have one focused command case; Reset assessment must no longer be a command.");
   equal(Object.keys(api.behaviorSlip), ["record"], "The shared behavior-slip facade must not introduce a generic undo command.");
   for (const item of cases) {
     await verifyDelegation(item);
     await verifyResultPassthrough(item);
   }
   await verifyRapidSequentialCommands();
-  console.log("Bloom product-action facade verification passed (all 34 grouped commands; exact transition delegation, caller facts, runtime-supplied current state, no-ops, acknowledgement passthrough, and rapid sequential commands).");
+  console.log("Bloom product-action facade verification passed (all 36 grouped commands; exact transition delegation, caller facts, runtime-supplied current state, no-ops, acknowledgement passthrough, and rapid sequential commands).");
   await verifyBloomProductActionsRuntime();
 }
 
@@ -247,7 +251,13 @@ function commandCases(): CommandCase[] {
   const currentOutcome = recordUrgeControlOutcomeState(currentInterrupt, { outcome: "stillStrong" });
   const save = command("onboarding.saveProductOnboardingResult", blank, saveProductOnboardingResultState, (a) => a.onboarding.saveProductOnboardingResult, result);
   save.noOpState = accepted;
+  const kegelSession = {id:"caller-kegel",status:"completed" as const,startedAt:shift(at,-63000),completedAt:at,
+    completionDate:at.slice(0,10),completionUtcOffsetMinutes:0,
+    program:{configurationId:"test-provisional",provisional:true as const,repetitions:10,contractionSeconds:3,relaxationSeconds:3,countdownSeconds:3,dailyTarget:3},
+    completedRepetitions:10,metrics:{activeExerciseSeconds:60,elapsedSeconds:63,pausedSeconds:0,pauseCount:0}};
   return [
+    command("kegel.completeOnboarding",blank,completeKegelOnboardingState,a=>a.kegel.completeOnboarding,at),
+    command("kegel.saveCompletedSession",blank,saveCompletedKegelSessionState,a=>a.kegel.saveCompletedSession,kegelSession),
     save,
     command("onboarding.acceptRecommendation", saved, acceptProductOnboardingRecommendationState, (a) => a.onboarding.acceptRecommendation, acceptance),
     command("behaviorSlip.record", resetActive, recordBehaviorSlipState, (a) => a.behaviorSlip.record, {

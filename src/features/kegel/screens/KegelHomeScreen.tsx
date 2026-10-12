@@ -6,7 +6,7 @@ import { AppText } from "../../../shared/components/v4/AppText";
 import { kegelPreviewConfig as config } from "../kegelConfig";
 import { getKegelSetName, type KegelPreviewData } from "../kegelSession";
 import { kegelColors as c } from "../kegelTheme";
-import { KegelButton, KegelCard, KegelHint, KegelRow, kegelStyles as s } from "../components/KegelUI";
+import { KegelBack, KegelButton, KegelCard, KegelHint, KegelRow, kegelStyles as s } from "../components/KegelUI";
 import { KegelGlow, KegelMetrics, KegelSymbol, PelvicMuscle } from "../components/KegelVisuals";
 
 export function KegelHomeScreen({ introduced, data, onIntro, onStart, onMenu }: {
@@ -24,9 +24,9 @@ export function KegelHomeScreen({ introduced, data, onIntro, onStart, onMenu }: 
     showsVerticalScrollIndicator={false} style={{backgroundColor:c.canvas,paddingTop:0}} contentContainerStyle={styles.content}>
     <KegelGlow />
     <View style={styles.header}><AppText variant="display" style={styles.headerTitle}>Kegel</AppText>
-      <Pressable testID="kegel.preview.menu" accessibilityRole="button" accessibilityLabel={`${data.kind==="design" ? "Örnek veri" : "Önizleme"}, Kegel önizleme seçenekleri`} onPress={onMenu} hitSlop={8} style={styles.previewTag}>
+      {data.kind==="real" ? <KegelBack testID="kegel.home.close" onPress={onMenu} /> : <Pressable testID="kegel.preview.menu" accessibilityRole="button" accessibilityLabel={`${data.kind==="design" ? "Örnek veri" : "Önizleme"}, Kegel önizleme seçenekleri`} onPress={onMenu} hitSlop={8} style={styles.previewTag}>
         <AppText variant="labelSmall" style={{color:c.light}}>{data.kind==="design" ? "Örnek veri" : "Önizleme"}</AppText>
-      </Pressable>
+      </Pressable>}
     </View>
     {!introduced ? <>
       <View style={styles.hero}><PelvicMuscle demo /><AppText variant="display" style={[s.title,{fontSize:27,lineHeight:31,marginTop:14,textAlign:"left",width:"100%",paddingHorizontal:6}]}>Önce kası bul,{"\n"}sonra güçlendir</AppText></View>
@@ -62,14 +62,14 @@ export function KegelHomeScreen({ introduced, data, onIntro, onStart, onMenu }: 
       </Animated.View>
       <KegelCard style={{marginTop:14}} testID="kegel.history">
         <AppText variant="title" style={s.section}>Seri</AppText>
-        <AppText variant="heading1" style={styles.insight}>{data.kind === "design" ? `Bu hafta ${weekDone} gün egzersiz yaptın` : "Henüz egzersiz geçmişi yok"}</AppText>
+        <AppText variant="heading1" style={styles.insight}>{data.kind !== "empty" && (data.total ?? 0)>0 ? `Bu hafta ${weekDone} gün egzersiz yaptın` : "Henüz egzersiz geçmişi yok"}</AppText>
         <View style={styles.week}>{["Pzt","Sal","Çar","Per","Cum","Cmt","Paz"].map((label,i) => {
           const n = data.week?.[i] ?? 0;
           return <View key={label} style={styles.day}><View style={[styles.dayRing,n >= config.dailyTarget && styles.dayFull,n > 0 && n < config.dailyTarget && styles.dayPart,i===data.dayIndex && {outlineColor:c.light,outlineWidth:1,outlineOffset:4}]}>{n >= config.dailyTarget && <KegelSymbol name="check" size={16} color={c.text} />}</View><AppText variant="labelSmall" style={{marginTop:8,color:i===data.dayIndex ? c.text : c.muted}}>{label}</AppText></View>;
         })}</View>
         <View style={styles.divider} /><AppText variant="labelSmall" style={{color:c.muted,letterSpacing:.7}}>SON 4 HAFTA</AppText>
-        <View style={styles.heat}>{Array.from({length:28},(_,i) => <View key={i} style={[styles.heatCell,{width:heatCellSize,height:heatCellSize,backgroundColor:["rgba(255,255,255,.06)","#1f2766","#5868ff",c.light][data.heat?.[i] ?? 0]}]} />)}</View>
-        {data.kind === "empty" ? <AppText style={styles.note}>Geçmiş verisi bağlı değil. Deneme setleri burada geçmiş veya seri oluşturmaz.</AppText> : <AppText style={styles.note}>Örnek tasarım verisi · Gerçek kullanıcı geçmişi değil</AppText>}
+        <View style={styles.heat}>{Array.from({length:28},(_,i) => <View key={i} style={[styles.heatCell,{width:heatCellSize,height:heatCellSize,backgroundColor:["rgba(255,255,255,.06)","#1f2766","#5868ff",c.light][Math.min(3,Math.ceil((data.heat?.[i] ?? 0)/config.dailyTarget*3))]}]} />)}</View>
+        {data.kind === "real" ? <AppText style={styles.note}>Kaydedilen setler · Tamamlandıkları yerel güne göre</AppText> : data.kind === "empty" ? <AppText style={styles.note}>Geçmiş verisi bağlı değil. Deneme setleri burada geçmiş veya seri oluşturmaz.</AppText> : <AppText style={styles.note}>Örnek tasarım verisi · Gerçek kullanıcı geçmişi değil</AppText>}
       </KegelCard>
       <KegelCard style={{marginTop:14}}><AppText variant="title" style={s.section}>Program</AppText>
         {config.exampleLevels.map((level,i) => <View key={level.name} style={[styles.level,i>0 && {borderTopWidth:1,borderTopColor:c.line}]}>
@@ -81,7 +81,7 @@ export function KegelHomeScreen({ introduced, data, onIntro, onStart, onMenu }: 
       </KegelCard>
       <KegelButton label="Tekniği tekrar gör" secondary onPress={onIntro} style={{marginTop:14}} />
     </>}
-    <AppText style={[styles.note,{textAlign:"center",marginTop:18}]}>İzole önizleme · Denemeler kaydedilmez</AppText>
+    <AppText style={[styles.note,{textAlign:"center",marginTop:18}]}>{data.kind==="real" ? "Seanslar bu cihazda saklanır · Program değerleri geçici" : "İzole önizleme · Denemeler kaydedilmez"}</AppText>
   </AppScreen></View>;
 }
 

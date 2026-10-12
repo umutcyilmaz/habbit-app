@@ -31,7 +31,7 @@ export function getKegelFrame(activeMs: number, config: KegelWorkoutConfig = keg
 }
 
 export type KegelPreviewData = {
-  kind: "empty" | "design";
+  kind: "empty" | "design" | "real";
   done: number;
   streak: number | null;
   total: number | null;
@@ -40,7 +40,7 @@ export type KegelPreviewData = {
   dayIndex: number | null;
 };
 
-export function createKegelPreviewData(kind: KegelPreviewData["kind"]): KegelPreviewData {
+export function createKegelPreviewData(kind: "empty" | "design"): KegelPreviewData {
   if (kind === "empty") return { kind, done: 0, streak: null, total: null, week: null, heat: null, dayIndex: null };
   return { kind, done: 1, streak: 4, total: 340, week: [3, 3, 1, 0, 0, 0, 0],
     heat: [2,3,1,0,3,2,3,3,2,0,1,3,3,2,3,1,2,3,3,0,2,3,3,2,3,3,3,1], dayIndex: 2 };

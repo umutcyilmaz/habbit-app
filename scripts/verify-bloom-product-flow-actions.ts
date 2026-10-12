@@ -73,7 +73,7 @@ export async function verifyBloomProductFlowActions() {
   await verifyCurrentUrgeFlowAndRetry();
   await verifyNoOpAndRuntimeBlocks();
   verifyIsolation();
-  assert(BLOOM_PERSISTENCE_VERSION === 7 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v7", "Flow integration must preserve the established v7 persistence contract.");
+  assert(BLOOM_PERSISTENCE_VERSION === 8 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v8", "Flow integration must preserve the established v7 persistence contract.");
   console.log(`Bloom product flow-action verification passed (all 34 paths; ${cases.length} exact-input cases; one-time mechanical facts, Reset recommendation acceptance/retry, current Urge lifecycle/resume/trigger retry, legacy operations, atomic behavior-slip retry/no-op safety, and v7 isolation).`);
 }
 

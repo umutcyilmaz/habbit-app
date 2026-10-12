@@ -17,13 +17,13 @@ import { createPopulatedState, withoutResetViolationUndoFields } from "./verify-
 const startedAt = "2026-09-01T12:00:00.000Z";
 const capturedAt = "2026-09-01T11:59:00.000Z";
 const now = () => new Date("2026-09-30T12:00:00.000Z");
-const historicalKeys = ["bloom.localState.v6", "bloom.localState.v5", "bloom.localState.v4", "bloom.localState.v3", "bloom.localState.v2", "bloom.localState.v1"] as const;
-const v5Key = historicalKeys[1];
+const historicalKeys = ["bloom.localState.v7", "bloom.localState.v6", "bloom.localState.v5", "bloom.localState.v4", "bloom.localState.v3", "bloom.localState.v2", "bloom.localState.v1"] as const;
+const v5Key = historicalKeys[2];
 const daySeconds = 86400;
 type StartInput = Parameters<typeof startResetFromBaselineState>[1];
 
 export async function verifyBloomResetBaseline() {
-  assert(BLOOM_PERSISTENCE_VERSION === 7 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v7", "Elapsed Reset attempts must use canonical v7 persistence.");
+  assert(BLOOM_PERSISTENCE_VERSION === 8 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v8", "Elapsed Reset attempts must use canonical v7 persistence.");
   equal(BLOOM_LEGACY_STATE_STORAGE_KEYS, historicalKeys, "Migration must prefer v6 through v1 in descending order.");
   verifyBaselineStart();
   verifyCurrentQuestions();
@@ -180,7 +180,7 @@ async function verifyLegacyBaselineCompatibility() {
     assert(validation.success && !validation.wasNormalized, "An exact legacy questionnaire must validate without normalization or fabricated facts.");
     equal(validation.state, state, "Direct validation must preserve historical questionnaire, assessment references, lifecycle, aggregates, and unrelated data.");
     const client = new ResetTestStorage();
-    const raw = envelope(7, state);
+    const raw = envelope(8, state);
     client.values.set(BLOOM_STATE_STORAGE_KEY, raw);
     const loaded = await loadBloomLocalState(client, now);
     assert(loaded.status === "success" && loaded.source === "current" && !loaded.needsPersist, "A real legacy-baseline v7 fixture must hydrate without forced writeback.");
@@ -206,7 +206,7 @@ async function verifyLegacyBaselineCompatibility() {
     const malformed = clone(completed);
     replaceAtPath(malformed, "resetJourney.baseline.selfReport", selfReport, false);
     assert(!validateAndNormalizeBloomState(malformed).success, "Mixed, partial, extra, or unsupported legacy questionnaires must be rejected.");
-    await assertCorruptPreserved(envelope(7, malformed), BLOOM_STATE_STORAGE_KEY, "Malformed legacy/current questionnaire");
+    await assertCorruptPreserved(envelope(8, malformed), BLOOM_STATE_STORAGE_KEY, "Malformed legacy/current questionnaire");
   }
 }
 
@@ -388,7 +388,7 @@ async function verifyCorruptResetPreservation() {
     // Non-finite values cannot be represented in JSON; their direct validation
     // and mutation rejection are checked separately from persisted null values.
     if (typeof value === "number" && !Number.isFinite(value)) continue;
-    await assertCorruptPreserved(envelope(7, malformed), BLOOM_STATE_STORAGE_KEY, label);
+    await assertCorruptPreserved(envelope(8, malformed), BLOOM_STATE_STORAGE_KEY, label);
     count++;
   }
   for (const version of [3, 4, 5] as const) {

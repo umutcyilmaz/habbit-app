@@ -27,7 +27,7 @@ export async function verifyBloomResetRecommendationAcceptance() {
   verifyRejections();
   await verifyPersistenceCompatibility();
   verifyIsolation();
-  assert(BLOOM_PERSISTENCE_VERSION === 7 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v7",
+  assert(BLOOM_PERSISTENCE_VERSION === 8 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v8",
     "Explicit acceptance must retain the existing v7 persistence contract.");
   console.log("Bloom Reset recommendation acceptance verification passed (derived revalidation, persisted recommendation identity, exact no-ops, history/reference isolation, Tracking and Content-Free preservation, baseline-only preparation, and v7 roundtrip).");
 }
@@ -180,7 +180,7 @@ async function verifyPersistenceCompatibility() {
     const raw = await storage.getItem(BLOOM_STATE_STORAGE_KEY);
     assert(raw !== null, "The accepted or compatible Reset shape must use the existing storage key.");
     const envelope = JSON.parse(raw) as { version: number; state: BloomLocalState };
-    assert(envelope.version === 7, "Recommendation acceptance must not introduce a new envelope version.");
+    assert(envelope.version === 8, "Recommendation acceptance must not introduce a new envelope version.");
     equal(envelope.state.resetJourney, state.resetJourney, "No recommendation evidence or other new facts may enter persistence.");
     const loaded = await loadBloomLocalState(storage, () => new Date(at));
     assert(loaded.status === "success" && loaded.source === "current" && !loaded.needsPersist,

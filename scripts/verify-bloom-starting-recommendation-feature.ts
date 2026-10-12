@@ -40,7 +40,7 @@ export async function verifyBloomStartingRecommendationFeature() {
   verifyHomeAcceptance();
   verifyScreen();
   verifySourceBoundaries();
-  assert(BLOOM_PERSISTENCE_VERSION === 7 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v7", "Starting review must retain v7 persistence.");
+  assert(BLOOM_PERSISTENCE_VERSION === 8 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v8", "Starting review must retain v7 persistence.");
   console.log("Bloom Starting recommendation feature verification passed (four historical plans without rescoring, atomic existing acceptance, exact successor retry, all-four-reference stale guards, durable destinations, no-op/conflict recovery, Home priorities, and controlled hook/screen execution).");
 }
 

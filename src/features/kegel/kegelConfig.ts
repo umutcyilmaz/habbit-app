@@ -1,5 +1,6 @@
-/** Provisional HTML examples, ONLY for the in-memory preview. No program policy. */
-export const kegelPreviewConfig = {
+/** Editable provisional HTML values. No automatic clinical progression policy. */
+export const kegelConfig = {
+  configurationId: "bloom-kegel-provisional-1",
   repetitions: 10,
   contractionSeconds: 3,
   relaxationSeconds: 3,
@@ -16,5 +17,8 @@ export const kegelPreviewConfig = {
   exampleProgressionDays: 7,
   tips: ["Kası içeri ve yukarı çek", "Nefes almaya devam et", "Kalçan ve karnın gevşek", "Tamamen bırak", "Acele yok, ritmi takip et"]
 } as const;
+
+// Keep the isolated design preview's existing import/API intact.
+export const kegelPreviewConfig = kegelConfig;
 
 export type KegelWorkoutConfig = { repetitions:number; contractionSeconds:number; relaxationSeconds:number; countdownSeconds:number };

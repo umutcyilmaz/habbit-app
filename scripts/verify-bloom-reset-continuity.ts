@@ -220,10 +220,11 @@ async function verifyCompatibilityAndValidation(accepted: BloomLocalState) {
   await roundTrip(old);
   const storage = createMemoryStorageClient();
   const bytes = JSON.stringify({ version: 7, savedAt: "2026-12-01T00:00:00.000Z", state: old });
-  await storage.setItem(BLOOM_STATE_STORAGE_KEY, bytes);
+  await storage.setItem("bloom.localState.v7", bytes);
   const loaded = await loadBloomLocalState(storage);
-  assert(loaded.status === "success" && loaded.source === "current", "Original v7 data without new fields must load safely.");
+  assert(loaded.status === "success" && loaded.source === "legacy", "Original v7 data without new fields must load safely.");
   equal(loaded.state, old, "Old v7 history must not be inferred or discarded");
+  equal(await storage.getItem("bloom.localState.v7"), bytes, "Original v7 recovery bytes must remain unchanged.");
   for (const mutate of [
     (s: any) => { s.contentFree.resetCredit.earnedUntil = "invalid"; },
     (s: any) => { s.contentFree.resetCredit.earnedStartedAt = s.contentFree.resetCredit.earnedUntil; },
@@ -236,7 +237,7 @@ async function verifyCompatibilityAndValidation(accepted: BloomLocalState) {
   ]) {
     const malformed = JSON.parse(JSON.stringify(accepted)); mutate(malformed);
     assert(!validateAndNormalizeBloomState(malformed).success, "Malformed credit and decision records must be rejected, never silently normalized away.");
-    const raw = JSON.stringify({ version: 7, savedAt: "2026-12-01T00:00:00.000Z", state: malformed });
+    const raw = JSON.stringify({ version: 8, savedAt: "2026-12-01T00:00:00.000Z", state: malformed });
     const client = createMemoryStorageClient(); await client.setItem(BLOOM_STATE_STORAGE_KEY, raw);
     const result = await loadBloomLocalState(client);
     assert(result.status === "corrupt" && result.backupKey !== null && JSON.parse((await client.getItem(result.backupKey))!).rawPayload === raw && await client.getItem(BLOOM_STATE_STORAGE_KEY) === raw, "Corrupt new fields must preserve original payload for recovery.");

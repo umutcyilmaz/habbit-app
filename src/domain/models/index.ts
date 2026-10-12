@@ -24,3 +24,4 @@ export type * from "./UrgeControlEvent";
 export type * from "./UrgeControlState";
 export type * from "./OnboardingDimensions";
 export type * from "./ProductOnboardingState";
+export type * from "./KegelState";

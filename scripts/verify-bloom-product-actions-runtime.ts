@@ -35,8 +35,8 @@ export async function verifyBloomProductActionsRuntime() {
   await verifyResetRecommendationUsesLatestAcceptedState();
   verifyProviderIntegration();
   assert(
-    BLOOM_PERSISTENCE_VERSION === 7 &&
-      BLOOM_STATE_STORAGE_KEY === "bloom.localState.v7",
+    BLOOM_PERSISTENCE_VERSION === 8 &&
+      BLOOM_STATE_STORAGE_KEY === "bloom.localState.v8",
     "Application commands must keep the existing v7 persistence contract."
   );
   console.log(

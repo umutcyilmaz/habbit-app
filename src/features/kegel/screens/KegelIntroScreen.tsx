@@ -9,7 +9,7 @@ import { KegelGlow, KegelRing, KegelSymbol, PelvicMuscle } from "../components/K
 
 const trainer = kegelPreviewConfig.trainer;
 const titles = ["Pelvik taban nerede?", "Kası nasıl bulursun?", "Sık, tut, bırak", "Doğru teknik"];
-export function KegelIntroScreen({ initialStep = 0, onClose, onFinish }: {initialStep?:number;onClose:()=>void;onFinish:()=>void}) {
+export function KegelIntroScreen({ initialStep = 0, onClose, onFinish, finishBusy=false }: {initialStep?:number;onClose:()=>void;onFinish:()=>void;finishBusy?:boolean}) {
   const insets = useSafeAreaInsets();
   const [step,setStep] = useState(initialStep);
   const [found,setFound] = useState(false);
@@ -95,7 +95,7 @@ export function KegelIntroScreen({ initialStep = 0, onClose, onFinish }: {initia
         {isComplete ? <KegelSymbol name="check" color={c.text} size={18} /> : <View style={[styles.dot,{backgroundColor:c.light}]} />}<AppText variant="title" style={{fontSize:17}}>{isComplete ? "Tamamlandı" : "Basılı tut ve sık"}</AppText>
       </Pressable>
       <KegelButton testID="kegel.intro.skip" label="Atla" secondary onPress={() => setStep(3)} style={{backgroundColor:"transparent",minHeight:44}} />
-    </> : <KegelButton testID="kegel.intro.next" label={step===3 ? "İlk egzersize geç" : "Devam"} icon={step===3 ? "play" : undefined} disabled={nextDisabled}
+    </> : <KegelButton testID="kegel.intro.next" label={step===3 ? finishBusy ? "Kaydediliyor…" : "İlk egzersize geç" : "Devam"} icon={step===3 ? "play" : undefined} disabled={nextDisabled || finishBusy}
       onPress={() => {if(nextDisabled)return;step===3 ? onFinish() : setStep(step+1);}} />}</View>
   </View>;
 }

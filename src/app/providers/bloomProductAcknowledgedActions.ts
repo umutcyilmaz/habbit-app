@@ -1,4 +1,6 @@
 import {
+  completeKegelOnboardingState,
+  saveCompletedKegelSessionState,
   acceptProductOnboardingRecommendationState,
   acceptResetRecommendationState,
   decideResetContentFreeContinuationState,
@@ -58,6 +60,10 @@ export function createBloomProductAcknowledgedActions({
     );
 
   return {
+    kegel: {
+      completeOnboarding: acknowledge(completeKegelOnboardingState),
+      saveCompletedSession: acknowledge(saveCompletedKegelSessionState)
+    },
     onboarding: {
       saveProductOnboardingResult: acknowledge(saveProductOnboardingResultState),
       acceptRecommendation: acknowledge(acceptProductOnboardingRecommendationState)
