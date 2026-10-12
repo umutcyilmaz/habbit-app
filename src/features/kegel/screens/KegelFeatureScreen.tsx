@@ -7,6 +7,7 @@ import type { CompletedKegelSession, KegelProgramSnapshot, KegelSessionMetrics }
 import { AppText } from "../../../shared/components/v4/AppText";
 import { usePersistenceNavigationGuard } from "../../../shared/navigation/usePersistenceNavigationGuard";
 import { getBloomPersistenceRecovery } from "../../../shared/navigation/bloomPersistenceRecovery";
+import { BloomBottomNavigation } from "../../../shared/navigation/BloomBottomNavigation";
 import { kegelConfig } from "../kegelConfig";
 import { createKegelPersistenceController } from "../kegelPersistenceController";
 import { failNextKegelQaSave, kegelPersistenceQaEnabled } from "../kegelPersistenceQa";
@@ -20,7 +21,7 @@ import { KegelExerciseScreen } from "./KegelExerciseScreen";
 import { KegelCompletionScreen } from "./KegelCompletionScreen";
 
 type Run = {id:string;startedAt:string;program:KegelProgramSnapshot;setName:string};
-export function KegelFeatureScreen({qa=false}:{qa?:boolean}) {
+export function KegelFeatureScreen({qa=false,showBottomNavigation=false}:{qa?:boolean;showBottomNavigation?:boolean}) {
   const router=useRouter();
   const bloom=useBloomLocalState();
   const [stage,setStage]=useState<"home"|"intro"|"exercise"|"completed">("home");
@@ -99,5 +100,10 @@ export function KegelFeatureScreen({qa=false}:{qa?:boolean}) {
       <View style={{flexDirection:"row",gap:6}}><KegelButton testID="kegel.qa.fail" label="QA: sonraki kayıt hata" secondary onPress={failNextKegelQaSave} style={{flex:1,minHeight:40}} />
         {record && <KegelButton testID="kegel.qa.duplicate" label="QA: aynı tamamlanma" secondary onPress={()=>invoke(controller.saveSession(record))} style={{flex:1,minHeight:40}} />}</View>
     </View>}
+    {showBottomNavigation && stage==="home" && <BloomBottomNavigation active="kegel" blocked={recovery.navigationBlocked} onSelect={tab=>{
+      const currentOperation=controller.getSnapshot();
+      if(tab.name==="kegel" || currentOperation.busy || bloom.getAcceptedState()!==bloom.getDurableState() || recovery.navigationBlocked) return;
+      router.dismissTo(tab.href);
+    }} />}
   </View>;
 }

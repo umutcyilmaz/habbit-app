@@ -1,28 +1,35 @@
 export const tabRoutes = [
   {
     name: "today",
-    title: "Home"
+    title: "Ana sayfa",
+    href: "/(tabs)/today"
   },
   {
-    name: "log",
-    title: "Log"
+    name: "library",
+    title: "Library",
+    href: "/(tabs)/library"
   },
   {
-    name: "exercises",
-    title: "Exercises"
+    name: "kegel",
+    title: "Kegel",
+    href: "/bloom/kegel"
   },
   {
-    name: "progress",
-    title: "Progress"
-  },
-  {
-    name: "protect",
-    title: "Protect"
+    name: "profile",
+    title: "Profil",
+    href: "/(tabs)/profile"
   }
 ] as const;
 
+export type BloomTab = (typeof tabRoutes)[number];
+// Compatibility routes stay registered without becoming visible tab items.
+export const hiddenLegacyTabs = ["log", "exercises", "progress", "protect"] as const;
+
 export const routes = {
   home: "/(tabs)/today",
+  library: "/(tabs)/library",
+  kegel: "/bloom/kegel",
+  profile: "/(tabs)/profile",
   log: "/(tabs)/log",
   exercises: "/(tabs)/exercises",
   debugBloomState: "/debug/bloom-state",

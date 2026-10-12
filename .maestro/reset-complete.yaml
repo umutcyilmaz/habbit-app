@@ -101,8 +101,7 @@ name: Bloom 10-Day Reset daily completion
 
 - assertVisible: "Today’s reset is saved."
 - assertVisible: "View saved reset"
-- tapOn:
-    id: "bloom.tab.progress"
+- openLink: "tms-e2e:///progress"
 - extendedWaitUntil:
     visible: "Progress"
     timeout: 30000

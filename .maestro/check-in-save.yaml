@@ -26,8 +26,7 @@ name: Bloom Check-In persistence acknowledgement
       id: "bloom.today.primary-action"
     timeout: 30000
 
-- tapOn:
-    id: "bloom.tab.log"
+- openLink: "tms-e2e:///log"
 - scrollUntilVisible:
     element:
       id: "bloom.log.check-in.save"
@@ -55,8 +54,7 @@ name: Bloom Check-In persistence acknowledgement
       CLEAR_STATE: "false"
       READY_ID: "bloom.today.primary-action"
 
-- tapOn:
-    id: "bloom.tab.log"
+- openLink: "tms-e2e:///log"
 - extendedWaitUntil:
     visible:
       id: "bloom.log.check-in.save"

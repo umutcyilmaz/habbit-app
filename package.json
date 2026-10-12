@@ -41,7 +41,8 @@
     "maestro:all": "maestro test .maestro/onboarding-smoke.yaml .maestro/onboarding-general.yaml .maestro/check-in-save.yaml .maestro/protection-setup.yaml .maestro/pause-entry.yaml .maestro/arousal-entry.yaml .maestro/pause-complete.yaml .maestro/reset-complete.yaml .maestro/arousal-complete.yaml",
     "start:e2e:phase10": "APP_VARIANT=e2e EXPO_PUBLIC_E2E_MODE=1 EXPO_PUBLIC_PHASE10_QA=1 expo start --dev-client --localhost --port 8082",
     "start:e2e:kegel:persistence": "node scripts/require-kegel-qa-run.cjs && APP_VARIANT=e2e EXPO_PUBLIC_E2E_MODE=1 EXPO_PUBLIC_KEGEL_PERSISTENCE_QA=1 expo start --dev-client --localhost --port 8082",
-    "start:e2e:kegel": "APP_VARIANT=e2e EXPO_PUBLIC_E2E_MODE=1 EXPO_PUBLIC_KEGEL_PREVIEW=1 expo start --dev-client --localhost --port 8082"
+    "start:e2e:kegel": "APP_VARIANT=e2e EXPO_PUBLIC_E2E_MODE=1 EXPO_PUBLIC_KEGEL_PREVIEW=1 expo start --dev-client --localhost --port 8082",
+    "verify:navigation": "node scripts/verify-bloom-four-tabs.cjs"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",

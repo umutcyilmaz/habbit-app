@@ -89,7 +89,8 @@ for(const dev of [false,true]) for(const e2e of [false,true]) for(const bundle o
 console.log("Kegel durable-QA guard verification passed (144 combinations, explicit unique namespace required).");
 
 const realRoute=readFileSync(resolve(root,"app/bloom/kegel.tsx"),"utf8");
-assert(realRoute.includes('if (kegelPreviewEnabled && !kegelPersistenceQaEnabled) return <Redirect href="/debug/kegel" />;'));
+assert(realRoute.includes('if (kegelPreviewEnabled && !kegelPersistenceQaEnabled) return <Redirect href={routes.home} />;'));
+assert(!realRoute.includes('href="/debug/kegel"'));
 assert(readFileSync(resolve(root,"app/debug/kegel-persistence.tsx"),"utf8").includes('kegelPersistenceQaEnabled ? <KegelFeatureScreen qa /> : <Redirect href="/" />'));
 console.log("Kegel route isolation passed: memory design builds cannot claim durable saves; guarded durable QA entry.");
 
@@ -177,6 +178,7 @@ function introHarness() {
     "../../../shared/components/v4/AppText":{AppText:"AppText"},
     "../../../shared/navigation/usePersistenceNavigationGuard":{usePersistenceNavigationGuard:()=>()=>{}},
     "../../../shared/navigation/bloomPersistenceRecovery":recoveryModule,
+    "../../../shared/navigation/BloomBottomNavigation":{BloomBottomNavigation:"BloomBottomNavigation"},
     "../kegelConfig":config,"../kegelPersistenceController":controllerModule,
     "../kegelPersistenceQa":{kegelPersistenceQaEnabled:false},"../kegelSummary":summaryModule,"../kegelSession":session,
     "../kegelTheme":{kegelColors:{}},"../components/KegelUI":{KegelButton:"KegelButton"}};

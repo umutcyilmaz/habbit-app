@@ -1,0 +1,188 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Final four tabs with guarded real Kegel
+---
+- openLink: "tms-e2e:///today"
+- assertVisible:
+    id: "bloom.home"
+- assertVisible:
+    id: "bloom.tab.today"
+- assertVisible:
+    id: "bloom.tab.library"
+- assertVisible:
+    id: "bloom.tab.kegel"
+- assertVisible:
+    id: "bloom.tab.profile"
+- assertNotVisible:
+    id: "bloom.tab.progress"
+- assertNotVisible:
+    id: "bloom.tab.log"
+- assertNotVisible:
+    id: "bloom.tab.protect"
+- assertNotVisible:
+    id: "bloom.tab.exercises"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: "01-native-home"
+- tapOn:
+    id: "bloom.tab.library"
+- assertVisible:
+    id: "bloom.library"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: "02-native-library"
+- tapOn:
+    id: "bloom.tab.profile"
+- assertVisible:
+    id: "bloom.profile"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: "03-native-profile"
+- tapOn:
+    id: "bloom.profile.privacy"
+- assertVisible: "Privacy Overview"
+- tapOn:
+    id: "bloom.nested.back"
+- assertVisible:
+    id: "bloom.profile"
+- tapOn:
+    id: "bloom.tab.kegel"
+- assertVisible:
+    id: "kegel.initial"
+- assertVisible:
+    id: "bloom.bottom-navigation"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: "04-native-kegel-initial"
+- tapOn:
+    id: "kegel.intro.start"
+- assertNotVisible:
+    id: "bloom.bottom-navigation"
+- tapOn:
+    id: "kegel.intro.find-muscle"
+- tapOn:
+    id: "kegel.intro.next"
+- tapOn:
+    id: "kegel.intro.option.gas"
+- tapOn:
+    id: "kegel.intro.next"
+- tapOn:
+    id: "kegel.intro.skip"
+- tapOn:
+    id: "kegel.intro.next"
+- assertVisible:
+    id: "kegel.exercise"
+- assertNotVisible:
+    id: "bloom.bottom-navigation"
+- tapOn:
+    id: "kegel.exercise.pause"
+- assertVisible:
+    id: "kegel.exercise.paused"
+- tapOn:
+    id: "kegel.exercise.pause"
+- extendedWaitUntil:
+    visible: "Bu cihaza kaydedildi"
+    timeout: 85000
+- assertNotVisible: "Kaydedilmeyen deneme"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: "05-native-completed"
+- tapOn:
+    id: "kegel.completed.done"
+- assertVisible:
+    id: "bloom.bottom-navigation"
+- assertVisible: "10"
+- tapOn:
+    id: "bloom.tab.library"
+- assertVisible:
+    id: "bloom.library"
+- stopApp
+- launchApp
+- openLink: "tms-e2e:///bloom/kegel"
+- assertVisible: "10"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: "06-native-kegel-reopened"
+- tapOn:
+    id: "kegel.exercise.start"
+- tapOn:
+    id: "kegel.exercise.exit"
+- tapOn:
+    id: "kegel.exercise.confirm-exit"
+- assertVisible: "10"
+- openLink: "tms-e2e:///debug/kegel-persistence"
+- tapOn:
+    id: "kegel.qa.fail"
+- openLink: "tms-e2e:///bloom/kegel"
+- tapOn:
+    id: "kegel.exercise.start"
+- extendedWaitUntil:
+    visible: "Kaydetme doğrulanmadı"
+    timeout: 85000
+- assertVisible:
+    id: "kegel.save.retry"
+- assertNotVisible:
+    id: "bloom.bottom-navigation"
+- assertNotVisible: "Kaydedilmeyen deneme"
+- swipe:
+    start: "1%, 50%"
+    end: "85%, 50%"
+    duration: 500
+- assertVisible: "Kaydetme doğrulanmadı"
+- openLink: "tms-e2e:///library"
+- assertVisible: "Kaydetme doğrulanmadı"
+- assertNotVisible:
+    id: "bloom.library"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: "07-native-guarded-save"
+- tapOn:
+    id: "kegel.save.retry"
+- assertVisible: "Bu cihaza kaydedildi"
+- tapOn:
+    id: "kegel.completed.done"
+- assertVisible: "20"
+- tapOn:
+    id: "bloom.tab.profile"
+- assertVisible:
+    id: "bloom.profile"
+- stopApp
+- launchApp
+- openLink: "tms-e2e:///bloom/kegel"
+- assertVisible: "20"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: "08-native-two-sessions"
+- openLink: "tms-e2e:///debug/kegel-persistence"
+- tapOn:
+    id: "kegel.qa.fail"
+- openLink: "tms-e2e:///today"
+- tapOn:
+    id: "bloom.home.tracking.enable"
+- assertVisible:
+    id: "bloom.home.tracking.retry"
+- tapOn:
+    id: "bloom.tab.library"
+- assertVisible:
+    id: "bloom.home"
+- assertNotVisible:
+    id: "bloom.library"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: "09-native-home-save-guard"
+- tapOn:
+    id: "bloom.home.tracking.retry"
+- assertVisible:
+    id: "bloom.home.tracking"
+- tapOn:
+    id: "bloom.tab.library"
+- assertVisible:
+    id: "bloom.library"
+- openLink: "tms-e2e:///progress"
+- assertVisible:
+    id: "bloom.bottom-navigation"
+- assertNotVisible:
+    id: "bloom.tab.progress"
+- tapOn:
+    id: "bloom.tab.today"
+- assertVisible:
+    id: "bloom.home"

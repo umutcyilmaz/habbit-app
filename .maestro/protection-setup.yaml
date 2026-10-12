@@ -52,8 +52,7 @@ name: Bloom Protection setup entry
 - assertVisible: "Protection is ready."
 - assertVisible: "Start 10-Day Reset"
 
-- tapOn:
-    id: "bloom.tab.protect"
+- openLink: "tms-e2e:///protect"
 - extendedWaitUntil:
     visible:
       id: "bloom.protection.status"
@@ -88,8 +87,7 @@ name: Bloom Protection setup entry
 - assertVisible: "Protection is ready."
 - assertVisible: "Start 10-Day Reset"
 
-- tapOn:
-    id: "bloom.tab.protect"
+- openLink: "tms-e2e:///protect"
 - extendedWaitUntil:
     visible:
       id: "bloom.protection.status"
