@@ -16,6 +16,10 @@ try {
     const result = spawnSync(process.execPath, [join(output, "scripts", "verify-bloom-home-ui.js")], { cwd: root, stdio: "inherit" });
     process.exitCode = result.status ?? 1;
   }
+  if (process.exitCode === 0) {
+    const animation = spawnSync(process.execPath, ["scripts/verify-bloom-home-animation.cjs"], { cwd: root, stdio: "inherit" });
+    process.exitCode = animation.status ?? 1;
+  }
 } finally {
   rmSync(output, { recursive: true, force: true });
 }

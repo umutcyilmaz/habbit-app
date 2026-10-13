@@ -1,0 +1,282 @@
+[
+  {
+    "path": "html-home-active.png",
+    "width": 390,
+    "height": 844,
+    "bytes": 61556,
+    "sha256": "56841be02fb61009793c13174b8bb5ddb4989e6ee83dda17cd3b039b28770487"
+  },
+  {
+    "path": "html-home-bottom.png",
+    "width": 390,
+    "height": 844,
+    "bytes": 62593,
+    "sha256": "e9bc5e15f99ec4b27c307c3e0e43b22f93d072562647034f313d2216b87f5bea"
+  },
+  {
+    "path": "html-home-inactive.png",
+    "width": 390,
+    "height": 844,
+    "bytes": 59913,
+    "sha256": "49576e86b88e293808fa3b058cf2882d71ef1a38b986767095184036bef3a0c3"
+  },
+  {
+    "path": "html-home-new-streak.png",
+    "width": 390,
+    "height": 844,
+    "bytes": 60456,
+    "sha256": "017fc16ba2140ee846ef0e780291af7e48018a1ca77b7c5cf60678b08259bc01"
+  },
+  {
+    "path": "html-home-reset.png",
+    "width": 390,
+    "height": 844,
+    "bytes": 60231,
+    "sha256": "8ed92aea9c2626938af448723132f83f7998bafde8edfd630b5cd4d8fb88ed17"
+  },
+  {
+    "path": "screenshots/01-native-fresh.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 1328073,
+    "sha256": "87d339b7dcb8d5aaba6d3ec24239685dea7a99a18cef0a7ec17aa67485f4442d"
+  },
+  {
+    "path": "screenshots/02-native-content-free-inactive.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 280477,
+    "sha256": "173ee53bf4aa48c6dee369f2f31da8561e637ac7936812080404d0b4127f527a"
+  },
+  {
+    "path": "screenshots/03-native-tracking-failed-save.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 1430145,
+    "sha256": "0a427f6b102a37a0c1be79cd980dc9dd329da76dfe701e27d9d36728c7967551"
+  },
+  {
+    "path": "screenshots/04-native-tracking-enabled-empty.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 1466796,
+    "sha256": "a5b357f99631d1508f902041749b267a362ac0e19ea80f74b2d612b2e1f8d323"
+  },
+  {
+    "path": "screenshots/05-native-content-free-active-first-day.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 218853,
+    "sha256": "2e577d688443afa5edae66a3c5060aee6cd6d96b37722de4c1fed09e3aa76d04"
+  },
+  {
+    "path": "screenshots/06-native-home-restart.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 218853,
+    "sha256": "2e577d688443afa5edae66a3c5060aee6cd6d96b37722de4c1fed09e3aa76d04"
+  },
+  {
+    "path": "screenshots/07-native-content-free-three-days.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 223742,
+    "sha256": "b08f7d528059c7e17fb9af4f6c346e8cce8aebf6944d57895c5f449347628eed"
+  },
+  {
+    "path": "screenshots/08-native-content-free-new-streak.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 295186,
+    "sha256": "f31b92dc8865a1ab7fce7656a4f74ee5ec4230e60f0cf9f6f7d66ce8ea9d619e"
+  },
+  {
+    "path": "screenshots/09-native-unfinished-session-priority.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 1019852,
+    "sha256": "b50bb36fa49161165cb52fdfa8007ccd9316cdc12d89a46a389ae9fc6d0b269f"
+  },
+  {
+    "path": "screenshots/10-native-pending-feedback-priority.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 997579,
+    "sha256": "74259bcae7065bc137a62319cb0f002b449458b0dabe89985cc23ce6ca33c6a7"
+  },
+  {
+    "path": "screenshots/11-native-real-tracking-hero.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 1447737,
+    "sha256": "1f09c06d01c13393a4daecb6b566c7d2b2890c799498d68e408358fe81937008"
+  },
+  {
+    "path": "screenshots/12-native-urge-resume-priority.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 1023672,
+    "sha256": "548bc2ada22fc09af08a6120152512b45e54e21cdb3db0a6192878a3e92b6294"
+  },
+  {
+    "path": "screenshots/13-native-return-from-urge.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 1411223,
+    "sha256": "884c95cbadbdf312fef072fffab2fabaf15a0fff85588fc01289022f04975cac"
+  },
+  {
+    "path": "screenshots/14-native-real-history-restart.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 1432008,
+    "sha256": "9ed7c8dd1750ff5767bc64adc636589f79fe6f79c87348b0193d2acb99ea997d"
+  },
+  {
+    "path": "screenshots/15-native-reset-active.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 1398858,
+    "sha256": "514511bb28f5f1260c0b0507709489ef0568019e48eecb4502bab6d5f22c8f20"
+  },
+  {
+    "path": "screenshots/16-native-reset-tracking-restricted.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 170496,
+    "sha256": "cb3a6857e97aaeb693105d014944891300c1237a6066f3167a0510418c310af7"
+  },
+  {
+    "path": "screenshots/17-native-reset-earned-credit.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 170496,
+    "sha256": "cb3a6857e97aaeb693105d014944891300c1237a6066f3167a0510418c310af7"
+  },
+  {
+    "path": "screenshots/18-native-reset-restart.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 1422002,
+    "sha256": "8e41551ddbba74586c71a208657ca1c9f55cf61ba779c830ea33d10807cf8af8"
+  },
+  {
+    "path": "screenshots/19-native-elapsed-reset-completion-required.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 654381,
+    "sha256": "19398b35bf74680f79dfa3ef846e59ef9d39ef6a249a1ec364035bb685c206ed"
+  },
+  {
+    "path": "screenshots/20-native-continuation-pending.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 986988,
+    "sha256": "52d9125758f8b9e19e325ea3d5d28730e35939a06df353bb3938032d0b6710d6"
+  },
+  {
+    "path": "screenshots/21-native-continuation-content-free-entry.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 259071,
+    "sha256": "a61fa4582336d0e1cfa1d1cebbd8b2a9b081017c1c80266720e879ec7af30d3b"
+  },
+  {
+    "path": "screenshots/22-native-continuation-accepted.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 601928,
+    "sha256": "6e6c533d3f680ab68d696659558499f6b0e0a39a8b3d4b05ca8d8338eb481a39"
+  },
+  {
+    "path": "screenshots/23-native-priority-focus.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 608754,
+    "sha256": "976d3a91d62f44edfdd9b3a10a903a2f87f32384de3ce1562f7c87f1fc300e9a"
+  },
+  {
+    "path": "screenshots/24-native-profile-smoke.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 192969,
+    "sha256": "62c3f78571cf5b4876a78d52897a9e4b30b511a1832ebacd223fc0c3491405cf"
+  },
+  {
+    "path": "screenshots/25-native-library-smoke.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 320335,
+    "sha256": "0b2876bc37ff4566f547fd697cb50a4c1395bded6d9dfd3326ec29ccfe9ad59e"
+  },
+  {
+    "path": "screenshots/26-native-kegel-smoke.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 535689,
+    "sha256": "c1b152522a74a1116a52be147b42cc9aaf754edac6e1b2020b7385f88dfbc98b"
+  },
+  {
+    "path": "screenshots/27-native-largest-text-top.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 1425025,
+    "sha256": "2b0988e3b6d4b061ce0f3a2e53c290f3e26d768a5deeae0bf614addc4a0ac50d"
+  },
+  {
+    "path": "screenshots/28-native-largest-text-bottom.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 193537,
+    "sha256": "c527f47532cb9d1f7ba69ce722f9eb69fe28f11371033699f478e1e01fe4d726"
+  },
+  {
+    "path": "screenshots/29-native-tracking-middle.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 960338,
+    "sha256": "54430faa1cc6aa46437e13e4ebed9f306529b63bfd8c8eed536b18fee9ae542e"
+  },
+  {
+    "path": "screenshots/30-native-tracking-bottom.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 225024,
+    "sha256": "a30d0253c985a709a85b34540fed6ee07addcce2f6131715652c8b1a7cef5681"
+  },
+  {
+    "path": "screenshots/31-native-tracking-back-top.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 1436701,
+    "sha256": "3a659f2a4a29ec24840b65b3b4e11346f50cd7975c2be9cc981230f5c4684e86"
+  },
+  {
+    "path": "screenshots/32-native-reset-middle.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 978463,
+    "sha256": "7bfd03089b4dbe4c0476880d50c0c46edf7b2d403c36dc43e5f57c3cb52d6107"
+  },
+  {
+    "path": "screenshots/33-native-reset-bottom.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 170496,
+    "sha256": "cb3a6857e97aaeb693105d014944891300c1237a6066f3167a0510418c310af7"
+  },
+  {
+    "path": "screenshots/34-native-reset-back-top.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 1220769,
+    "sha256": "d78dd0698db278b41cdcf72e936adcefb57c9f319732e5edd67177e3188497e3"
+  },
+  {
+    "path": "screenshots/35-native-unfinished-session-focus.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 992742,
+    "sha256": "ff02aa3132ca4e27601f3b0a9dea487bf25d46a77517fe52eb404bb76ed8b6d4"
+  }
+]

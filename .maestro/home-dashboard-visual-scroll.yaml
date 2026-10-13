@@ -1,0 +1,23 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Home read-only scroll viewport ordinary Tracking
+---
+# Existing phase Home history run; no state writes.
+- openLink: "tms-e2e:///today"
+- assertVisible: { id: "bloom.home.tracking.elapsed", text: "3 tamamlanan gün" }
+- assertVisible: { id: "bloom.home.tracking.completed", text: "1" }
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "11-native-real-tracking-hero"
+- swipe: { start: "45%, 75%", end: "45%, 55%", duration: 600 }
+- waitForAnimationToEnd: { timeout: 1500 }
+- takeScreenshot: "29-native-tracking-middle"
+- scrollUntilVisible:
+    element: { id: "bloom.home.panic" }
+    direction: DOWN
+    centerElement: true
+- takeScreenshot: "30-native-tracking-bottom"
+- scrollUntilVisible:
+    element: { text: "^Merhaba$" }
+    direction: UP
+    centerElement: false
+- assertVisible: { id: "bloom.home.tracking.elapsed", text: "3 tamamlanan gün" }
+- takeScreenshot: "31-native-tracking-back-top"

@@ -1,0 +1,75 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Home dashboard fresh optional tracking and safe failed-save recovery
+---
+# NEW EXPO_PUBLIC_HOME_QA_RUN + guarded Phase10 runtime only. No clearState or reseed.
+- openLink: "tms-e2e:///debug/phase10"
+- assertVisible: "Home QA run: ${HOME_QA_RUN}"
+- scrollUntilVisible:
+    element: { id: "bloom.qa.phase10.home" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.qa.phase10.home" }
+- assertVisible: { id: "bloom.home.tracking.inactive" }
+- assertNotVisible: { id: "bloom.home.tracking.action" }
+- waitForAnimationToEnd: { timeout: 1500 }
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "01-native-fresh"
+- scrollUntilVisible:
+    element: { id: "bloom.home.content-free.action" }
+    direction: DOWN
+    centerElement: true
+- takeScreenshot: "02-native-content-free-inactive"
+- openLink: "tms-e2e:///debug/phase10"
+- scrollUntilVisible:
+    element: { id: "bloom.qa.phase10.fail-save" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.qa.phase10.fail-save" }
+- scrollUntilVisible:
+    element: { id: "bloom.qa.phase10.home" }
+    direction: UP
+- tapOn: { id: "bloom.qa.phase10.home" }
+- scrollUntilVisible:
+    element: { id: "bloom.home.tracking.enable" }
+    direction: UP
+- tapOn: { id: "bloom.home.tracking.enable" }
+- assertVisible: { id: "bloom.home.tracking.retry" }
+- assertVisible: { id: "bloom.tab-save.recovery" }
+- assertNotVisible: { id: "bloom.home.tracking.action" }
+- takeScreenshot: "03-native-tracking-failed-save"
+- tapOn: { id: "bloom.tab.library" }
+- assertVisible: { id: "bloom.home" }
+- assertNotVisible: { id: "bloom.library" }
+- tapOn: { id: "bloom.home.tracking.retry" }
+- assertNotVisible: { id: "bloom.tab-save.recovery" }
+- assertVisible: { id: "bloom.home.tracking.action" }
+- takeScreenshot: "04-native-tracking-enabled-empty"
+- scrollUntilVisible:
+    element: { id: "bloom.home.content-free.action" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.home.content-free.action" }
+- assertVisible: { id: "bloom.content-free" }
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.activate" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.content-free.activate" }
+- assertVisible: "Bu cihaza kaydedildi"
+- tapOn: { id: "bloom.content-free.close" }
+- scrollUntilVisible:
+    element: { id: "bloom.home.content-free.current" }
+    direction: DOWN
+    centerElement: true
+- assertVisible: { id: "bloom.home.content-free.current", text: "0" }
+- takeScreenshot: "05-native-content-free-active-first-day"
+- stopApp
+- launchApp
+- openLink: "tms-e2e:///today"
+- assertVisible: { id: "bloom.home.tracking.action" }
+- scrollUntilVisible:
+    element: { id: "bloom.home.content-free.current" }
+    direction: DOWN
+    centerElement: true
+- assertVisible: { id: "bloom.home.content-free.current", text: "0" }
+- takeScreenshot: "06-native-home-restart"

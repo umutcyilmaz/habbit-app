@@ -1,0 +1,48 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Home Reset active and earned Content-Free credit in new isolated run
+---
+# A separate NEW EXPO_PUBLIC_HOME_QA_RUN. Prepare exactly once, then real UI only.
+- openLink: "tms-e2e:///debug/phase10"
+- assertVisible: "Home QA run: ${HOME_QA_RUN}"
+- scrollUntilVisible:
+    element: { id: "bloom.qa.phase10.day10-inactive" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.qa.phase10.day10-inactive" }
+- scrollUntilVisible:
+    element: { id: "bloom.qa.phase10.home" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.qa.phase10.home" }
+- assertVisible: { id: "bloom.home.reset" }
+- assertVisible: { id: "bloom.home.reset.current-day", text: "10/15" }
+- assertVisible: { id: "bloom.home.reset.elapsed", text: "9 tamamlanan gün" }
+- assertNotVisible: { id: "bloom.home.tracking.enable" }
+- assertNotVisible: { id: "bloom.home.tracking.action" }
+- waitForAnimationToEnd: { timeout: 1500 }
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "15-native-reset-active"
+- scrollUntilVisible:
+    element: { id: "bloom.home.content-free.action" }
+    direction: DOWN
+    centerElement: true
+- takeScreenshot: "16-native-reset-tracking-restricted"
+- tapOn: { id: "bloom.home.content-free.action" }
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.activate" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.content-free.activate" }
+- assertVisible: "Bu cihaza kaydedildi"
+- tapOn: { id: "bloom.content-free.close" }
+- scrollUntilVisible:
+    element: { id: "bloom.home.content-free.current" }
+    direction: DOWN
+    centerElement: true
+- assertVisible: { id: "bloom.home.content-free.current", text: "9" }
+- takeScreenshot: "17-native-reset-earned-credit"
+- stopApp
+- launchApp
+- openLink: "tms-e2e:///today"
+- assertVisible: { id: "bloom.home.reset.current-day", text: "10/15" }
+- takeScreenshot: "18-native-reset-restart"

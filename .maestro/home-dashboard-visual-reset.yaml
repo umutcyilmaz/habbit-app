@@ -1,0 +1,33 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Home read-only scroll viewport active Reset
+---
+# Existing phase Reset run; never prepare/reseed this namespace.
+- openLink: "tms-e2e:///today"
+- assertVisible: { id: "bloom.home.reset.current-day", text: "10/15" }
+- assertVisible: { id: "bloom.home.reset.elapsed", text: "9 tamamlanan gün" }
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "15-native-reset-active"
+- swipe: { start: "45%, 75%", end: "45%, 55%", duration: 600 }
+- waitForAnimationToEnd: { timeout: 1500 }
+- takeScreenshot: "32-native-reset-middle"
+- scrollUntilVisible:
+    element: { id: "bloom.home.content-free.action" }
+    direction: DOWN
+    centerElement: true
+- assertNotVisible: { id: "bloom.home.tracking.enable" }
+- assertNotVisible: { id: "bloom.home.tracking.action" }
+- assertVisible: { id: "bloom.home.content-free.current", text: "9" }
+- takeScreenshot: "16-native-reset-tracking-restricted"
+- takeScreenshot: "17-native-reset-earned-credit"
+- takeScreenshot: "33-native-reset-bottom"
+- scrollUntilVisible:
+    element: { text: "^Merhaba$" }
+    direction: UP
+    centerElement: false
+- assertVisible: { id: "bloom.home.reset.current-day", text: "10/15" }
+- takeScreenshot: "34-native-reset-back-top"
+- stopApp
+- launchApp
+- openLink: "tms-e2e:///today"
+- assertVisible: { id: "bloom.home.reset.current-day", text: "10/15" }
+- takeScreenshot: "18-native-reset-restart"

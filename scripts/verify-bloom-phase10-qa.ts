@@ -1,5 +1,5 @@
-import { deepStrictEqual } from "node:assert";
-import { createPhase10QaSession, createPhase10StorageClient, phase10Scenarios, PHASE10_STORAGE_PREFIX } from "../src/features/debug/phase10/phase10QaSession";
+import { deepStrictEqual, throws, rejects } from "node:assert";
+import { createPhase10QaSession, createPhase10StorageClient, phase10Scenarios, PHASE10_STORAGE_PREFIX, getHomeQaStoragePrefix } from "../src/features/debug/phase10/phase10QaSession";
 import { createMemoryStorageClient } from "../src/storage/storageAdapters";
 import { BLOOM_STATE_STORAGE_KEY } from "../src/storage/bloomStatePersistence";
 import { getResetProgress } from "../src/domain/reset/getResetProgress";
@@ -86,6 +86,27 @@ export async function verifyBloomPhase10Qa() {
   assert(await storage.getItem(BLOOM_STATE_STORAGE_KEY) === canonical && await storage.getItem("bloom.localState.v6") === "legacy sentinel" && await storage.getItem("bloom.localState.corrupt.sentinel") === "backup sentinel", "Isolated deletion protects canonical/legacy/corruption data");
   assert((await createPhase10StorageClient(storage).getAllKeys()).every((key) => !key.startsWith(PHASE10_STORAGE_PREFIX)), "Namespace enumeration translates keys once");
   assert(Date.now === originalTime, "Device/system clock never overridden");
-  console.log("Bloom Phase 10 Simulator QA verification passed.");
+  const homePrefix = getHomeQaStoragePrefix("home_unit_20261013");
+  assert(homePrefix === "bloom.e2e.home.home_unit_20261013.", "Home gets its own new run namespace");
+  throws(() => getHomeQaStoragePrefix("../invalid"));
+  throws(() => createPhase10StorageClient(storage, "bloom.localState."));
+  assert(getHomeQaStoragePrefix(undefined) === PHASE10_STORAGE_PREFIX, "Existing Phase10 namespace default is unchanged");
+  await storage.setItem("bloom.e2e.home.previous.bloom.localState.v8", "previous home sentinel");
+  const home = createPhase10QaSession(storage, homePrefix);
+  const homeStart = home.runtime.now().getTime();
+  await home.advanceClockByDays(3);
+  assert(home.runtime.now().getTime() - homeStart === 3 * 86400000, "Clock advance is scoped and acknowledged");
+  const homeReload = createPhase10QaSession(storage, homePrefix);
+  await homeReload.restoreClock();
+  assert(homeReload.runtime.now().getTime() === home.runtime.now().getTime(), "Home scoped clock survives restart");
+  const homeState = await home.prepareScenario("day10-inactive");
+  const homeBytes = await storage.getItem(homePrefix + BLOOM_STATE_STORAGE_KEY);
+  await rejects(home.prepareScenario("completed-pending"), /new Home QA run/);
+  assert(await storage.getItem(homePrefix + BLOOM_STATE_STORAGE_KEY) === homeBytes, "Existing Home QA records cannot be replaced by another fixture setup");
+  assert(homeState.resetJourney.status === "active", "Home reset fixture uses the existing acknowledged scenario engine");
+  assert(await storage.getItem(BLOOM_STATE_STORAGE_KEY) === canonical && await storage.getItem("bloom.e2e.home.previous.bloom.localState.v8") === "previous home sentinel", "Home scenarios never change canonical or earlier QA records");
+  assert((await createPhase10StorageClient(storage, homePrefix).getAllKeys()).every(key => !key.startsWith("bloom.e2e.")), "Home enumeration strips only its own prefix");
+  assert(Date.now === originalTime, "Home QA never changes device/system time");
+  console.log("Bloom Phase 10 / new Home-run Simulator QA verification passed.");
 }
 function assert(condition: boolean, message: string): asserts condition { if (!condition) throw new Error(message); }

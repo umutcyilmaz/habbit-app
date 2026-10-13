@@ -1,0 +1,29 @@
+{
+  "passed": true,
+  "prior_keys_preserved": 14,
+  "data_values_exported": false,
+  "bundles": {
+    "com.umutcyilmaz.bloom": {
+      "before_count": 1,
+      "after_count": 1,
+      "preserved_count": 1,
+      "changed_or_missing": [],
+      "new_keys": []
+    },
+    "com.umutcyilmaz.bloom.e2e": {
+      "before_count": 13,
+      "after_count": 20,
+      "preserved_count": 13,
+      "changed_or_missing": [],
+      "new_keys": [
+        "bloom.e2e.home.home_completion_20261013_d7b2.bloom.localState.v8",
+        "bloom.e2e.home.home_completion_20261013_d7b2.clock",
+        "bloom.e2e.home.home_final_20261013_f83e.bloom.localState.v8",
+        "bloom.e2e.home.home_fresh_20261013_a81d.bloom.localState.v8",
+        "bloom.e2e.home.home_fresh_20261013_a81d.clock",
+        "bloom.e2e.home.home_reset_20261013_c49a.bloom.localState.v8",
+        "bloom.e2e.home.home_reset_20261013_c49a.clock"
+      ]
+    }
+  }
+}

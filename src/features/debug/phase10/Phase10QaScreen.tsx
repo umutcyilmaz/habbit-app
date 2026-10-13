@@ -43,6 +43,7 @@ export function Phase10QaScreen() {
     <AppScreen testID="bloom.qa.phase10" scroll contentContainerStyle={{ gap: 16, paddingBottom: 32 }}>
       <AppText variant="heading1">Phase 10 · isolated QA</AppText>
       <AppText tone="secondary">Synthetic clock + private E2E storage. Scenario buttons replace only this QA save. All screen buttons use real acknowledged actions.</AppText>
+      {process.env.EXPO_PUBLIC_HOME_QA_RUN !== undefined ? <AppText testID="bloom.qa.home.run">Home QA run: {process.env.EXPO_PUBLIC_HOME_QA_RUN}</AppText> : null}
       <AppText testID="bloom.qa.phase10.clock">Clock: {qa.runtime.now().toISOString()}</AppText>
       <AppText testID="bloom.qa.phase10.state">Reset: {reset.status} · Content-Free: {durableState.contentFree.status} · Days: {content?.status === "active" ? content.currentCompletedDays : 0} · Decision: {reset.status === "completed" ? reset.contentFreeContinuation?.decision ?? (offer ? "pending" : "not offered") : "n/a"}</AppText>
       {message ? <AppText tone="danger">{message}</AppText> : null}
@@ -53,6 +54,7 @@ export function Phase10QaScreen() {
       <AppButton testID="bloom.qa.phase10.reset" label="Open real Reset screen" disabled={busy || !hasHydrated || (reset.status !== "active" && reset.status !== "completed")} onPress={openReset} />
       <AppButton testID="bloom.qa.phase10.content-free" label="Open real Content-Free screen" disabled={busy || !hasHydrated} onPress={() => router.push(bloomProductRoutePaths.contentFree)} />
       <AppButton testID="bloom.qa.phase10.home" label="Open real Home" disabled={busy || !hasHydrated} onPress={() => router.push(routes.home)} />
+      {process.env.EXPO_PUBLIC_HOME_QA_RUN !== undefined ? <AppButton testID="bloom.qa.home.advance-clock" label="Home QA: advance scoped clock by 3 days" disabled={busy || !hasHydrated || state !== durableState} onPress={() => { void qa.advanceClockByDays(3).then(() => run(), () => setMessage("QA clock could not advance.")); }} /> : null}
       <AppButton testID="bloom.qa.phase10.reload" label="Reload saved QA state (no reseed)" variant="secondary" disabled={busy || !hasHydrated || state !== durableState} onPress={() => { void run(); }} />
       <AppButton testID="bloom.qa.phase11.invalidate-save" label="Invalidate next QA save once" variant="ghost" disabled={busy || !hasHydrated} onPress={() => { qa.invalidateNextSave(); setMessage("Next QA receipt will be invalidated. Open a screen and use Save current state to recover."); }} />
       <AppButton testID="bloom.qa.phase10.fail-save" label="Fail next QA save once" variant="ghost" disabled={busy || !hasHydrated} onPress={() => { qa.failNextSave(); setMessage("Next QA write will fail. Open a screen, act, then use its real retry button."); }} />

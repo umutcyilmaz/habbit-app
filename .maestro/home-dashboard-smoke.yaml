@@ -1,0 +1,16 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Home four tabs read-only Profile Library Kegel smoke
+---
+- openLink: "tms-e2e:///today"
+- assertVisible: { id: "bloom.home" }
+- tapOn: { id: "bloom.tab.profile" }
+- assertVisible: { id: "bloom.profile" }
+- takeScreenshot: "24-native-profile-smoke"
+- tapOn: { id: "bloom.tab.library" }
+- assertVisible: { id: "bloom.library" }
+- takeScreenshot: "25-native-library-smoke"
+- tapOn: { id: "bloom.tab.kegel" }
+- assertVisible: { id: "kegel.initial" }
+- takeScreenshot: "26-native-kegel-smoke"
+- tapOn: { id: "bloom.tab.today" }
+- assertVisible: { id: "bloom.home" }

@@ -7,10 +7,11 @@ import { createRequire } from "node:module";
 import { resolve } from "node:path";
 import { runInNewContext } from "node:vm";
 
+import { getContentFreeProgress } from "../src/domain/contentFree/getContentFreeProgress";
 import { getBloomHomeReadModel } from "../src/domain/home/getBloomHomeReadModel";
 import { createDefaultBloomState, type BloomLocalState } from "../src/storage/bloomState";
 import { createActiveState } from "./verify-bloom-reset-violations";
-import { formatAverageInterval, formatErectionQuality, getTrackingSummary } from "../src/features/home/homePresentation";
+import { formatAverageInterval, formatErectionQuality, getHomeTrackingElapsedSeconds, getTrackingSummary } from "../src/features/home/homePresentation";
 
 const ts: typeof import("typescript") = createRequire(resolve("package.json"))("typescript");
 const screenPath = "src/features/home/screens/BloomHomeScreen.tsx";
@@ -20,6 +21,8 @@ type Feature = Record<string, unknown>;
 type Tree = { type: string | ((props: Record<string, unknown>) => Tree); props: Record<string, unknown> };
 
 let currentFeature: Feature;
+let focusCallbacks: Array<() => void> = [];
+let scrollRequests: unknown[] = [];
 const screenSource = readFileSync(screenPath, "utf8");
 const hookSource = readFileSync(hookPath, "utf8");
 const compiled = ts.transpileModule(screenSource, { fileName: screenPath, compilerOptions: {
@@ -34,14 +37,28 @@ const theme = {
 const jsx = (type: Tree["type"], props: Record<string, unknown>): Tree => ({ type, props });
 const required = (name: string): unknown => {
   if (name === "react/jsx-runtime") return { jsx, jsxs: jsx };
-  if (name === "react-native") return { View: "View", StyleSheet: { create: (styles: unknown) => styles } };
+  if (name === "react") return { useState: (initial: unknown) => [typeof initial === "function" ? initial() : initial, () => {}], useCallback: (callback: unknown) => callback, useRef: () => ({ current: { scrollTo: (options: unknown) => scrollRequests.push(options) } }) };
+  if (name === "expo-router") return { useFocusEffect: (callback: () => void) => { focusCallbacks.push(callback); } };
+  if (name === "react-native-safe-area-context") return { useSafeAreaInsets: () => ({ top: 62, left: 0, right: 0, bottom: 34 }) };
+  if (name === "react-native-reanimated") return { default: { View: "AnimatedView" }, useReducedMotion: () => true, FadeIn: { duration: () => ({}) } };
+  if (name === "react-native-svg") return { default: "Svg", Path: "SvgPath" };
+  if (name === "react-native") return { View: "View", Pressable: "Pressable", AppState: {}, useWindowDimensions: () => ({ fontScale: 1 }), StyleSheet: { create: (styles: unknown) => styles } };
   if (name.endsWith("/AppButton")) return { AppButton: "AppButton" };
   if (name.endsWith("/AppCard")) return { AppCard: "AppCard" };
   if (name.endsWith("/AppScreen")) return { AppScreen: "AppScreen" };
   if (name.endsWith("/AppText")) return { AppText: "AppText" };
   if (name.endsWith("/theme")) return { theme };
   if (name.endsWith("/homePresentation")) return { formatAverageInterval, formatErectionQuality,
+    getHomeTrackingElapsedSeconds,
     getBestContentFreeDays: (seconds: number) => Math.floor(seconds / 86400) };
+  if (name.endsWith("/HomeAtmosphere")) return { HomeAtmosphere: "DecorativeAtmosphere" };
+  if (name.endsWith("/HomeCounter") || name.endsWith("/HomeStatusCapsules") || name.endsWith("/HomeIcon")) {
+    const file = `src/features/home/components/${name.split("/").pop()}.tsx`;
+    const code = ts.transpileModule(readFileSync(file, "utf8"), { fileName: file, compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, jsx: ts.JsxEmit.ReactJSX } });
+    const component = { exports: {} };
+    runInNewContext(code.outputText, { module: component, exports: component.exports, require: required });
+    return component.exports;
+  }
   if (name.endsWith("/useBloomHomeFeature")) return { useBloomHomeFeature: () => currentFeature };
   throw new Error(`Unexpected screen import: ${name}`);
 };
@@ -71,15 +88,16 @@ function render(state: BloomLocalState, clock = at, activationOverrides: Partial
   const trackingActivation = { busy: false, locked: false, canRetry: false, message: null,
     enable: () => calls.push("enableTracking"), retry: () => calls.push("retryTracking"), ...activationOverrides };
   currentFeature = { hydrationStatus: "ready", model, tracking: getTrackingSummary(state.masturbationTracking, clock),
-    contentFreeContinuation: getResetContentFreeContinuationOffer(state, state), contentFree: state.contentFree, openAction: (action: unknown) => calls.push(action),
+    contentFreeContinuation: getResetContentFreeContinuationOffer(state, state), contentFree: state.contentFree, contentFreeProgress: getContentFreeProgress(state.contentFree, clock), observationTime: clock, now: () => new Date(clock), trackingElapsedSeconds: getHomeTrackingElapsedSeconds(state.masturbationTracking, clock), openAction: (action: unknown) => calls.push(action),
     openContentFree: () => calls.push("contentFree"), openPanic: () => calls.push("panic"), trackingActivation };
+  focusCallbacks = []; scrollRequests = [];
   const entries = nodes(BloomHomeScreen());
-  return { model, entries, calls,
+  return { model, entries, calls, focus: () => focusCallbacks[0]?.(), scrolls: () => scrollRequests,
     id: (id: string) => entries.find((entry) => entry.props.testID === id),
     text: () => entries.map((entry) => entry.type === "AppText" ? textOf(entry.props.children) : "").join(" "),
     press: (id: string) => {
       const button = entries.find((entry) => entry.props.testID === id);
-      assert(button?.type === "AppButton" && typeof button.props.onPress === "function", `Missing action ${id}.`);
+      assert((button?.type === "AppButton" || button?.type === "Pressable") && typeof button.props.onPress === "function", `Missing action ${id}.`);
       (button.props.onPress as () => void)();
     }
   };
@@ -100,6 +118,15 @@ function session(index: number, erectionQuality: 6 | 8 = 6) {
 function assert(value: unknown, message: string): asserts value { if (!value) throw new Error(message); }
 
 const empty = render(base());
+const safeAreaStyles = empty.id("bloom.home.safe-area")?.props.style as Array<Record<string, unknown>>;
+const scrollStyles = empty.id("bloom.home")?.props.style as Array<Record<string, unknown>>;
+assert(safeAreaStyles[1]?.paddingTop === 62 && scrollStyles[1]?.paddingTop === 0 && scrollStyles[1]?.overflow === "hidden",
+  "Home keeps the status inset outside its clipped scrolling viewport without doubling the safe area.");
+const panicButton = empty.id("bloom.home.panic");
+assert(panicButton?.props.accessibilityRole === "button" && panicButton.props.accessibilityLabel === "Şu an zorlanıyorum, Urge Control’ü aç" &&
+  textOf(panicButton.props.children) === "Şu an zorlanıyorum", "The full scaled Urge label retains its accessible action meaning.");
+empty.focus();
+assert(empty.scrolls().length === 0, "Ordinary Home retains its browsing position.");
 assert(empty.id("bloom.home.tracking") && empty.id("bloom.home.content-free"), "Tracking and inactive Content-Free must both render.");
 assert(empty.id("bloom.home.tracking.average-interval")?.props.children === "—" &&
   empty.id("bloom.home.tracking.erection-quality")?.props.children === "—", "Empty Tracking must show two dashes.");
@@ -144,10 +171,14 @@ assert(contentOnly.id("bloom.home.content-free.best") && contentOnly.text().incl
 contentOnly.press("bloom.home.content-free.action");
 assert(contentOnly.calls[1] === "contentFree", "Active Content-Free management must navigate.");
 const saving = render(base(false, true), at, { busy: true, locked: true });
+saving.focus();
+assert(saving.scrolls().length === 0 && saving.calls.length === 0, "Pending activation keeps its current viewport and cannot mutate or navigate on focus.");
 assert(saving.id("bloom.home.tracking.enable")?.props.loading === true &&
   saving.id("bloom.home.tracking.enable")?.props.disabled === true && !saving.id("bloom.home.tracking.action"),
   "Pending activation shows saving and never offers a session action.");
 const failed = render(base(false, true), at, { locked: true, canRetry: true, message: "Kaydetme henüz doğrulanmadı." });
+failed.focus();
+assert(failed.scrolls().length === 0, "Unconfirmed-save recovery does not reset the user's retry viewport.");
 assert(failed.id("bloom.home.tracking.activation-message") && failed.id("bloom.home.tracking.retry") &&
   !failed.id("bloom.home.tracking.enable") && !failed.id("bloom.home.tracking.action"),
   "Failed persistence shows feedback and only the safe retry action.");
@@ -166,8 +197,8 @@ assert(reset.model.primaryAction?.id === "viewActiveReset" && reset.id("bloom.ho
   reset.id("bloom.home.tracking") && reset.id("bloom.home.content-free"), "Active Reset keeps both tracker contexts.");
 assert(reset.entries.findIndex((n) => n.props.testID === "bloom.home.reset") <
   reset.entries.findIndex((n) => n.props.testID === "bloom.home.content-free") &&
-  reset.entries.findIndex((n) => n.props.testID === "bloom.home.content-free") <
-  reset.entries.findIndex((n) => n.props.testID === "bloom.home.tracking"), "Reset composition order must match reference.");
+  reset.entries.findIndex((n) => n.props.testID === "bloom.home.tracking") <
+  reset.entries.findIndex((n) => n.props.testID === "bloom.home.content-free"), "Reset composition order must match reference.");
 assert(reset.text().includes("Reset boyunca beklemede") && !reset.id("bloom.home.tracking.action") &&
   resetState.masturbationTracking.enabled, "Reset restrains Tracking presentation without changing enabled state.");
 reset.press("bloom.home.reset.action");
@@ -187,6 +218,9 @@ activeSession.masturbationTracking.currentSession = { id: "active", status: "act
 const activeView = render(activeSession);
 assert(activeView.model.primaryAction?.id === "resumeMasturbationSession" && activeView.text().includes("Devam eden oturum") &&
   !activeView.id("bloom.home.tracking.action"), "Active session must suppress new session start.");
+activeView.focus();
+assert(activeView.scrolls().length === 1 && (activeView.scrolls()[0] as { y: number; animated: boolean }).y === 0 && (activeView.scrolls()[0] as { animated: boolean }).animated === false, "Priority resume is visible on focus with immediate scroll only; no navigation or domain command.");
+assert(activeView.calls.length === 0, "Viewport focus cannot mutate or navigate a session.");
 activeView.press("bloom.home.primary.action");
 assert((activeView.calls[0] as { sessionId: string }).sessionId === "active", "Resume must preserve session ID.");
 const feedbackState = base();
@@ -253,6 +287,17 @@ assert(hookSource.includes("getBloomHomeReadModel(durableState, observationTime)
   hookSource.includes("activationController.enable(durableState.masturbationTracking)") &&
   !hookSource.includes("getNextBloomAction"),
   "Home hook must read durable product facts, activate through the controller, and navigate canonical actions.");
-assert(!screenSource.includes("14 gün sonra") && !screenSource.includes("remainingSeconds") &&
-  !screenSource.includes("tracking.disable"), "Home cannot promise automatic remeasurement, show seconds, or disable Tracking.");
+assert(!screenSource.includes("14 gün sonra") && !screenSource.includes("tracking.disable"), "Home cannot promise automatic remeasurement or disable Tracking; displayed elapsed time is read-only.");
+
+assert(empty.id("bloom.home.tracking.elapsed.value")?.props.children === "—", "No completed record must not invent an elapsed counter.");
+assert(getHomeTrackingElapsedSeconds(populatedState.masturbationTracking, at) === 6900, "Counter anchors the latest completed END timestamp, not its start.");
+assert(populated.id("bloom.home.tracking.elapsed.time")?.props.children === "1 sa 55 dk 0 sn", "Live counter uses the real end timestamp at the scoped clock.");
+assert(future.masturbationTracking.sessions.length === 2 && getHomeTrackingElapsedSeconds(future.masturbationTracking, at) === 266100, "Future completion is excluded from elapsed anchor without changing input records.");
+assert(getHomeTrackingElapsedSeconds(base().masturbationTracking, "invalid") === null, "Unavailable clock must not produce a guessed counter.");
+assert(together.id("bloom.home.tracking.completed")?.props.children === "0", "Capsule is an all-time observed count, never an invented monthly trend.");
+assert(!together.text().includes("Korumalı") && !together.text().includes("%12") && !together.text().includes("Mert"), "Home must not promise unverified protection, trends or user names.");
+const disabledHistory = base(false, false);
+disabledHistory.masturbationTracking.sessions = [session(0)];
+const disabledHistoryHome = render(disabledHistory);
+assert(disabledHistoryHome.text().includes("1 tamamlanan kaydın korunur") && disabledHistoryHome.text().includes("Takip şu anda kapalı") && !disabledHistoryHome.text().includes("Henüz tamamlanan oturum yok"), "Disabled Tracking must not falsely deny saved history.");
 console.log("Bloom Home UI verification passed (inactive activation, saving/retry feedback, presentation metrics, card ordering, semantic actions, hydration, and durable hook wiring).");

@@ -1,0 +1,31 @@
+[
+  {
+    "test": "verify:journey",
+    "exit": 0
+  },
+  {
+    "test": "verify:reset-continuity",
+    "exit": 0
+  },
+  {
+    "test": "verify:protection-reset",
+    "exit": 0
+  },
+  {
+    "test": "verify:guided-flows",
+    "exit": 0
+  },
+  {
+    "test": "verify:product-onboarding-ui",
+    "exit": 0
+  },
+  {
+    "test": "verify:e2e-runtime",
+    "exit": 0
+  },
+  {
+    "test": "verify:release-debug-guards",
+    "exit": 0,
+    "initial_exit": 1
+  }
+]

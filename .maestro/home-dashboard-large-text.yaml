@@ -1,0 +1,16 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Home largest Dynamic Type top and bottom
+---
+# Temporarily set Simulator content_size; restore the original large afterwards.
+- stopApp
+- launchApp
+- openLink: "tms-e2e:///today"
+- assertVisible: { id: "bloom.home" }
+- takeScreenshot: "27-native-largest-text-top"
+- scrollUntilVisible:
+    element: { id: "bloom.home.panic" }
+    direction: DOWN
+    centerElement: false
+    timeout: 120000
+- assertVisible: "Şu an zorlanıyorum.*"
+- takeScreenshot: "28-native-largest-text-bottom"

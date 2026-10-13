@@ -563,7 +563,7 @@ function verifyPhase10QaGuards() {
   const route = read("app/debug/phase10.tsx");
   assertInvariant(route.includes('if (!phase10QaEnabled) return <Redirect href="/" />;') && route.indexOf("if (!phase10QaEnabled)") < route.indexOf("return <Phase10QaScreen"), "Phase 10 route must reject release access before mounting controls.");
   assertInvariant(read("src/app/providers/AppProviders.tsx").includes("phase10QaEnabled ? <Phase10QaProvider>"), "Phase 10 fixtures/storage must only be initialized behind the same guard.");
-  assertInvariant(read("src/features/debug/phase10/Phase10QaProvider.tsx").includes("phase10QaEnabled ? createPhase10QaSession(storageClient) : null"), "QA provider must independently reject unguarded initialization.");
+  assertInvariant(read("src/features/debug/phase10/Phase10QaProvider.tsx").includes("phase10QaEnabled ? createPhase10QaSession(storageClient, getHomeQaStoragePrefix(process.env.EXPO_PUBLIC_HOME_QA_RUN)) : null"), "QA provider must independently reject unguarded initialization.");
 }
 
 verifyPhase10QaGuards();

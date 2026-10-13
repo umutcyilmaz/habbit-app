@@ -1,0 +1,23 @@
+{
+  "passed": true,
+  "prior_keys_preserved": 21,
+  "data_values_exported": false,
+  "bundles": {
+    "com.umutcyilmaz.bloom": {
+      "before_count": 1,
+      "after_count": 1,
+      "preserved_count": 1,
+      "changed_or_missing": [],
+      "new_keys": []
+    },
+    "com.umutcyilmaz.bloom.e2e": {
+      "before_count": 20,
+      "after_count": 21,
+      "preserved_count": 20,
+      "changed_or_missing": [],
+      "new_keys": [
+        "bloom.e2e.home.home_visual_20261013_b29f.bloom.localState.v8"
+      ]
+    }
+  }
+}

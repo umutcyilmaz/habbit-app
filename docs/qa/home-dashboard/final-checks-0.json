@@ -1,0 +1,18 @@
+[
+  {
+    "test": "verify:persistence",
+    "exit": 0
+  },
+  {
+    "test": "verify:persistence-acknowledgement",
+    "exit": 0
+  },
+  {
+    "test": "verify:navigation",
+    "exit": 0
+  },
+  {
+    "test": "verify:release-debug-guards",
+    "exit": 0
+  }
+]

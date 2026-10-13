@@ -1,0 +1,154 @@
+{
+  "passed": true,
+  "method": "Read-only pngjs decode of raw Simulator PNG. Check opaque #010208 pixels in top 62pt / 186px excluding system glyph/island rectangles. No image editing.",
+  "scale": 3,
+  "top_inset_points": 62,
+  "excluded_glyph_rectangles_pixels": [
+    [
+      110,
+      45,
+      370,
+      155
+    ],
+    [
+      850,
+      45,
+      1170,
+      155
+    ],
+    [
+      380,
+      0,
+      825,
+      130
+    ]
+  ],
+  "images": [
+    {
+      "file": "screenshots/01-native-fresh.png",
+      "protected_background_pixels_checked": 101288,
+      "unexpected_background_pixels": 0,
+      "raw_full_status_strip_sha256": "bc43d7147464b5ebb0fff03342223fb6603355643e1a2fb2bd553ba5bc35e24c"
+    },
+    {
+      "file": "screenshots/02-native-content-free-inactive.png",
+      "protected_background_pixels_checked": 101288,
+      "unexpected_background_pixels": 0,
+      "raw_full_status_strip_sha256": "bc43d7147464b5ebb0fff03342223fb6603355643e1a2fb2bd553ba5bc35e24c"
+    },
+    {
+      "file": "screenshots/03-native-tracking-failed-save.png",
+      "protected_background_pixels_checked": 101288,
+      "unexpected_background_pixels": 0,
+      "raw_full_status_strip_sha256": "bc43d7147464b5ebb0fff03342223fb6603355643e1a2fb2bd553ba5bc35e24c"
+    },
+    {
+      "file": "screenshots/04-native-tracking-enabled-empty.png",
+      "protected_background_pixels_checked": 101288,
+      "unexpected_background_pixels": 0,
+      "raw_full_status_strip_sha256": "bc43d7147464b5ebb0fff03342223fb6603355643e1a2fb2bd553ba5bc35e24c"
+    },
+    {
+      "file": "screenshots/05-native-content-free-active-first-day.png",
+      "protected_background_pixels_checked": 101288,
+      "unexpected_background_pixels": 0,
+      "raw_full_status_strip_sha256": "bc43d7147464b5ebb0fff03342223fb6603355643e1a2fb2bd553ba5bc35e24c"
+    },
+    {
+      "file": "screenshots/06-native-home-restart.png",
+      "protected_background_pixels_checked": 101288,
+      "unexpected_background_pixels": 0,
+      "raw_full_status_strip_sha256": "bc43d7147464b5ebb0fff03342223fb6603355643e1a2fb2bd553ba5bc35e24c"
+    },
+    {
+      "file": "screenshots/09-native-unfinished-session-priority.png",
+      "protected_background_pixels_checked": 101288,
+      "unexpected_background_pixels": 0,
+      "raw_full_status_strip_sha256": "bc43d7147464b5ebb0fff03342223fb6603355643e1a2fb2bd553ba5bc35e24c"
+    },
+    {
+      "file": "screenshots/11-native-real-tracking-hero.png",
+      "protected_background_pixels_checked": 101288,
+      "unexpected_background_pixels": 0,
+      "raw_full_status_strip_sha256": "bc43d7147464b5ebb0fff03342223fb6603355643e1a2fb2bd553ba5bc35e24c"
+    },
+    {
+      "file": "screenshots/15-native-reset-active.png",
+      "protected_background_pixels_checked": 101288,
+      "unexpected_background_pixels": 0,
+      "raw_full_status_strip_sha256": "bc43d7147464b5ebb0fff03342223fb6603355643e1a2fb2bd553ba5bc35e24c"
+    },
+    {
+      "file": "screenshots/16-native-reset-tracking-restricted.png",
+      "protected_background_pixels_checked": 101288,
+      "unexpected_background_pixels": 0,
+      "raw_full_status_strip_sha256": "bc43d7147464b5ebb0fff03342223fb6603355643e1a2fb2bd553ba5bc35e24c"
+    },
+    {
+      "file": "screenshots/17-native-reset-earned-credit.png",
+      "protected_background_pixels_checked": 101288,
+      "unexpected_background_pixels": 0,
+      "raw_full_status_strip_sha256": "bc43d7147464b5ebb0fff03342223fb6603355643e1a2fb2bd553ba5bc35e24c"
+    },
+    {
+      "file": "screenshots/18-native-reset-restart.png",
+      "protected_background_pixels_checked": 101288,
+      "unexpected_background_pixels": 0,
+      "raw_full_status_strip_sha256": "bc43d7147464b5ebb0fff03342223fb6603355643e1a2fb2bd553ba5bc35e24c"
+    },
+    {
+      "file": "screenshots/27-native-largest-text-top.png",
+      "protected_background_pixels_checked": 101288,
+      "unexpected_background_pixels": 0,
+      "raw_full_status_strip_sha256": "bc43d7147464b5ebb0fff03342223fb6603355643e1a2fb2bd553ba5bc35e24c"
+    },
+    {
+      "file": "screenshots/28-native-largest-text-bottom.png",
+      "protected_background_pixels_checked": 101288,
+      "unexpected_background_pixels": 0,
+      "raw_full_status_strip_sha256": "bc43d7147464b5ebb0fff03342223fb6603355643e1a2fb2bd553ba5bc35e24c"
+    },
+    {
+      "file": "screenshots/29-native-tracking-middle.png",
+      "protected_background_pixels_checked": 101288,
+      "unexpected_background_pixels": 0,
+      "raw_full_status_strip_sha256": "bc43d7147464b5ebb0fff03342223fb6603355643e1a2fb2bd553ba5bc35e24c"
+    },
+    {
+      "file": "screenshots/30-native-tracking-bottom.png",
+      "protected_background_pixels_checked": 101288,
+      "unexpected_background_pixels": 0,
+      "raw_full_status_strip_sha256": "bc43d7147464b5ebb0fff03342223fb6603355643e1a2fb2bd553ba5bc35e24c"
+    },
+    {
+      "file": "screenshots/31-native-tracking-back-top.png",
+      "protected_background_pixels_checked": 101288,
+      "unexpected_background_pixels": 0,
+      "raw_full_status_strip_sha256": "bc43d7147464b5ebb0fff03342223fb6603355643e1a2fb2bd553ba5bc35e24c"
+    },
+    {
+      "file": "screenshots/32-native-reset-middle.png",
+      "protected_background_pixels_checked": 101288,
+      "unexpected_background_pixels": 0,
+      "raw_full_status_strip_sha256": "bc43d7147464b5ebb0fff03342223fb6603355643e1a2fb2bd553ba5bc35e24c"
+    },
+    {
+      "file": "screenshots/33-native-reset-bottom.png",
+      "protected_background_pixels_checked": 101288,
+      "unexpected_background_pixels": 0,
+      "raw_full_status_strip_sha256": "bc43d7147464b5ebb0fff03342223fb6603355643e1a2fb2bd553ba5bc35e24c"
+    },
+    {
+      "file": "screenshots/34-native-reset-back-top.png",
+      "protected_background_pixels_checked": 101288,
+      "unexpected_background_pixels": 0,
+      "raw_full_status_strip_sha256": "bc43d7147464b5ebb0fff03342223fb6603355643e1a2fb2bd553ba5bc35e24c"
+    },
+    {
+      "file": "screenshots/35-native-unfinished-session-focus.png",
+      "protected_background_pixels_checked": 101288,
+      "unexpected_background_pixels": 0,
+      "raw_full_status_strip_sha256": "bc43d7147464b5ebb0fff03342223fb6603355643e1a2fb2bd553ba5bc35e24c"
+    }
+  ]
+}

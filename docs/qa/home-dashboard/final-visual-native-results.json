@@ -1,0 +1,43 @@
+{
+  "simulator": "iPhone 17 Pro / iOS 26.3",
+  "bundle": "com.umutcyilmaz.bloom.e2e",
+  "checks": [
+    {
+      "flow": "Tracking top/middle/bottom/back-top",
+      "run": "home_fresh_20261013_a81d",
+      "trace_directory": "/private/tmp/home-final-visual-tracking-settled",
+      "read_only": true,
+      "exit": 0,
+      "result": "passed complete flow"
+    },
+    {
+      "flow": "Reset top/middle/bottom/back-top/restart",
+      "run": "home_reset_20261013_c49a",
+      "trace_directory": "/private/tmp/home-final-visual-reset",
+      "read_only": true,
+      "exit": 0,
+      "result": "passed complete flow"
+    },
+    {
+      "flow": "Largest Dynamic Type label/top/bottom",
+      "run": "home_fresh_20261013_a81d",
+      "trace_directory": "/private/tmp/home-final-visual-largest",
+      "read_only": true,
+      "exit": 0,
+      "result": "passed complete flow"
+    },
+    {
+      "flow": "Fresh/save failure/retry/guard/restart/unfinished-session focus",
+      "run": "home_visual_20261013_b29f",
+      "trace_directory": "/private/tmp/home-final-visual-priority",
+      "read_only": false,
+      "exit": 0,
+      "result": "passed complete flow"
+    }
+  ],
+  "content_size_restored": "large",
+  "previous_user_and_qa_keys_preserved": 21,
+  "screenshots_current": 35,
+  "new_session_left_saved": true,
+  "no_delete_reset_reseed": true
+}

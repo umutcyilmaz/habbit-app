@@ -1,0 +1,56 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Home elapsed Reset real completion and continuation decision
+---
+# A separate NEW EXPO_PUBLIC_HOME_QA_RUN. Prepare elapsed active state once.
+- openLink: "tms-e2e:///debug/phase10"
+- assertVisible: "Home QA run: ${HOME_QA_RUN}"
+- scrollUntilVisible:
+    element: { id: "bloom.qa.phase10.before-completion" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.qa.phase10.before-completion" }
+- scrollUntilVisible:
+    element: { id: "bloom.qa.phase10.home" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.qa.phase10.home" }
+- assertVisible: "15 gün tamamlandı"
+- assertNotVisible: { id: "bloom.home.reset" }
+- assertNotVisible: { id: "bloom.home.tracking.enable" }
+- takeScreenshot: "19-native-elapsed-reset-completion-required"
+- tapOn: { id: "bloom.home.primary.action" }
+- scrollUntilVisible:
+    element: { id: "bloom.reset.complete" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.reset.complete" }
+- scrollUntilVisible:
+    element: { id: "bloom.reset.content-free.accept" }
+    direction: DOWN
+    centerElement: true
+- assertVisible: "15 günlük serimle devam et"
+- scrollUntilVisible:
+    element: { id: "bloom.reset.close" }
+    direction: UP
+- tapOn: { id: "bloom.reset.close" }
+- assertVisible: "15 günlük Reset'i tamamladın!"
+- takeScreenshot: "20-native-continuation-pending"
+- scrollUntilVisible:
+    element: { id: "bloom.home.content-free.action" }
+    direction: DOWN
+    centerElement: true
+- assertVisible: "Reset serinle devam et"
+- takeScreenshot: "21-native-continuation-content-free-entry"
+- tapOn: { id: "bloom.home.content-free.action" }
+- scrollUntilVisible:
+    element: { id: "bloom.reset.content-free.accept" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.reset.content-free.accept" }
+- assertVisible: { id: "bloom.home" }
+- scrollUntilVisible:
+    element: { id: "bloom.home.content-free.current" }
+    direction: DOWN
+    centerElement: true
+- assertVisible: { id: "bloom.home.content-free.current", text: "15" }
+- takeScreenshot: "22-native-continuation-accepted"

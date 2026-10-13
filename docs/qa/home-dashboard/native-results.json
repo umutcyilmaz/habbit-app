@@ -1,0 +1,61 @@
+{
+  "simulator": "iPhone 17 Pro, iOS 26.3",
+  "bundle": "com.umutcyilmaz.bloom.e2e",
+  "results": [
+    {
+      "verification": "Fresh/failure/retry/guard/CF/restart",
+      "run": "home_final_20261013_f83e",
+      "local_trace_directory": "/private/tmp/home-dashboard-fresh-final",
+      "result": "passed complete flow"
+    },
+    {
+      "verification": "Real Tracking/CF violation/history/Urge/restart",
+      "run": "home_fresh_20261013_a81d",
+      "local_trace_directory": "/private/tmp/home-dashboard-history, home-dashboard-history-resumed, home-dashboard-urge-final, home-dashboard-urge-return-final, home-dashboard-return-restart",
+      "result": "passed resumed segments; mutations not replayed"
+    },
+    {
+      "verification": "Active Reset/earned credit/restart",
+      "run": "home_reset_20261013_c49a",
+      "local_trace_directory": "/private/tmp/home-dashboard-reset",
+      "result": "passed complete flow"
+    },
+    {
+      "verification": "Final Reset read-only recapture",
+      "run": "home_reset_20261013_c49a",
+      "local_trace_directory": "/private/tmp/home-reset-recapture-final",
+      "result": "passed complete flow; no state writes"
+    },
+    {
+      "verification": "Completion/continuation acceptance",
+      "run": "home_completion_20261013_d7b2",
+      "local_trace_directory": "/private/tmp/home-dashboard-completion, /private/tmp/home-dashboard-continuation-accepted",
+      "result": "passed resumed segments; mutations not replayed"
+    },
+    {
+      "verification": "Priority focus after scrolled Home",
+      "run": "home_completion_20261013_d7b2",
+      "local_trace_directory": "/private/tmp/home-dashboard-priority-focus",
+      "result": "passed complete flow"
+    },
+    {
+      "verification": "Profile/Library/Kegel smoke",
+      "run": "home_final_20261013_f83e",
+      "local_trace_directory": "/private/tmp/home-dashboard-smoke",
+      "result": "passed complete flow; read only"
+    },
+    {
+      "verification": "Largest Dynamic Type top/bottom",
+      "run": "home_final_20261013_f83e",
+      "local_trace_directory": "/private/tmp/home-dashboard-large-text-final",
+      "result": "passed complete flow; read only; content size restored to large"
+    }
+  ],
+  "earlier_assertion_failures": [
+    "Existing automatic Home return, feedback steps and offscreen text corrected without replaying successful writes.",
+    "Largest Dynamic Type scroll needed longer timeout; final non-centered scroll passed."
+  ],
+  "screenshots": 35,
+  "initial_screenshots": 28,
+  "final_visual_results": "final-visual-native-results.json"
+}

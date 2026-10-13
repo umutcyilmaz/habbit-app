@@ -1,3 +1,4 @@
+import type { Ref } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -19,6 +20,7 @@ type StaticScreenProps = ViewProps & {
 
 type ScrollScreenProps = ScrollViewProps & {
   scroll: true;
+  scrollRef?: Ref<ScrollView>;
   includeBottomNavClearance?: boolean;
 };
 
@@ -30,6 +32,7 @@ export function AppScreen(props: AppScreenProps) {
   if (props.scroll === true) {
     const {
       scroll: _scroll,
+      scrollRef,
       includeBottomNavClearance: _includeBottomNavClearance,
       contentContainerStyle,
       style,
@@ -60,7 +63,7 @@ export function AppScreen(props: AppScreenProps) {
     ];
 
     return (
-      <ScrollView {...scrollViewProps} style={shellStyle} contentContainerStyle={contentStyle}>
+      <ScrollView {...scrollViewProps} ref={scrollRef} style={shellStyle} contentContainerStyle={contentStyle}>
         {children}
       </ScrollView>
     );

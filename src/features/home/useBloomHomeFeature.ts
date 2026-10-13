@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { useRouter } from "expo-router";
+import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
+import { AppState } from "react-native";
+import { useFocusEffect, useRouter } from "expo-router";
 
 import { getBloomContentFreeEntryIntent } from "../../app/flows/getBloomContentFreeEntryIntent";
 import { getResetContentFreeContinuationOffer } from "../../domain/contentFree/getResetContentFreeCredit";
@@ -8,7 +9,8 @@ import { useBloomProductFlowActions } from "../../app/flows/useBloomProductFlowA
 import { navigateBloomProductFlow } from "../../app/navigation/navigateBloomProductFlow";
 import { useBloomLocalState } from "../../app/providers/BloomLocalStateProvider";
 import { getBloomHomeReadModel, type BloomHomeAction } from "../../domain/home/getBloomHomeReadModel";
-import { getTrackingSummary } from "./homePresentation";
+import { getContentFreeProgress } from "../../domain/contentFree/getContentFreeProgress";
+import { getHomeTrackingElapsedSeconds, getTrackingSummary } from "./homePresentation";
 import { createHomeTrackingActivationController } from "./homeTrackingActivationController";
 
 const readSystemTime = () => new Date();
@@ -23,18 +25,26 @@ export function useBloomHomeFeature() {
   const activation = useSyncExternalStore(activationController.subscribe, activationController.getSnapshot, activationController.getSnapshot);
   const [observationTime, setObservationTime] = useState(() => (now ?? readSystemTime)().toISOString());
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     const refresh = () => setObservationTime((now ?? readSystemTime)().toISOString());
     refresh();
-    const interval = setInterval(refresh, 60_000);
-    return () => clearInterval(interval);
-  }, [now, durableState.resetJourney, durableState.contentFree]);
+    let interval: ReturnType<typeof setInterval> | undefined;
+    const update = () => {
+      if (interval !== undefined) clearInterval(interval);
+      if (AppState.currentState === "active") { refresh(); interval = setInterval(refresh, 60_000); }
+    };
+    update();
+    const subscription = AppState.addEventListener("change", update);
+    return () => { if (interval !== undefined) clearInterval(interval); subscription.remove(); };
+  }, [now, durableState.resetJourney, durableState.contentFree, durableState.masturbationTracking]));
 
   const model = useMemo(() => hydrationStatus === "ready"
     ? getBloomHomeReadModel(durableState, observationTime)
     : null, [durableState, hydrationStatus, observationTime]);
   const tracking = useMemo(() => getTrackingSummary(durableState.masturbationTracking, observationTime),
     [durableState.masturbationTracking, observationTime]);
+  const trackingElapsedSeconds = useMemo(() => getHomeTrackingElapsedSeconds(durableState.masturbationTracking, observationTime), [durableState.masturbationTracking, observationTime]);
+  const contentFreeProgress = useMemo(() => hydrationStatus === "ready" ? getContentFreeProgress(durableState.contentFree, observationTime) : null, [durableState.contentFree, hydrationStatus, observationTime]);
   const openAction = useCallback((action: BloomHomeAction) => {
     navigateBloomProductFlow(router, mapBloomHomeActionToFlowIntent(action));
   }, [router]);
@@ -56,7 +66,7 @@ export function useBloomHomeFeature() {
     if (pending !== null) void pending.catch(() => {});
   }, [activationController]);
 
-  return { hydrationStatus, model, tracking, openAction, openPanic, openContentFree, contentFreeContinuation,
+  return { hydrationStatus, model, tracking, trackingElapsedSeconds, contentFreeProgress, observationTime, now: now ?? readSystemTime, openAction, openPanic, openContentFree, contentFreeContinuation,
     trackingActivation: {
       busy: activation.busy,
       locked: activation.busy || activationUnconfirmed || activation.result?.ok === true ||

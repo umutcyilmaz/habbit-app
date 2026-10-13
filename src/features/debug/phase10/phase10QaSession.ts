@@ -2,7 +2,7 @@ import { createBloomProductFlowActions } from "../../../app/flows/bloomProductFl
 import { createBloomProductAcknowledgedActions } from "../../../app/providers/bloomProductAcknowledgedActions";
 import { createBloomLocalStateMutationRuntime } from "../../../app/providers/bloomLocalStateMutationRuntime";
 import { createDefaultBloomState } from "../../../storage/bloomState";
-import { createBloomStatePersistenceCoordinator } from "../../../storage/bloomStatePersistence";
+import { BLOOM_STATE_STORAGE_KEY, createBloomStatePersistenceCoordinator } from "../../../storage/bloomStatePersistence";
 import type { StorageClient } from "../../../storage/storageAdapters";
 import { createResetContinuityFixture } from "./resetContinuityFixture";
 
@@ -18,19 +18,27 @@ export type Phase10ScenarioId = typeof phase10Scenarios[number]["id"];
 export const PHASE10_STORAGE_PREFIX = "bloom.e2e.phase10.";
 const clockKey = "clock";
 
+// A supplied Home run must never fall back to previous QA or canonical storage.
+export function getHomeQaStoragePrefix(run: string | undefined): string {
+  if (run === undefined) return PHASE10_STORAGE_PREFIX;
+  if (!/^[a-zA-Z0-9_-]{8,80}$/.test(run)) throw new Error("A new valid Home QA run is required");
+  return `bloom.e2e.home.${run}.`;
+}
+
 // Namespace every operation, including migrations, corruption backups and
 // deletion enumeration. Never read/copy canonical Bloom or existing E2E data.
-export function createPhase10StorageClient(client: StorageClient): StorageClient {
+export function createPhase10StorageClient(client: StorageClient, prefix = PHASE10_STORAGE_PREFIX): StorageClient {
+  if (prefix !== PHASE10_STORAGE_PREFIX && !/^bloom\.e2e\.home\.[a-zA-Z0-9_-]{8,80}\.$/.test(prefix)) throw new Error("Invalid isolated QA prefix");
   return {
-    getItem: (key) => client.getItem(PHASE10_STORAGE_PREFIX + key),
-    setItem: (key, value) => client.setItem(PHASE10_STORAGE_PREFIX + key, value),
-    removeItem: (key) => client.removeItem(PHASE10_STORAGE_PREFIX + key),
-    getAllKeys: async () => (await client.getAllKeys()).filter((key) => key.startsWith(PHASE10_STORAGE_PREFIX)).map((key) => key.slice(PHASE10_STORAGE_PREFIX.length))
+    getItem: (key) => client.getItem(prefix + key),
+    setItem: (key, value) => client.setItem(prefix + key, value),
+    removeItem: (key) => client.removeItem(prefix + key),
+    getAllKeys: async () => (await client.getAllKeys()).filter((key) => key.startsWith(prefix)).map((key) => key.slice(prefix.length))
   };
 }
 
-export function createPhase10QaSession(client: StorageClient) {
-  const isolated = createPhase10StorageClient(client);
+export function createPhase10QaSession(client: StorageClient, prefix = PHASE10_STORAGE_PREFIX) {
+  const isolated = createPhase10StorageClient(client, prefix);
   const fixture = createResetContinuityFixture();
   let observationTime = fixture.now().toISOString();
   let failNextWrite = false;
@@ -61,6 +69,12 @@ export function createPhase10QaSession(client: StorageClient) {
         observationTime = value;
       }
     },
+    async advanceClockByDays(days: number) {
+      if (!Number.isInteger(days) || days < 1 || days > 30 || preparing) throw new Error("Invalid isolated clock advance");
+      const next = new Date(Date.parse(observationTime) + days * 86400000).toISOString();
+      await isolated.setItem(clockKey, next);
+      observationTime = next;
+    },
     failNextSave() { failNextWrite = true; invalidateNextWrite = false; },
     invalidateNextSave() { invalidateNextWrite = true; failNextWrite = false; },
     async prepareScenario(id: Phase10ScenarioId, beforeCompletion = false) {
@@ -72,6 +86,7 @@ export function createPhase10QaSession(client: StorageClient) {
       failNextWrite = false;
       invalidateNextWrite = false;
       try {
+        if (prefix !== PHASE10_STORAGE_PREFIX && await isolated.getItem(BLOOM_STATE_STORAGE_KEY) !== null) throw new Error("Use a new Home QA run; existing QA records cannot be replaced");
         const initial = createDefaultBloomState();
         const mutation = createBloomLocalStateMutationRuntime({ initialState: initial, persistState: persistence.enqueueWrite });
         mutation.completeHydration(mutation.beginHydration(), initial, { needsPersist: false, persistenceError: null });

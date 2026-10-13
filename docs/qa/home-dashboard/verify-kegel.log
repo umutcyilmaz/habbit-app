@@ -1,0 +1,9 @@
+
+> tms@0.1.0 verify:kegel
+> node scripts/verify-bloom-kegel.cjs
+
+Kegel verification passed: timing boundaries, final relaxation, asymmetric editable config, truthful empty state, 36 preview guards, real-hook pause/resume/background/once-only completion and cleanup, memory-only runtime.
+Kegel durable-QA guard verification passed (144 combinations, explicit unique namespace required).
+Kegel route isolation passed: memory design builds cannot claim durable saves; guarded durable QA entry.
+Kegel QA startup fails closed before Expo when the isolated run name is missing/invalid.
+Kegel final UX verification passed: four truthful completion states, unchanged dismiss/retry guards, durable-only first exercise, failed onboarding + retry, double taps, effect replay, cancellation and revisited technique.

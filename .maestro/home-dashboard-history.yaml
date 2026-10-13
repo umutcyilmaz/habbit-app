@@ -1,0 +1,167 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Home real records new streak resume Urge and restart in this phase isolated run
+---
+# Continue only this phase's NEW fresh run after home-dashboard.yaml. No reseed/clearState.
+- openLink: "tms-e2e:///debug/phase10"
+- assertVisible: "Home QA run: ${HOME_QA_RUN}"
+- scrollUntilVisible:
+    element: { id: "bloom.qa.home.advance-clock" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.qa.home.advance-clock" }
+- scrollUntilVisible:
+    element: { id: "bloom.qa.phase10.home" }
+    direction: UP
+- tapOn: { id: "bloom.qa.phase10.home" }
+- scrollUntilVisible:
+    element: { id: "bloom.home.content-free.current" }
+    direction: DOWN
+    centerElement: true
+- assertVisible: { id: "bloom.home.content-free.current", text: "3" }
+- takeScreenshot: "07-native-content-free-three-days"
+- tapOn: { id: "bloom.home.content-free.action" }
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.record" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.content-free.record" }
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.record.confirm" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.content-free.record.confirm" }
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.save-state" }
+    direction: UP
+- assertVisible: "Bu cihaza kaydedildi"
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.close" }
+    direction: UP
+- tapOn: { id: "bloom.content-free.close" }
+- scrollUntilVisible:
+    element: { id: "bloom.home.content-free.current" }
+    direction: DOWN
+    centerElement: true
+- assertVisible: { id: "bloom.home.content-free.current", text: "0" }
+- assertVisible: "Yeni serin başladı.*"
+- assertVisible: "En uzun seri 3 gün"
+- takeScreenshot: "08-native-content-free-new-streak"
+- scrollUntilVisible:
+    element: { id: "bloom.home.tracking.action" }
+    direction: UP
+- tapOn: { id: "bloom.home.tracking.action" }
+- assertVisible: { id: "bloom.masturbation.start" }
+- tapOn: { id: "bloom.masturbation.start.begin" }
+- assertVisible: { id: "bloom.masturbation.active" }
+- tapOn: { id: "bloom.masturbation.close" }
+- assertVisible: { id: "bloom.home.primary.action" }
+- assertVisible: "Devam eden oturum"
+- takeScreenshot: "09-native-unfinished-session-priority"
+- tapOn: { id: "bloom.home.primary.action" }
+- scrollUntilVisible:
+    element: { id: "bloom.masturbation.active.end" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.masturbation.active.end" }
+- assertVisible: { id: "bloom.masturbation.feedback" }
+- tapOn: { id: "bloom.masturbation.close" }
+- assertVisible: "Oturum geri bildirimi bekliyor"
+- takeScreenshot: "10-native-pending-feedback-priority"
+- tapOn: { id: "bloom.home.primary.action" }
+- scrollUntilVisible:
+    element: { id: "bloom.masturbation.feedback.erection.7" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.masturbation.feedback.erection.7" }
+- scrollUntilVisible:
+    element: { text: "^Devam et$" }
+    direction: DOWN
+    centerElement: true
+- tapOn: "^Devam et$"
+- scrollUntilVisible:
+    element: { id: "bloom.masturbation.feedback.content.no" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.masturbation.feedback.content.no" }
+- scrollUntilVisible:
+    element: { text: "^Devam et$" }
+    direction: DOWN
+    centerElement: true
+- tapOn: "^Devam et$"
+- scrollUntilVisible:
+    element: { id: "bloom.masturbation.feedback.ending.climaxed" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.masturbation.feedback.ending.climaxed" }
+- scrollUntilVisible:
+    element: { id: "bloom.masturbation.feedback.submit" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.masturbation.feedback.submit" }
+- assertVisible: { id: "bloom.home" }
+- openLink: "tms-e2e:///debug/phase10"
+- scrollUntilVisible:
+    element: { id: "bloom.qa.home.advance-clock" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.qa.home.advance-clock" }
+- scrollUntilVisible:
+    element: { id: "bloom.qa.phase10.home" }
+    direction: UP
+- tapOn: { id: "bloom.qa.phase10.home" }
+- scrollUntilVisible:
+    element: { text: "3 tamamlanan gün" }
+    direction: UP
+- assertVisible: { id: "bloom.home.tracking.elapsed", text: "3 tamamlanan gün" }
+- assertVisible: { id: "bloom.home.tracking.erection-quality", text: "7/10" }
+- assertVisible: { id: "bloom.home.tracking.completed", text: "1" }
+- assertVisible: { id: "bloom.home.tracking.average-interval", text: "—" }
+- takeScreenshot: "11-native-real-tracking-hero"
+- scrollUntilVisible:
+    element: { id: "bloom.home.panic" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.home.panic" }
+- assertVisible: { id: "bloom.panic" }
+- scrollUntilVisible:
+    element: { id: "bloom.panic.triggered" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.panic.triggered" }
+- assertVisible: { id: "bloom.urge.resume" }
+- openLink: "tms-e2e:///today"
+- scrollUntilVisible:
+    element: { id: "bloom.home.primary.action" }
+    direction: UP
+- assertVisible: "Devam eden dürtü kontrolü"
+- takeScreenshot: "12-native-urge-resume-priority"
+- tapOn: { id: "bloom.home.primary.action" }
+- scrollUntilVisible:
+    element: { id: "bloom.urge.interrupt.complete" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.urge.interrupt.complete" }
+- scrollUntilVisible:
+    element: { id: "bloom.urge.outcome.reduced" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.urge.outcome.reduced" }
+- scrollUntilVisible:
+    element: { id: "bloom.urge.triggers.skip" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.urge.triggers.skip" }
+- scrollUntilVisible:
+    element: { id: "bloom.urge.complete" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.urge.complete" }
+- assertVisible: { id: "bloom.home" }
+- assertNotVisible: "Devam eden dürtü kontrolü"
+- takeScreenshot: "13-native-return-from-urge"
+- stopApp
+- launchApp
+- openLink: "tms-e2e:///today"
+- assertVisible: { id: "bloom.home.tracking.completed", text: "1" }
+- assertVisible: { id: "bloom.home.tracking.erection-quality", text: "7/10" }
+- takeScreenshot: "14-native-real-history-restart"

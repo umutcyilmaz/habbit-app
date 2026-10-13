@@ -1,0 +1,30 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Home final visual fresh save recovery and unfinished-session focus
+---
+# A NEW unique Home run only. No reset/clear/delete/fixture preparation.
+- runFlow: home-dashboard.yaml
+- scrollUntilVisible:
+    element: { id: "bloom.home.tracking.action" }
+    direction: UP
+    centerElement: false
+- tapOn: { id: "bloom.home.tracking.action" }
+- assertVisible: { id: "bloom.masturbation.start" }
+- tapOn: { id: "bloom.masturbation.start.begin" }
+- assertVisible: { id: "bloom.masturbation.active" }
+- tapOn: { id: "bloom.masturbation.close" }
+- assertVisible: "Devam eden oturum"
+- assertVisible: { id: "bloom.home.primary.action" }
+- takeScreenshot: "09-native-unfinished-session-priority"
+- scrollUntilVisible:
+    element: { id: "bloom.home.panic" }
+    direction: DOWN
+    centerElement: false
+- tapOn: { id: "bloom.tab.profile" }
+- assertVisible: { id: "bloom.profile" }
+- tapOn: { id: "bloom.tab.today" }
+# No scroll: unfinished-session priority must be visible upon Home focus.
+- assertVisible: "Devam eden oturum"
+- assertVisible: { id: "bloom.home.primary.action" }
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "35-native-unfinished-session-focus"
+# Leave this newly saved QA session intact; do not clear or replace it.

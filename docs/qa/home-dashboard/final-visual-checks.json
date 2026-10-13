@@ -1,0 +1,30 @@
+[
+  {
+    "test": "typecheck",
+    "exit": 0
+  },
+  {
+    "test": "verify:home-ui",
+    "exit": 0
+  },
+  {
+    "test": "verify:navigation",
+    "exit": 0
+  },
+  {
+    "test": "verify:persistence",
+    "exit": 0
+  },
+  {
+    "test": "verify:persistence-acknowledgement",
+    "exit": 0
+  },
+  {
+    "test": "verify:reset-continuity",
+    "exit": 0
+  },
+  {
+    "test": "verify:protection-reset",
+    "exit": 0
+  }
+]
