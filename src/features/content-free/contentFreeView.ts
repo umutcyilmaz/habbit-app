@@ -48,8 +48,13 @@ export function formatContentFreeStreakSeconds(seconds: number): string {
 
 export function formatContentFreeEventTime(timestamp: string): string {
   const time = new Date(timestamp);
-  return Number.isFinite(time.getTime()) ? time.toLocaleString(undefined, {
+  return Number.isFinite(time.getTime()) ? time.toLocaleString("tr-TR", {
     year: "numeric", month: "short", day: "numeric",
     hour: "numeric", minute: "2-digit", second: "2-digit"
-  }) : "Unknown time";
+  }) : "Tarih bilinmiyor";
+}
+
+export function formatContentFreeShortDate(timestamp: string): string {
+  const time = new Date(timestamp);
+  return Number.isFinite(time.getTime()) ? time.toLocaleDateString("tr-TR", { day: "numeric", month: "short" }) : "Tarih bilinmiyor";
 }

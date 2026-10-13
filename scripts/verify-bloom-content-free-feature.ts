@@ -1,5 +1,7 @@
 import { getBloomPersistenceRecovery } from "../src/shared/navigation/bloomPersistenceRecovery";
 import { readFileSync } from "node:fs";
+import { getContentActivity, getContentStreakHistory } from "../src/features/home/history/activityHistory";
+import * as contentHistoryClock from "../src/features/home/history/contentHistoryClock";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
 import { isDeepStrictEqual } from "node:util";
@@ -659,10 +661,10 @@ function verifyFeatureWiring() {
     screen.includes("progress.currentCompletedDays") &&
       screen.includes("effectiveBestStreakSeconds") &&
       !screen.includes("formatContentFreeStreakSeconds"),
-    "The detail must present canonical current and best streaks as completed days, without a seconds ticker.",
+    "The detail must present canonical current and best completed days; its chip is display-only elapsed time.",
   );
   assert(
-    screen.includes("formatContentFreeDate(view.currentStreakStartedAt)") &&
+    screen.includes("formatContentFreeShortDate(view.currentStreakStartedAt)") &&
       /progress\.currentCompletedDays\s*===\s*0\s*&&\s*view\.currentActivationHasEffectiveViolation/.test(
         screen,
       ) &&
@@ -752,10 +754,17 @@ async function verifyHookWiring(pendingContinuation?: BloomLocalState, lateAckno
   let flows = h.flowActions;
   let hasHydrated = false;
   let hydrationStatus: "loading" | "error" | "ready" = "loading";
+  let historyBuilds = 0;
+  const appState = { currentState: "active", listener: null as (() => void) | null,
+    addEventListener: (_event: string, callback: () => void) => { appState.listener = callback; return { remove() { appState.listener = null; } }; } };
   const router = { replace: (path: unknown) => navigation.push(path) };
   const dependencies: Record<string, unknown> = {
-    react: hooks.react,
-    "expo-router": { useRouter: () => router },
+    react: { ...hooks.react, useCallback: (callback: () => unknown, deps: readonly unknown[]) => hooks.react.useMemo(() => callback, deps) },
+    "expo-router": { useRouter: () => router, useFocusEffect: (callback: () => void | (() => void)) => hooks.react.useEffect(callback, [callback]) },
+    "react-native": { AppState: appState },
+    "../home/history/contentHistoryClock": { ...contentHistoryClock, getContentHistoryClockSnapshot: (...args: Parameters<typeof contentHistoryClock.getContentHistoryClockSnapshot>) => {
+      historyBuilds++; return contentHistoryClock.getContentHistoryClockSnapshot(...args);
+    } },
     "../../app/flows/useBloomProductFlowActions": {
       useBloomProductFlowActions: () => flows,
     },
@@ -822,6 +831,10 @@ async function verifyHookWiring(pendingContinuation?: BloomLocalState, lateAckno
   type Feature = {
     continuationOffer: ReturnType<typeof getResetContentFreeContinuationOffer>;
     view: ReturnType<typeof getContentFreeFeatureView>;
+    durableViolations: ReturnType<typeof getContentFreeFeatureView>["history"];
+    activity: ReturnType<typeof getContentActivity>;
+    week: ReturnType<typeof getContentActivity>;
+    streaks: ReturnType<typeof getContentStreakHistory>;
     busy: boolean;
     locked: boolean;
     canRetry: boolean;
@@ -1003,8 +1016,26 @@ async function verifyHookWiring(pendingContinuation?: BloomLocalState, lateAckno
     beforeTickCounts,
     "Display clocks must not call the flow clock or mutation runtime.",
   );
+  const buildsBeforeTicks = historyBuilds;
+  const historicalDay = feature.activity.find(d => !d.today)!;
+  for (let i = 0; i < 60; i++) {
+    displayTime += 1000;
+    for (const tick of timers.values()) tick();
+    feature = render();
+    equal(feature.activity, getContentActivity(beforeTicks.contentFree, new Date(displayTime).toISOString()), "Cached calendars retain exact live coverage on every tick.");
+    equal(feature.streaks, getContentStreakHistory(beforeTicks.contentFree, new Date(displayTime).toISOString()), "Active history keeps live seconds while completed history is cached.");
+  }
+  assert(historyBuilds === buildsBeforeTicks && feature.activity.find(d => d.key === historicalDay.key) === historicalDay,
+    "Sixty same-day ticks must not rebuild historical calendars/streaks or replace unchanged calendar cells.");
+  appState.currentState = "background"; appState.listener!(); render();
+  assert(timers.size === 0, "The display clock stops in the background.");
+  const buildsBeforeForeground = historyBuilds;
+  appState.currentState = "active"; appState.listener!(); feature = render();
+  assert(historyBuilds === buildsBeforeForeground + 1 && Number(timers.size) === 1,
+    "Foreground refresh rebuilds history even with an unchanged injected timestamp.");
 
   h.setTime(shift(activatedAt, day + 2000));
+  const buildsBeforeManual = historyBuilds;
   feature.actions.recordManualViolation();
   feature.actions.recordManualViolation();
   feature = render();
@@ -1024,6 +1055,15 @@ async function verifyHookWiring(pendingContinuation?: BloomLocalState, lateAckno
     feature.canRetry && feature.locked && feature.saveState === "unconfirmed",
     "A failed manual save must retain the accepted event and recovery UI.",
   );
+  assert(feature.view.history.length === 1 && feature.durableViolations.length === 0 &&
+    feature.activity.every(day => day.violationCount === 0),
+    "A pending/failed accepted event remains reviewable, but cannot become saved history or a calendar violation.");
+  assert(historyBuilds === buildsBeforeManual, "Accepted and failed writes cannot replace the acknowledged history cache.");
+  displayTime += 1000;
+  for (const tick of timers.values()) tick();
+  feature = render();
+  equal(feature.streaks, getContentStreakHistory(h.runtime.getDurableState().contentFree, new Date(displayTime).toISOString()),
+    "During a failed violation save, the live historical duration follows the still-durable streak rather than the accepted reset.");
   const manualCounts = h.counts();
   feature.actions.retry();
   feature.actions.retry();
@@ -1035,6 +1075,10 @@ async function verifyHookWiring(pendingContinuation?: BloomLocalState, lateAckno
     manualCounts,
     "Manual retry through the hook must save the same event without regenerated identities or timestamps.",
   );
+  assert(feature.durableViolations.length === 1 && feature.durableViolations[0]?.id === record?.id,
+    "Only acknowledged retry exposes the same canonical event in durable history.");
+  assert(historyBuilds === buildsBeforeManual + 1 && feature.activity.some(day => day.violationCount === 1),
+    "Acknowledgement immediately invalidates the historical cache and adds the saved violation without waiting for a tick.");
   assert(
     feature.saveState === "saved" &&
       feature.view.manualUndoCandidateId === record.id &&
@@ -1050,7 +1094,7 @@ async function verifyHookWiring(pendingContinuation?: BloomLocalState, lateAckno
       feature.view.progress === null &&
       feature.view.history.length === 0 &&
       feature.view.activationId === null &&
-      feature.view.manualUndoCandidateId === null,
+      feature.view.manualUndoCandidateId === null && feature.activity.length === 0 && feature.streaks.length === 0,
     "Unavailable hydration must also mask populated cached history and its manual candidate, not only empty defaults.",
   );
   equal(
@@ -1087,7 +1131,7 @@ async function verifyHookWiring(pendingContinuation?: BloomLocalState, lateAckno
   );
   feature = render();
   assert(
-    feature.view.manualUndoCandidateId === null,
+    feature.view.manualUndoCandidateId === null && feature.activity.every(day => day.violationCount === 0),
     "The refreshed UI must not offer an undone tombstone for manual undo.",
   );
   h.setTime(shift(activatedAt, 2 * day + 1000));
@@ -1447,8 +1491,8 @@ function createControlledHooks() {
       const cell = slots[index] as { value: T };
       return [
         cell.value,
-        (value: T) => {
-          cell.value = value;
+        (value: T | ((previous: T) => T)) => {
+          cell.value = typeof value === "function" ? (value as (previous: T) => T)(cell.value) : value;
         },
       ] as const;
     },

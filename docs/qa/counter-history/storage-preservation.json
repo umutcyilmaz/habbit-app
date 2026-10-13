@@ -1,0 +1,30 @@
+{
+  "unchanged_count": 22,
+  "changed": [],
+  "added": [
+    {
+      "app": "com.umutcyilmaz.bloom.e2e",
+      "key": "bloom.e2e.home.counter_reset_20261013_e9052.clock"
+    },
+    {
+      "app": "com.umutcyilmaz.bloom.e2e",
+      "key": "bloom.e2e.home.counter_save_20261013_f4721.clock"
+    },
+    {
+      "app": "com.umutcyilmaz.bloom.e2e",
+      "key": "bloom.e2e.home.counter_20261013_62a93.clock"
+    },
+    {
+      "app": "com.umutcyilmaz.bloom.e2e",
+      "key": "bloom.e2e.home.counter_reset_20261013_e9052.bloom.localState.v8"
+    },
+    {
+      "app": "com.umutcyilmaz.bloom.e2e",
+      "key": "bloom.e2e.home.counter_save_20261013_f4721.bloom.localState.v8"
+    },
+    {
+      "app": "com.umutcyilmaz.bloom.e2e",
+      "key": "bloom.e2e.home.counter_20261013_62a93.bloom.localState.v8"
+    }
+  ]
+}

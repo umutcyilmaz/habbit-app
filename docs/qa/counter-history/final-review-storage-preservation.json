@@ -1,0 +1,10 @@
+{
+  "all_existing_keys_preserved": true,
+  "same_sha256": {
+    "com.umutcyilmaz.bloom": 1,
+    "com.umutcyilmaz.bloom.e2e": 27
+  },
+  "added_keys": 0,
+  "removed_keys": 0,
+  "changed_keys": 0
+}

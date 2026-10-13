@@ -1,0 +1,57 @@
+{
+  "simulator": "iPhone 17 Pro / iOS 26.3",
+  "bundle": "com.umutcyilmaz.bloom.e2e",
+  "existing_read_only_namespace": "counter_20261013_62a93",
+  "font_sizes": [
+    "large",
+    "accessibility-extra-extra-extra-large"
+  ],
+  "restored_font_size": "large",
+  "cases": [
+    {
+      "case": "Regular: Profile → Home, actual 3-session history, CF top/calendar/bottom/top, close",
+      "workflow": ".maestro/counter-history-final-captures.yaml",
+      "exit_code": 0,
+      "log": "final-review-native-normal2.log",
+      "raw_artifacts": "/private/tmp/bloom-counter-final-review-normal2"
+    },
+    {
+      "case": "Final regular quality/protection headings, real saved bars",
+      "workflow": ".maestro/counter-history-review-headings.yaml",
+      "exit_code": 0,
+      "log": "final-review-native-headings-normal.log",
+      "raw_artifacts": "/private/tmp/bloom-counter-final-review-headings-normal"
+    },
+    {
+      "case": "Final largest: counter, weekly calendar, protection heading, quality heading, actual feedback; live font-size transition",
+      "workflow": ".maestro/counter-history-large-text.yaml",
+      "exit_code": 0,
+      "log": "final-review-native-largest2.log",
+      "raw_artifacts": "/private/tmp/bloom-counter-final-review-largest2"
+    }
+  ],
+  "visual_review": {
+    "37": "KORUMA · YOK and Engel yok fit without intra-word wrapping",
+    "38": "Ereksiyon / kalitesi wrap at the space, each word intact",
+    "regular": "Both updated headings and all 3 scored rows visible; no text scaling disabled"
+  },
+  "capture_update": {
+    "replaced": 12,
+    "originals_preserved": "previous-review/",
+    "png_pixels_edited": false
+  },
+  "limits": [
+    "Simulator uses the existing frozen scoped QA clock. Live-second and temporal boundary correctness verified separately through production selectors and the actual feature-hook/runtime harness.",
+    "Largest font naturally requires longer scrolling; existing tab-label truncation remains outside this focused review."
+  ],
+  "initial_runs": [
+    {
+      "log": "final-review-native-normal.log",
+      "result": "Initial dev bundle loading/tab transition overlap; Profile assertion missed. Screen-ready waits added; normal2 passed."
+    },
+    {
+      "log": "final-review-native-largest.log",
+      "result": "Automation passed but visual inspection still found Engelleme split. Final shorter Engel yok validated in largest2."
+    }
+  ]
+}

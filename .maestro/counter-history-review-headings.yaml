@@ -1,0 +1,24 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Final review normal headings with saved records
+---
+- openLink: "tms-e2e:///today"
+- assertVisible: { id: "bloom.home" }
+- scrollUntilVisible:
+    element: { id: "bloom.home.history.quality" }
+    direction: DOWN
+    centerElement: true
+    timeout: 60000
+- assertVisible: "Ereksiyon kalitesi"
+- waitForAnimationToEnd: { timeout: 1500 }
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "19-native-discrete-quality-records"
+- openLink: "tms-e2e:///bloom/content-free"
+- assertVisible: { id: "bloom.content-free.close" }
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.protection-unavailable" }
+    direction: DOWN
+    centerElement: true
+    timeout: 60000
+- assertVisible: "KORUMA · YOK"
+- assertVisible: "Engel yok"
+- takeScreenshot: "33-native-final-counter-bottom"

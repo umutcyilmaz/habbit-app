@@ -1,0 +1,21 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Read saved Reset continuation with final metric presentation
+---
+- openLink: "tms-e2e:///bloom/content-free"
+- assertVisible: { id: "bloom.content-free.current-streak", text: "15" }
+- assertVisible: { id: "bloom.content-free.reset-credit" }
+- waitForAnimationToEnd: { timeout: 1500 }
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "30-native-reset-continuation-restart"
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.activity" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- takeScreenshot: "28-native-earned-reset-calendar"
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.streak-history" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- takeScreenshot: "29-native-earned-reset-history"

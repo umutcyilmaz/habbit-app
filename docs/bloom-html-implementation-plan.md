@@ -257,3 +257,14 @@ Native platform references for later slices: [AVAudioSession](https://developer.
 ## Coverage check
 
 Each `flows` group and numbered `fig` label from `tasarim.html` must be represented exactly once in this document. Changes to either HTML reference require regenerating/reviewing the inventory; native-ready status requires behavior and durable-state verification, not a matching mockup alone.
+
+
+## Phase 11.6.2 — native sayaç ve geçmiş (2026-10-13)
+
+Sayaç detayı büyük gerçek elapsed counter/chip, aktif/kapalı/yeni seri/durdurulmuş durumlar, haftalık daireler, gerçek sürelerden 28 günlük takvim, seri geçmişi ve unavailable Protection alanıyla tamamlandı. Mevcut start/intentional-use reset/stop confirmation, undo/retry ve Reset credit/continuation anlamları korundu. Home tamamlanan Tracking kayıtlarının gerçek tarih/feedback listesini ve ayrı 1–10 kişisel puan satırlarını gösterir; incomplete feedback bir completed kayıt ya da sıfır puan sayılmaz.
+
+HTML'nin oyuncak heat-map deseni, 64 barlık örnek dağılımı, aylık %12 iyileşme iddiası, hedef/toplam gün ve native içerik engelleme switch'i taşınmadı. Takvim saved activation/earned Reset aralıkları ve etkili olaylardan deterministik türetilir; saat dilimi değişiminde UTC kayıtları değiştirilmez. Dört tab, mevcut Home öncelikleri, domain/persistence schema ve ilgili compatibility guard'ları korunur.
+
+[Metrik tanımları, veri sınırlamaları, QA/changed-file sonuçları](phase11-6-2-counter-history-qa.md) ve [HTML/native galeri](qa/counter-history/index.html) bu inventory'nin sayaç/Home-history alanları için güncel uygulama kaydıdır. OS koruması, Reddit, aylık normatif/klinik karşılaştırma, toplam içeriksiz gün ve milestone/riskli-saat kuralları ayrı kararlar olarak kalır.
+
+Final review: en büyük Dynamic Type için kalite/koruma başlıkları kısa, anlamı koruyan metinlerle düzeltildi. Saniyelik Content-Free clock yalnız bugünün süreleri/aktif seriyi ilerletir; takvim ve tamamlanan seri hesapları acknowledged veri, yerel gün, timezone/offset, olay sınırları ve focus/foreground değişiminde yenilenir. Domain ve persistence sözleşmeleri değişmez. Ayrıntılı regresyon/Simulator kanıtları faz QA belgesindedir.

@@ -1,0 +1,128 @@
+{
+  "device": "iPhone 17 Pro / iOS 26.3 / E280FA31-F2B5-4FF9-B57E-A8991C051C77",
+  "runs": [
+    "counter_20261013_62a93",
+    "counter_save_20261013_f4721",
+    "counter_reset_20261013_e9052"
+  ],
+  "cases": [
+    {
+      "case": "Fresh user / no history",
+      "result": "passed",
+      "captures": [
+        "01",
+        "02",
+        "16"
+      ]
+    },
+    {
+      "case": "Active Content-Free counter",
+      "result": "passed",
+      "captures": [
+        "05",
+        "06",
+        "31"
+      ]
+    },
+    {
+      "case": "Stopped / restarted counter",
+      "result": "passed",
+      "captures": [
+        "12",
+        "13",
+        "14"
+      ]
+    },
+    {
+      "case": "Real manual violation / undo",
+      "result": "passed",
+      "captures": [
+        "08",
+        "09",
+        "10",
+        "11"
+      ]
+    },
+    {
+      "case": "Three saved Tracking records / actual feedback",
+      "result": "passed",
+      "captures": [
+        "18",
+        "19",
+        "20"
+      ],
+      "scores": [
+        4,
+        8,
+        6
+      ]
+    },
+    {
+      "case": "Active Reset restrictions / start deep link",
+      "result": "passed",
+      "captures": [
+        "23",
+        "24",
+        "25"
+      ]
+    },
+    {
+      "case": "Reset completion / Content-Free continuation",
+      "result": "passed",
+      "captures": [
+        "26",
+        "27",
+        "28",
+        "29",
+        "30"
+      ]
+    },
+    {
+      "case": "Pending / unknown / failed save / exact retry guards",
+      "result": "passed in segments; first retry remained pending then acknowledged; no replay",
+      "captures": [
+        "22",
+        "04",
+        "05"
+      ],
+      "logs": [
+        "native-save.log",
+        "native-save-resume2.log"
+      ]
+    },
+    {
+      "case": "Scroll / native tab navigation / largest live Dynamic Type",
+      "result": "passed",
+      "captures": [
+        "31",
+        "32",
+        "33",
+        "34",
+        "35",
+        "36",
+        "37",
+        "38",
+        "39"
+      ]
+    },
+    {
+      "case": "Restart / saved data preservation",
+      "result": "passed",
+      "captures": [
+        "15",
+        "21",
+        "30"
+      ],
+      "existing_keys_unchanged": 22
+    }
+  ],
+  "scope": "No clearState, erase, uninstall, old namespace preparation, canonical-data copy, commit or push. Corrected steps continued existing owned state; do not interpret every YAML as a single fresh all-pass run.",
+  "historical_presentation_captures": [
+    "04-native-retry-already-saved.png",
+    "16-native-empty-tracking-history.png",
+    "17-native-incomplete-feedback.png",
+    "21-native-tracking-preserved.png"
+  ],
+  "latest_visual_captures": "01–15 refreshed in final scoped counter run (04 failed screenshot taken while unknown/pending); 18–20 and 31–39 final visual layout; 23–30 Reset run; 28–30 refreshed with final credit/date presentation.",
+  "limits": "Reduced Motion checked in actual component/hook harness; OS Reduced Motion setting, physical-device VoiceOver and Android not exercised."
+}

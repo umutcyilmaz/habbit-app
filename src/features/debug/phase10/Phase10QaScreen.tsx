@@ -57,6 +57,7 @@ export function Phase10QaScreen() {
       {process.env.EXPO_PUBLIC_HOME_QA_RUN !== undefined ? <AppButton testID="bloom.qa.home.advance-clock" label="Home QA: advance scoped clock by 3 days" disabled={busy || !hasHydrated || state !== durableState} onPress={() => { void qa.advanceClockByDays(3).then(() => run(), () => setMessage("QA clock could not advance.")); }} /> : null}
       <AppButton testID="bloom.qa.phase10.reload" label="Reload saved QA state (no reseed)" variant="secondary" disabled={busy || !hasHydrated || state !== durableState} onPress={() => { void run(); }} />
       <AppButton testID="bloom.qa.phase11.invalidate-save" label="Invalidate next QA save once" variant="ghost" disabled={busy || !hasHydrated} onPress={() => { qa.invalidateNextSave(); setMessage("Next QA receipt will be invalidated. Open a screen and use Save current state to recover."); }} />
+      {process.env.EXPO_PUBLIC_HOME_QA_RUN !== undefined ? <AppButton testID="bloom.qa.home.delay-save" label="Delay next scoped QA write by 20 seconds" variant="ghost" disabled={busy || !hasHydrated} onPress={() => { qa.delayNextSave(); setMessage("Next scoped QA write will wait 20 seconds."); }} /> : null}
       <AppButton testID="bloom.qa.phase10.fail-save" label="Fail next QA save once" variant="ghost" disabled={busy || !hasHydrated} onPress={() => { qa.failNextSave(); setMessage("Next QA write will fail. Open a screen, act, then use its real retry button."); }} />
     </AppScreen>
   );

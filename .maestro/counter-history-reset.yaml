@@ -1,0 +1,113 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Active Reset restrictions and earned continuation
+---
+- openLink: "tms-e2e:///debug/phase10"
+- assertVisible: "Home QA run: ${HOME_QA_RUN}"
+- scrollUntilVisible:
+    element: { id: "bloom.qa.phase10.day10-inactive" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.qa.phase10.day10-inactive" }
+- scrollUntilVisible:
+    element: { id: "bloom.qa.phase10.home" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.qa.phase10.home" }
+- assertVisible: { id: "bloom.home.reset.current-day", text: "10/15" }
+- assertNotVisible: { id: "bloom.home.tracking.action" }
+- assertNotVisible: { id: "bloom.home.tracking.enable" }
+- takeScreenshot: "23-native-active-reset-restrictions"
+- openLink: "tms-e2e:///bloom/masturbation-session/start"
+- scrollUntilVisible:
+    element: { id: "bloom.masturbation.start.unavailable" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- takeScreenshot: "24-native-tracking-deeplink-restricted"
+- tapOn: { id: "bloom.masturbation.close" }
+- assertVisible: { id: "bloom.home" }
+- openLink: "tms-e2e:///debug/phase10"
+- scrollUntilVisible:
+    element: { id: "bloom.qa.home.advance-clock" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.qa.home.advance-clock" }
+- scrollUntilVisible:
+    element: { id: "bloom.qa.phase10.home" }
+    direction: UP
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.qa.phase10.home" }
+- openLink: "tms-e2e:///debug/phase10"
+- scrollUntilVisible:
+    element: { id: "bloom.qa.home.advance-clock" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.qa.home.advance-clock" }
+- scrollUntilVisible:
+    element: { id: "bloom.qa.phase10.home" }
+    direction: UP
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.qa.phase10.home" }
+- assertVisible: "15 gün tamamlandı"
+- takeScreenshot: "25-native-reset-completion-required"
+- scrollUntilVisible:
+    element: { id: "bloom.home.primary.action" }
+    direction: UP
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.home.primary.action" }
+- scrollUntilVisible:
+    element: { id: "bloom.reset.complete" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.reset.complete" }
+- scrollUntilVisible:
+    element: { id: "bloom.reset.content-free.accept" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- takeScreenshot: "26-native-continuation-offer"
+- scrollUntilVisible:
+    element: { id: "bloom.reset.content-free.accept" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.reset.content-free.accept" }
+- assertVisible: { id: "bloom.home" }
+- scrollUntilVisible:
+    element: { id: "bloom.home.content-free.action" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.home.content-free.action" }
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.current-streak" }
+    direction: UP
+    centerElement: false
+    timeout: 30000
+- assertVisible: { id: "bloom.content-free.current-streak", text: "15" }
+- takeScreenshot: "27-native-reset-content-free-credit"
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.activity" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- takeScreenshot: "28-native-earned-reset-calendar"
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.streak-history" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- takeScreenshot: "29-native-earned-reset-history"
+- stopApp
+- launchApp
+- openLink: "tms-e2e:///bloom/content-free"
+- assertVisible: { id: "bloom.content-free.current-streak", text: "15" }
+- takeScreenshot: "30-native-reset-continuation-restart"

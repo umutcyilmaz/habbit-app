@@ -11,6 +11,7 @@ import { useBloomLocalState } from "../../app/providers/BloomLocalStateProvider"
 import { getBloomHomeReadModel, type BloomHomeAction } from "../../domain/home/getBloomHomeReadModel";
 import { getContentFreeProgress } from "../../domain/contentFree/getContentFreeProgress";
 import { getHomeTrackingElapsedSeconds, getTrackingSummary } from "./homePresentation";
+import { getTrackingHistory } from "./history/activityHistory";
 import { createHomeTrackingActivationController } from "./homeTrackingActivationController";
 
 const readSystemTime = () => new Date();
@@ -66,7 +67,8 @@ export function useBloomHomeFeature() {
     if (pending !== null) void pending.catch(() => {});
   }, [activationController]);
 
-  return { hydrationStatus, model, tracking, trackingElapsedSeconds, contentFreeProgress, observationTime, now: now ?? readSystemTime, openAction, openPanic, openContentFree, contentFreeContinuation,
+  const history = getTrackingHistory(durableState.masturbationTracking, observationTime);
+  return { history, hydrationStatus, model, tracking, trackingElapsedSeconds, contentFreeProgress, observationTime, now: now ?? readSystemTime, openAction, openPanic, openContentFree, contentFreeContinuation,
     trackingActivation: {
       busy: activation.busy,
       locked: activation.busy || activationUnconfirmed || activation.result?.ok === true ||

@@ -1,0 +1,141 @@
+{
+  "reason": "Only this task’s generated verbose runner/device logs and duplicate PNGs were moved to temporary storage; source logs and selected raw gallery PNGs remain here. No user/Bloom/previous QA data deleted.",
+  "directories": [
+    {
+      "name": "counter-debug",
+      "path": "/private/tmp/bloom-counter-history-native-logs-bu9ajrxq/counter-debug"
+    },
+    {
+      "name": "counter-resume-debug",
+      "path": "/private/tmp/bloom-counter-history-native-logs-bu9ajrxq/counter-resume-debug"
+    },
+    {
+      "name": "counter-resume-run",
+      "path": "/private/tmp/bloom-counter-history-native-logs-bu9ajrxq/counter-resume-run"
+    },
+    {
+      "name": "counter-run",
+      "path": "/private/tmp/bloom-counter-history-native-logs-bu9ajrxq/counter-run"
+    },
+    {
+      "name": "final-captures-debug",
+      "path": "/private/tmp/bloom-counter-history-native-logs-bu9ajrxq/final-captures-debug"
+    },
+    {
+      "name": "final-captures-run",
+      "path": "/private/tmp/bloom-counter-history-native-logs-bu9ajrxq/final-captures-run"
+    },
+    {
+      "name": "final-captures2-debug",
+      "path": "/private/tmp/bloom-counter-history-native-logs-bu9ajrxq/final-captures2-debug"
+    },
+    {
+      "name": "final-captures2-run",
+      "path": "/private/tmp/bloom-counter-history-native-logs-bu9ajrxq/final-captures2-run"
+    },
+    {
+      "name": "final-captures3-debug",
+      "path": "/private/tmp/bloom-counter-history-native-logs-bu9ajrxq/final-captures3-debug"
+    },
+    {
+      "name": "final-captures3-run",
+      "path": "/private/tmp/bloom-counter-history-native-logs-bu9ajrxq/final-captures3-run"
+    },
+    {
+      "name": "large-text-debug",
+      "path": "/private/tmp/bloom-counter-history-native-logs-bu9ajrxq/large-text-debug"
+    },
+    {
+      "name": "large-text-run",
+      "path": "/private/tmp/bloom-counter-history-native-logs-bu9ajrxq/large-text-run"
+    },
+    {
+      "name": "large-text2-debug",
+      "path": "/private/tmp/bloom-counter-history-native-logs-bu9ajrxq/large-text2-debug"
+    },
+    {
+      "name": "large-text2-run",
+      "path": "/private/tmp/bloom-counter-history-native-logs-bu9ajrxq/large-text2-run"
+    },
+    {
+      "name": "large-text3-debug",
+      "path": "/private/tmp/bloom-counter-history-native-logs-bu9ajrxq/large-text3-debug"
+    },
+    {
+      "name": "large-text3-run",
+      "path": "/private/tmp/bloom-counter-history-native-logs-bu9ajrxq/large-text3-run"
+    },
+    {
+      "name": "reset-debug",
+      "path": "/private/tmp/bloom-counter-history-native-logs-bu9ajrxq/reset-debug"
+    },
+    {
+      "name": "reset-final-debug",
+      "path": "/private/tmp/bloom-counter-history-native-logs-bu9ajrxq/reset-final-debug"
+    },
+    {
+      "name": "reset-final-run",
+      "path": "/private/tmp/bloom-counter-history-native-logs-bu9ajrxq/reset-final-run"
+    },
+    {
+      "name": "reset-run",
+      "path": "/private/tmp/bloom-counter-history-native-logs-bu9ajrxq/reset-run"
+    },
+    {
+      "name": "save-debug",
+      "path": "/private/tmp/bloom-counter-history-native-logs-bu9ajrxq/save-debug"
+    },
+    {
+      "name": "save-resume-debug",
+      "path": "/private/tmp/bloom-counter-history-native-logs-bu9ajrxq/save-resume-debug"
+    },
+    {
+      "name": "save-resume-run",
+      "path": "/private/tmp/bloom-counter-history-native-logs-bu9ajrxq/save-resume-run"
+    },
+    {
+      "name": "save-resume2-debug",
+      "path": "/private/tmp/bloom-counter-history-native-logs-bu9ajrxq/save-resume2-debug"
+    },
+    {
+      "name": "save-resume2-run",
+      "path": "/private/tmp/bloom-counter-history-native-logs-bu9ajrxq/save-resume2-run"
+    },
+    {
+      "name": "save-run",
+      "path": "/private/tmp/bloom-counter-history-native-logs-bu9ajrxq/save-run"
+    },
+    {
+      "name": "tracking-debug",
+      "path": "/private/tmp/bloom-counter-history-native-logs-bu9ajrxq/tracking-debug"
+    },
+    {
+      "name": "tracking-finish-debug",
+      "path": "/private/tmp/bloom-counter-history-native-logs-bu9ajrxq/tracking-finish-debug"
+    },
+    {
+      "name": "tracking-finish-run",
+      "path": "/private/tmp/bloom-counter-history-native-logs-bu9ajrxq/tracking-finish-run"
+    },
+    {
+      "name": "tracking-resume-debug",
+      "path": "/private/tmp/bloom-counter-history-native-logs-bu9ajrxq/tracking-resume-debug"
+    },
+    {
+      "name": "tracking-resume-run",
+      "path": "/private/tmp/bloom-counter-history-native-logs-bu9ajrxq/tracking-resume-run"
+    },
+    {
+      "name": "tracking-resume2-debug",
+      "path": "/private/tmp/bloom-counter-history-native-logs-bu9ajrxq/tracking-resume2-debug"
+    },
+    {
+      "name": "tracking-resume2-run",
+      "path": "/private/tmp/bloom-counter-history-native-logs-bu9ajrxq/tracking-resume2-run"
+    },
+    {
+      "name": "tracking-run",
+      "path": "/private/tmp/bloom-counter-history-native-logs-bu9ajrxq/tracking-run"
+    }
+  ]
+}

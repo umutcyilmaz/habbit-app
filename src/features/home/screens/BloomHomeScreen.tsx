@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import { useFocusEffect } from "expo-router";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeInDown, useReducedMotion } from "react-native-reanimated";
 import type { BloomHomeAction, BloomHomeReadModel, ContentFreeHomeTracker } from "../../../domain/home/getBloomHomeReadModel";
@@ -10,6 +10,7 @@ import { AppScreen } from "../../../shared/components/v4/AppScreen";
 import { AppText } from "../../../shared/components/v4/AppText";
 import { formatAverageInterval, formatErectionQuality, getBestContentFreeDays } from "../homePresentation";
 import { useBloomHomeFeature } from "../useBloomHomeFeature";
+import { TrackingHistoryCard } from "../history/TrackingHistoryCard";
 import { HomeAtmosphere } from "../components/HomeAtmosphere";
 import { HomeCounter } from "../components/HomeCounter";
 import { HomeStatusCapsules } from "../components/HomeStatusCapsules";
@@ -29,6 +30,7 @@ const attentionCopy: Partial<Record<BloomHomeAction["id"], { title: string; butt
 export function BloomHomeScreen() {
   const feature = useBloomHomeFeature(), reduced = useReducedMotion();
   const insets = useSafeAreaInsets();
+  const { fontScale } = useWindowDimensions();
   const scrollRef = useRef<ScrollView>(null);
   const priorityId = feature.model?.primaryAction?.id;
   const prioritize = priorityId !== undefined && (attentionCopy[priorityId] !== undefined || priorityId === "viewActiveReset");
@@ -47,10 +49,12 @@ export function BloomHomeScreen() {
   const resetActive = model.trackingAvailability.resetRestriction.isRestrictionActive;
   const tracker = model.primaryTracker?.kind === "contentFree" ? model.primaryTracker : model.secondaryTracker;
   const contentFirst = resetActive || (!model.trackingAvailability.enabled && tracker !== null);
+  // Recreate only the native scroll layout on Dynamic Type changes. Feature
+  // controllers and save guards remain mounted; iOS remeasures scaled text.
   // Keep the top inset outside the scroll viewport: content and fog are clipped
   // below the opaque system status area, even when the user scrolls or bounces.
   return <View testID="bloom.home.safe-area" style={[styles.root, { paddingTop: insets.top }]}>
-    <AppScreen scroll scrollRef={scrollRef} testID="bloom.home" style={[styles.screen, styles.scrollViewport]} contentContainerStyle={styles.page}>
+    <AppScreen key={fontScale} scroll scrollRef={scrollRef} testID="bloom.home" style={[styles.screen, styles.scrollViewport]} contentContainerStyle={styles.page}>
       <HomeAtmosphere />
       <Animated.View {...enter(0)} style={styles.header}>
         <AppText accessibilityRole="header" style={styles.greeting}>Merhaba</AppText>
@@ -68,6 +72,7 @@ export function BloomHomeScreen() {
         <AppText style={styles.copy}>Son kayıtlarında Reset’i değerlendirmeye değer bir örüntü var.</AppText>
         <AppButton testID="bloom.home.reset-recommendation.action" label="Detayları gör" variant="secondary" style={styles.button} onPress={() => feature.openAction(model.resetRecommendationAction!)} />
       </AppCard> : null}
+      <TrackingHistoryCard history={feature.history} />
       <AppText style={styles.footer}>Bu alan kayıtlı takiplerini özetler. Takiplerini ayrı ayrı yönetebilirsin.</AppText>
     </AppScreen>
   </View>;

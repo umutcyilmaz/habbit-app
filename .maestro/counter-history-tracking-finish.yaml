@@ -1,0 +1,149 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Finish existing second feedback and third real record
+---
+- scrollUntilVisible:
+    element: { id: "bloom.masturbation.feedback.erection.8" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.masturbation.feedback.erection.8" }
+- scrollUntilVisible:
+    element: { text: "^Devam et$" }
+    direction: DOWN
+    centerElement: false
+- tapOn: "^Devam et$"
+- scrollUntilVisible:
+    element: { id: "bloom.masturbation.feedback.content.no" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.masturbation.feedback.content.no" }
+- scrollUntilVisible:
+    element: { text: "^Devam et$" }
+    direction: DOWN
+    centerElement: false
+- tapOn: "^Devam et$"
+- scrollUntilVisible:
+    element: { id: "bloom.masturbation.feedback.ending.stoppedByChoice" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.masturbation.feedback.ending.stoppedByChoice" }
+- scrollUntilVisible:
+    element: { id: "bloom.masturbation.feedback.submit" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.masturbation.feedback.submit" }
+- assertVisible: { id: "bloom.home" }
+- openLink: "tms-e2e:///debug/phase10"
+- scrollUntilVisible:
+    element: { id: "bloom.qa.home.advance-clock" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.qa.home.advance-clock" }
+- scrollUntilVisible:
+    element: { id: "bloom.qa.phase10.home" }
+    direction: UP
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.qa.phase10.home" }
+- scrollUntilVisible:
+    element: { id: "bloom.home.tracking.action" }
+    direction: UP
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.home.tracking.action" }
+- scrollUntilVisible:
+    element: { id: "bloom.masturbation.start.begin" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.masturbation.start.begin" }
+- scrollUntilVisible:
+    element: { id: "bloom.masturbation.active.end" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.masturbation.active.end" }
+- assertVisible: { id: "bloom.masturbation.feedback" }
+- tapOn: { id: "bloom.masturbation.close" }
+- scrollUntilVisible:
+    element: { text: "Takip geçmişin" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- openLink: "tms-e2e:///today"
+- scrollUntilVisible:
+    element: { text: "^Kaydı tamamla$" }
+    direction: UP
+    centerElement: false
+    timeout: 30000
+- tapOn: "^Kaydı tamamla$"
+- scrollUntilVisible:
+    element: { id: "bloom.masturbation.feedback.erection.6" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.masturbation.feedback.erection.6" }
+- scrollUntilVisible:
+    element: { text: "^Devam et$" }
+    direction: DOWN
+    centerElement: false
+- tapOn: "^Devam et$"
+- scrollUntilVisible:
+    element: { id: "bloom.masturbation.feedback.content.no" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.masturbation.feedback.content.no" }
+- scrollUntilVisible:
+    element: { text: "^Devam et$" }
+    direction: DOWN
+    centerElement: false
+- tapOn: "^Devam et$"
+- scrollUntilVisible:
+    element: { id: "bloom.masturbation.feedback.ending.stoppedByChoice" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.masturbation.feedback.ending.stoppedByChoice" }
+- scrollUntilVisible:
+    element: { id: "bloom.masturbation.feedback.submit" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.masturbation.feedback.submit" }
+- assertVisible: { id: "bloom.home" }
+- scrollUntilVisible:
+    element: { text: "Takip geçmişin" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- takeScreenshot: "18-native-real-tracking-calendar"
+- scrollUntilVisible:
+    element: { text: "Ereksiyon kalitesi" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- takeScreenshot: "19-native-discrete-quality-records"
+- scrollUntilVisible:
+    element: { text: "Son oturumlar" }
+    direction: DOWN
+    centerElement: false
+- takeScreenshot: "20-native-actual-session-feedback"
+- stopApp
+- launchApp
+- openLink: "tms-e2e:///today"
+- scrollUntilVisible:
+    element: { text: "Takip geçmişin" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- assertVisible: "Son 4 hafta · 3 tamamlanan oturum"
+- takeScreenshot: "21-native-tracking-preserved"
+- tapOn: { id: "bloom.tab.profile" }
+- assertVisible: { id: "bloom.profile" }
+- tapOn: { id: "bloom.tab.today" }
+- assertVisible: { id: "bloom.home" }

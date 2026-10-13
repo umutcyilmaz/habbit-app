@@ -1,3 +1,4 @@
+import * as contentHistoryClock from "../src/features/home/history/contentHistoryClock";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -145,8 +146,10 @@ function createHarness(feature: "content-free" | "reset" | "masturbation-trackin
   let controller: { getSnapshot: () => { result: import("../src/app/providers/bloomLocalStateMutationRuntime").BloomPersistedMutationResult | null } };
   const capture = <T extends typeof controller>(value: T) => { controller = value; return value; };
   const dependencies: Record<string, unknown> = {
-    react: hooks.react,
-    "expo-router": { useRouter: () => ({ replace: (route: unknown) => navigations.push(route) }), useLocalSearchParams: () => ({ journeyId: "continuity-reset", attemptId: "continuity-attempt" }) },
+    react: { ...hooks.react, useCallback: (callback: () => unknown, deps: unknown[]) => hooks.react.useMemo(() => callback, deps) },
+    "react-native": { AppState: { currentState: "active", addEventListener: () => ({ remove() {} }) } },
+    "../home/history/contentHistoryClock": contentHistoryClock,
+    "expo-router": { useFocusEffect: (callback: () => void | (() => void)) => hooks.react.useEffect(callback, [callback]), useRouter: () => ({ replace: (route: unknown) => navigations.push(route) }), useLocalSearchParams: () => ({ journeyId: "continuity-reset", attemptId: "continuity-attempt" }) },
     "../../app/flows/useBloomProductFlowActions": { useBloomProductFlowActions: () => flowActions },
     "../../app/providers/BloomLocalStateProvider": { useBloomLocalState: () => ({ state: runtime.getState(), durableState: runtime.getDurableState(), getAcceptedState: runtime.getState,
       getDurableState: runtime.getDurableState, retryPersistedMutation: runtime.retryPersistence, confirmCurrentPersistence: runtime.confirmCurrentPersistence, hasHydrated: true, hydrationStatus: "ready" }) },
@@ -185,7 +188,7 @@ function controlledHooks() {
   const same = (a: unknown[], b: unknown[]) => a.length === b.length && a.every((value, i) => Object.is(value, b[i]));
   const react = {
     useRef: (value: unknown) => slots[cursor++] ?? (slots[cursor - 1] = { current: value }),
-    useState: (initial: unknown) => { const i = cursor++; const cell = slots[i] ?? (slots[i] = { value: typeof initial === "function" ? initial() : initial }); return [cell.value, (value: unknown) => { cell.value = value; }]; },
+    useState: (initial: unknown) => { const i = cursor++; const cell = slots[i] ?? (slots[i] = { value: typeof initial === "function" ? initial() : initial }); return [cell.value, (value: unknown) => { cell.value = typeof value === "function" ? value(cell.value) : value; }]; },
     useMemo: (create: () => unknown, deps: unknown[]) => { const i = cursor++; if (!slots[i] || !same(slots[i].deps, deps)) slots[i] = { value: create(), deps }; return slots[i].value; },
     useEffect: (setup: () => void | (() => void), deps: unknown[]) => { const i = cursor++; const prior = slots[i]; if (!prior || !same(prior.deps, deps)) { const effect = { setup, deps, cleanup: undefined as (() => void) | undefined }; slots[i] = effect; effects.push(effect); pending.push(() => { prior?.cleanup?.(); effect.cleanup = setup() ?? undefined; }); } },
     useSyncExternalStore: (_subscribe: unknown, read: () => unknown) => { cursor++; return read(); }

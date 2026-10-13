@@ -1,0 +1,127 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Resume only saved current isolated counter after assertion correction
+---
+- openLink: "tms-e2e:///bloom/content-free"
+- assertVisible: "AKTİF SERİ"
+- takeScreenshot: "05-native-active-counter"
+- openLink: "tms-e2e:///debug/phase10"
+- scrollUntilVisible:
+    element: { id: "bloom.qa.home.advance-clock" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.qa.home.advance-clock" }
+- scrollUntilVisible:
+    element: { id: "bloom.qa.phase10.content-free" }
+    direction: UP
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.qa.phase10.content-free" }
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.current-streak" }
+    direction: UP
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.content-free.current-streak" }
+- assertVisible: "3"
+- takeScreenshot: "06-native-three-day-counter"
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.activity" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.content-free.activity" }
+- takeScreenshot: "07-native-week-and-four-weeks"
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.record" }
+    direction: UP
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.content-free.record" }
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.record.confirm" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.content-free.record.confirm" }
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.status" }
+    direction: UP
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.content-free.status" }
+- assertVisible: "YENİ SERİ"
+- takeScreenshot: "08-native-real-violation"
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.activity" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.content-free.activity" }
+- takeScreenshot: "09-native-violation-calendar"
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.history.toggle" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.content-free.history.toggle" }
+- takeScreenshot: "10-native-undo-offer"
+- scrollUntilVisible:
+    element: { text: "Yanlış kaydettim · Geri al" }
+    direction: DOWN
+    centerElement: false
+- tapOn: "Yanlış kaydettim · Geri al"
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.current-streak" }
+    direction: UP
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.content-free.current-streak" }
+- assertVisible: "3"
+- takeScreenshot: "11-native-undo-restored"
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.deactivate" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.content-free.deactivate" }
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.deactivate.confirm" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.content-free.deactivate.confirm" }
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.status" }
+    direction: UP
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.content-free.status" }
+- assertVisible: "DURDURULDU"
+- takeScreenshot: "12-native-stopped"
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.activate" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.content-free.activate" }
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.current-streak" }
+    direction: UP
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.content-free.current-streak" }
+- assertVisible: "0"
+- takeScreenshot: "13-native-restarted"
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.streak-history" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.content-free.streak-history" }
+- takeScreenshot: "14-native-real-streak-history"
+- stopApp
+- launchApp
+- openLink: "tms-e2e:///bloom/content-free"
+- assertVisible: "AKTİF SERİ"
+- takeScreenshot: "15-native-restart-preserved"

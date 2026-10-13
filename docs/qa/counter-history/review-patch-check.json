@@ -1,0 +1,9 @@
+{
+  "base_head": "3bafbaf0334c93e0d3ce6b3e0c82ce9027d6d9ed",
+  "snapshot": "/private/tmp/bloom-counter-history-review-5nglm2ak",
+  "text_files": 55,
+  "patch_bytes": 308640,
+  "binary_diff": false,
+  "git_apply_check": "passed",
+  "gallery_links": "passed"
+}

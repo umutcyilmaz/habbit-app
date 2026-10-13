@@ -41,13 +41,15 @@ export function createPhase10QaSession(client: StorageClient, prefix = PHASE10_S
   const isolated = createPhase10StorageClient(client, prefix);
   const fixture = createResetContinuityFixture();
   let observationTime = fixture.now().toISOString();
+  let delayNextWrite = false;
   let failNextWrite = false;
   let invalidateNextWrite = false;
   let preparing = false;
   const now = () => new Date(observationTime);
   const storage: StorageClient = {
     ...isolated,
-    setItem: (key, value) => {
+    setItem: async (key, value) => {
+      if (delayNextWrite) { delayNextWrite = false; await new Promise<void>(resolve => setTimeout(resolve, 20000)); }
       if (failNextWrite) { failNextWrite = false; return Promise.reject(new Error("QA injected storage failure")); }
       return isolated.setItem(key, value);
     }
@@ -75,6 +77,7 @@ export function createPhase10QaSession(client: StorageClient, prefix = PHASE10_S
       await isolated.setItem(clockKey, next);
       observationTime = next;
     },
+    delayNextSave() { delayNextWrite = true; },
     failNextSave() { failNextWrite = true; invalidateNextWrite = false; },
     invalidateNextSave() { invalidateNextWrite = true; failNextWrite = false; },
     async prepareScenario(id: Phase10ScenarioId, beforeCompletion = false) {
@@ -83,6 +86,7 @@ export function createPhase10QaSession(client: StorageClient, prefix = PHASE10_S
       if (!scenario) throw new Error("Unknown Phase 10 scenario");
       if (beforeCompletion && id !== "completed-pending") throw new Error("Completion preparation is only available for Scenario 3");
       preparing = true;
+      delayNextWrite = false;
       failNextWrite = false;
       invalidateNextWrite = false;
       try {

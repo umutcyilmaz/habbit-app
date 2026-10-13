@@ -1,0 +1,247 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Final counter UI fresh pending failed retry real history
+---
+# Only a NEW isolated HOME_QA_RUN; never clearState/reseed existing data.
+- openLink: "tms-e2e:///debug/phase10"
+- assertVisible: "Home QA run: ${HOME_QA_RUN}"
+- scrollUntilVisible:
+    element: { id: "bloom.qa.phase10.content-free" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.qa.phase10.content-free" }
+- assertVisible: "HENÜZ BAŞLAMADI"
+- waitForAnimationToEnd: { timeout: 1500 }
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "01-native-fresh-counter"
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.streak-history" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.content-free.streak-history" }
+- assertVisible: "Henüz bir seri yok.*"
+- waitForAnimationToEnd: { timeout: 1500 }
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "02-native-empty-history"
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.protection-unavailable" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.content-free.protection-unavailable" }
+- waitForAnimationToEnd: { timeout: 1500 }
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "03-native-protection-unavailable"
+- openLink: "tms-e2e:///debug/phase10"
+- scrollUntilVisible:
+    element: { id: "bloom.qa.phase10.fail-save" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.qa.phase10.fail-save" }
+- scrollUntilVisible:
+    element: { id: "bloom.qa.home.delay-save" }
+    direction: UP
+    centerElement: false
+- tapOn: { id: "bloom.qa.home.delay-save" }
+- scrollUntilVisible:
+    element: { id: "bloom.qa.phase10.content-free" }
+    direction: UP
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.qa.phase10.content-free" }
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.activate" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.content-free.activate" }
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.save-state" }
+    direction: UP
+    centerElement: false
+- assertVisible: "Bu cihaza kaydediliyor…"
+- waitForAnimationToEnd: { timeout: 1500 }
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "22-native-pending-save"
+- tapOn: { id: "bloom.content-free.close" }
+- assertVisible: { id: "bloom.content-free" }
+- extendedWaitUntil:
+    visible: "Kaydetme henüz doğrulanmadı"
+    timeout: 30000
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.retry" }
+    direction: UP
+    centerElement: false
+    timeout: 30000
+- waitForAnimationToEnd: { timeout: 1500 }
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "04-native-failed-save"
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.close" }
+    direction: UP
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.content-free.close" }
+- assertVisible: "Kaydetme henüz doğrulanmadı"
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.retry" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.content-free.retry" }
+- extendedWaitUntil:
+    visible: "Bu cihaza kaydedildi"
+    timeout: 30000
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.status" }
+    direction: UP
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.content-free.status" }
+- assertVisible: "AKTİF SERİ"
+- waitForAnimationToEnd: { timeout: 1500 }
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "05-native-active-counter"
+- openLink: "tms-e2e:///debug/phase10"
+- scrollUntilVisible:
+    element: { id: "bloom.qa.home.advance-clock" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.qa.home.advance-clock" }
+- scrollUntilVisible:
+    element: { id: "bloom.qa.phase10.content-free" }
+    direction: UP
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.qa.phase10.content-free" }
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.current-streak" }
+    direction: UP
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.content-free.current-streak" }
+- assertVisible: "3"
+- waitForAnimationToEnd: { timeout: 1500 }
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "06-native-three-day-counter"
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.activity" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.content-free.activity" }
+- waitForAnimationToEnd: { timeout: 1500 }
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "07-native-week-and-four-weeks"
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.record" }
+    direction: UP
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.content-free.record" }
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.record.confirm" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.content-free.record.confirm" }
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.status" }
+    direction: UP
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.content-free.status" }
+- assertVisible: "YENİ SERİ"
+- waitForAnimationToEnd: { timeout: 1500 }
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "08-native-real-violation"
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.activity" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.content-free.activity" }
+- waitForAnimationToEnd: { timeout: 1500 }
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "09-native-violation-calendar"
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.history.toggle" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.content-free.history.toggle" }
+- waitForAnimationToEnd: { timeout: 1500 }
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "10-native-undo-offer"
+- scrollUntilVisible:
+    element: { text: "Yanlış kaydettim · Geri al" }
+    direction: DOWN
+    centerElement: false
+- tapOn: "Yanlış kaydettim · Geri al"
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.current-streak" }
+    direction: UP
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.content-free.current-streak" }
+- assertVisible: "3"
+- waitForAnimationToEnd: { timeout: 1500 }
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "11-native-undo-restored"
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.deactivate" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.content-free.deactivate" }
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.deactivate.confirm" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.content-free.deactivate.confirm" }
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.status" }
+    direction: UP
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.content-free.status" }
+- assertVisible: "DURDURULDU"
+- waitForAnimationToEnd: { timeout: 1500 }
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "12-native-stopped"
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.activate" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.content-free.activate" }
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.current-streak" }
+    direction: UP
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.content-free.current-streak" }
+- assertVisible: "0"
+- waitForAnimationToEnd: { timeout: 1500 }
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "13-native-restarted"
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.streak-history" }
+    direction: DOWN
+    centerElement: false
+    timeout: 30000
+- tapOn: { id: "bloom.content-free.streak-history" }
+- waitForAnimationToEnd: { timeout: 1500 }
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "14-native-real-streak-history"
+- stopApp
+- launchApp
+- openLink: "tms-e2e:///bloom/content-free"
+- assertVisible: "AKTİF SERİ"
+- waitForAnimationToEnd: { timeout: 1500 }
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "15-native-restart-preserved"

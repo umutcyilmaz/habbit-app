@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { useRouter } from "expo-router";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { AppState } from "react-native";
 
 import { useBloomProductFlowActions } from "../../app/flows/useBloomProductFlowActions";
 import { useBloomLocalState } from "../../app/providers/BloomLocalStateProvider";
@@ -9,6 +10,7 @@ import { getResetContentFreeContinuationOffer } from "../../domain/contentFree/g
 import { routes } from "../../constants/navigation";
 import { getBloomPersistenceRecovery } from "../../shared/navigation/bloomPersistenceRecovery";
 import { usePersistenceNavigationGuard } from "../../shared/navigation/usePersistenceNavigationGuard";
+import { advanceContentHistoryClock, getContentHistoryClockFacts, getContentHistoryClockKey, getContentHistoryClockSnapshot } from "../home/history/contentHistoryClock";
 import { createContentFreeController } from "./contentFreeController";
 import { getContentFreeFeatureView } from "./contentFreeView";
 
@@ -19,6 +21,7 @@ export function useContentFreeFeature() {
   const flowActions = useBloomProductFlowActions();
   const { state, durableState, now, getAcceptedState, getDurableState, confirmCurrentPersistence, retryPersistedMutation, hasHydrated, hydrationStatus } = useBloomLocalState();
   const [nowMilliseconds, setNowMilliseconds] = useState(() => (now ?? readSystemTime)().getTime());
+  const [historyRefresh, setHistoryRefresh] = useState(0);
   const [navigationError, setNavigationError] = useState<string | null>(null);
   const mounted = useRef(false);
   const currentController = useRef<ReturnType<typeof createContentFreeController> | null>(null);
@@ -36,12 +39,33 @@ export function useContentFreeFeature() {
   }, []);
   // Display-only clock: the selector derives progress from canonical facts.
   // No flow command or persisted counter is updated on mount or on a tick.
-  useEffect(() => {
-    const interval = setInterval(() => setNowMilliseconds((now ?? readSystemTime)().getTime()), 1000);
-    return () => clearInterval(interval);
-  }, [now]);
+  useFocusEffect(useCallback(() => {
+    const refresh = () => setNowMilliseconds((now ?? readSystemTime)().getTime());
+    let interval: ReturnType<typeof setInterval> | undefined;
+    const update = () => {
+      if (interval !== undefined) clearInterval(interval);
+      refresh();
+      // Refresh even when the injected QA clock or system timestamp is unchanged.
+      setHistoryRefresh(value => value + 1);
+      if (AppState.currentState === "active") interval = setInterval(refresh, 1000);
+    };
+    update();
+    const subscription = AppState.addEventListener("change", update);
+    return () => { if (interval !== undefined) clearInterval(interval); subscription.remove(); };
+  }, [now]));
 
   const content = state.contentFree;
+  const at = new Date(nowMilliseconds).toISOString();
+  // Historical surfaces only present acknowledged facts; a pending mutation
+  // remains visible in the existing counter/save feedback, never as saved history.
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const clockFacts = useMemo(() => getContentHistoryClockFacts(durableState.contentFree), [durableState.contentFree]);
+  const historyKey = getContentHistoryClockKey(clockFacts, nowMilliseconds, timeZone, historyRefresh);
+  // `at` advances each second; historical rebuilds depend on the civil day,
+  // timezone/offset, event boundary, focus/foreground, and acknowledged facts.
+  const historySnapshot = useMemo(() => hasHydrated ? getContentHistoryClockSnapshot(clockFacts, at) : null,
+    [clockFacts, historyKey, hasHydrated]);
+  const { activity, week, streaks } = historySnapshot ? advanceContentHistoryClock(historySnapshot, at) : { activity: [], week: [], streaks: [] };
   const continuationOffer = hasHydrated ? getResetContentFreeContinuationOffer(state, durableState) : null;
   const view = hasHydrated
     ? getContentFreeFeatureView(content, new Date(nowMilliseconds).toISOString())
@@ -73,7 +97,7 @@ export function useContentFreeFeature() {
     } catch { setNavigationError("Reset devam etme seçimi açılamadı. Lütfen tekrar dene."); }
   };
   return {
-    continuationOffer, view, busy: operation.busy, navigationBlocked, canConfirmCurrentSave, recoveryGuidance, locked, canRetry, saveState,
+    durableViolations: hasHydrated ? durableState.contentFree.violations : [], activity, week, streaks, timeZone, continuationOffer, view, busy: operation.busy, navigationBlocked, canConfirmCurrentSave, recoveryGuidance, locked, canRetry, saveState,
     message: navigationError ?? operation.message,
     actions: {
       openContinuation,

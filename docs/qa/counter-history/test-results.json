@@ -1,0 +1,139 @@
+{
+  "verify-audio": {
+    "exit_code": 0,
+    "last_lines": [
+      "Bloom iOS audio patch verified (expo-audio 1.1.1).",
+      "Audio verification passed: actual-engine clock, loop wraps, pause/buffer, finite/unlimited, seek/clamp, fade/expiry, interruption, background, teardown races, rapid presses, retries, errors, bundled WAV hashes and isolated QA gate."
+    ]
+  },
+  "verify-counter-history": {
+    "exit_code": 0,
+    "last_lines": [
+      "",
+      "Counter/history metrics passed: actual transitions, undo, stop/restart gaps, earned Reset dates, incomplete/future records, midnight, timezone regrouping both DST boundaries, midnight DST and skipped civil dates."
+    ]
+  },
+  "verify-e2e-app-identity": {
+    "exit_code": 0,
+    "last_lines": [
+      "",
+      "Bloom E2E app identity verification passed."
+    ]
+  },
+  "verify-e2e-runtime": {
+    "exit_code": 0,
+    "last_lines": [
+      "Bloom E2E runtime verification passed.",
+      "Bloom Phase 10 / new Home-run Simulator QA verification passed."
+    ]
+  },
+  "verify-guided-flows": {
+    "exit_code": 0,
+    "last_lines": [
+      "",
+      "Bloom guided-flow verification passed."
+    ]
+  },
+  "verify-home-ui": {
+    "exit_code": 0,
+    "last_lines": [
+      "Home animation/clock harness passed: real elapsed values, capped Reset, invalid/future clocks, focus/foreground cleanup, native fog and Reduced Motion. Not a mounted renderer.",
+      "Content-Free root transition harness passed: actual route chooses no animation for Reduced Motion; route path and guarded navigator unchanged."
+    ]
+  },
+  "verify-journey": {
+    "exit_code": 0,
+    "last_lines": [
+      "",
+      "Bloom journey verification passed."
+    ]
+  },
+  "verify-kegel-persistence": {
+    "exit_code": 0,
+    "last_lines": [
+      "Full HTML inventory verified: 88 labeled screen states covered.",
+      "Kegel persistence passed: v7 retained migration/failed migration; all existing slices preserved; onboarding; full snapshots; reopen/two sessions; duplicate callbacks; rejected incomplete records; durable failure/retry and post-write uncertainty; real daily/weekly/heat/streak + DST; malformed/future payload preservation; optional local-reference inventory coverage."
+    ]
+  },
+  "verify-kegel": {
+    "exit_code": 0,
+    "last_lines": [
+      "Kegel QA startup fails closed before Expo when the isolated run name is missing/invalid.",
+      "Kegel final UX verification passed: four truthful completion states, unchanged dismiss/retry guards, durable-only first exercise, failed onboarding + retry, double taps, effect replay, cancellation and revisited technique."
+    ]
+  },
+  "verify-library": {
+    "exit_code": 0,
+    "last_lines": [
+      "",
+      "Library passed: HTML inventory with one explicit navigation-wording correction; 6 categories/12 articles/next/unknown routes; additive v8 acknowledged normalization + failed rewrite; retained v7 migration/failed migration; bookmark/read/reversal/restart with all slices preserved; synchronous duplicates; failures before/after write + original retry; unknown IDs; corrupt payload retention; obsolete tokens/deletion; explicit completion only."
+    ]
+  },
+  "verify-navigation": {
+    "exit_code": 0,
+    "last_lines": [
+      "Forward-navigation regression passed: real router-wrapper delegation, retained guarded owner, child focus, pending tab jumps, safe recovery return, entry redirect and native Back fallback.",
+      "Tab recovery verification passed: existing current-confirmation API only, busy guard, double taps, failed save, superseded receipt and truthful durable-only unlock."
+    ]
+  },
+  "verify-persistence-acknowledgement": {
+    "exit_code": 0,
+    "last_lines": [
+      "",
+      "Bloom persistence acknowledgement verification passed."
+    ]
+  },
+  "verify-persistence": {
+    "exit_code": 0,
+    "last_lines": [
+      "Bloom Starting recommendation feature verification passed (four historical plans without rescoring, atomic existing acceptance, exact successor retry, all-four-reference stale guards, durable destinations, no-op/conflict recovery, Home priorities, and controlled hook/screen execution).",
+      "Bloom persistence verification passed."
+    ]
+  },
+  "verify-product-onboarding-ui": {
+    "exit_code": 0,
+    "last_lines": [
+      "Bloom Starting recommendation feature verification passed (four historical plans without rescoring, atomic existing acceptance, exact successor retry, all-four-reference stale guards, durable destinations, no-op/conflict recovery, Home priorities, and controlled hook/screen execution).",
+      "Bloom product onboarding UI verification passed."
+    ]
+  },
+  "verify-profile": {
+    "exit_code": 0,
+    "last_lines": [
+      "",
+      "Profile passed: empty/unavailable, real selectors, pending exclusion, catalog filtering, idempotency, onboarding route readiness, actual persistence/restart and failed-save durable projection."
+    ]
+  },
+  "verify-protection-reset": {
+    "exit_code": 0,
+    "last_lines": [
+      "",
+      "Bloom Protection and Reset verification passed."
+    ]
+  },
+  "verify-release-debug-guards": {
+    "exit_code": 0,
+    "last_lines": [
+      "",
+      "Bloom release debug guard verification passed."
+    ]
+  },
+  "verify-reset-continuity": {
+    "exit_code": 0,
+    "last_lines": [
+      "",
+      "Bloom Reset continuity verification passed (all 15 requested regression groups, fractional/boundary credit, multiple restarts, undo corrections, isolated injected clock, saved offers, retries, and v7 preservation)."
+    ]
+  },
+  "verify-settings": {
+    "exit_code": 0,
+    "last_lines": [
+      "Settings isolated fault adapter passed: dev/E2E/bundle/flag/run gates, namespaced key inventory, one-shot failure and retry.",
+      "Settings UI harness passed: cancel/short hold/blur/stale Alert, duplicate events, pending, truthful success, failure/retry, navigation recovery and revisit. Controlled hooks; not a mounted renderer."
+    ]
+  },
+  "typecheck": {
+    "exit_code": 0,
+    "log": "typecheck.log"
+  }
+}

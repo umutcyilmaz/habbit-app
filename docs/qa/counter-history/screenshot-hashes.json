@@ -1,0 +1,394 @@
+[
+  {
+    "path": "html-counter-calendar.png",
+    "width": 390,
+    "height": 844,
+    "bytes": 52067,
+    "sha256": "f4929ec953bc793b2bf2306418e3b3b6fb9be11a58c416e1a37ab6eccbc4ac63"
+  },
+  {
+    "path": "html-counter-protection.png",
+    "width": 390,
+    "height": 844,
+    "bytes": 43771,
+    "sha256": "287eba6310770c3e75d4ffd75fbfe512a2898c5a015063ce3c863592d6457240"
+  },
+  {
+    "path": "html-counter-stopped.png",
+    "width": 390,
+    "height": 844,
+    "bytes": 43154,
+    "sha256": "147aaa1b2ed2525da02e166c4d2f66dfef00664c315b3de1755b867cfaf1ca43"
+  },
+  {
+    "path": "html-counter-top.png",
+    "width": 390,
+    "height": 844,
+    "bytes": 47805,
+    "sha256": "75ca086e9a357ef868a2b64e3404665e77a317b0263a6c03e940789f2b0d7813"
+  },
+  {
+    "path": "screenshots/01-native-fresh-counter.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 195352,
+    "sha256": "0ee6765906c1031d1a71d1971000d505c6af73543eef8ddef2030ea57d255822"
+  },
+  {
+    "path": "screenshots/02-native-empty-history.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 221518,
+    "sha256": "dbca4a5a502877aee9d0701378926d1ab2382e71b447b126e2c20978ce977a2a"
+  },
+  {
+    "path": "screenshots/03-native-protection-unavailable.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 221518,
+    "sha256": "dbca4a5a502877aee9d0701378926d1ab2382e71b447b126e2c20978ce977a2a"
+  },
+  {
+    "path": "screenshots/04-native-failed-save.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 205282,
+    "sha256": "6334b90453540b8a388e588ebf94a9737f4310d3b4600e603dd73b101d93cca6"
+  },
+  {
+    "path": "screenshots/04-native-retry-already-saved.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 197046,
+    "sha256": "3faf4e99399aaa8afe15f8ec6d4d519f8092d69a3c40556a76edff7a10899d75"
+  },
+  {
+    "path": "screenshots/05-native-active-counter.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 188668,
+    "sha256": "c3a59697a292cc1c0ddbc5be8fcc9d1aae87eac01f2f8a347aaf5932de15f8f0"
+  },
+  {
+    "path": "screenshots/06-native-three-day-counter.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 180401,
+    "sha256": "abdc719c9d302c75e13c6d34ac3e72ecb3922ee5e2745c3230be76583b35b648"
+  },
+  {
+    "path": "screenshots/07-native-week-and-four-weeks.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 206143,
+    "sha256": "15887a2f3e24f1c1f969b53e6f1a77ae18c5b5d7d6711a89f24f170800002253"
+  },
+  {
+    "path": "screenshots/08-native-real-violation.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 181141,
+    "sha256": "c74b37bc3edd4f99b6a447c32650a40c4e5d29d4da7542c3cb985b43585fddcf"
+  },
+  {
+    "path": "screenshots/09-native-violation-calendar.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 205867,
+    "sha256": "1e54608d8f926a2729826f313b238968c72d0d1f38fa55ff38d3fab49fd765a6"
+  },
+  {
+    "path": "screenshots/10-native-undo-offer.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 202698,
+    "sha256": "1893a6857a241e0a80403ab2cb62351b4700c9b63efd95df6eb27f03c29a7d06"
+  },
+  {
+    "path": "screenshots/11-native-undo-restored.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 180401,
+    "sha256": "abdc719c9d302c75e13c6d34ac3e72ecb3922ee5e2745c3230be76583b35b648"
+  },
+  {
+    "path": "screenshots/12-native-stopped.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 196399,
+    "sha256": "40dae397c3a0d910ce7f4e81afcc48fe5d8863fabd385d26336e2ea4cb338f2d"
+  },
+  {
+    "path": "screenshots/13-native-restarted.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 180628,
+    "sha256": "a9fad8d878abed29d5f7996b3483bab92fc7d8ff867036c0d562ba0320f6df35"
+  },
+  {
+    "path": "screenshots/14-native-real-streak-history.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 224798,
+    "sha256": "a344a65d744095c76057bde7f5c80e5e6760cb2846c9ec022092c43f2034b49b"
+  },
+  {
+    "path": "screenshots/15-native-restart-preserved.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 180628,
+    "sha256": "a9fad8d878abed29d5f7996b3483bab92fc7d8ff867036c0d562ba0320f6df35"
+  },
+  {
+    "path": "screenshots/16-native-empty-tracking-history.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 225848,
+    "sha256": "9421ec35c81cd6eb391bfa14f601a1b29b5b2cb4c0ec5a7237c0129a544b829e"
+  },
+  {
+    "path": "screenshots/17-native-incomplete-feedback.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 201967,
+    "sha256": "c6d24c5d35855cc340abfcd37fbaafbad0ac4e22a7ca9519a7697edf18125db3"
+  },
+  {
+    "path": "screenshots/18-native-real-tracking-calendar.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 209378,
+    "sha256": "e8ff0346c7f5ab1c1bdfb05d23faa6e9116667acb389fe75956ad3d6e3e05c3d"
+  },
+  {
+    "path": "screenshots/19-native-discrete-quality-records.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 219018,
+    "sha256": "200a6efda924481bdb5bffa1b76d9af5fd3d68a2c3f060ecf7e7e8f484d4da6f"
+  },
+  {
+    "path": "screenshots/20-native-actual-session-feedback.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 219016,
+    "sha256": "052184a8842255eea9c62e053978ac13aba03e42e059923380485d2ba9dca7fc"
+  },
+  {
+    "path": "screenshots/21-native-tracking-preserved.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 210939,
+    "sha256": "31dc89f5096d3fad6c76b0fed3c545d515cde91e8875cb9a7e097852311b22f5"
+  },
+  {
+    "path": "screenshots/22-native-pending-save.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 188668,
+    "sha256": "c3a59697a292cc1c0ddbc5be8fcc9d1aae87eac01f2f8a347aaf5932de15f8f0"
+  },
+  {
+    "path": "screenshots/23-native-active-reset-restrictions.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 1426966,
+    "sha256": "01bc38e847a49b0a972854d953cc99162e1fc82ee11d0fd2bb8b4f71d5db1760"
+  },
+  {
+    "path": "screenshots/24-native-tracking-deeplink-restricted.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 234500,
+    "sha256": "04ce3660a8954518494f3259efd61977980bed0dbe8b3f185fd6c719172bd26c"
+  },
+  {
+    "path": "screenshots/25-native-reset-completion-required.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 615720,
+    "sha256": "14923310e78609fcb713f09b09fcd4581e6a27d78c4e81ca9a335ddf509f50c0"
+  },
+  {
+    "path": "screenshots/26-native-continuation-offer.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 152610,
+    "sha256": "37c9026e10a2e2ad3ba3c998050eb272c9493a7e750480128e9e0ba71036389f"
+  },
+  {
+    "path": "screenshots/27-native-reset-content-free-credit.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 177535,
+    "sha256": "c4c1e6a422388a4da6767b55bbbbafb122fc3ae4ad94f16ca5380d5ecdf07431"
+  },
+  {
+    "path": "screenshots/28-native-earned-reset-calendar.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 213826,
+    "sha256": "8e8b66923896523bbb6bc1c8572388f218741c99876362caa8243703fb82f74d"
+  },
+  {
+    "path": "screenshots/29-native-earned-reset-history.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 235100,
+    "sha256": "e06712e6e4ac471b04ecf2d3220c51f8475f326227febda7f17bc3e62d7e4e5d"
+  },
+  {
+    "path": "screenshots/30-native-reset-continuation-restart.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 175825,
+    "sha256": "4ce069bd475d0adbf28d8b1e021cd67c56411714071d9f5897ae1cab69f38efe"
+  },
+  {
+    "path": "screenshots/31-native-final-counter-top.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 181039,
+    "sha256": "e9125fafc3425c6f6c7a6adf159ed23c1ef7cb8f30f8cfcf613ec605544b2d5f"
+  },
+  {
+    "path": "screenshots/32-native-final-counter-calendar.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 206263,
+    "sha256": "2b5f06ee6d72712ba6064956d58a2b05f55c09dbae36eda6074d09e5c101ba27"
+  },
+  {
+    "path": "screenshots/33-native-final-counter-bottom.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 176806,
+    "sha256": "6e30f284a4e04fbe12bd358f87c3b94419c4d47507f6b9a89e63ebbaa51a776c"
+  },
+  {
+    "path": "screenshots/34-native-final-counter-scroll-top.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 181039,
+    "sha256": "e9125fafc3425c6f6c7a6adf159ed23c1ef7cb8f30f8cfcf613ec605544b2d5f"
+  },
+  {
+    "path": "screenshots/35-native-large-counter-top.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 146142,
+    "sha256": "6b43df843f1adab14e86f38a7847631d9d943b6ba35c708707ec441742363b37"
+  },
+  {
+    "path": "screenshots/36-native-large-week-calendar.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 171290,
+    "sha256": "e1bd24e02d11744c1dccbf3664e5e6f81dda77c7ca9872e8a42c61f87985a936"
+  },
+  {
+    "path": "screenshots/37-native-large-counter-bottom.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 179791,
+    "sha256": "e1d625b17764a4ec4668a95d5d6499cc1b4d7987ceab00aba322057cf54f1b10"
+  },
+  {
+    "path": "screenshots/38-native-large-real-quality.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 221315,
+    "sha256": "03a12ca98a7baba952742d76dde4d0aeaa7eb1ddfb05f0b624554353446e550f"
+  },
+  {
+    "path": "screenshots/39-native-large-session-feedback.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 198406,
+    "sha256": "e84deb3cd8c5b1cbe4c68ceabdda89a36db4be05dee6997545214bbaddb845c3"
+  },
+  {
+    "path": "previous-review/18-native-real-tracking-calendar.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 211925,
+    "sha256": "ceb376136c9d5b9fdb036b7ca59e422691a89e3b3caac30ddc6a0d0df3f9fb72"
+  },
+  {
+    "path": "previous-review/19-native-discrete-quality-records.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 211925,
+    "sha256": "ceb376136c9d5b9fdb036b7ca59e422691a89e3b3caac30ddc6a0d0df3f9fb72"
+  },
+  {
+    "path": "previous-review/20-native-actual-session-feedback.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 221881,
+    "sha256": "09e372f0b7e740a935b29ed8fb44ba69945a813d6cbe23217bd72274f87d641b"
+  },
+  {
+    "path": "previous-review/31-native-final-counter-top.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 182076,
+    "sha256": "19c8eaeba9e89325beb45c3c679ccad022ade1f451fcb09b20f5119a046778c0"
+  },
+  {
+    "path": "previous-review/32-native-final-counter-calendar.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 206054,
+    "sha256": "c8c773c9e446cf52a702cd1a438ebf1fe3bc7466949872737c7a791766a06ca6"
+  },
+  {
+    "path": "previous-review/33-native-final-counter-bottom.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 224577,
+    "sha256": "b67c5fd953bd2f410fe8ea0fae013cc94e423d36a196d440968e02ef205c387b"
+  },
+  {
+    "path": "previous-review/34-native-final-counter-scroll-top.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 187276,
+    "sha256": "19f3d856494ec61b9e9b0ee2da886aa9e5a557d078ef9fdb8f213b1c479b986e"
+  },
+  {
+    "path": "previous-review/35-native-large-counter-top.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 147330,
+    "sha256": "c736cc1b8169fff72b37631abe955b69f58154f0c06604049a989a048a349273"
+  },
+  {
+    "path": "previous-review/36-native-large-week-calendar.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 172517,
+    "sha256": "79e61ecea9822708c9f7285cc7134a601a202457a82909b2dcfa9d6c5d3c2527"
+  },
+  {
+    "path": "previous-review/37-native-large-counter-bottom.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 186719,
+    "sha256": "b5bab1fcf13e279d18604b00723c1009214fa8aa3ddd6774b565118d8c2b0bd7"
+  },
+  {
+    "path": "previous-review/38-native-large-real-quality.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 207545,
+    "sha256": "ce5eb8e67633e678e581f3cdef699bcad7cefd80fde65c0866ed6f7a49fd2e0d"
+  },
+  {
+    "path": "previous-review/39-native-large-session-feedback.png",
+    "width": 1206,
+    "height": 2622,
+    "bytes": 192029,
+    "sha256": "f656ccc08b850fcff6dbefc5849900555d7ebfdcd5587fb75d1ccb38149b12ff"
+  }
+]

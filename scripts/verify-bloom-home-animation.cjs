@@ -42,3 +42,19 @@ values=[];render();assert.equal(ticks.size,1,'Reduced Motion still shows real cl
 const numberNode=nodes(render()).find(n=>n.type==='AnimatedView');assert.equal(numberNode.props.entering,undefined);
 cleanup();
 console.log('Home animation/clock harness passed: real elapsed values, capped Reset, invalid/future clocks, focus/foreground cleanup, native fog and Reduced Motion. Not a mounted renderer.');
+// Root stack transition: execute the actual function with controlled RM/fonts.
+const rootSource=ts.createSourceFile('app/_layout.tsx',fs.readFileSync('app/_layout.tsx','utf8'),ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX);
+const rootFunction=rootSource.statements.find(n=>ts.isFunctionDeclaration(n)&&n.name?.text==='RootLayout');
+assert(rootFunction);
+const rootModule={exports:{}};
+const settingsDeclaration=rootSource.statements.find(n=>ts.isVariableStatement(n)&&n.declarationList.declarations.some(d=>d.name.getText(rootSource)==="settingsHeaders"));
+assert(settingsDeclaration);
+const rootCode=ts.transpileModule(settingsDeclaration.getText(rootSource)+"\n"+rootFunction.getText(rootSource),{compilerOptions:{jsx:ts.JsxEmit.ReactJSX,module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+let rootReduced=false;
+vm.runInNewContext(rootCode,{module:rootModule,exports:rootModule.exports,require:n=>{assert.equal(n,'react/jsx-runtime');return{jsx,jsxs:jsx};},useReducedMotion:()=>rootReduced,useFonts:()=>[true,null],useEffect:()=>{},fonts:{},theme:{colors:{background:'#000'}},Stack:{Screen:'Screen'},AppProviders:'Providers',BloomNestedBackButton:'Back',SplashScreen:{hideAsync(){}}});
+for(const motion of [false,true]){
+  rootReduced=motion;
+  const entry=nodes(rootModule.exports.default()).find(n=>n.props.name==='bloom/content-free');
+  assert.equal(entry.props.options.animation,motion?'none':'slide_from_right');
+}
+console.log('Content-Free root transition harness passed: actual route chooses no animation for Reduced Motion; route path and guarded navigator unchanged.');

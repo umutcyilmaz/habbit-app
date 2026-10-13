@@ -1,0 +1,67 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Final bundle saved three records visual navigation and scroll
+---
+- openLink: "tms-e2e:///today"
+- assertVisible: { id: "bloom.home" }
+- waitForAnimationToEnd: { timeout: 1500 }
+- assertNotVisible: "Refreshing.*"
+- tapOn: { id: "bloom.tab.profile" }
+- assertVisible: { id: "bloom.profile" }
+- tapOn: { id: "bloom.tab.today" }
+- assertVisible: { id: "bloom.home" }
+- scrollUntilVisible:
+    element: { text: "Takip geçmişin" }
+    direction: DOWN
+    centerElement: false
+- assertVisible: "Son 4 hafta · 3 tamamlanan oturum"
+- waitForAnimationToEnd: { timeout: 1500 }
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "18-native-real-tracking-calendar"
+- scrollUntilVisible:
+    element: { id: "bloom.home.history.quality" }
+    direction: DOWN
+    centerElement: true
+- waitForAnimationToEnd: { timeout: 1500 }
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "19-native-discrete-quality-records"
+- scrollUntilVisible:
+    element: { text: "Son oturumlar" }
+    direction: DOWN
+    centerElement: true
+- waitForAnimationToEnd: { timeout: 1500 }
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "20-native-actual-session-feedback"
+- openLink: "tms-e2e:///bloom/content-free"
+- assertVisible: { id: "bloom.content-free.current-streak" }
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.close" }
+    direction: UP
+    centerElement: false
+- waitForAnimationToEnd: { timeout: 1500 }
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "31-native-final-counter-top"
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.activity" }
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: true
+- waitForAnimationToEnd: { timeout: 1500 }
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "32-native-final-counter-calendar"
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.protection-unavailable" }
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+- waitForAnimationToEnd: { timeout: 1500 }
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "33-native-final-counter-bottom"
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.close" }
+    direction: UP
+    centerElement: false
+- waitForAnimationToEnd: { timeout: 1500 }
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "34-native-final-counter-scroll-top"
+- tapOn: { id: "bloom.content-free.close" }
+- assertVisible: { id: "bloom.home" }

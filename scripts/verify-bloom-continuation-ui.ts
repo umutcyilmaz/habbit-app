@@ -23,7 +23,8 @@ function renderFunction(path: string, name: string, feature: unknown, argument?:
     module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, jsx: ts.JsxEmit.ReactJSX
   } }).outputText, {
     module, exports: module.exports, styles: {},
-    AppCard: "AppCard", AppText: "AppText", AppButton: "AppButton", AppScreen: "AppScreen", View: "View",
+    AppCard: "AppCard", AppText: "AppText", AppButton: "AppButton", AppScreen: "AppScreen", View: "View", Pressable: "Pressable",
+    HomeIcon: "HomeIcon", useSafeAreaInsets: () => ({ top: 62 }), useWindowDimensions: () => ({ fontScale: 1 }), ContentFreeActivity: "ContentFreeActivity", DeactivateAction: "DeactivateAction",
     SaveStatus: "SaveStatus", ViolationHistory: "ViolationHistory", useContentFreeFeature: () => feature,
     require: (name: string) => { assert(name === "react/jsx-runtime", "UI extraction imports only JSX runtime."); return { jsx, jsxs: jsx }; }
   });

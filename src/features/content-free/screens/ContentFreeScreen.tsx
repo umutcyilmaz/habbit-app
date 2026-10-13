@@ -1,5 +1,11 @@
 import { useRef, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View, useWindowDimensions } from "react-native";
+
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { HomeIcon } from "../../home/components/HomeIcon";
+import { HomeStatusCapsules } from "../../home/components/HomeStatusCapsules";
+import { formatHistoryDuration } from "../../home/history/activityHistory";
+import { ContentFreeActivity } from "./ContentFreeActivity";
 
 import { AppButton } from "../../../shared/components/v4/AppButton";
 import { AppCard } from "../../../shared/components/v4/AppCard";
@@ -7,7 +13,7 @@ import { AppScreen } from "../../../shared/components/v4/AppScreen";
 import { AppText } from "../../../shared/components/v4/AppText";
 import { theme } from "../../../shared/design-system/v4/theme";
 import {
-  formatContentFreeDate,
+  formatContentFreeShortDate,
   formatContentFreeEventTime,
 } from "../contentFreeView";
 import { useContentFreeFeature } from "../useContentFreeFeature";
@@ -25,29 +31,24 @@ const saveStateLabels: Record<ContentFreeFeature["saveState"], string> = {
 
 export function ContentFreeScreen() {
   const feature = useContentFreeFeature();
-  const { view, busy, locked, actions } = feature;
+  const { view, locked, actions } = feature;
+  const insets = useSafeAreaInsets();
+  const { fontScale } = useWindowDimensions();
+  const large = fontScale > 1.5;
   const { progress } = view;
+  const creditedSeconds = progress?.status === "active"
+    ? feature.streaks.find(entry => entry.endReason === "active" && entry.startedAt === view.currentStreakStartedAt)?.resetSeconds ?? 0
+    : 0;
 
   return (
-    <AppScreen scroll includeBottomNavClearance={false}>
+    <View testID="bloom.content-free.safe-area" style={[styles.root, { paddingTop: insets.top }]}><AppScreen key={fontScale} scroll includeBottomNavClearance={false} style={styles.viewport} contentContainerStyle={styles.content}>
       <View testID="bloom.content-free" style={styles.page}>
         <View style={styles.header}>
-          <View style={styles.headerText}>
-            <AppText variant="overline" tone="accent">
-              CONTENT-FREE
-            </AppText>
-            <AppText variant="heading2" accessibilityRole="header">
-              Content-Free sayacı
-            </AppText>
-          </View>
-          <AppButton
-            testID="bloom.content-free.close"
-            label="Kapat"
-            variant="ghost"
-            style={styles.closeButton}
-            disabled={feature.navigationBlocked}
-            onPress={actions.close}
-          />
+          <Pressable testID="bloom.content-free.close" accessibilityRole="button" accessibilityLabel="Kapat, ana sayfaya dön" accessibilityState={{ disabled: feature.navigationBlocked }} disabled={feature.navigationBlocked} onPress={actions.close} style={({ pressed }) => [styles.closeCircle, pressed && styles.closePressed]}>
+            <HomeIcon name="back" size={24} />
+          </Pressable>
+          <AppText style={styles.navigationTitle} accessibilityRole="header" accessibilityLabel="İçeriksiz sayaç">Sayaç</AppText>
+          <View style={styles.headerBalance} />
         </View>
 
         <SaveStatus feature={feature} />
@@ -81,15 +82,12 @@ export function ContentFreeScreen() {
               >
                 {view.hasPriorActivation ? "DURDURULDU" : "HENÜZ BAŞLAMADI"}
               </AppText>
-              <AppText variant="display" accessibilityRole="header">
-                {view.hasPriorActivation
-                  ? "İstersen yeniden başla."
-                  : "Kendi ritminde başla."}
-              </AppText>
-              <AppText variant="bodyLarge" tone="secondary">
-                Sayaç, etkinleştirdiğin anda bilinçli açık içerik kullanımı
-                olmadan geçen zamanı izler.
-              </AppText>
+              <View style={[styles.dayHero, large && styles.largeHero]}>
+                <AppText testID="bloom.content-free.last-streak" style={[styles.dayNumber, styles.mutedNumber, large && styles.largeNumber]}>{feature.streaks[0] ? Math.floor(feature.streaks[0].seconds / 86400) : "—"}</AppText>
+                <AppText style={[styles.dayNumber, styles.mutedNumber, large && styles.largeNumber]}>gün</AppText>
+              </View>
+              <AppText variant="bodyLarge" tone="secondary">{view.hasPriorActivation ? "Son serin sona erdi. İstersen yeniden başla." : "Kendi ritminde başla."}</AppText>
+              <AppText variant="bodySmall" tone="secondary">Sayaç, etkinleştirdiğin anda bilinçli açık içerik kullanımı olmadan geçen zamanı izler.</AppText>
             </View>
             <AppCard variant="hero" style={styles.cardStack}>
               <AppText variant="title">Sana ait bir sayaç</AppText>
@@ -103,6 +101,7 @@ export function ContentFreeScreen() {
                 </AppText>
               ) : null}
             </AppCard>
+            {feature.streaks[0] ? <View style={styles.stoppedHero}><AppText style={styles.timeChip}>{formatHistoryDuration(feature.streaks[0].seconds)} · Durduruldu</AppText></View> : null}
             <BestStreak seconds={progress.effectiveBestStreakSeconds} />
             <AppButton
               testID="bloom.content-free.activate"
@@ -117,60 +116,26 @@ export function ContentFreeScreen() {
           </View>
         ) : (
           <View style={styles.stack}>
-            <AppCard variant="hero" style={styles.hero}>
-              <AppText
-                testID="bloom.content-free.status"
-                variant="overline"
-                tone="success"
-              >
-                AKTİF SERİ
-              </AppText>
-              <View style={styles.dayHero}>
-                <AppText
-                  testID="bloom.content-free.current-streak"
-                  style={styles.dayNumber}
-                >
-                  {progress.currentCompletedDays}
-                </AppText>
-                <AppText variant="heading1" tone="secondary">
-                  gün
-                </AppText>
+            <View style={styles.hero}>
+              <AppText testID="bloom.content-free.status" variant="overline" tone="accent">{progress.currentCompletedDays === 0 && view.currentActivationHasEffectiveViolation ? "YENİ SERİ" : "AKTİF SERİ"}</AppText>
+              <AppText style={styles.centerText} tone="secondary">İçeriksiz geçen süre</AppText>
+              <View style={[styles.dayHero, large && styles.largeHero]}>
+                <AppText testID="bloom.content-free.current-streak" style={[styles.dayNumber, large && styles.largeNumber]}>{progress.currentCompletedDays}</AppText>
+                <AppText style={[styles.dayNumber, large && styles.largeNumber]}>gün</AppText>
               </View>
-              <AppText
-                variant="bodySmall"
-                tone="secondary"
-                style={styles.centerText}
-              >
-                Bilinçli açık içerik kullanımı olmadan tamamlanan günler
-              </AppText>
-              {progress.currentCompletedDays === 0 &&
-              view.currentActivationHasEffectiveViolation ? (
-                <View style={styles.newStreakBadge}>
-                  <AppText variant="labelSmall" tone="success">
-                    Yeni seri başladı
-                  </AppText>
-                </View>
-              ) : null}
-            </AppCard>
-            <View style={styles.statRow}>
-              <BestStreak
-                seconds={progress.effectiveBestStreakSeconds}
-                compact
-              />
-              {view.currentStreakStartedAt !== null ? (
-                <AppCard style={styles.statCard}>
-                  <AppText variant="bodySmall" tone="secondary">
-                    Başlangıç
-                  </AppText>
-                  <AppText variant="label">
-                    {formatContentFreeDate(view.currentStreakStartedAt)}
-                  </AppText>
-                </AppCard>
-              ) : null}
+              <View style={styles.timeChip}><AppText testID="bloom.content-free.elapsed" style={styles.timeText}>{Math.floor(progress.currentStreakSeconds % 86400 / 3600)} sa {Math.floor(progress.currentStreakSeconds % 3600 / 60)} dk {progress.currentStreakSeconds % 60} sn</AppText></View>
+              <HomeStatusCapsules values={[
+                { icon: "flag", label: "En uzun seri", value: `${Math.floor(progress.effectiveBestStreakSeconds / 86400)} gün`, id: "bloom.content-free.best-streak" },
+                { icon: "calendar", label: "Başlangıç", value: view.currentStreakStartedAt ? formatContentFreeShortDate(view.currentStreakStartedAt) : "—" },
+              ]} />
+              {creditedSeconds > 0 ? <AppText testID="bloom.content-free.reset-credit" variant="bodySmall" tone="accent" style={styles.centerText}>{formatHistoryDuration(creditedSeconds)} kazanılmış Reset süresi dahil.</AppText> : null}
+              <AppText variant="bodySmall" tone="secondary" style={styles.centerText}>Mastürbasyon tek başına seriyi sıfırlamaz. Yalnızca bilinçli açık içerik kullanımı sıfırlar.</AppText>
             </View>
             <AppButton
               testID="bloom.content-free.panic"
-              label="Panic"
+              label="Şu an zorlanıyorum"
+              variant="primary"
+              style={({ pressed }) => [styles.pillButton, { backgroundColor: pressed ? "#c63140" : "#ed3d4a" }]}
               disabled={locked}
               onPress={actions.openPanic}
             />
@@ -180,17 +145,17 @@ export function ContentFreeScreen() {
               onRecord={actions.recordManualViolation}
             />
 
-            <DeactivateAction
-              key={`deactivate-${view.activationId}`}
-              locked={locked}
-              onDeactivate={actions.deactivate}
-            />
+
           </View>
         )}
 
-        {progress !== null ? <ViolationHistory feature={feature} /> : null}
+        {progress !== null ? <>
+          <ContentFreeActivity weeks={feature.activity} week={feature.week} streaks={feature.streaks} timeZone={feature.timeZone} />
+          <ViolationHistory feature={feature} />
+          {progress.status === "active" ? <DeactivateAction key={`deactivate-${view.activationId}`} locked={locked} onDeactivate={actions.deactivate} /> : null}
+        </> : null}
       </View>
-    </AppScreen>
+    </AppScreen></View>
   );
 }
 
@@ -205,6 +170,7 @@ function SaveStatus({ feature }: { feature: ContentFreeFeature }) {
         testID="bloom.content-free.save-state"
         accessibilityLiveRegion="polite"
         variant="bodySmall"
+        style={styles.saveLabel}
         tone={
           feature.saveState === "unconfirmed" ||
           feature.saveState === "unavailable"
@@ -294,51 +260,16 @@ function ManualViolationAction({
     onRecord();
   };
 
-  return (
+  return confirming ? (
     <AppCard style={styles.cardStack}>
-      {confirming ? (
-        <>
-          <AppText variant="heading1">Sayacı sıfırlamak istiyor musun?</AppText>
-          <AppText tone="secondary">
-            Yalnızca bilinçli olarak açık içerik kullandıysan bunu kaydet.
-            Kazara gördüysen kaydetmene gerek yok.
-          </AppText>
-          <AppText variant="bodySmall" tone="secondary">
-            Mevcut seri sona erer. En uzun seri ve geçmiş korunur.
-          </AppText>
-          <AppButton
-            testID="bloom.content-free.record.confirm"
-            label="Evet, bilinçli kullandım"
-            variant="destructive"
-            disabled={locked}
-            onPress={recordConfirmed}
-          />
-          <AppButton
-            testID="bloom.content-free.record.cancel"
-            label="Vazgeç"
-            variant="ghost"
-            disabled={locked}
-            onPress={cancelConfirmation}
-          />
-        </>
-      ) : (
-        <>
-          <AppText variant="title">Bir ihlal mi oldu?</AppText>
-          <AppText variant="bodySmall" tone="secondary">
-            Yalnızca bilinçli açık içerik kullanımını kaydet. Kazara gördüğün
-            içerikler sayılmaz.
-          </AppText>
-          <AppButton
-            testID="bloom.content-free.record"
-            label="Bir ihlal oldu · sıfırla"
-            variant="destructive"
-            disabled={locked}
-            onPress={openConfirmation}
-          />
-        </>
-      )}
+      <AppText variant="heading1">Sayacı sıfırlamak istiyor musun?</AppText>
+      <AppText tone="secondary">Yalnızca bilinçli olarak açık içerik kullandıysan bunu kaydet. Kazara gördüğün içerikler sayılmaz.</AppText>
+      <AppText variant="bodySmall" tone="secondary">Mevcut seri sona erer. En uzun seri ve geçmiş korunur.</AppText>
+      <AppButton testID="bloom.content-free.record.confirm" label="Evet, bilinçli kullandım" variant="destructive" disabled={locked} onPress={recordConfirmed} />
+      <AppButton testID="bloom.content-free.record.cancel" label="Vazgeç" variant="ghost" disabled={locked} onPress={cancelConfirmation} />
     </AppCard>
-  );
+  ) : <AppButton testID="bloom.content-free.record" label="Seriyi sıfırla" variant="ghost" disabled={locked} onPress={openConfirmation} />;
+
 }
 
 function DeactivateAction({
@@ -423,7 +354,7 @@ function ViolationHistory({ feature }: { feature: ContentFreeFeature }) {
       ) : null}
       <AppButton
         testID="bloom.content-free.history.toggle"
-        label={expanded ? "Geçmişi gizle" : "Geçmişi gör"}
+        label={expanded ? "Kullanım kayıtlarını gizle" : "Kullanım kayıtlarını gör"}
         variant="ghost"
         onPress={() => setExpanded(!expanded)}
       />
@@ -450,9 +381,9 @@ function ViolationHistory({ feature }: { feature: ContentFreeFeature }) {
                   {violation.source.kind === "masturbationSession"
                     ? "Oturum geri bildiriminden"
                     : "Manuel kayıt"}
-                  {violation.status === "undone"
-                    ? " · Geri alındı"
-                    : " · Kaydedildi"}
+                  {feature.durableViolations.some(saved => saved.id === violation.id && saved.status === violation.status)
+                    ? violation.status === "undone" ? " · Geri alındı" : " · Kaydedildi"
+                    : " · Kaydetme onayı bekleniyor"}
                 </AppText>
                 <AppText variant="bodySmall" tone="secondary">
                   Olay: {formatContentFreeEventTime(violation.occurredAt)}
@@ -484,12 +415,15 @@ function ViolationHistory({ feature }: { feature: ContentFreeFeature }) {
 }
 
 const styles = StyleSheet.create({
-  page: { gap: theme.spacing.xl2, paddingBottom: theme.spacing.xl3 },
+  closeCircle: { width: 44, height: 44, borderRadius: 22, backgroundColor: "#1a1a1c", alignItems: "center", justifyContent: "center" }, closePressed: { backgroundColor: "#303036" }, navigationTitle: { flex: 1, fontSize: 18, lineHeight: 26, fontFamily: "Inter_600SemiBold", textAlign: "center" }, headerBalance: { width: 44 }, saveLabel: { fontSize: 12, lineHeight: 18, textAlign: "center" },
+  root: { flex: 1, backgroundColor: "#010208" }, viewport: { backgroundColor: "#000", paddingTop: 0, overflow: "hidden" }, content: { paddingHorizontal: 16, paddingTop: 12 },
+  pillButton: { borderRadius: 28 }, timeChip: { backgroundColor: "rgba(170,179,255,.08)", borderColor: "rgba(170,179,255,.25)", borderWidth: 1, borderRadius: 24, paddingHorizontal: 20, paddingVertical: 10, maxWidth: "100%" }, timeText: { fontFamily: "Inter_600SemiBold", fontSize: 17, lineHeight: 24, fontVariant: ["tabular-nums"], textAlign: "center" },
+  mutedNumber: { color: "#9999a6" },
+  largeHero: { flexDirection: "column", alignItems: "center" }, largeNumber: { fontSize: 48, lineHeight: 64 }, stoppedHero: { alignItems: "center", gap: 14, paddingVertical: 12 }, stoppedNumber: { fontSize: 32, lineHeight: 44, fontFamily: "Inter_600SemiBold", color: "#9999a6", textAlign: "center" },
+  page: { gap: 14, paddingBottom: theme.spacing.xl3 },
   stack: { gap: theme.spacing.lg },
-  cardStack: { gap: theme.spacing.md },
+  cardStack: { gap: 14, backgroundColor: "#141415", borderColor: "rgba(255,255,255,.07)", borderRadius: 30, padding: 20 },
   header: { flexDirection: "row", alignItems: "center", gap: theme.spacing.sm },
-  headerText: { flex: 1, gap: theme.spacing.xs2 },
-  closeButton: { width: "auto", paddingHorizontal: theme.spacing.sm },
   intro: { gap: theme.spacing.md },
   statusLine: { alignItems: "center" },
   statusPanel: {
@@ -498,29 +432,20 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.lg,
     backgroundColor: theme.colors.bg.surface,
   },
-  hero: { alignItems: "center", gap: theme.spacing.md },
+  hero: { alignItems: "center", gap: 14, paddingTop: 20, paddingBottom: 24 },
   dayHero: {
     flexDirection: "row",
     alignItems: "baseline",
     gap: theme.spacing.xs,
   },
   dayNumber: {
-    fontFamily: theme.typography.numericTimer.fontFamily,
-    fontSize: theme.typography.numericTimer.fontSize * 2,
-    lineHeight: theme.typography.numericTimer.lineHeight * 2,
+    fontFamily: "Inter_700Bold",
+    fontSize: 76,
+    lineHeight: 92,
     color: theme.colors.text.primary,
     fontVariant: ["tabular-nums"],
   },
   centerText: { textAlign: "center" },
-  newStreakBadge: {
-    backgroundColor: theme.colors.bg.successSubtle,
-    borderColor: theme.colors.border.success,
-    borderWidth: theme.size.stroke.hairline,
-    borderRadius: theme.radius.pill,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.xs,
-  },
-  statRow: { flexDirection: "row", gap: theme.spacing.sm },
   statCard: { flex: 1, minWidth: 0, width: "auto", gap: theme.spacing.sm },
   historyList: { gap: theme.spacing.sm },
 });

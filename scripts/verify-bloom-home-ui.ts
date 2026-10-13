@@ -1,3 +1,6 @@
+import { getTrackingHistory } from "../src/features/home/history/activityHistory";
+import { formatContentFreeEventTime } from "../src/features/content-free/contentFreeView";
+import { formatHistoryDuration } from "../src/features/home/history/activityHistory";
 import { getResetContentFreeContinuationOffer } from "../src/domain/contentFree/getResetContentFreeCredit";
 import { getBloomContentFreeEntryIntent } from "../src/app/flows/getBloomContentFreeEntryIntent";
 import { createResetContinuityFixture } from "./fixtures/resetContinuity";
@@ -59,6 +62,15 @@ const required = (name: string): unknown => {
     runInNewContext(code.outputText, { module: component, exports: component.exports, require: required });
     return component.exports;
   }
+  if (name.endsWith("/contentFreeView")) return { formatContentFreeEventTime };
+  if (name.endsWith("/activityHistory")) return { formatHistoryDuration };
+  if (["TrackingHistoryCard", "ActivityCalendar"].some(component => name.endsWith("/" + component))) {
+    const file = `src/features/home/history/${name.split("/").pop()}.tsx`;
+    const code = ts.transpileModule(readFileSync(file, "utf8"), { fileName: file, compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, jsx: ts.JsxEmit.ReactJSX } });
+    const component = { exports: {} };
+    runInNewContext(code.outputText, { module: component, exports: component.exports, require: required });
+    return component.exports;
+  }
   if (name.endsWith("/useBloomHomeFeature")) return { useBloomHomeFeature: () => currentFeature };
   throw new Error(`Unexpected screen import: ${name}`);
 };
@@ -87,7 +99,7 @@ function render(state: BloomLocalState, clock = at, activationOverrides: Partial
   const calls: unknown[] = [];
   const trackingActivation = { busy: false, locked: false, canRetry: false, message: null,
     enable: () => calls.push("enableTracking"), retry: () => calls.push("retryTracking"), ...activationOverrides };
-  currentFeature = { hydrationStatus: "ready", model, tracking: getTrackingSummary(state.masturbationTracking, clock),
+  currentFeature = { history: getTrackingHistory(state.masturbationTracking, clock), hydrationStatus: "ready", model, tracking: getTrackingSummary(state.masturbationTracking, clock),
     contentFreeContinuation: getResetContentFreeContinuationOffer(state, state), contentFree: state.contentFree, contentFreeProgress: getContentFreeProgress(state.contentFree, clock), observationTime: clock, now: () => new Date(clock), trackingElapsedSeconds: getHomeTrackingElapsedSeconds(state.masturbationTracking, clock), openAction: (action: unknown) => calls.push(action),
     openContentFree: () => calls.push("contentFree"), openPanic: () => calls.push("panic"), trackingActivation };
   focusCallbacks = []; scrollRequests = [];
@@ -300,4 +312,11 @@ const disabledHistory = base(false, false);
 disabledHistory.masturbationTracking.sessions = [session(0)];
 const disabledHistoryHome = render(disabledHistory);
 assert(disabledHistoryHome.text().includes("1 tamamlanan kaydın korunur") && disabledHistoryHome.text().includes("Takip şu anda kapalı") && !disabledHistoryHome.text().includes("Henüz tamamlanan oturum yok"), "Disabled Tracking must not falsely deny saved history.");
+assert(empty.id("bloom.home.history.empty") && !empty.id("bloom.home.history.quality"), "Empty history shows a truthful empty state without a quality chart.");
+assert(populated.id("bloom.home.history.calendar") && populated.id("bloom.home.history.quality") && populated.text().includes("6/10") && populated.text().includes("8/10"), "Saved session feedback is rendered as discrete actual samples.");
+assert(disabledHistoryHome.id("bloom.home.history") && disabledHistoryHome.text().includes("Son oturumlar"), "Turning off optional Tracking retains visible saved history.");
+const pendingHistoryState = base();
+pendingHistoryState.masturbationTracking.currentSession = { status: "awaiting_feedback", id: "incomplete", startedAt: at, endedAt: at, durationSeconds: 0, pauses: [] };
+const incompleteHistory = render(pendingHistoryState);
+assert(incompleteHistory.id("bloom.home.history.incomplete") && !incompleteHistory.id("bloom.home.history.quality") && incompleteHistory.text().includes("Tamamlanan oturum sayısına ve kalite grafiğine dahil edilmedi"), "Missing feedback is distinct from a zero score and does not become a completed historical session.");
 console.log("Bloom Home UI verification passed (inactive activation, saving/retry feedback, presentation metrics, card ordering, semantic actions, hydration, and durable hook wiring).");

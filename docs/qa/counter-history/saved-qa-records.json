@@ -1,0 +1,147 @@
+[
+  {
+    "key": "bloom.e2e.home.counter_reset_20261013_e9052.bloom.localState.v8",
+    "sha256": "50cd1302f4b8fdb64b689b904f8c09f56b142ad12f8d164267ffecbcccce5f4c",
+    "tracking": {
+      "enabled": false,
+      "currentSession": null,
+      "sessions": []
+    },
+    "contentFree": {
+      "bestStreakSeconds": 0,
+      "pastActivations": [],
+      "violations": [],
+      "status": "active",
+      "activationId": "content-free-activation-20261016T100000250Z-0pnikon",
+      "activatedAt": "2026-10-16T10:00:00.250Z",
+      "currentStreakStartedAt": "2026-10-16T10:00:00.250Z",
+      "resetCredit": {
+        "bestStreakSecondsBefore": 0,
+        "resetJourneyId": "continuity-reset",
+        "earnedStartedAt": "2026-10-01T10:00:00.250Z",
+        "earnedUntil": "2026-10-16T10:00:00.250Z"
+      }
+    },
+    "reset_status": "completed"
+  },
+  {
+    "key": "bloom.e2e.home.counter_save_20261013_f4721.bloom.localState.v8",
+    "sha256": "64cf95a457e87b83f4c90587b933088c862bbcc00443ef3b98a8812b96931b18",
+    "tracking": {
+      "enabled": false,
+      "currentSession": null,
+      "sessions": []
+    },
+    "contentFree": {
+      "bestStreakSeconds": 259200,
+      "pastActivations": [
+        {
+          "id": "content-free-activation-20261001T100000250Z-1mm47vm",
+          "startedAt": "2026-10-01T10:00:00.250Z",
+          "endedAt": "2026-10-04T10:00:00.250Z"
+        }
+      ],
+      "violations": [
+        {
+          "id": "content-free-violation-20261004T100000250Z-1ckd1gj",
+          "activationId": "content-free-activation-20261001T100000250Z-1mm47vm",
+          "kind": "intentionalExplicitContent",
+          "occurredAt": "2026-10-04T10:00:00.250Z",
+          "recordedAt": "2026-10-04T10:00:00.250Z",
+          "source": {
+            "kind": "manual",
+            "logActionId": "log-action-20261004T100000250Z-0me1liu"
+          },
+          "streakBefore": {
+            "currentStreakStartedAt": "2026-10-01T10:00:00.250Z",
+            "bestStreakSeconds": 0
+          },
+          "status": "undone",
+          "undoneAt": "2026-10-04T10:00:00.250Z"
+        }
+      ],
+      "status": "active",
+      "activationId": "content-free-activation-20261004T100000250Z-11wwyyf",
+      "activatedAt": "2026-10-04T10:00:00.250Z",
+      "currentStreakStartedAt": "2026-10-04T10:00:00.250Z"
+    },
+    "reset_status": "inactive"
+  },
+  {
+    "key": "bloom.e2e.home.counter_20261013_62a93.bloom.localState.v8",
+    "sha256": "3768bbc0e8069d40f8edfdfa231292c1740fa6805b48cc780527e86f9720757c",
+    "tracking": {
+      "enabled": true,
+      "currentSession": null,
+      "sessions": [
+        {
+          "id": "masturbation-session-20261004T100000250Z-137z38h",
+          "startedAt": "2026-10-04T10:00:00.250Z",
+          "endedAt": "2026-10-04T10:00:00.250Z",
+          "durationSeconds": 0,
+          "pauses": [],
+          "status": "completed",
+          "erectionQuality": 4,
+          "usedExplicitContent": false,
+          "endingReason": "stoppedByChoice"
+        },
+        {
+          "id": "masturbation-session-20261007T100000250Z-1psfp6q",
+          "startedAt": "2026-10-07T10:00:00.250Z",
+          "endedAt": "2026-10-07T10:00:00.250Z",
+          "durationSeconds": 0,
+          "pauses": [],
+          "status": "completed",
+          "erectionQuality": 8,
+          "usedExplicitContent": false,
+          "endingReason": "stoppedByChoice"
+        },
+        {
+          "id": "masturbation-session-20261010T100000250Z-0yknotk",
+          "startedAt": "2026-10-10T10:00:00.250Z",
+          "endedAt": "2026-10-10T10:00:00.250Z",
+          "durationSeconds": 0,
+          "pauses": [],
+          "status": "completed",
+          "erectionQuality": 6,
+          "usedExplicitContent": false,
+          "endingReason": "stoppedByChoice"
+        }
+      ]
+    },
+    "contentFree": {
+      "bestStreakSeconds": 259200,
+      "pastActivations": [
+        {
+          "id": "content-free-activation-20261001T100000250Z-0ex8fia",
+          "startedAt": "2026-10-01T10:00:00.250Z",
+          "endedAt": "2026-10-04T10:00:00.250Z"
+        }
+      ],
+      "violations": [
+        {
+          "id": "content-free-violation-20261004T100000250Z-1l1gn86",
+          "activationId": "content-free-activation-20261001T100000250Z-0ex8fia",
+          "kind": "intentionalExplicitContent",
+          "occurredAt": "2026-10-04T10:00:00.250Z",
+          "recordedAt": "2026-10-04T10:00:00.250Z",
+          "source": {
+            "kind": "manual",
+            "logActionId": "log-action-20261004T100000250Z-08tlxqf"
+          },
+          "streakBefore": {
+            "currentStreakStartedAt": "2026-10-01T10:00:00.250Z",
+            "bestStreakSeconds": 0
+          },
+          "status": "undone",
+          "undoneAt": "2026-10-04T10:00:00.250Z"
+        }
+      ],
+      "status": "active",
+      "activationId": "content-free-activation-20261004T100000250Z-002zgnf",
+      "activatedAt": "2026-10-04T10:00:00.250Z",
+      "currentStreakStartedAt": "2026-10-04T10:00:00.250Z"
+    },
+    "reset_status": "inactive"
+  }
+]

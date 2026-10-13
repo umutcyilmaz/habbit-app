@@ -1,0 +1,37 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Largest Dynamic Type saved counter and real history
+---
+- openLink: "tms-e2e:///bloom/content-free"
+- assertVisible: { id: "bloom.content-free.close" }
+- takeScreenshot: "35-native-large-counter-top"
+- scrollUntilVisible:
+    element: { id: "bloom.content-free.week" }
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 60000
+- takeScreenshot: "36-native-large-week-calendar"
+- scrollUntilVisible:
+    element: { text: "Engel yok" }
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: true
+    timeout: 60000
+- assertVisible: "KORUMA · YOK"
+- takeScreenshot: "37-native-large-counter-bottom"
+- openLink: "tms-e2e:///today"
+- scrollUntilVisible:
+    element: { text: "Ereksiyon kalitesi" }
+    direction: DOWN
+    centerElement: true
+    timeout: 60000
+- takeScreenshot: "38-native-large-real-quality"
+- scrollUntilVisible:
+    element: { text: "Son oturumlar" }
+    direction: DOWN
+    centerElement: false
+    timeout: 60000
+- swipe:
+    direction: UP
+    duration: 700
+- takeScreenshot: "39-native-large-session-feedback"

@@ -1,0 +1,69 @@
+{
+  "scope": "Final review fixes only; earlier broad regressions retained separately",
+  "checks": {
+    "typecheck": {
+      "exit_code": 0,
+      "log": "final-review-typecheck.log",
+      "last_lines": [
+        "> tsc --noEmit",
+        ""
+      ]
+    },
+    "verify-counter-history": {
+      "exit_code": 0,
+      "log": "final-review-verify-counter-history.log",
+      "last_lines": [
+        "History clock passed: one snapshot / 60 ticks, exact live calendar seconds, completed-row reuse, first-second coverage, future events, rollback, local midnight, timezone/foreground and DST refresh.",
+        "Counter/history metrics passed: actual transitions, undo, stop/restart gaps, earned Reset dates, incomplete/future records, midnight, timezone regrouping both DST boundaries, midnight DST and skipped civil dates."
+      ]
+    },
+    "verify-home-ui": {
+      "exit_code": 0,
+      "log": "final-review-verify-home-ui.log",
+      "last_lines": [
+        "Home animation/clock harness passed: real elapsed values, capped Reset, invalid/future clocks, focus/foreground cleanup, native fog and Reduced Motion. Not a mounted renderer.",
+        "Content-Free root transition harness passed: actual route chooses no animation for Reduced Motion; route path and guarded navigator unchanged."
+      ]
+    },
+    "verify-persistence": {
+      "exit_code": 0,
+      "log": "final-review-verify-persistence.log",
+      "last_lines": [
+        "Bloom Starting recommendation feature verification passed (four historical plans without rescoring, atomic existing acceptance, exact successor retry, all-four-reference stale guards, durable destinations, no-op/conflict recovery, Home priorities, and controlled hook/screen execution).",
+        "Bloom persistence verification passed."
+      ]
+    },
+    "verify-persistence-acknowledgement": {
+      "exit_code": 0,
+      "log": "final-review-verify-persistence-acknowledgement.log",
+      "last_lines": [
+        "",
+        "Bloom persistence acknowledgement verification passed."
+      ]
+    },
+    "verify-navigation": {
+      "exit_code": 0,
+      "log": "final-review-verify-navigation.log",
+      "last_lines": [
+        "Forward-navigation regression passed: real router-wrapper delegation, retained guarded owner, child focus, pending tab jumps, safe recovery return, entry redirect and native Back fallback.",
+        "Tab recovery verification passed: existing current-confirmation API only, busy guard, double taps, failed save, superseded receipt and truthful durable-only unlock."
+      ]
+    },
+    "verify-reset-continuity": {
+      "exit_code": 0,
+      "log": "final-review-verify-reset-continuity.log",
+      "last_lines": [
+        "",
+        "Bloom Reset continuity verification passed (all 15 requested regression groups, fractional/boundary credit, multiple restarts, undo corrections, isolated injected clock, saved offers, retries, and v7 preservation)."
+      ]
+    },
+    "verify-protection-reset": {
+      "exit_code": 0,
+      "log": "final-review-verify-protection-reset.log",
+      "last_lines": [
+        "",
+        "Bloom Protection and Reset verification passed."
+      ]
+    }
+  }
+}
