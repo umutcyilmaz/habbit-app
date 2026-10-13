@@ -1,0 +1,140 @@
+{
+  "commands": [
+    {
+      "command": "npm run typecheck",
+      "status": "passed",
+      "output": [
+        "> tms@0.1.0 typecheck",
+        "> tsc --noEmit"
+      ]
+    },
+    {
+      "command": "npm run verify:profile",
+      "status": "passed",
+      "output": [
+        "",
+        "Profile passed: empty/unavailable, real selectors, pending exclusion, catalog filtering, idempotency, onboarding route readiness, actual persistence/restart and failed-save durable projection."
+      ]
+    },
+    {
+      "command": "npm run verify:navigation",
+      "status": "passed",
+      "output": [
+        "Forward-navigation regression passed: real router-wrapper delegation, retained guarded owner, child focus, pending tab jumps, safe recovery return, entry redirect and native Back fallback.",
+        "Tab recovery verification passed: existing current-confirmation API only, busy guard, double taps, failed save, superseded receipt and truthful durable-only unlock."
+      ]
+    },
+    {
+      "command": "npm run verify:persistence",
+      "status": "passed",
+      "output": [
+        "Bloom Starting recommendation feature verification passed (four historical plans without rescoring, atomic existing acceptance, exact successor retry, all-four-reference stale guards, durable destinations, no-op/conflict recovery, Home priorities, and controlled hook/screen execution).",
+        "Bloom persistence verification passed."
+      ]
+    },
+    {
+      "command": "npm run verify:persistence-acknowledgement",
+      "status": "passed",
+      "output": [
+        "",
+        "Bloom persistence acknowledgement verification passed."
+      ]
+    },
+    {
+      "command": "npm run verify:kegel",
+      "status": "passed",
+      "output": [
+        "Kegel QA startup fails closed before Expo when the isolated run name is missing/invalid.",
+        "Kegel final UX verification passed: four truthful completion states, unchanged dismiss/retry guards, durable-only first exercise, failed onboarding + retry, double taps, effect replay, cancellation and revisited technique."
+      ]
+    },
+    {
+      "command": "npm run verify:kegel:persistence",
+      "status": "passed",
+      "output": [
+        "Full HTML inventory verified: 88 labeled screen states covered.",
+        "Kegel persistence passed: v7 retained migration/failed migration; all existing slices preserved; onboarding; full snapshots; reopen/two sessions; duplicate callbacks; rejected incomplete records; durable failure/retry and post-write uncertainty; real daily/weekly/heat/streak + DST; malformed/future payload preservation; optional local-reference inventory coverage."
+      ]
+    },
+    {
+      "command": "npm run verify:library",
+      "status": "passed",
+      "output": [
+        "",
+        "Library passed: HTML inventory with one explicit navigation-wording correction; 6 categories/12 articles/next/unknown routes; additive v8 acknowledged normalization + failed rewrite; retained v7 migration/failed migration; bookmark/read/reversal/restart with all slices preserved; synchronous duplicates; failures before/after write + original retry; unknown IDs; corrupt payload retention; obsolete tokens/deletion; explicit completion only."
+      ]
+    },
+    {
+      "command": "npm run verify:audio",
+      "status": "passed",
+      "output": [
+        "Bloom iOS audio patch verified (expo-audio 1.1.1).",
+        "Audio verification passed: actual-engine clock, loop wraps, pause/buffer, finite/unlimited, seek/clamp, fade/expiry, interruption, background, teardown races, rapid presses, retries, errors, bundled WAV hashes and isolated QA gate."
+      ]
+    },
+    {
+      "command": "npm run verify:home-ui",
+      "status": "passed",
+      "output": [
+        "",
+        "Bloom Home UI verification passed (inactive activation, saving/retry feedback, presentation metrics, card ordering, semantic actions, hydration, and durable hook wiring)."
+      ]
+    },
+    {
+      "command": "npm run verify:journey",
+      "status": "passed",
+      "output": [
+        "",
+        "Bloom journey verification passed."
+      ]
+    },
+    {
+      "command": "npm run verify:reset-continuity",
+      "status": "passed",
+      "output": [
+        "",
+        "Bloom Reset continuity verification passed (all 15 requested regression groups, fractional/boundary credit, multiple restarts, undo corrections, isolated injected clock, saved offers, retries, and v7 preservation)."
+      ]
+    },
+    {
+      "command": "npm run verify:protection-reset",
+      "status": "passed",
+      "output": [
+        "",
+        "Bloom Protection and Reset verification passed."
+      ]
+    },
+    {
+      "command": "npm run verify:product-onboarding-ui",
+      "status": "passed",
+      "output": [
+        "Bloom Starting recommendation feature verification passed (four historical plans without rescoring, atomic existing acceptance, exact successor retry, all-four-reference stale guards, durable destinations, no-op/conflict recovery, Home priorities, and controlled hook/screen execution).",
+        "Bloom product onboarding UI verification passed."
+      ]
+    },
+    {
+      "command": "npm run verify:guided-flows",
+      "status": "passed",
+      "output": [
+        "",
+        "Bloom guided-flow verification passed."
+      ]
+    },
+    {
+      "command": "npm run verify:e2e-runtime",
+      "status": "passed",
+      "output": [
+        "Bloom E2E runtime verification passed.",
+        "Bloom Phase 10 Simulator QA verification passed."
+      ]
+    }
+  ],
+  "native": {
+    "profile-empty": "passed in two new namespaces",
+    "profile-onboarding": "passed",
+    "profile-assessment-accepted": "passed",
+    "profile-history": "passed after scroll position assertion correction, without undoing own saved data",
+    "profile-accessibility": "passed after adaptive layout / cold start / long page scrolling correction"
+  },
+  "data_safety": "No clearState, deletion, DB edit or existing-user/QA namespace seeding. Newly created records retained."
+}

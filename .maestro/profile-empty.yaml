@@ -1,0 +1,49 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Profile fresh isolated account and native settings back
+---
+# Only a NEW guarded EXPO_PUBLIC_KEGEL_QA_RUN. Never clear app data.
+- openLink: "tms-e2e:///profile"
+- assertVisible: { id: "bloom.profile" }
+- assertVisible: "Kişisel alanın"
+- assertVisible: "İçeriksiz sayaç kapalı"
+- assertVisible: "0 tamamlanan takip oturumu, tüm zamanlar"
+- assertVisible: "0 gün Kegel serisi"
+- takeScreenshot: "01-native-empty"
+- tapOn: { id: "bloom.profile.settings" }
+- assertVisible: { id: "bloom.nested.back" }
+- takeScreenshot: "02-native-settings"
+- tapOn: { id: "bloom.nested.back" }
+- assertVisible: { id: "bloom.profile" }
+- scrollUntilVisible:
+    element: { id: "bloom.profile.saved" }
+    direction: DOWN
+    centerElement: true
+- takeScreenshot: "03-native-for-you-empty"
+- tapOn: { id: "bloom.profile.saved" }
+- assertVisible: "Henüz kaydedilen yazı yok"
+- takeScreenshot: "04-native-saved-empty"
+- tapOn: { id: "bloom.nested.back" }
+- assertVisible: { id: "bloom.profile" }
+- scrollUntilVisible:
+    element: { id: "bloom.profile.privacy" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.profile.privacy" }
+- assertVisible: { id: "bloom.nested.back" }
+- takeScreenshot: "05-native-privacy"
+- tapOn: { id: "bloom.nested.back" }
+- assertVisible: { id: "bloom.profile" }
+- scrollUntilVisible:
+    element: { id: "bloom.profile.data-controls" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.profile.data-controls" }
+- assertVisible: { id: "bloom.nested.back" }
+- takeScreenshot: "06-native-data-controls"
+- tapOn: { id: "bloom.nested.back" }
+- assertVisible: { id: "bloom.profile" }
+- stopApp
+- launchApp
+- openLink: "tms-e2e:///profile"
+- assertVisible: "0 tamamlanan takip oturumu, tüm zamanlar"
+- takeScreenshot: "07-native-empty-restarted"

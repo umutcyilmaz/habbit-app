@@ -1,0 +1,28 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Profile large text layout and accessible navigation
+---
+- stopApp
+- launchApp
+- openLink: "tms-e2e:///profile"
+- assertVisible: { id: "bloom.profile" }
+- scrollUntilVisible:
+    element: { id: "bloom.profile.settings" }
+    direction: UP
+    centerElement: true
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: "14-native-large-text-top"
+- scrollUntilVisible:
+    element: { id: "bloom.profile.saved" }
+    direction: DOWN
+    speed: 80
+    timeout: 60000
+    visibilityPercentage: 30
+    centerElement: true
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: "15-native-large-text-for-you"
+- tapOn: { id: "bloom.profile.saved" }
+- assertVisible: { id: "bloom.profile.saved-list" }
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: "16-native-large-text-saved"
+- tapOn: { id: "bloom.nested.back" }
+- assertVisible: { id: "bloom.profile" }

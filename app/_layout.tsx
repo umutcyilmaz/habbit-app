@@ -41,6 +41,7 @@ export default function RootLayout() {
           headerShown: false,
         }}
       >
+        <Stack.Screen name="bloom/profile/saved" options={{animation:reduced ? "none" : "slide_from_right"}} />
         <Stack.Screen name="bloom/library/category" options={{animation:reduced ? "none" : "slide_from_right"}} />
         <Stack.Screen name="bloom/library/sound" options={{animation:reduced ? "none" : "slide_from_right"}} />
         <Stack.Screen name="bloom/library/article" options={{animation:reduced ? "none" : "slide_from_right"}} />

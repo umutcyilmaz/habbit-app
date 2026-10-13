@@ -42,6 +42,7 @@
     "start:e2e:phase10": "APP_VARIANT=e2e EXPO_PUBLIC_E2E_MODE=1 EXPO_PUBLIC_PHASE10_QA=1 expo start --dev-client --localhost --port 8082",
     "start:e2e:kegel:persistence": "node scripts/require-kegel-qa-run.cjs && APP_VARIANT=e2e EXPO_PUBLIC_E2E_MODE=1 EXPO_PUBLIC_KEGEL_PERSISTENCE_QA=1 expo start --dev-client --localhost --port 8082",
     "start:e2e:kegel": "APP_VARIANT=e2e EXPO_PUBLIC_E2E_MODE=1 EXPO_PUBLIC_KEGEL_PREVIEW=1 expo start --dev-client --localhost --port 8082",
+    "verify:profile": "node scripts/run-bloom-profile-verification.cjs",
     "verify:library": "node scripts/run-bloom-library-verification.cjs",
     "verify:navigation": "node scripts/verify-bloom-four-tabs.cjs",
     "postinstall": "node scripts/patch-expo-audio-ios.cjs",

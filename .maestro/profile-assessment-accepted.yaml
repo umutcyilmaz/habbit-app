@@ -1,0 +1,23 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Profile accepted assessment remains honest
+---
+- openLink: "tms-e2e:///profile"
+- scrollUntilVisible:
+    element: { id: "bloom.profile.assessment" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.profile.assessment" }
+- scrollUntilVisible:
+    element: { id: "bloom.starting-recommendation.accept" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.starting-recommendation.accept" }
+- assertVisible: { id: "bloom.home" }
+- tapOn: { id: "bloom.tab.profile" }
+- scrollUntilVisible:
+    element: { id: "bloom.profile.assessment" }
+    direction: DOWN
+    centerElement: true
+- assertVisible: "Değerlendirmem, Planın seçildi · sonuç görüntüleme henüz yok"
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: "09b-native-accepted-assessment"

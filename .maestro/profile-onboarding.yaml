@@ -1,0 +1,143 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Profile saved assessment uses existing result route
+---
+- openLink: "tms-e2e:///onboarding/quiz"
+- scrollUntilVisible:
+    element: { id: "bloom.onboarding.answer.explicitContentFrequency.never" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.onboarding.answer.explicitContentFrequency.never" }
+- scrollUntilVisible:
+    element: { id: "bloom.onboarding.next" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.onboarding.next" }
+- scrollUntilVisible:
+    element: { id: "bloom.onboarding.answer.unplannedContentUse.never" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.onboarding.answer.unplannedContentUse.never" }
+- scrollUntilVisible:
+    element: { id: "bloom.onboarding.next" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.onboarding.next" }
+- scrollUntilVisible:
+    element: { id: "bloom.onboarding.answer.activityInterruption.never" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.onboarding.answer.activityInterruption.never" }
+- scrollUntilVisible:
+    element: { id: "bloom.onboarding.next" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.onboarding.next" }
+- scrollUntilVisible:
+    element: { id: "bloom.onboarding.answer.contentTriggeredMasturbation.never" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.onboarding.answer.contentTriggeredMasturbation.never" }
+- scrollUntilVisible:
+    element: { id: "bloom.onboarding.next" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.onboarding.next" }
+- scrollUntilVisible:
+    element: { id: "bloom.onboarding.answer.repeatedContentReturn.never" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.onboarding.answer.repeatedContentReturn.never" }
+- scrollUntilVisible:
+    element: { id: "bloom.onboarding.next" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.onboarding.next" }
+- scrollUntilVisible:
+    element: { id: "bloom.onboarding.answer.difficultyReducingContent.never" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.onboarding.answer.difficultyReducingContent.never" }
+- scrollUntilVisible:
+    element: { id: "bloom.onboarding.next" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.onboarding.next" }
+- scrollUntilVisible:
+    element: { id: "bloom.onboarding.answer.erectionQuality.notSure" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.onboarding.answer.erectionQuality.notSure" }
+- scrollUntilVisible:
+    element: { id: "bloom.onboarding.next" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.onboarding.next" }
+- scrollUntilVisible:
+    element: { id: "bloom.onboarding.answer.erectionMaintenanceDifficulty.never" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.onboarding.answer.erectionMaintenanceDifficulty.never" }
+- scrollUntilVisible:
+    element: { id: "bloom.onboarding.next" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.onboarding.next" }
+- scrollUntilVisible:
+    element: { id: "bloom.onboarding.answer.masturbationTechniques.notSure" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.onboarding.answer.masturbationTechniques.notSure" }
+- scrollUntilVisible:
+    element: { id: "bloom.onboarding.next" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.onboarding.next" }
+- scrollUntilVisible:
+    element: { id: "bloom.onboarding.answer.techniqueDependency.never" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.onboarding.answer.techniqueDependency.never" }
+- scrollUntilVisible:
+    element: { id: "bloom.onboarding.next" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.onboarding.next" }
+- scrollUntilVisible:
+    element: { id: "bloom.onboarding.answer.delayedOrDifficultEjaculation.never" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.onboarding.answer.delayedOrDifficultEjaculation.never" }
+- scrollUntilVisible:
+    element: { id: "bloom.onboarding.next" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.onboarding.next" }
+- scrollUntilVisible:
+    element: { id: "bloom.onboarding.answer.safetySignals.none" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.onboarding.answer.safetySignals.none" }
+- scrollUntilVisible:
+    element: { id: "bloom.onboarding.submit" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.onboarding.submit" }
+- assertVisible: { id: "bloom.starting-recommendation" }
+- openLink: "tms-e2e:///profile"
+- scrollUntilVisible:
+    element: { id: "bloom.profile.assessment" }
+    direction: DOWN
+    centerElement: true
+- assertVisible: "Değerlendirmem, Kaydedilmiş başlangıç önerini gör"
+- takeScreenshot: "08-native-assessment"
+- tapOn: { id: "bloom.profile.assessment" }
+- assertVisible: { id: "bloom.starting-recommendation" }
+- takeScreenshot: "09-native-existing-result"
+- stopApp
+- launchApp
+- openLink: "tms-e2e:///profile"
+- scrollUntilVisible:
+    element: { id: "bloom.profile.assessment" }
+    direction: DOWN
+    centerElement: true
+- assertVisible: "Değerlendirmem, Kaydedilmiş başlangıç önerini gör"

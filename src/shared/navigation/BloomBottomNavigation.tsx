@@ -20,7 +20,7 @@ function TabButton({tab,selected,blocked,onPress}:{tab:BloomTab;selected:boolean
     onPressIn={()=>{scale.value=reduced ? 1 : withTiming(.88,{duration:100});}}
     onPressOut={()=>{scale.value=reduced ? 1 : withSpring(1,{damping:16,stiffness:220});}}>
     <Animated.View accessible={false} style={iconStyle}><BloomTabIcon name={tab.name} color={color} /></Animated.View>
-    <AppText style={[styles.label,{color}]}>{tab.title}</AppText>
+    <AppText maxFontSizeMultiplier={1.3} style={[styles.label,{color}]}>{tab.title}</AppText>
   </Pressable>;
 }
 // Native geometry follows the supplied TAB_ICONS; no new icon dependency.

@@ -1,0 +1,84 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Profile real Kegel and Library history survives restart
+---
+- openLink: "tms-e2e:///debug/kegel-persistence"
+- runFlow:
+    when: { visible: "Kalıcı seans: 0" }
+    commands:
+      - assertVisible: "Kalıcı seans: 0"
+      - tapOn: { id: "kegel.intro.start" }
+      - tapOn: { id: "kegel.intro.find-muscle" }
+      - tapOn: { id: "kegel.intro.next" }
+      - tapOn: { id: "kegel.intro.option.gas" }
+      - tapOn: { id: "kegel.intro.next" }
+      - tapOn: { id: "kegel.intro.skip" }
+      - tapOn: { id: "kegel.intro.next" }
+      - extendedWaitUntil:
+          visible: "Bu cihaza kaydedildi"
+          timeout: 80000
+      - tapOn: { id: "kegel.completed.done" }
+- assertVisible: "Kalıcı seans: 1"
+- openLink: "tms-e2e:///bloom/library/article?id=pe"
+- runFlow:
+    when: { visible: "Kaydet" }
+    commands:
+      - tapOn: { id: "library.bookmark" }
+- assertVisible: "Kaydedilenlerden çıkar"
+- scrollUntilVisible:
+    element: { id: "library.complete" }
+    direction: DOWN
+    centerElement: true
+- runFlow:
+    when: { visible: "Okundu olarak işaretle" }
+    commands:
+      - tapOn: { id: "library.complete" }
+- assertVisible: "Okundu bilgisini geri al"
+- openLink: "tms-e2e:///profile"
+- scrollUntilVisible:
+    element: { id: "bloom.profile.settings" }
+    direction: UP
+    centerElement: true
+- assertVisible: "1 gün Kegel serisi"
+- assertVisible: "Tamamlanan Kegel seti: 1"
+- assertVisible: "Toplam Kegel tekrarı: 10"
+- assertVisible: "Tamamlanan yazı: 1"
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: "10-native-real-history"
+- scrollUntilVisible:
+    element: { id: "bloom.profile.saved" }
+    direction: DOWN
+    centerElement: true
+- assertVisible: "Kaydedilen yazılar, 1 yazı"
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: "11-native-for-you-saved"
+- tapOn: { id: "bloom.profile.saved" }
+- assertVisible: "Erken boşalmayı yönetmek, 5 dakika okuma, Okundu, Kaydedildi"
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: "12-native-saved-list"
+- tapOn: { id: "library.article.pe" }
+- assertVisible: "✓ Tamamlandı"
+- assertVisible: "Kaydedilenlerden çıkar"
+- runScript: library-transition-settle.js
+- tapOn: { id: "library.back" }
+- assertVisible: { id: "bloom.profile.saved-list" }
+- tapOn: { id: "bloom.nested.back" }
+- assertVisible: { id: "bloom.profile" }
+- stopApp
+- launchApp
+- openLink: "tms-e2e:///profile"
+- scrollUntilVisible:
+    element: { id: "bloom.profile.settings" }
+    direction: UP
+    centerElement: true
+- assertVisible: "Tamamlanan Kegel seti: 1"
+- assertVisible: "Toplam Kegel tekrarı: 10"
+- assertVisible: "Tamamlanan yazı: 1"
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: "13-native-real-history-restarted"
+- scrollUntilVisible:
+    element: { id: "bloom.profile.saved" }
+    direction: DOWN
+    centerElement: true
+- assertVisible: "Kaydedilen yazılar, 1 yazı"
+- tapOn: { id: "bloom.profile.saved" }
+- assertVisible: "Erken boşalmayı yönetmek, 5 dakika okuma, Okundu, Kaydedildi"

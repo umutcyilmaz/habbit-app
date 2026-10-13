@@ -1,0 +1,131 @@
+{
+  "base_commit": "8ac0523baf236dd3a09e5625521c3666dde73d40",
+  "date": "2026-10-13",
+  "app_id": "com.umutcyilmaz.bloom.e2e",
+  "device": "iPhone 17 Pro / iOS 26.3 / 402x874pt",
+  "qa_runs": [
+    "profile_20261013_1219",
+    "profile_finalempty_20261013_1231"
+  ],
+  "html_reference": "Actual source CSS/profileHTML(PR)/tabsHTML/statusBar rendered with headless Chrome at 390x844. HTML fixture facts are not product data.",
+  "assets": [
+    {
+      "file": "01-native-empty.png",
+      "bytes": 196534,
+      "sha256": "21e9810b353d4bc5e76bfefd51e37a251ea9b8ea2800ad21fbb41b33fc8ae4cd",
+      "origin": "/private/tmp/bloom-profile-empty-final/2026-10-13_123345/Profile fresh isolated account and native settings back/takeScreenshot/01-native-empty.png"
+    },
+    {
+      "file": "02-native-settings.png",
+      "bytes": 561276,
+      "sha256": "ecab1b6ed5a27cbae046f0e164e9328b5b8ad8b4b7c9672205967369336f9462",
+      "origin": "/private/tmp/bloom-profile-empty-final/2026-10-13_123345/Profile fresh isolated account and native settings back/takeScreenshot/02-native-settings.png"
+    },
+    {
+      "file": "03-native-for-you-empty.png",
+      "bytes": 213000,
+      "sha256": "2afe4f9f22c2a99de71e50d615e1ad955ac7ea5421905d68da19a0ae5d862542",
+      "origin": "/private/tmp/bloom-profile-empty-final/2026-10-13_123345/Profile fresh isolated account and native settings back/takeScreenshot/03-native-for-you-empty.png"
+    },
+    {
+      "file": "04-native-saved-empty.png",
+      "bytes": 87879,
+      "sha256": "1c761f7349b35c915de8ece140dafc08b8bd5d95a89d19496f1b91e8c3c07fe0",
+      "origin": "/private/tmp/bloom-profile-empty-final/2026-10-13_123345/Profile fresh isolated account and native settings back/takeScreenshot/04-native-saved-empty.png"
+    },
+    {
+      "file": "05-native-privacy.png",
+      "bytes": 598124,
+      "sha256": "31b9717447ec184a8010904fd5723723c46b08581937c4baccc3bcab4bce6502",
+      "origin": "/private/tmp/bloom-profile-empty-final/2026-10-13_123345/Profile fresh isolated account and native settings back/takeScreenshot/05-native-privacy.png"
+    },
+    {
+      "file": "06-native-data-controls.png",
+      "bytes": 575188,
+      "sha256": "bae2f36f7ec82f85441412e9abc6839834c00906e60db3f39a994b47102f9a47",
+      "origin": "/private/tmp/bloom-profile-empty-final/2026-10-13_123345/Profile fresh isolated account and native settings back/takeScreenshot/06-native-data-controls.png"
+    },
+    {
+      "file": "07-native-empty-restarted.png",
+      "bytes": 196534,
+      "sha256": "21e9810b353d4bc5e76bfefd51e37a251ea9b8ea2800ad21fbb41b33fc8ae4cd",
+      "origin": "/private/tmp/bloom-profile-empty-final/2026-10-13_123345/Profile fresh isolated account and native settings back/takeScreenshot/07-native-empty-restarted.png"
+    },
+    {
+      "file": "08-native-assessment.png",
+      "bytes": 214141,
+      "sha256": "56eeb29b2532fa534abec428687095df985e0388ee557f2e6f848c7daaaba363",
+      "origin": "/private/tmp/bloom-profile-onboarding/2026-10-13_122333/Profile saved assessment uses existing result route/takeScreenshot/08-native-assessment.png"
+    },
+    {
+      "file": "09-native-existing-result.png",
+      "bytes": 237977,
+      "sha256": "e4cecc23eb068da561dc41b43e219226f8a1446397f46ecca166daa63bc5fab3",
+      "origin": "/private/tmp/bloom-profile-onboarding/2026-10-13_122333/Profile saved assessment uses existing result route/takeScreenshot/09-native-existing-result.png"
+    },
+    {
+      "file": "09b-native-accepted-assessment.png",
+      "bytes": 213130,
+      "sha256": "fef99bda834d1e50848aa61e64508e895b29040b3a8107ce92ff99ae6f5f72c5",
+      "origin": "/private/tmp/bloom-profile-history/2026-10-13_122635/Profile accepted assessment remains honest/takeScreenshot/09b-native-accepted-assessment.png"
+    },
+    {
+      "file": "10-native-real-history.png",
+      "bytes": 194518,
+      "sha256": "e516e851280551b165a64363b656779ee4e66e90ac8feaaeecb3f856fe556d4e",
+      "origin": "/private/tmp/bloom-profile-history-final/2026-10-13_122925/Profile real Kegel and Library history survives restart/takeScreenshot/10-native-real-history.png"
+    },
+    {
+      "file": "11-native-for-you-saved.png",
+      "bytes": 211554,
+      "sha256": "5b32b99d58cd8577765cd73663b801fb9af0e87a9bc216eab47a7ea67d54263a",
+      "origin": "/private/tmp/bloom-profile-history-final/2026-10-13_122925/Profile real Kegel and Library history survives restart/takeScreenshot/11-native-for-you-saved.png"
+    },
+    {
+      "file": "12-native-saved-list.png",
+      "bytes": 112541,
+      "sha256": "ff0f1cb65d577414183d70b93c662c4989e6aa90eb806233f57484c4b5ce84e0",
+      "origin": "/private/tmp/bloom-profile-history-final/2026-10-13_122925/Profile real Kegel and Library history survives restart/takeScreenshot/12-native-saved-list.png"
+    },
+    {
+      "file": "13-native-real-history-restarted.png",
+      "bytes": 194518,
+      "sha256": "e516e851280551b165a64363b656779ee4e66e90ac8feaaeecb3f856fe556d4e",
+      "origin": "/private/tmp/bloom-profile-history-final/2026-10-13_122925/Profile real Kegel and Library history survives restart/takeScreenshot/13-native-real-history-restarted.png"
+    },
+    {
+      "file": "14-native-large-text-top.png",
+      "bytes": 155805,
+      "sha256": "7f9e0067b8828300aeed8d54e1e80fe800d9a98aa90bd8056d822b98d5a23fca",
+      "origin": "/private/tmp/bloom-profile-accessibility-delivery/2026-10-13_123735/Profile large text layout and accessible navigation/takeScreenshot/14-native-large-text-top.png"
+    },
+    {
+      "file": "15-native-large-text-for-you.png",
+      "bytes": 178752,
+      "sha256": "49e8135cec129d2d63b859384720b5396e5b61d384db7f9a924c2a816e4a119b",
+      "origin": "/private/tmp/bloom-profile-accessibility-delivery/2026-10-13_123735/Profile large text layout and accessible navigation/takeScreenshot/15-native-large-text-for-you.png"
+    },
+    {
+      "file": "16-native-large-text-saved.png",
+      "bytes": 199751,
+      "sha256": "3b07eb7008576bdab91ef8c20011f18811420f20435536a31e3b51f24b1a0206",
+      "origin": "/private/tmp/bloom-profile-accessibility-delivery/2026-10-13_123735/Profile large text layout and accessible navigation/takeScreenshot/16-native-large-text-saved.png"
+    },
+    {
+      "file": "html-for-you.png",
+      "bytes": 50119,
+      "sha256": "fbd5f006001de16789c74bb4d1df5937226189ee947e59fb70cd2747fc46b022",
+      "origin": "/private/tmp/bloom-profile-reference/html-for-you.html → local Chrome screenshot"
+    },
+    {
+      "file": "html-profile.png",
+      "bytes": 50607,
+      "sha256": "1e56b95b6b0048e3a6b07586916e0622144ce411661fd2660abc842d19367ab7",
+      "origin": "/private/tmp/bloom-profile-reference/html-profile.html → local Chrome screenshot"
+    }
+  ],
+  "reference_sha256": {
+    ".local-design/kegel/tasarim.html": "57add9027a8beb23eed3a5ed56254bc0b6be5f2f193f8a85f296a46c66e90ebc",
+    ".local-design/kegel/prototip.html": "43ad59a2a00734d8061ae10354a1e7094d24b92f9d612ef3a6a4fdcaace4c03b"
+  }
+}
