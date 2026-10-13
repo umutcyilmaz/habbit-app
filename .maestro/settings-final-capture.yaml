@@ -1,0 +1,21 @@
+appId: com.umutcyilmaz.bloom.e2e
+---
+- openLink: "tms-e2e:///settings"
+- takeScreenshot: "01-native-settings-top-final"
+- scrollUntilVisible:
+    element: { id: "bloom.settings.data-controls" }
+    direction: DOWN
+    centerElement: true
+- takeScreenshot: "05-native-settings-data-support-final"
+- tapOn: { id: "bloom.settings.data-controls" }
+- scrollUntilVisible:
+    element: { id: "bloom.settings.delete-open" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.settings.delete-open" }
+- scrollUntilVisible:
+    element: { id: "bloom.settings.delete-cancel" }
+    direction: DOWN
+    centerElement: true
+- takeScreenshot: "07-native-delete-confirmation-final"
+- tapOn: { id: "bloom.settings.delete-cancel" }

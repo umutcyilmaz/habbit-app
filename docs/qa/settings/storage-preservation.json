@@ -1,0 +1,12 @@
+{
+  "com.umutcyilmaz.bloom": {
+    "preserved_existing_keys": 1,
+    "changed_or_missing_existing_keys": 0,
+    "new_settings_qa_keys": 0
+  },
+  "com.umutcyilmaz.bloom.e2e": {
+    "preserved_existing_keys": 12,
+    "changed_or_missing_existing_keys": 0,
+    "new_settings_qa_keys": 0
+  }
+}

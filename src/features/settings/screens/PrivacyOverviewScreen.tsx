@@ -1,64 +1,20 @@
 import { useRouter } from "expo-router";
-import { StyleSheet, View } from "react-native";
-
 import { routes } from "../../../constants/navigation";
-import { AppButton } from "../../../shared/components/AppButton";
-import { AppCard } from "../../../shared/components/AppCard";
-import { AppHeader } from "../../../shared/components/AppHeader";
-import { AppScreen } from "../../../shared/components/AppScreen";
-import { AppText } from "../../../shared/components/AppText";
-import { theme } from "../../../shared/design-system/theme";
-
-const cards = [
-  {
-    title: "Quiz choices",
-    body: "The trigger question can be skipped. Frequency questions currently require an answer."
-  },
-  {
-    title: "Delete Bloom’s local data",
-    body: "Data Controls can remove Bloom’s data from this app’s or browser’s local storage."
-  },
-  {
-    title: "Patterns, not judgment",
-    body: "The app uses small signals to support awareness, not to judge you."
-  }
-] as const;
+import { SettingsGroup, SettingsNote, SettingsPage, SettingsRow } from "../components/SettingsPrimitives";
 
 export function PrivacyOverviewScreen() {
   const router = useRouter();
-
-  return (
-    <AppScreen>
-      <AppHeader
-        eyebrow="Settings"
-        title="Privacy Overview"
-        subtitle="A summary of Bloom’s current local-data controls."
-      />
-
-      <View style={styles.stack}>
-        {cards.map((card) => (
-          <AppCard key={card.title}>
-            <View style={styles.cardStack}>
-              <AppText variant="title">{card.title}</AppText>
-              <AppText tone="secondary">{card.body}</AppText>
-            </View>
-          </AppCard>
-        ))}
-
-        <AppButton onPress={() => router.push(routes.settingsDataControls)}>Open Data Controls</AppButton>
-        <AppButton variant="secondary" onPress={() => router.push(routes.settings)}>
-          Back to Settings
-        </AppButton>
-      </View>
-    </AppScreen>
-  );
+  return <SettingsPage id="privacy-screen">
+    <SettingsGroup title="Yerel verilerin">
+      <SettingsRow id="local-storage" icon="data" title="Bu cihazda saklanır" detail="Bloom kayıtları uygulamanın veya tarayıcının yerel depolamasındadır. Bu sürümde bulut eşitleme yok." />
+      <SettingsRow border id="stored-data" icon="report" title="Neler kaydedilir?" detail="Onboarding yanıtları ve plan seçimi; Kegel geçmişi; Library okundu ve kaydetme bilgileri; Tracking, içeriksiz sayaç, zor an ve Reset kayıtları. Veri kontrollerinde ayrıntıları görebilirsin." />
+      <SettingsRow border id="storage-protection" icon="privacy" title="Mevcut korumanın sınırları" detail="Uygulama düzeyinde şifreleme veya biyometrik kilit bağlı değil. Bildirim içeriği gizleme de henüz kullanılamıyor." />
+    </SettingsGroup>
+    <SettingsGroup title="Senin kontrolünde">
+      <SettingsRow id="privacy-data" icon="data" title="Veri kontrolleri" detail="Saklanan bilgileri incele veya yerel verilerini sil" onPress={() => router.push(routes.settingsDataControls)} />
+      <SettingsRow border id="optional-details" icon="assessment" title="İsteğe bağlı ayrıntılar" detail="Notlar ve desteklenen isteğe bağlı yanıtları eklemek zorunda değilsin. Mevcut kayıt akışlarının seçimleri korunur." />
+      <SettingsRow border id="privacy-lock" icon="privacy" title="Uygulama kilidi" detail="Henüz kullanılamıyor" onPress={() => router.push(routes.settingsAppLock)} />
+    </SettingsGroup>
+    <SettingsNote>Bu ekran mevcut veri kontrollerini açıklar. Yayımlanmış kullanım koşulları ve kapsamlı gizlilik metni için ürün kararı bekleniyor.</SettingsNote>
+  </SettingsPage>;
 }
-
-const styles = StyleSheet.create({
-  stack: {
-    gap: theme.spacing.lg
-  },
-  cardStack: {
-    gap: theme.spacing.sm
-  }
-});

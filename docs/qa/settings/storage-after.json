@@ -1,0 +1,19 @@
+{
+  "com.umutcyilmaz.bloom": {
+    "bloom.localState.v7": "066ca220ce684bcefb78ec44abee809d2c2fc52c5737eae6802f3a9235df01ef"
+  },
+  "com.umutcyilmaz.bloom.e2e": {
+    "bloom.e2e.kegel.qa_20261012_final_942d.bloom.localState.v8": "eda06dca16604c92114712630fa8603ddd98f7cff5cd36ab4984500099f8ccbe",
+    "bloom.e2e.kegel.profile_20261013_1219.bloom.localState.v8": "487224353b7fe4e7f513e3f8e52bd962d7d0520c9cb48ea69476dc84cd1ad948",
+    "bloom.e2e.kegel.qa_phase113_20261012_d3a8.bloom.localState.v8": "1f9f3a8e3f917b9f846e0b78ec249399de8a3c0e0dc2d58fbde923cb6df9f9a8",
+    "bloom.e2e.kegel.qa_20261012_0921_64a8.bloom.localState.v8": "82c2d8432f5ad70b98af06e64ccc3ed8ea50141cbbec6324e9b91c7643ed1f43",
+    "bloom.e2e.phase10.bloom.localState.v7": "12c5f87200ebf3a09d8438871d2cd95598a0a65a759bd3eafdd435cb5c4f678e",
+    "bloom.e2e.phase10.clock": "7ccb41c24893d37aa10427b5307629c750260aa3e06867b1bccf313a3f828bd2",
+    "bloom.e2e.kegel.qa_sounds_1142_20261013_f9d42.bloom.localState.v8": "adbf817eb3a4d388e7e35f44b1f83a9ccaeaa60da29f18503d90d8f6285720cb",
+    "bloom.e2e.kegel.qa_library_1141_20261012_f2c81.bloom.localState.v8": "b8613584d86def11ec4c4fb37f08ff663e11744da915f5f9520f8731c80a19a4",
+    "bloom.e2e.kegel.qa_phase113_guarded_20261012_91be.bloom.localState.v8": "96d052063536dee6b45e1b5ddf941f44530358cf9c5eb613312af678b2f26773",
+    "bloom.localState.v7": "fe163cbf1153ac7fcbafe8e5a76d59b5a1c74fd5c12388d5b7b2e02c7adb0670",
+    "bloom.e2e.kegel.qa_20261012_settled_c41f.bloom.localState.v8": "204ecd4b7a2d1dedcfce6b06f69e501453c0f83fddadc235529f9b2173143162",
+    "bloom.e2e.kegel.qa_finalux_20261012_6839.bloom.localState.v8": "d0ae5a3ff876fba20c6d6f631a4996056539a5f763e37f37f39761d412549a45"
+  }
+}

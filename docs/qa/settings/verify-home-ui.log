@@ -1,0 +1,5 @@
+
+> tms@0.1.0 verify:home-ui
+> node scripts/run-bloom-home-ui-verification.cjs
+
+Bloom Home UI verification passed (inactive activation, saving/retry feedback, presentation metrics, card ordering, semantic actions, hydration, and durable hook wiring).

@@ -16,10 +16,15 @@ export function createKegelQaStorage(client:StorageClient,prefix:string):Storage
   return {getItem:key=>client.getItem(prefix+key),setItem:(key,value)=>client.setItem(prefix+key,value),
     removeItem:key=>client.removeItem(prefix+key),getAllKeys:async()=>(await client.getAllKeys()).filter(k=>k.startsWith(prefix)).map(k=>k.slice(prefix.length))};
 }
+// Settings deletion QA is confined to a new, guarded E2E namespace.
+let failNextRemoval=kegelPersistenceQaEnabled && process.env.EXPO_PUBLIC_SETTINGS_DELETE_QA === "fail-once";
 let failNext=false;
 export function failNextKegelQaSave() {if(kegelPersistenceQaEnabled) failNext=true;}
 const qaStorage=createKegelQaStorage(storageClient,kegelQaPrefix);
-const storage:StorageClient={...qaStorage,setItem:(key,value)=>{
+const storage:StorageClient={...qaStorage,removeItem:key=>{
+  if(failNextRemoval){failNextRemoval=false;return Promise.reject(new Error("Isolated Settings QA removal failure"));}
+  return qaStorage.removeItem(key);
+},setItem:(key,value)=>{
   if(failNext){failNext=false;return Promise.reject(new Error("Isolated QA write failure"));}
   return qaStorage.setItem(key,value);
 }};

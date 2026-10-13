@@ -47,8 +47,8 @@ export default function RootLayout() {
         <Stack.Screen name="bloom/library/article" options={{animation:reduced ? "none" : "slide_from_right"}} />
         <Stack.Screen name="bloom/kegel" options={{animation:reduced ? "none" : "fade"}} />
         {settingsHeaders.map(([name,title])=><Stack.Screen key={name} name={name} options={{
-          title,headerShown:true,headerStyle:{backgroundColor:"#0e0e10"},headerTintColor:"#fff",
-          headerBackVisible:false,headerLeft:()=> <BloomNestedBackButton />
+          title,headerShown:true,headerStyle:{backgroundColor:"#000"},headerShadowVisible:false,headerTintColor:"#fff",
+          headerTitleStyle:{fontFamily:"Inter_600SemiBold",fontSize:18},headerBackVisible:false,headerLeft:()=> <BloomNestedBackButton />
         }} />)}
       </Stack>
     </AppProviders>

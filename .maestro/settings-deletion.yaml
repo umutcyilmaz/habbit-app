@@ -1,0 +1,58 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Settings deletion only in a NEW dedicated isolated namespace
+---
+# Requires fresh EXPO_PUBLIC_KEGEL_QA_RUN=settings_NEW_UNIQUE_RUN and
+# EXPO_PUBLIC_SETTINGS_DELETE_QA=fail-once. NEVER run against prior QA data.
+# The debug route and count verify the existing isolation gate before any mutation.
+- openLink: "tms-e2e:///debug/kegel-persistence"
+- assertVisible: "Kalıcı seans: 0"
+- openLink: "tms-e2e:///bloom/library/article?id=pe"
+- tapOn: { id: "library.bookmark" }
+- assertVisible: "Kaydedilenlerden çıkar"
+- openLink: "tms-e2e:///settings/data-controls"
+- scrollUntilVisible:
+    element: { id: "bloom.settings.delete-open" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.settings.delete-open" }
+- scrollUntilVisible:
+    element: { id: "bloom.settings.delete-hold" }
+    direction: DOWN
+    centerElement: true
+- longPressOn: { id: "bloom.settings.delete-hold" }
+- scrollUntilVisible:
+    element: { id: "bloom.settings.delete-error" }
+    direction: DOWN
+    centerElement: true
+- assertNotVisible: { id: "bloom.settings.delete-success" }
+- takeScreenshot: "13-native-deletion-failure"
+# Failed removal must preserve the acknowledged bookmark.
+- openLink: "tms-e2e:///bloom/library/article?id=pe"
+- assertVisible: "Kaydedilenlerden çıkar"
+- takeScreenshot: "14-native-failure-record-preserved"
+- openLink: "tms-e2e:///settings/data-controls"
+- scrollUntilVisible:
+    element: { id: "bloom.settings.delete-error" }
+    direction: DOWN
+    centerElement: true
+- assertVisible: { id: "bloom.settings.delete-error" }
+- scrollUntilVisible:
+    element: { id: "bloom.settings.delete-accessible" }
+    direction: UP
+    centerElement: true
+- tapOn: { id: "bloom.settings.delete-accessible" }
+- takeScreenshot: "15-native-accessible-confirmation"
+- tapOn: "Kalıcı olarak sil"
+- extendedWaitUntil:
+    visible: { id: "bloom.onboarding.intro" }
+    timeout: 20000
+- takeScreenshot: "16-native-deletion-success-onboarding"
+- openLink: "tms-e2e:///bloom/library/article?id=pe"
+- assertVisible: "Kaydet"
+- assertNotVisible: "Kaydedilenlerden çıkar"
+- takeScreenshot: "17-native-deletion-record-removed"
+- stopApp
+- launchApp
+- openLink: "tms-e2e:///bloom/library/article?id=pe"
+- assertVisible: "Kaydet"
+- takeScreenshot: "18-native-deletion-restart"

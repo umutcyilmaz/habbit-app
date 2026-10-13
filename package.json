@@ -46,7 +46,8 @@
     "verify:library": "node scripts/run-bloom-library-verification.cjs",
     "verify:navigation": "node scripts/verify-bloom-four-tabs.cjs",
     "postinstall": "node scripts/patch-expo-audio-ios.cjs",
-    "verify:audio": "node scripts/run-bloom-audio-verification.cjs"
+    "verify:audio": "node scripts/run-bloom-audio-verification.cjs",
+    "verify:settings": "node scripts/verify-bloom-settings.cjs"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",

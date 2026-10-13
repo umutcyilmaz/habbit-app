@@ -1,0 +1,6 @@
+
+> tms@0.1.0 verify:product-onboarding-ui
+> node scripts/run-bloom-product-onboarding-ui-verification.cjs
+
+Bloom Starting recommendation feature verification passed (four historical plans without rescoring, atomic existing acceptance, exact successor retry, all-four-reference stale guards, durable destinations, no-op/conflict recovery, Home priorities, and controlled hook/screen execution).
+Bloom product onboarding UI verification passed.

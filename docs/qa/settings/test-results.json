@@ -1,0 +1,94 @@
+[
+  {
+    "test": "verify:navigation",
+    "exit": 0
+  },
+  {
+    "test": "verify:persistence",
+    "exit": 0
+  },
+  {
+    "test": "verify:persistence-acknowledgement",
+    "exit": 0
+  },
+  {
+    "test": "verify:profile",
+    "exit": 0
+  },
+  {
+    "test": "verify:library",
+    "exit": 0
+  },
+  {
+    "test": "verify:audio",
+    "exit": 0
+  },
+  {
+    "test": "verify:kegel",
+    "exit": 0
+  },
+  {
+    "test": "verify:kegel:persistence",
+    "exit": 0
+  },
+  {
+    "test": "verify:home-ui",
+    "exit": 0
+  },
+  {
+    "test": "verify:journey",
+    "exit": 0
+  },
+  {
+    "test": "verify:reset-continuity",
+    "exit": 0
+  },
+  {
+    "test": "verify:protection-reset",
+    "exit": 0
+  },
+  {
+    "test": "verify:product-onboarding-ui",
+    "exit": 0
+  },
+  {
+    "test": "verify:guided-flows",
+    "exit": 0
+  },
+  {
+    "test": "verify:e2e-runtime",
+    "exit": 0
+  },
+  {
+    "test": "verify:release-debug-guards",
+    "exit": 0
+  },
+  {
+    "test": "verify:e2e-app-identity",
+    "exit": 0
+  },
+  {
+    "test": "typecheck",
+    "exit": 0
+  },
+  {
+    "test": "verify:settings",
+    "exit": 0
+  },
+  {
+    "test": "native settings/cancel/back/restart",
+    "exit": 0
+  },
+  {
+    "test": "native final icons/confirmation/cancel",
+    "exit": 0
+  },
+  {
+    "test": "native isolated deletion failure/preservation/retry/success/restart",
+    "exit": 0
+  },
+  {
+    "test": "native Settings counter link and preserved Close-to-Home",
+    "exit": 0
+  }
+]

@@ -1,0 +1,50 @@
+{
+  "date": "2026-10-13",
+  "qa_run": "settings_review_20261013_9c6e",
+  "tests": [
+    {
+      "test": "typecheck",
+      "exit": 0
+    },
+    {
+      "test": "verify:settings",
+      "exit": 0
+    },
+    {
+      "test": "verify:persistence",
+      "exit": 0
+    },
+    {
+      "test": "verify:persistence-acknowledgement",
+      "exit": 0
+    },
+    {
+      "test": "native overlay-free app-lock / failure record preservation / single Turkish error",
+      "exit": 0
+    }
+  ],
+  "storage_preservation": {
+    "com.umutcyilmaz.bloom": {
+      "existing_keys_preserved": 1,
+      "existing_keys_changed_or_removed": 0,
+      "new_review_keys_retained": 0
+    },
+    "com.umutcyilmaz.bloom.e2e": {
+      "existing_keys_preserved": 12,
+      "existing_keys_changed_or_removed": 0,
+      "new_review_keys_retained": 1
+    }
+  },
+  "protected_source_sha256_unchanged": {
+    "src/app/providers/LocalDataLifecycleProvider.tsx": "e6e0b47f3a769078355a25f191ef2040175ed987f7f30d47681cf84ea832afed",
+    "src/app/providers/BloomLocalStateProvider.tsx": "5cfe94378361f3203fb7cbc58185c24f3f8232d6707c6a9b25d25b43b3c7de38",
+    "src/storage/bloomStatePersistence.ts": "03616437d092052934a9f2ec9b94d667f8eaf8b515df7faa00541b44f3669d19",
+    "src/storage/bloomStateSchema.ts": "f3b7322e65679ac72b3bdd9f2cf1747fcec86f790b96aa91ddb1caa147254a9e",
+    "src/features/kegel/kegelPersistenceQa.ts": "7c38745dc860c0a36d03957c0c13e7d9ac95265075c68c8f13a822621a848765"
+  },
+  "refreshed_screenshots": {
+    "screenshots/02-native-app-lock.png": "755cdf980ac009e06901d1b589deb9b18e23176a0cfab0521e38a4411257dcdb",
+    "screenshots/14-native-failure-record-preserved.png": "f1190821d4ef612c5cc044d3ea3ac68f08f61de6cabc62b5219646af5c970d4d"
+  },
+  "successful_deletion_or_retry_executed": false
+}

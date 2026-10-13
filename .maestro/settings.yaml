@@ -1,0 +1,77 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Settings isolated visual navigation and cancel
+---
+# NEW EXPO_PUBLIC_KEGEL_QA_RUN only. No clearState or seed/replace.
+- openLink: "tms-e2e:///profile"
+- assertVisible: { id: "bloom.profile" }
+- tapOn: { id: "bloom.profile.settings" }
+- assertVisible: { id: "bloom.settings.home" }
+- takeScreenshot: "01-native-settings-top"
+- tapOn: { id: "bloom.settings.app-lock" }
+- assertVisible: { id: "bloom.settings.app-lock-screen" }
+- takeScreenshot: "02-native-app-lock"
+- tapOn: { id: "bloom.nested.back" }
+- tapOn: { id: "bloom.settings.privacy" }
+- assertVisible: { id: "bloom.settings.privacy-screen" }
+- takeScreenshot: "03-native-privacy"
+- tapOn: { id: "bloom.nested.back" }
+- scrollUntilVisible:
+    element: { id: "bloom.settings.notifications" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.settings.notifications" }
+- assertVisible: { id: "bloom.settings.notifications-screen" }
+- takeScreenshot: "04-native-notifications"
+- tapOn: { id: "bloom.nested.back" }
+- scrollUntilVisible:
+    element: { id: "bloom.settings.data-controls" }
+    direction: DOWN
+    centerElement: true
+- takeScreenshot: "05-native-settings-data-support"
+- tapOn: { id: "bloom.settings.data-controls" }
+- assertVisible: { id: "bloom.settings.data-screen" }
+- takeScreenshot: "06-native-data-top"
+- scrollUntilVisible:
+    element: { id: "bloom.settings.delete-open" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.settings.delete-open" }
+- scrollUntilVisible:
+    element: { id: "bloom.settings.delete-cancel" }
+    direction: DOWN
+    centerElement: true
+- takeScreenshot: "07-native-delete-confirmation"
+- tapOn: { id: "bloom.settings.delete-hold" }
+- assertNotVisible: { id: "bloom.settings.delete-success" }
+- tapOn: { id: "bloom.settings.delete-cancel" }
+- assertVisible: { id: "bloom.settings.delete-open" }
+- takeScreenshot: "08-native-delete-cancelled"
+- tapOn: { id: "bloom.nested.back" }
+- scrollUntilVisible:
+    element: { id: "bloom.settings.help" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.settings.help" }
+- scrollUntilVisible:
+    element: { id: "bloom.settings.faq" }
+    direction: DOWN
+    centerElement: true
+- takeScreenshot: "09-native-help"
+- scrollUntilVisible:
+    element: { id: "bloom.settings.version" }
+    direction: DOWN
+    centerElement: true
+- takeScreenshot: "10-native-settings-bottom"
+- tapOn: { id: "bloom.settings.subscription" }
+- assertVisible: { id: "bloom.settings.subscription-screen" }
+- takeScreenshot: "11-native-subscription"
+- tapOn: { id: "bloom.nested.back" }
+- tapOn: { id: "bloom.nested.back" }
+- assertVisible: { id: "bloom.profile" }
+- stopApp
+- launchApp
+- openLink: "tms-e2e:///settings"
+- assertVisible: { id: "bloom.settings.home" }
+- takeScreenshot: "12-native-settings-restart"
+- tapOn: { id: "bloom.nested.back" }
+- assertVisible: { id: "bloom.profile" }

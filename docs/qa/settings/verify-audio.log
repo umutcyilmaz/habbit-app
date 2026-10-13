@@ -1,0 +1,6 @@
+
+> tms@0.1.0 verify:audio
+> node scripts/run-bloom-audio-verification.cjs
+
+Bloom iOS audio patch verified (expo-audio 1.1.1).
+Audio verification passed: actual-engine clock, loop wraps, pause/buffer, finite/unlimited, seek/clamp, fade/expiry, interruption, background, teardown races, rapid presses, retries, errors, bundled WAV hashes and isolated QA gate.

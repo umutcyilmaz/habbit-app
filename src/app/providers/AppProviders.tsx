@@ -45,7 +45,7 @@ function LocalProviders({ children, runtime }: PropsWithChildren<{runtime?:Bloom
 function RouteStatusBar() {
   const pathname = usePathname();
   const darkCanvas = pathname === "/" || pathname === "/today" ||
-    pathname.startsWith("/bloom/") || pathname === "/onboarding" ||
+    pathname.startsWith("/bloom/") || pathname.startsWith("/settings") || pathname === "/onboarding" ||
     pathname.startsWith("/onboarding/") || pathname === "/debug/phase10";
   return <StatusBar style={darkCanvas ? "light" : "dark"} />;
 }

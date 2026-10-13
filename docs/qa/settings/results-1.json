@@ -1,0 +1,22 @@
+[
+  {
+    "test": "verify:audio",
+    "exit": 0
+  },
+  {
+    "test": "verify:kegel",
+    "exit": 0
+  },
+  {
+    "test": "verify:kegel:persistence",
+    "exit": 0
+  },
+  {
+    "test": "verify:home-ui",
+    "exit": 0
+  },
+  {
+    "test": "verify:journey",
+    "exit": 0
+  }
+]

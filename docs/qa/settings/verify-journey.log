@@ -1,0 +1,5 @@
+
+> tms@0.1.0 verify:journey
+> node scripts/run-bloom-journey-verification.cjs
+
+Bloom journey verification passed.

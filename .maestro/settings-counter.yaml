@@ -1,0 +1,13 @@
+appId: com.umutcyilmaz.bloom.e2e
+---
+- openLink: "tms-e2e:///settings"
+- scrollUntilVisible:
+    element: { id: "bloom.settings.content-free" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "bloom.settings.content-free" }
+- assertVisible: { id: "bloom.content-free" }
+- takeScreenshot: "19-native-counter-link"
+- tapOn: { id: "bloom.content-free.close" }
+- assertVisible: { id: "bloom.home" }
+- takeScreenshot: "20-native-counter-existing-close-home"
