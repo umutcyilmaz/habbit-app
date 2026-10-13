@@ -1,0 +1,18 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Library post-test retained real tab state
+---
+# Run after four-tabs.yaml and library.yaml in the same new QA namespace.
+- openLink: "tms-e2e:///today"
+- assertVisible: { id: "bloom.home.tracking" }
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: "16-native-home"
+- tapOn: { id: "bloom.tab.profile" }
+- assertVisible: { id: "bloom.profile" }
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: "17-native-profile"
+- tapOn: { id: "bloom.tab.kegel" }
+- assertVisible: "20"
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: "18-native-kegel-preserved"
+- tapOn: { id: "bloom.tab.library" }
+- assertVisible: { id: "bloom.library" }

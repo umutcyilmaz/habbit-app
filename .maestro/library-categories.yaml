@@ -1,0 +1,74 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Library category navigation settled native transitions
+---
+- openLink: "tms-e2e:///library"
+- assertVisible: { id: "bloom.library" }
+- scrollUntilVisible:
+    element: { id: "library.category.sex" }
+    direction: UP
+    centerElement: true
+- scrollUntilVisible:
+    element: { id: "library.category.urge" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "library.category.urge" }
+- assertVisible: { id: "library.article.halt" }
+- waitForAnimationToEnd:
+    timeout: 2000
+- runScript: library-transition-settle.js
+- tapOn: { id: "library.back" }
+- waitForAnimationToEnd:
+    timeout: 2000
+- assertVisible: { id: "bloom.library" }
+- scrollUntilVisible:
+    element: { id: "library.category.brain" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "library.category.brain" }
+- assertVisible: { id: "library.article.loop" }
+- waitForAnimationToEnd:
+    timeout: 2000
+- runScript: library-transition-settle.js
+- tapOn: { id: "library.back" }
+- waitForAnimationToEnd:
+    timeout: 2000
+- assertVisible: { id: "bloom.library" }
+- scrollUntilVisible:
+    element: { id: "library.category.pelvic" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "library.category.pelvic" }
+- assertVisible: { id: "library.article.mist" }
+- waitForAnimationToEnd:
+    timeout: 2000
+- runScript: library-transition-settle.js
+- tapOn: { id: "library.back" }
+- waitForAnimationToEnd:
+    timeout: 2000
+- assertVisible: { id: "bloom.library" }
+- scrollUntilVisible:
+    element: { id: "library.category.sleep" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "library.category.sleep" }
+- assertVisible: { id: "library.article.sleep" }
+- waitForAnimationToEnd:
+    timeout: 2000
+- runScript: library-transition-settle.js
+- tapOn: { id: "library.back" }
+- waitForAnimationToEnd:
+    timeout: 2000
+- assertVisible: { id: "bloom.library" }
+- scrollUntilVisible:
+    element: { id: "library.category.rel" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "library.category.rel" }
+- assertVisible: { id: "library.article.talk" }
+- waitForAnimationToEnd:
+    timeout: 2000
+- runScript: library-transition-settle.js
+- tapOn: { id: "library.back" }
+- waitForAnimationToEnd:
+    timeout: 2000
+- assertVisible: { id: "bloom.library" }

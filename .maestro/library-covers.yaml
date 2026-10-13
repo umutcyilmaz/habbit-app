@@ -1,0 +1,20 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Library source crescent and unknown read state
+---
+- openLink: "tms-e2e:///bloom/library/category?id=sleep"
+- assertVisible: { id: "library.article.sleep" }
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: "20-native-sleep-category"
+- tapOn: { id: "library.article.sleep" }
+- assertVisible: "Uyku, gece ve ekran"
+- assertNotVisible: "✓ Tamamlandı"
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: "21-native-sleep-cover"
+- openLink: "tms-e2e:///library"
+- assertVisible: { id: "bloom.library" }
+- scrollUntilVisible:
+    element: { text: "Rahatlatıcı sesler" }
+    direction: DOWN
+    centerElement: true
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: "13-native-deferred"

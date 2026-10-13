@@ -1,3 +1,4 @@
+export { setLibraryArticleState } from "./bloomLibraryTransitions";
 import type {
   ContentFreeState,
   KegelState,
@@ -492,6 +493,7 @@ export type OnboardingState = {
 };
 
 export type BloomLocalState = {
+  library: { bookmarkedArticleIds: string[]; completedArticleIds: string[] };
   kegel: KegelState;
   activePlan: ActivePlan;
   onboarding: OnboardingState;
@@ -510,6 +512,7 @@ export type BloomLocalState = {
 
 export function createDefaultBloomState(): BloomLocalState {
   return {
+    library: { bookmarkedArticleIds: [], completedArticleIds: [] },
     kegel: { onboardingCompletedAt: null, sessions: [] },
     activePlan: {
       primaryPattern: "pornLoop",

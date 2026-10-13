@@ -1,0 +1,31 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Library final HTML reader visual states
+---
+- openLink: "tms-e2e:///bloom/library/article?id=pe"
+- assertVisible: "Erken boşalmayı yönetmek"
+- scrollUntilVisible:
+    element: { id: "library.complete" }
+    direction: DOWN
+    centerElement: true
+- assertVisible: "Okundu bilgisini geri al"
+- tapOn: { id: "library.complete" }
+- assertVisible: "Okundu olarak işaretle"
+- extendedWaitUntil:
+    notVisible: "Okundu bilgisi geri alındı"
+    timeout: 5000
+- takeScreenshot: "05-native-article-bottom-unread"
+- tapOn: { id: "library.complete" }
+- assertVisible: "Okundu bilgisini geri al"
+- takeScreenshot: "06-native-completed"
+- scrollUntilVisible:
+    element: { id: "library.complete" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "library.complete" }
+- assertVisible: "Okundu olarak işaretle"
+- extendedWaitUntil:
+    notVisible: "Okundu bilgisi geri alındı"
+    timeout: 5000
+- takeScreenshot: "08-native-read-undone"
+- tapOn: { id: "library.complete" }
+- assertVisible: "Okundu bilgisini geri al"

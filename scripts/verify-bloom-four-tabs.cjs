@@ -80,7 +80,7 @@ for(const file of ['LibraryEntryScreen','ProfileEntryScreen']) {
   const src=readFileSync(`src/features/${folder}/screens/${file}.tsx`,'utf8');
   assert(!/productActions|saveBloomLocalState|AsyncStorage|Math.random|new Date|Plus|Premium/.test(src));
 }
-console.log('Four-tab verification passed: exactly four accessible native items; 96pt safe-area bar; canonical V4 Home/Kegel; legacy links retained and hidden; stale pending/failed/unknown-storage boundaries; tabPress prevention; truthful Library/Profile skeletons; existing Kegel stack guards retained.');
+console.log('Four-tab verification passed: exactly four accessible native items; 96pt safe-area bar; canonical V4 Home/Kegel; legacy links retained and hidden; stale pending/failed/unknown-storage boundaries; tabPress prevention; truthful Library/Profile entries; existing Kegel stack guards retained.');
 
 const guarded=evaluate('src/shared/navigation/guardBloomNavigation.ts');
 const rootState={index:1,routes:[{key:'tabs',name:'(tabs)'},{key:'kegel',name:'bloom/kegel'}]};

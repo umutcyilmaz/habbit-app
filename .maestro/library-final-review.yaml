@@ -1,0 +1,53 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Library final review unavailable Practice and live Kegel
+---
+# Existing isolated QA namespace; does not clear data or start an exercise.
+- openLink: "tms-e2e:///bloom/library/article?id=pe"
+- assertVisible: "Erken boşalmayı yönetmek"
+- scrollUntilVisible:
+    element: { id: "library.practice.unavailable" }
+    direction: DOWN
+    centerElement: true
+- assertVisible: "Pratik yakında"
+- assertVisible: "Yeni Pratik deneyimi henüz kullanıma açık değil."
+- assertNotVisible: "Pratik başlat"
+- assertNotVisible: { id: "library.practice.kegel" }
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: "22-native-practice-unavailable-scrolled"
+- scrollUntilVisible:
+    element: { id: "library.complete" }
+    direction: DOWN
+    centerElement: true
+- assertVisible: "Okundu bilgisini geri al"
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: "23-native-status-fade-scrolled"
+- openLink: "tms-e2e:///bloom/library/article?id=pelvic"
+- assertVisible: "Pelvik taban nedir?"
+- scrollUntilVisible:
+    element: { id: "library.practice.kegel" }
+    direction: DOWN
+    centerElement: true
+- assertVisible: "Kegel'e git"
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: "24-native-kegel-cta"
+- tapOn: { id: "library.practice.kegel" }
+- assertVisible: { id: "kegel.home" }
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: "25-native-real-kegel-destination"
+- runScript: library-transition-settle.js
+- tapOn: { id: "kegel.home.close" }
+- assertVisible: { id: "library.reader" }
+- openLink: "tms-e2e:///library"
+- assertVisible: { id: "bloom.library" }
+- runScript: library-transition-settle.js
+- waitForAnimationToEnd: { timeout: 2000 }
+- tapOn: { id: "bloom.tab.today" }
+- assertVisible: { id: "bloom.home.tracking" }
+- runScript: library-transition-settle.js
+- waitForAnimationToEnd: { timeout: 2000 }
+- tapOn: { id: "bloom.tab.profile" }
+- assertVisible: { id: "bloom.profile" }
+- runScript: library-transition-settle.js
+- waitForAnimationToEnd: { timeout: 2000 }
+- tapOn: { id: "bloom.tab.library" }
+- assertVisible: { id: "bloom.library" }

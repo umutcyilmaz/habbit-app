@@ -1,0 +1,292 @@
+{
+  "referenceSha256": "57add9027a8beb23eed3a5ed56254bc0b6be5f2f193f8a85f296a46c66e90ebc",
+  "files": [
+    {
+      "path": "docs/qa/library/01-native-library.png",
+      "bytes": 320447,
+      "sha256": "7640444e51817d5201bb6dd7a1169517c097f80d8833743e9874250f0aa6007b",
+      "width": 1206,
+      "height": 2622
+    },
+    {
+      "path": "docs/qa/library/02-native-category.png",
+      "bytes": 247735,
+      "sha256": "65af9b5598ce7f1df8d044fa909f0a8c121686255d8e4b2ca2c676281d543881",
+      "width": 1206,
+      "height": 2622
+    },
+    {
+      "path": "docs/qa/library/03-native-unread-restored.png",
+      "bytes": 227143,
+      "sha256": "1199d67d2e68089b06bd2327ee298385af61817112f7dfd4dc914a6c1201412b",
+      "width": 1206,
+      "height": 2622
+    },
+    {
+      "path": "docs/qa/library/04-native-bookmark-reopened.png",
+      "bytes": 462462,
+      "sha256": "7a1c28d750d66f07409729ec9be8cdede89e9ab0df65fb269501313a27749b04",
+      "width": 1206,
+      "height": 2622
+    },
+    {
+      "path": "docs/qa/library/05-native-article-bottom-unread.png",
+      "bytes": 234984,
+      "sha256": "52eef1821c50e128bd654d42eff0df837b929f6a13faaedfa5490bb736f8aef8",
+      "width": 1206,
+      "height": 2622
+    },
+    {
+      "path": "docs/qa/library/06-native-completed.png",
+      "bytes": 238909,
+      "sha256": "793ef69d3b1a35905fb530fa0f9b9e7bb05d7eda43d51fb1ec2dedcec2d9ec49",
+      "width": 1206,
+      "height": 2622
+    },
+    {
+      "path": "docs/qa/library/07-native-read-reopened.png",
+      "bytes": 452355,
+      "sha256": "f34d379eb62cd6c86ea47593d850a69475309627be31ab6b2aa67e5ff93d9b1b",
+      "width": 1206,
+      "height": 2622
+    },
+    {
+      "path": "docs/qa/library/08-native-read-undone.png",
+      "bytes": 234984,
+      "sha256": "52eef1821c50e128bd654d42eff0df837b929f6a13faaedfa5490bb736f8aef8",
+      "width": 1206,
+      "height": 2622
+    },
+    {
+      "path": "docs/qa/library/09-native-save-failed.png",
+      "bytes": 464546,
+      "sha256": "9759882000fbe3933eabf7cf35642301e53886b623887a997e27036cecb56556",
+      "width": 1206,
+      "height": 2622
+    },
+    {
+      "path": "docs/qa/library/10-native-retry-confirmed.png",
+      "bytes": 447697,
+      "sha256": "c59c8ecd3f597ff00844afb33ea84bc4f6dbcb3b4fb4b8be136d72d87897b7e5",
+      "width": 1206,
+      "height": 2622
+    },
+    {
+      "path": "docs/qa/library/11-native-read-failed.png",
+      "bytes": 209030,
+      "sha256": "27caa58e64c5e949369e767189f7a516d9e4bd27ce0c482c0e2ecbb0947b7ca1",
+      "width": 1206,
+      "height": 2622
+    },
+    {
+      "path": "docs/qa/library/12-native-read-card.png",
+      "bytes": 405011,
+      "sha256": "1b6a706d556da25b3bb1e769fbf983829acc92b20267efa69ada6868b282563d",
+      "width": 1206,
+      "height": 2622
+    },
+    {
+      "path": "docs/qa/library/13-native-deferred.png",
+      "bytes": 310270,
+      "sha256": "c16f4aaa1bf1322054f38a34bfb96d452b0bfb01cc77901af858a9fec96c469a",
+      "width": 1206,
+      "height": 2622
+    },
+    {
+      "path": "docs/qa/library/14-native-unknown-article.png",
+      "bytes": 76130,
+      "sha256": "29f2bcc79e11a83544b87fdc32dd76fd6e5ad0debf8a9f21809226e7e4f5d1b2",
+      "width": 1206,
+      "height": 2622
+    },
+    {
+      "path": "docs/qa/library/15-native-unknown-category.png",
+      "bytes": 76512,
+      "sha256": "f92547d50f0a15a98c3bb3e1a90f6a7493197a6f5cb26f8430f49801d1a1d149",
+      "width": 1206,
+      "height": 2622
+    },
+    {
+      "path": "docs/qa/library/16-native-home.png",
+      "bytes": 176693,
+      "sha256": "f207a783fbd4e828a5940ff8b59344359689b4e65299ce79b9abd5cb8c56fa41",
+      "width": 1206,
+      "height": 2622
+    },
+    {
+      "path": "docs/qa/library/17-native-profile.png",
+      "bytes": 148955,
+      "sha256": "28cdc4d1491ec0657ef9bb58184969f9ee08ffb39ac964b0a84d532fbeccc314",
+      "width": 1206,
+      "height": 2622
+    },
+    {
+      "path": "docs/qa/library/18-native-kegel-preserved.png",
+      "bytes": 433901,
+      "sha256": "a258abb150f8fd56e75204ed9f0ef57538c4782e90e704559d1268c4e7a719f7",
+      "width": 1206,
+      "height": 2622
+    },
+    {
+      "path": "docs/qa/library/19-native-home-save-guard.png",
+      "bytes": 214349,
+      "sha256": "0bf2720bfa5d15c816737f73b09a18e018cee5fe2973d78e55ddf6b6191dfc4d",
+      "width": 1206,
+      "height": 2622
+    },
+    {
+      "path": "docs/qa/library/20-native-sleep-category.png",
+      "bytes": 100836,
+      "sha256": "18d5e271ce298b20036d3b775eadd3025529dea29023ef184e0eeb553ce9077a",
+      "width": 1206,
+      "height": 2622
+    },
+    {
+      "path": "docs/qa/library/21-native-sleep-cover.png",
+      "bytes": 368628,
+      "sha256": "884e0ff178e0eb29431a2425d272a18355f7682372bb7b54304365d12775886d",
+      "width": 1206,
+      "height": 2622
+    },
+    {
+      "path": "docs/qa/library/html-article-bottom.png",
+      "bytes": 170412,
+      "sha256": "173651e1ac77dc60918616a4c1125368f5cb00b2f378eb158c328a05117b9a02",
+      "width": 1170,
+      "height": 2532
+    },
+    {
+      "path": "docs/qa/library/html-article-top.png",
+      "bytes": 315875,
+      "sha256": "ddee43e0511af1529d606e0111ede7d1114496bfd5ee8c1f5fe72319f52d740f",
+      "width": 1170,
+      "height": 2532
+    },
+    {
+      "path": "docs/qa/library/html-completed.png",
+      "bytes": 167994,
+      "sha256": "5f36ee82be4c693e08a1382b902333b3ff28281cb5aec1d4f3684406ad94a040",
+      "width": 1170,
+      "height": 2532
+    },
+    {
+      "path": "docs/qa/library/html-home.png",
+      "bytes": 223044,
+      "sha256": "8e49eb0b82001faf2b9a850cbc4880d8f8eafd546f6c2ffa3d648f919f9a7f37",
+      "width": 1170,
+      "height": 2532
+    },
+    {
+      "path": "src/features/library/assets/bookmark-outline.png",
+      "bytes": 885,
+      "sha256": "04a5a9c8197cea0b31241b455ab5cde294d1e7df5fadc8ab2bc0ac43c72717d9",
+      "width": 72,
+      "height": 72
+    },
+    {
+      "path": "src/features/library/assets/bookmark.png",
+      "bytes": 499,
+      "sha256": "c60acf8f19e22b3356322fa8cd90d33ed437b477b9ccdb94bf1e7c90ebb96b30",
+      "width": 72,
+      "height": 72
+    },
+    {
+      "path": "src/features/library/assets/halt.png",
+      "bytes": 114890,
+      "sha256": "9411c710a1cffa3376c7e1b2751fdc7f27980dbed3624f1b2d048b83d5b50155",
+      "width": 900,
+      "height": 600
+    },
+    {
+      "path": "src/features/library/assets/heart.png",
+      "bytes": 93985,
+      "sha256": "65ee909aad8c8eb360596b815d0d5028895a03650ba39aaf75e02c31c7e4231f",
+      "width": 900,
+      "height": 600
+    },
+    {
+      "path": "src/features/library/assets/hero-fade.png",
+      "bytes": 197,
+      "sha256": "549dd20e5e081c6b16c792dcbf7b3f829850bfa6169c1a2fbe72a70c557dca09",
+      "width": 2,
+      "height": 990
+    },
+    {
+      "path": "src/features/library/assets/loop.png",
+      "bytes": 79077,
+      "sha256": "470c299421617eabdb853e98389c74c257075046acb507a567d6f2c034692329",
+      "width": 900,
+      "height": 600
+    },
+    {
+      "path": "src/features/library/assets/moon.png",
+      "bytes": 61024,
+      "sha256": "1b78b6e2dc7a690d19ed30ab58c353646e171b1fdc1f57c4020b289c41923167",
+      "width": 900,
+      "height": 600
+    },
+    {
+      "path": "src/features/library/assets/pelvic.png",
+      "bytes": 161906,
+      "sha256": "380ebfd427f2a623d37bb3278254a36d4ddc6602e681f82847ae9e2663f7ff62",
+      "width": 900,
+      "height": 600
+    },
+    {
+      "path": "src/features/library/assets/rel.png",
+      "bytes": 140231,
+      "sha256": "1fadb3575b1bedcf3a8367bf83e3dd3271117a1f06ad235f61b2c86a8c698501",
+      "width": 900,
+      "height": 600
+    },
+    {
+      "path": "src/features/library/assets/reset.png",
+      "bytes": 116486,
+      "sha256": "02370cefbf4b06f8f63d2eca78be19b6aa280c32560d3fdcfb8e21ca7e45acc1",
+      "width": 900,
+      "height": 600
+    },
+    {
+      "path": "src/features/library/assets/status-fade.png",
+      "bytes": 101,
+      "sha256": "347bb445c128734a71471b54c0d972f626543763b30a5f734f06b44258dcc720",
+      "width": 2,
+      "height": 192
+    },
+    {
+      "path": "src/features/library/assets/wave.png",
+      "bytes": 53968,
+      "sha256": "b1026e58797536a1355ca3cbe27650ac0d0dadf7424e1767a92f73c915129155",
+      "width": 900,
+      "height": 600
+    },
+    {
+      "path": "docs/qa/library/22-native-practice-unavailable-scrolled.png",
+      "bytes": 207387,
+      "sha256": "210b8feb2406ca85b235a4c9033da5b03d41bbd32e21cd597f15603ad5ab1261",
+      "width": 1206,
+      "height": 2622
+    },
+    {
+      "path": "docs/qa/library/23-native-status-fade-scrolled.png",
+      "bytes": 218680,
+      "sha256": "c845e7d96be5ff4f512e58d7660bb4312f3e5283aacbc1703e003153c44412e5",
+      "width": 1206,
+      "height": 2622
+    },
+    {
+      "path": "docs/qa/library/24-native-kegel-cta.png",
+      "bytes": 237475,
+      "sha256": "9083945cf0e00b5768ef627009e16e491e6486336fe497998c9326047ec82e9c",
+      "width": 1206,
+      "height": 2622
+    },
+    {
+      "path": "docs/qa/library/25-native-real-kegel-destination.png",
+      "bytes": 432948,
+      "sha256": "449c9c2abae3b3ab60287e35f07c612a3bed8fc3eb918b754ebdf36942bdab5e",
+      "width": 1206,
+      "height": 2622
+    }
+  ]
+}

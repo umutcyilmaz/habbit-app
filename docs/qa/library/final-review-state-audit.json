@@ -1,0 +1,15 @@
+{
+  "baseline": "State captured before this final-review task; prior QA artifacts remain historical.",
+  "entireBloomStateIdentical": true,
+  "allOtherStorageValuesUnchanged": 9,
+  "storageKeySetIdentical": true,
+  "kegelSessionsPreserved": 3,
+  "kegelRepetitionsPreserved": 30,
+  "trackingEnabledPreserved": true,
+  "libraryFinal": {
+    "bookmarkedArticleIds": [],
+    "completedArticleIds": [
+      "pe"
+    ]
+  }
+}

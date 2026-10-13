@@ -1,25 +1,37 @@
-import { View, StyleSheet } from "react-native";
+import { useRouter } from "expo-router";
+import { Pressable, ScrollView, View } from "react-native";
+import Animated, { FadeInDown, useReducedMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { AppScreen } from "../../../shared/components/v4/AppScreen";
 import { AppText } from "../../../shared/components/v4/AppText";
-import { AppCard } from "../../../shared/components/v4/AppCard";
-import { BloomTabIcon } from "../../../shared/navigation/BloomBottomNavigation";
+import { LibraryCover } from "../LibraryCover";
+import { LibraryArticleRow } from "../LibraryArticleRow";
+import { articlesForCategory, findLibraryArticle, featuredLibraryArticleId, libraryCategories, type LibraryCategoryId } from "../libraryContent";
+import { libraryStyles as s } from "../libraryTheme";
+import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
 export function LibraryEntryScreen() {
-  const insets=useSafeAreaInsets();
-  return <View style={[styles.safeArea,{paddingTop:insets.top}]}><AppScreen scroll testID="bloom.library" includeBottomNavClearance={false} style={styles.screen} contentContainerStyle={styles.content}>
-    <AppText variant="display" accessibilityRole="header" style={styles.title}>Library</AppText>
-    <AppCard style={styles.feature}><View style={styles.cover}><BloomTabIcon name="library" color="#aab3ff" /></View>
-      <AppText variant="title" style={styles.cardTitle}>Kendini daha iyi tanı</AppText>
-      <AppText style={styles.copy}>Yazılar, sesler ve araştırmalar burada yer alacak. İçerik kütüphanesi henüz hazır değil.</AppText>
-    </AppCard>
-    <AppText variant="title" style={styles.section}>Kategoriler</AppText>
-    <View style={styles.categories}>{["Yazılar","Rahatlatıcı sesler","Araştırmalar"].map(title=><AppCard key={title} style={styles.category}>
-      <AppText variant="titleSmall">{title}</AppText><AppText style={styles.copy}>Henüz içerik yok</AppText>
-    </AppCard>)}</View>
-  </AppScreen></View>;
+  const router=useRouter(),insets=useSafeAreaInsets(),reduced=useReducedMotion();
+  const article=findLibraryArticle(featuredLibraryArticleId)!;
+  const {durableState}=useBloomLocalState();
+  const done=durableState.library.completedArticleIds.includes(article.id);
+  return <View style={[s.screen,{paddingTop:insets.top}]}><ScrollView testID="bloom.library" contentContainerStyle={s.content}>
+    <Animated.View {...(reduced ? {} : {entering:FadeInDown.duration(350)})}><AppText accessibilityRole="header" style={s.title}>Library</AppText>
+      <AppText style={[s.section,{marginTop:24,marginBottom:12}]}>Bugün için</AppText>
+      <Pressable accessibilityRole="button" testID="library.featured" onPress={()=>router.push({pathname:"/bloom/library/article",params:{id:article.id}})} style={({pressed})=>[{borderRadius:30,overflow:"hidden",backgroundColor:"#141415"},pressed && s.pressed]}>
+        <LibraryCover motif={article.motif} size="featured"/><View style={{paddingHorizontal:20,paddingTop:18,paddingBottom:22}}>
+          <AppText style={{fontSize:14,color:"#aab3ff",fontFamily:"Inter_600SemiBold"}}>{libraryCategories[article.cat]} · {article.min} dk{done ? " · Tamamlandı" : ""}</AppText>
+          <AppText style={{fontSize:22,lineHeight:27,fontFamily:"Inter_700Bold",marginTop:6}}>{article.title}</AppText>
+          <AppText style={{fontSize:15,lineHeight:22,color:"#8e8e93",marginTop:6}}>{article.lead}</AppText>
+        </View>
+      </Pressable>
+    </Animated.View>
+    {(Object.keys(libraryCategories) as LibraryCategoryId[]).map((category,index)=>{
+      const articles=articlesForCategory(category);
+      return <Animated.View key={category} {...(reduced ? {} : {entering:FadeInDown.delay(100+index*40).duration(350)})}>
+        <Pressable testID={`library.category.${category}`} accessibilityRole="button" accessibilityLabel={`${libraryCategories[category]}, ${articles.length} yazı`} style={s.sectionHeader} onPress={()=>router.push({pathname:"/bloom/library/category",params:{id:category}})}>
+          <AppText style={s.section}>{libraryCategories[category]}</AppText><AppText style={s.muted}>{articles.length} yazı ›</AppText>
+        </Pressable><View style={s.group}>{articles.map((a,i)=><LibraryArticleRow key={a.id} article={a} border={i>0}/>)}</View>
+      </Animated.View>;
+    })}
+    {["Rahatlatıcı sesler","Araştırmalar"].map(title=><View key={title}><View style={s.sectionHeader}><AppText style={s.section}>{title}</AppText><AppText style={s.muted}>Yakında</AppText></View><View style={[s.group,{padding:18}]}><AppText style={s.muted}>Bu içerikler henüz kullanıma açık değil.</AppText></View></View>)}
+  </ScrollView></View>;
 }
-const styles=StyleSheet.create({safeArea:{flex:1,backgroundColor:"#000"},screen:{backgroundColor:"#000",paddingTop:0},content:{paddingHorizontal:20,paddingTop:22,paddingBottom:30,gap:16},
-  title:{fontSize:31,lineHeight:39,letterSpacing:-.9},feature:{backgroundColor:"#141415",borderRadius:28,padding:20,gap:12},
-  cover:{height:130,borderRadius:20,backgroundColor:"#11162d",alignItems:"center",justifyContent:"center"},
-  cardTitle:{fontSize:21,lineHeight:27},copy:{fontSize:14,lineHeight:21,color:"#8e8e93"},section:{marginTop:8,fontSize:20},
-  categories:{gap:10},category:{backgroundColor:"#141415",borderRadius:22,padding:18,gap:6}});

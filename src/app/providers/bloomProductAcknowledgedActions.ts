@@ -1,4 +1,5 @@
 import {
+  setLibraryArticleState,
   completeKegelOnboardingState,
   saveCompletedKegelSessionState,
   acceptProductOnboardingRecommendationState,
@@ -60,6 +61,7 @@ export function createBloomProductAcknowledgedActions({
     );
 
   return {
+    library: { setArticleState: acknowledge(setLibraryArticleState) },
     kegel: {
       completeOnboarding: acknowledge(completeKegelOnboardingState),
       saveCompletedSession: acknowledge(saveCompletedKegelSessionState)

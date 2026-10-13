@@ -64,6 +64,7 @@ import {
 } from "./bloomProductStateSchema";
 import { validateResetContentFreeContinuity } from "./bloomResetContentFreeContinuity";
 import { normalizeProductOnboarding } from "./bloomOnboardingSchema";
+import { normalizeLibraryState } from "./bloomLibrarySchema";
 
 export {
   isValidBloomDateKey,
@@ -267,6 +268,7 @@ export function validateAndNormalizeBloomState(
     const defaults = createDefaultBloomState();
     const onboarding = normalizeOnboarding(record.onboarding, defaults.onboarding);
     const state: BloomLocalState = {
+      library: mode === "current" ? normalizeLibraryState(record.library) : defaults.library,
       kegel: mode === "current" ? normalizeKegelState(record.kegel) : defaults.kegel,
       activePlan:
         onboarding.quizResult !== null

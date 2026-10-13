@@ -1,0 +1,181 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Library foundation explicit durable reading
+---
+# Run only with the existing guarded Kegel persistence QA runtime and a NEW run name.
+# Does not clear application data, seed history, or operate the normal Bloom app.
+- openLink: "tms-e2e:///library"
+- assertVisible:
+    id: "bloom.library"
+- scrollUntilVisible:
+    element: { id: "library.featured" }
+    direction: UP
+    centerElement: true
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: "01-native-library"
+- scrollUntilVisible:
+    element: { id: "library.category.sex" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "library.category.sex" }
+- assertVisible: "Seks ipuçları"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: "02-native-category"
+- tapOn: { id: "library.article.pe" }
+- assertVisible: "Erken boşalmayı yönetmek"
+- waitForAnimationToEnd:
+    timeout: 2000
+- runScript: library-transition-settle.js
+- tapOn: { id: "library.back" }
+- waitForAnimationToEnd:
+    timeout: 2000
+- assertVisible: { id: "library.category" }
+- runScript: library-transition-settle.js
+- tapOn: { id: "library.back" }
+- waitForAnimationToEnd:
+    timeout: 2000
+- assertVisible: { id: "bloom.library" }
+- tapOn: { id: "library.category.sex" }
+- waitForAnimationToEnd:
+    timeout: 2000
+- tapOn: { id: "library.article.pe" }
+- assertVisible: "Erken boşalmayı yönetmek"
+- runFlow:
+    when: { visible: "✓ Tamamlandı" }
+    commands:
+      - scrollUntilVisible:
+          element: { id: "library.complete" }
+          direction: DOWN
+          centerElement: true
+      - tapOn: { id: "library.complete" }
+      - openLink: "tms-e2e:///bloom/library/article?id=pe"
+- assertNotVisible: "✓ Tamamlandı"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: "03-native-unread-restored"
+- runFlow:
+    when: { visible: "Kaydet" }
+    commands:
+      - tapOn: { id: "library.bookmark" }
+      - assertVisible: "Kaydedildi"
+- stopApp
+- launchApp
+- openLink: "tms-e2e:///bloom/library/article?id=pe"
+- assertVisible: "Kaydedilenlerden çıkar"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: "04-native-bookmark-reopened"
+- scrollUntilVisible:
+    element: { id: "library.complete" }
+    direction: DOWN
+    centerElement: true
+- assertVisible: "Okundu olarak işaretle"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: "05-native-article-bottom-unread"
+- tapOn: { id: "library.complete" }
+- assertVisible: "Okundu bilgisini geri al"
+- takeScreenshot: "06-native-completed"
+- stopApp
+- launchApp
+- openLink: "tms-e2e:///bloom/library/article?id=pe"
+- assertVisible: "✓ Tamamlandı"
+- assertVisible: "Kaydedilenlerden çıkar"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: "07-native-read-reopened"
+- scrollUntilVisible:
+    element: { id: "library.complete" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "library.complete" }
+- assertVisible: "Okundu olarak işaretle"
+- assertNotVisible: "✓ Tamamlandı"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: "08-native-read-undone"
+- tapOn: { id: "library.article.anx" }
+- assertVisible: "Performans kaygısıyla başa çıkmak"
+- assertNotVisible: "✓ Tamamlandı"
+- openLink: "tms-e2e:///debug/kegel-persistence"
+- tapOn: { id: "kegel.qa.fail" }
+- openLink: "tms-e2e:///bloom/library/article?id=pe"
+- tapOn: { id: "library.bookmark" }
+- assertVisible: "Bu cihaza kaydetme doğrulanmadı. Yeniden dene."
+- assertVisible: "Kaydedilenlerden çıkar"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: "09-native-save-failed"
+- runScript: library-transition-settle.js
+- tapOn: { id: "library.back" }
+- assertVisible: "Bu cihaza kaydetme doğrulanmadı. Yeniden dene."
+- swipe:
+    start: "1%, 50%"
+    end: "85%, 50%"
+    duration: 500
+- assertVisible: "Bu cihaza kaydetme doğrulanmadı. Yeniden dene."
+- openLink: "tms-e2e:///today"
+- assertVisible: "Bu cihaza kaydetme doğrulanmadı. Yeniden dene."
+- assertNotVisible: { id: "bloom.home" }
+- tapOn: { id: "library.save.retry" }
+- assertVisible: "Kaydedilenlerden çıkarıldı"
+- assertVisible: "Kaydet"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: "10-native-retry-confirmed"
+- openLink: "tms-e2e:///debug/kegel-persistence"
+- tapOn: { id: "kegel.qa.fail" }
+- openLink: "tms-e2e:///bloom/library/article?id=pe"
+- scrollUntilVisible:
+    element: { id: "library.complete" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "library.complete" }
+- assertVisible: "Bu cihaza kaydetme doğrulanmadı. Yeniden dene."
+- assertVisible: "Okundu olarak işaretle"
+- assertNotVisible: "✓ Tamamlandı"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: "11-native-read-failed"
+- tapOn: { id: "library.save.retry" }
+- assertVisible: "Okundu bilgisini geri al"
+- stopApp
+- launchApp
+- openLink: "tms-e2e:///library"
+- scrollUntilVisible:
+    element: { id: "library.article.pe" }
+    direction: DOWN
+    centerElement: true
+- assertVisible: "Erken boşalmayı yönetmek, 5 dakika okuma, Okundu"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: "12-native-read-card"
+- runFlow: library-categories.yaml
+- scrollUntilVisible:
+    element: { text: "Rahatlatıcı sesler" }
+    direction: DOWN
+    centerElement: true
+- assertVisible: "Yakında"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: "13-native-deferred"
+- tapOn: { id: "bloom.tab.profile" }
+- assertVisible: { id: "bloom.profile" }
+- tapOn: { id: "bloom.tab.today" }
+- assertVisible: { id: "bloom.home" }
+- openLink: "tms-e2e:///bloom/library/article?id=removed"
+- assertVisible: "Yazı bulunamadı"
+- assertNotVisible: { id: "library.bookmark" }
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: "14-native-unknown-article"
+- runScript: library-transition-settle.js
+- tapOn: { id: "library.back" }
+- waitForAnimationToEnd:
+    timeout: 2000
+- openLink: "tms-e2e:///bloom/library/category?id=toString"
+- assertVisible: "Kategori bulunamadı"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: "15-native-unknown-category"

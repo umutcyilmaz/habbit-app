@@ -9,7 +9,7 @@ import type {
   BloomPersistenceRetryToken
 } from "../src/app/providers/bloomLocalStateMutationRuntime";
 import {
-  createDefaultBloomState, completeKegelOnboardingState, saveCompletedKegelSessionState, saveProductOnboardingResultState, acceptProductOnboardingRecommendationState,
+  setLibraryArticleState, createDefaultBloomState, completeKegelOnboardingState, saveCompletedKegelSessionState, saveProductOnboardingResultState, acceptProductOnboardingRecommendationState,
   startResetFromBaselineState, recordActiveResetViolationState, undoActiveResetViolationState,
   completeElapsedResetPeriodState, recordBehaviorSlipState, acceptResetRecommendationState,
   enableMasturbationTrackingState, disableMasturbationTrackingState,
@@ -44,6 +44,7 @@ type Acknowledged<T> = T extends (state: BloomLocalState, ...input: infer A) => 
   ? (...input: A) => Promise<BloomPersistedMutationResult>
   : never;
 type ExpectedProductActions = {
+  library: { setArticleState: Acknowledged<typeof setLibraryArticleState> };
   kegel: {
     completeOnboarding: Acknowledged<typeof completeKegelOnboardingState>;
     saveCompletedSession: Acknowledged<typeof saveCompletedKegelSessionState>;
@@ -110,15 +111,15 @@ export async function verifyBloomProductActions() {
   verifyFactoryIsolation();
   const cases = commandCases();
   const api = createBloomProductAcknowledgedActions({ applyAcknowledgedMutation: async () => success(1) });
-  equal(commandPaths(api).sort(), cases.map((item) => item.name).sort(), "The facade must expose exactly the 36 grouped command paths covered by delegation tests.");
-  assert(cases.length === 36 && !("completeAssessment" in api.reset), "Every current product transition must have one focused command case; Reset assessment must no longer be a command.");
+  equal(commandPaths(api).sort(), cases.map((item) => item.name).sort(), "The facade must expose exactly the 37 grouped command paths covered by delegation tests.");
+  assert(cases.length === 37 && !("completeAssessment" in api.reset), "Every current product transition must have one focused command case; Reset assessment must no longer be a command.");
   equal(Object.keys(api.behaviorSlip), ["record"], "The shared behavior-slip facade must not introduce a generic undo command.");
   for (const item of cases) {
     await verifyDelegation(item);
     await verifyResultPassthrough(item);
   }
   await verifyRapidSequentialCommands();
-  console.log("Bloom product-action facade verification passed (all 36 grouped commands; exact transition delegation, caller facts, runtime-supplied current state, no-ops, acknowledgement passthrough, and rapid sequential commands).");
+  console.log("Bloom product-action facade verification passed (all 37 grouped commands; exact transition delegation, caller facts, runtime-supplied current state, no-ops, acknowledgement passthrough, and rapid sequential commands).");
   await verifyBloomProductActionsRuntime();
 }
 
@@ -256,6 +257,7 @@ function commandCases(): CommandCase[] {
     program:{configurationId:"test-provisional",provisional:true as const,repetitions:10,contractionSeconds:3,relaxationSeconds:3,countdownSeconds:3,dailyTarget:3},
     completedRepetitions:10,metrics:{activeExerciseSeconds:60,elapsedSeconds:63,pausedSeconds:0,pauseCount:0}};
   return [
+    command("library.setArticleState", blank, setLibraryArticleState, (a) => a.library.setArticleState, "bookmark", "wave", true),
     command("kegel.completeOnboarding",blank,completeKegelOnboardingState,a=>a.kegel.completeOnboarding,at),
     command("kegel.saveCompletedSession",blank,saveCompletedKegelSessionState,a=>a.kegel.saveCompletedSession,kegelSession),
     save,

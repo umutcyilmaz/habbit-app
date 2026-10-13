@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="il" viewBox="0 0 300 200" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="k4s" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0b0826"/><stop offset="1" stop-color="#2a1a7a"/></linearGradient><linearGradient id="k4a" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c9b8ff"/><stop offset="1" stop-color="#6d3fd8"/></linearGradient><linearGradient id="k4b" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#aab3ff"/><stop offset="1" stop-color="#3a4bff"/></linearGradient><linearGradient id="k4c" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#8a7dff"/></linearGradient></defs>
+    <rect width="300" height="200" fill="url(#k4s)"/>
+    <g class="rings" fill="none" stroke-width="9" stroke-linecap="round">
+      <circle cx="128" cy="86" r="38" stroke="url(#k4a)"/><circle cx="172" cy="86" r="38" stroke="url(#k4b)"/><circle cx="150" cy="124" r="38" stroke="url(#k4c)" opacity=".9"/></g>
+    <g class="orb"><circle cx="150" cy="40" r="5" fill="#fff"/></g></svg>
