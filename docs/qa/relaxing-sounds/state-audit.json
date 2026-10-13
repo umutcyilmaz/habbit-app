@@ -1,0 +1,14 @@
+{
+  "existingStorageKeysUnchanged": 10,
+  "qaEntireEnvelopeUnchanged": true,
+  "kegelSessionsPreserved": 1,
+  "kegelRepetitionsPreserved": 10,
+  "libraryPreserved": {
+    "bookmarkedArticleIds": [
+      "pe"
+    ],
+    "completedArticleIds": [
+      "pe"
+    ]
+  }
+}

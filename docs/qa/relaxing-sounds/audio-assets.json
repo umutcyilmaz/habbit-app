@@ -1,0 +1,34 @@
+{
+  "ocean": {
+    "downloadSha256": "623a66ef90453921c63970deaebf18e7aacd78c1048d4adb069b8b9b14d31bb8",
+    "bundledSha256": "f01e02342e39beeadb9b7273bdc3738ecc5966c1132e0b2d2a867d66d06593ea",
+    "seconds": 40.0,
+    "bytes": 3528044,
+    "peak": 0.6,
+    "seamMaxSampleDelta": 0.02141406014561653
+  },
+  "rain": {
+    "downloadSha256": "e75938ab97541cf681fd3bf27acf5de4215c6b22eea88b1d03050eb1e8d28e71",
+    "bundledSha256": "de0063dea35ecf61f5648efa1ace879fdeb15cc6523f795e98d2d023768504df",
+    "seconds": 40.0,
+    "bytes": 3528044,
+    "peak": 0.6,
+    "seamMaxSampleDelta": 0.015902608633041382
+  },
+  "fire": {
+    "downloadSha256": "d392cb5b057faf8ca3ed28ee0019a7bd9f159ff7627f1a5a8a951cfb7bed5ef7",
+    "bundledSha256": "3ebb7c73fff99641688f9fd07a01d9da454f88645d7469f0ecf386c8f8c55144",
+    "seconds": 23.228480725623584,
+    "bytes": 2048796,
+    "peak": 0.6,
+    "seamMaxSampleDelta": 0.0010104663670063019
+  },
+  "forest": {
+    "downloadSha256": "08f787b18249902f2e8c735efe441a4ab98b951faebda79aabea954a348025d4",
+    "bundledSha256": "5a19d15520c7ae7a8c093309e4031a8ffe2e7e3af3e2c0929fcad26618c4e300",
+    "seconds": 40.0,
+    "bytes": 3528044,
+    "peak": 0.6,
+    "seamMaxSampleDelta": 0.008070424199104309
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "createdPlayers": 15,
+  "releasedPlayers": 15,
+  "unreleasedPlayers": [],
+  "decodedPcmEvents": 7,
+  "nonzeroPcmVerified": true,
+  "naturalNativeLoopEvents": 11,
+  "distinctRmsValues": [
+    0.015332393541988934,
+    0.01932658256958303,
+    0.08305155804411694,
+    0.09623592030694318
+  ]
+}

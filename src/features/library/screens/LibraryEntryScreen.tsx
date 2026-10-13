@@ -8,6 +8,7 @@ import { LibraryArticleRow } from "../LibraryArticleRow";
 import { articlesForCategory, findLibraryArticle, featuredLibraryArticleId, libraryCategories, type LibraryCategoryId } from "../libraryContent";
 import { libraryStyles as s } from "../libraryTheme";
 import { useBloomLocalState } from "../../../app/providers/BloomLocalStateProvider";
+import { SoundLibrarySection } from "../../relaxing-sounds/SoundLibrarySection";
 export function LibraryEntryScreen() {
   const router=useRouter(),insets=useSafeAreaInsets(),reduced=useReducedMotion();
   const article=findLibraryArticle(featuredLibraryArticleId)!;
@@ -32,6 +33,7 @@ export function LibraryEntryScreen() {
         </Pressable><View style={s.group}>{articles.map((a,i)=><LibraryArticleRow key={a.id} article={a} border={i>0}/>)}</View>
       </Animated.View>;
     })}
-    {["Rahatlatıcı sesler","Araştırmalar"].map(title=><View key={title}><View style={s.sectionHeader}><AppText style={s.section}>{title}</AppText><AppText style={s.muted}>Yakında</AppText></View><View style={[s.group,{padding:18}]}><AppText style={s.muted}>Bu içerikler henüz kullanıma açık değil.</AppText></View></View>)}
+    <SoundLibrarySection />
+    {["Araştırmalar"].map(title=><View key={title}><View style={s.sectionHeader}><AppText style={s.section}>{title}</AppText><AppText style={s.muted}>Yakında</AppText></View><View style={[s.group,{padding:18}]}><AppText style={s.muted}>Bu içerikler henüz kullanıma açık değil.</AppText></View></View>)}
   </ScrollView></View>;
 }

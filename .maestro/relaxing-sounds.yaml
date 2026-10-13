@@ -1,0 +1,130 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Relaxing sounds real native engine and ephemeral lifecycle
+---
+# Requires isolated Kegel QA namespace AND EXPO_PUBLIC_RELAXING_SOUNDS_QA=1.
+# No clearState, reset, migration change, or normal Bloom app access.
+- openLink: "tms-e2e:///library"
+- assertVisible: { id: "bloom.library" }
+- scrollUntilVisible:
+    element: { id: "library.sound.ocean" }
+    direction: DOWN
+    centerElement: true
+- takeScreenshot: "01-native-library-sounds"
+- tapOn: { id: "library.sound.ocean" }
+- assertVisible: "Okyanus"
+- assertVisible: "Oynatmaya hazır"
+- takeScreenshot: "02-native-ocean"
+- tapOn: { id: "sound.play" }
+- assertVisible: "Çalıyor"
+- tapOn: { id: "sound.duration.1200" }
+- assertVisible: "20 dk"
+- tapOn: { id: "sound.duration.1800" }
+- tapOn: { id: "sound.duration.0" }
+- assertVisible: "Sınırsız"
+- tapOn: { id: "sound.forward" }
+- assertVisible: "Çalıyor"
+- tapOn: { id: "sound.rewind" }
+- tapOn: { id: "sound.play" }
+- assertVisible: "Duraklatıldı"
+- takeScreenshot: "03-native-ocean-paused"
+- tapOn: { id: "sound.play" }
+- assertVisible: "Çalıyor"
+- tapOn: { id: "sound.qa.timer" }
+- extendedWaitUntil:
+    visible: "Süre doldu. Ses durduruldu."
+    timeout: 12000
+- assertVisible: "0:05"
+- assertVisible: "0:00 kaldı"
+- takeScreenshot: "04-native-timer-expired"
+- tapOn: { id: "sound.play" }
+- assertVisible: "Çalıyor"
+- tapOn: { id: "sound.stop" }
+- assertVisible: "Oynatmaya hazır"
+- assertVisible: "0:00"
+- assertVisible: "10:00 kaldı"
+- runScript: library-transition-settle.js
+- tapOn: { id: "sound.back" }
+- assertVisible: { id: "bloom.library" }
+- tapOn: { id: "library.sound.ocean" }
+- assertVisible: "Oynatmaya hazır"
+- assertVisible: "0:00"
+- runScript: library-transition-settle.js
+- tapOn: { id: "sound.back" }
+- scrollUntilVisible:
+    element: { id: "library.sound.rain" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "library.sound.rain" }
+- assertVisible: "Cam üstünde yağmur"
+- assertVisible: "Oynatmaya hazır"
+- takeScreenshot: "05-native-rain"
+- tapOn: { id: "sound.play" }
+- assertVisible: "Çalıyor"
+- tapOn: { id: "sound.play" }
+- assertVisible: "Duraklatıldı"
+- tapOn: { id: "sound.play" }
+- assertVisible: "Çalıyor"
+- tapOn: { id: "sound.stop" }
+- assertVisible: "Oynatmaya hazır"
+- runScript: library-transition-settle.js
+- tapOn: { id: "sound.back" }
+- scrollUntilVisible:
+    element: { id: "library.sound.fire" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "library.sound.fire" }
+- assertVisible: "Şömine"
+- assertVisible: "Oynatmaya hazır"
+- takeScreenshot: "06-native-fire"
+- tapOn: { id: "sound.play" }
+- assertVisible: "Çalıyor"
+- tapOn: { id: "sound.duration.0" }
+- extendedWaitUntil:
+    visible: "0:2[4-9]"
+    timeout: 35000
+- assertVisible: "Çalıyor"
+- takeScreenshot: "11-native-fire-looped"
+# Seek beyond the short bundled source to exercise native media wrap.
+- tapOn: { id: "sound.forward" }
+- assertVisible: "Çalıyor"
+- tapOn: { id: "sound.forward" }
+- assertVisible: "Çalıyor"
+- tapOn: { id: "sound.play" }
+- assertVisible: "Duraklatıldı"
+- tapOn: { id: "sound.play" }
+- assertVisible: "Çalıyor"
+- runScript: library-transition-settle.js
+- tapOn: { id: "sound.back" }
+- assertVisible: { id: "bloom.library" }
+- scrollUntilVisible:
+    element: { id: "library.sound.forest" }
+    direction: DOWN
+    centerElement: true
+- tapOn: { id: "library.sound.forest" }
+- assertVisible: "Orman gecesi"
+- assertVisible: "Oynatmaya hazır"
+- takeScreenshot: "07-native-forest"
+- tapOn: { id: "sound.play" }
+- assertVisible: "Çalıyor"
+- pressKey: Home
+- launchApp
+- assertVisible: "Duraklatıldı"
+- takeScreenshot: "08-native-foreground-paused"
+- tapOn: { id: "sound.play" }
+- assertVisible: "Çalıyor"
+- tapOn: { id: "sound.play" }
+- assertVisible: "Duraklatıldı"
+- tapOn: { id: "sound.play" }
+- assertVisible: "Çalıyor"
+- openLink: "tms-e2e:///today"
+- assertVisible: { id: "bloom.home" }
+- openLink: "tms-e2e:///bloom/library/sound?id=forest"
+- assertVisible: "Oynatmaya hazır"
+- assertVisible: "0:00"
+- takeScreenshot: "09-native-reopened"
+- openLink: "tms-e2e:///bloom/library/sound?id=unknown"
+- assertVisible: "Ses bulunamadı"
+- takeScreenshot: "10-native-unknown"
+- tapOn: { id: "sound.not-found.back" }
+- openLink: "tms-e2e:///library"
+- assertVisible: { id: "bloom.library" }

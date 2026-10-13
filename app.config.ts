@@ -49,7 +49,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     web: {
       bundler: "metro",
     },
-    plugins: ["expo-router"],
+    plugins: ["expo-router", "expo-asset", ["expo-audio", { microphonePermission: false, recordAudioAndroid: false, enableBackgroundRecording: false }]],
     extra: {
       router: {
         root: "app",

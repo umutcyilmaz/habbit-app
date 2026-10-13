@@ -156,6 +156,11 @@ name: Library foundation explicit durable reading
     element: { text: "Rahatlatıcı sesler" }
     direction: DOWN
     centerElement: true
+- assertVisible: "4 ses"
+- scrollUntilVisible:
+    element: { text: "Araştırmalar" }
+    direction: DOWN
+    centerElement: true
 - assertVisible: "Yakında"
 - waitForAnimationToEnd:
     timeout: 2000

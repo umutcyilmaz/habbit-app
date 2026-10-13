@@ -416,7 +416,7 @@ function verifyNamespaceAndDependencies() {
   );
   assert(
     isDeepStrictEqual(readdirSync(resolve("app/bloom")).sort(), ["content-free.tsx", "kegel.tsx", "library", "masturbation-session", "panic.tsx", "reset", "starting-recommendation.tsx", "urge-control"]) &&
-      isDeepStrictEqual(readdirSync(resolve("app/bloom/library")).sort(), ["article.tsx", "category.tsx"]) &&
+      isDeepStrictEqual(readdirSync(resolve("app/bloom/library")).sort(), ["article.tsx", "category.tsx", "sound.tsx"]) &&
       isDeepStrictEqual(
         readdirSync(resolve("app/bloom/masturbation-session")).sort(),
         ["feedback.tsx", "resume.tsx", "start.tsx"]
