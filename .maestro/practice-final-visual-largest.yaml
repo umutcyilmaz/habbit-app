@@ -1,0 +1,51 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Practice final typography largest
+---
+- openLink: "tms-e2e:///debug/practice"
+- assertVisible: {id: "practice.intro"}
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "15-native-large-intro"
+- scrollUntilVisible:
+    element: {id: "practice.intro.heading"}
+    direction: DOWN
+    centerElement: true
+    timeout: 60000
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "15b-native-large-intro-heading"
+- tapOn: {id: "practice.start"}
+- scrollUntilVisible:
+    element: {id: "practice.start.confirm"}
+    direction: DOWN
+    centerElement: true
+    timeout: 60000
+- tapOn: {id: "practice.start.confirm"}
+- assertVisible: {id: "practice.running"}
+- tapOn: {id: "practice.finish"}
+- assertVisible: {id: "practice.question.1"}
+- scrollUntilVisible:
+    element: {id: "practice.quality.8"}
+    direction: DOWN
+    centerElement: true
+    timeout: 60000
+- tapOn: {id: "practice.quality.8"}
+- scrollUntilVisible:
+    element: {id: "practice.quality.high"}
+    direction: DOWN
+    centerElement: true
+    timeout: 60000
+- swipe:
+    start: "50%,30%"
+    end: "50%,55%"
+    duration: 800
+- assertVisible: "1 · Zayıf"
+- assertVisible: "10 · Tam"
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "19-native-large-question-1"
+- tapOn: {id: "practice.exit"}
+- scrollUntilVisible:
+    element: {id: "practice.exit.confirm"}
+    direction: DOWN
+    centerElement: true
+    timeout: 60000
+- tapOn: {id: "practice.exit.confirm"}
+- assertVisible: {id: "bloom.home"}

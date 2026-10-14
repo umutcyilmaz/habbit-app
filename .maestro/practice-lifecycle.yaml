@@ -1,0 +1,64 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Practice background rapid controls and restart
+---
+- openLink: "tms-e2e:///debug/practice"
+- assertVisible: {id: "practice.intro"}
+- tapOn: {id: "practice.start"}
+- tapOn: {id: "practice.start.confirm"}
+- assertVisible: {id: "practice.running"}
+- pressKey: Home
+- launchApp:
+    stopApp: false
+- assertVisible: {id: "practice.background"}
+- copyTextFrom: {id: "practice.elapsed"}
+- evalScript: ${output.frozen = maestro.copiedText}
+- takeScreenshot: "11-native-background-return"
+- assertVisible: ${output.frozen}
+- tapOn: {id: "practice.foreground"}
+- assertVisible: {id: "practice.running"}
+- repeat:
+    times: 3
+    commands:
+      - tapOn: {id: "practice.pause", optional: true}
+- assertVisible: {id: "practice.paused"}
+- pressKey: Home
+- launchApp:
+    stopApp: false
+- assertVisible: {id: "practice.background"}
+- takeScreenshot: "12-native-pause-background"
+- tapOn: {id: "practice.foreground"}
+- repeat:
+    times: 3
+    commands:
+      - tapOn: {id: "practice.resume", optional: true}
+- assertVisible: {id: "practice.running"}
+- assertVisible: "toplam süre · 1 duraklama"
+- tapOn: {id: "practice.pause"}
+- tapOn: {id: "practice.finish"}
+- tapOn: {id: "practice.quality.8"}
+- takeScreenshot: "06b-native-question-1-selected"
+- tapOn: {id: "practice.skip"}
+- tapOn: {id: "practice.skip"}
+- tapOn: {id: "practice.skip"}
+- assertVisible: {id: "practice.summary"}
+- assertVisible: {id: "practice.unsaved"}
+- takeScreenshot: "13-native-paused-finish-summary"
+- tapOn: {id: "practice.done"}
+- openLink: "tms-e2e:///debug/practice"
+- tapOn: {id: "practice.start"}
+- tapOn: {id: "practice.start.confirm"}
+- stopApp
+- launchApp:
+    clearState: false
+- openLink: "tms-e2e:///debug/practice"
+- assertVisible: {id: "practice.intro"}
+- assertNotVisible: {id: "practice.running"}
+- takeScreenshot: "14-native-restarted-no-draft"
+- tapOn: {id: "practice.exit"}
+- assertVisible: {id: "bloom.home"}
+- tapOn: {id: "bloom.tab.library"}
+- assertVisible: {id: "bloom.library"}
+- tapOn: {id: "bloom.tab.kegel"}
+- assertVisible: {id: "kegel.persisted-feature"}
+- tapOn: {id: "bloom.tab.profile"}
+- assertVisible: {id: "bloom.profile"}

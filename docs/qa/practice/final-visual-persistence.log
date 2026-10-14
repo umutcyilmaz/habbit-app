@@ -1,0 +1,43 @@
+
+> tms@0.1.0 verify:persistence
+> node scripts/run-bloom-persistence-verification.cjs
+
+Bloom v7 product persistence: 98 malformed-state cases rejected and preserved.
+Bloom product onboarding persistence verification passed (164 malformed cases; historical results, save isolation, and v1–v7 migration lifecycle).
+Bloom plan acceptance verification passed (104 rejected transition cases; 17 malformed acceptance cases; four plans, histories, idempotency, and v1–v7 migration lifecycle).
+Bloom Reset baseline verification passed (75 rejected starts; 67 corrupt Reset cases; current questions, canonical snapshots, legacy v7 preservation, unchanged lifecycle baselines, elapsed-time boundaries, and v3–v7 migration).
+Bloom Reset Tracking snapshot verification passed (eligible completed history, inclusive capture cutoff, exact descriptive means, chronological intervals, missing versus zero, disabled Tracking, immutable inputs, and canonical timestamps).
+Bloom Tracking Reset recommendation verification passed (latest-six windows, 784 integer-mean boundaries, unrounded evidence, all signal combinations, interval isolation, chronological ties, cutoffs/current exclusions, canonical corrections, immutable reads, and malformed input).
+Bloom Reset recommendation acceptance verification passed (derived revalidation, persisted recommendation identity, exact no-ops, history/reference isolation, Tracking and Content-Free preservation, baseline-only preparation, and v7 roundtrip).
+Bloom Reset violation verification passed (70 rejected atomic transitions; 28 malformed linked-record cases; all reasons/source kinds, elapsed boundaries, source deduplication, and v7 round trips).
+Bloom Reset violation undo verification passed (47 rejected atomic undos; 20 corrupt tombstone cases; immediate/sequential restoration, stale retries, truthful best rollback, and v6–v7 migration).
+Bloom Reset completion verification passed (26 rejected period transitions; 65 corrupt finished-state cases; canonical elapsed boundaries, preserved Tracking preferences, legacy normalization/writeback, historical assessment validation, and v7 round trips).
+Bloom Masturbation Session verification passed (117 rejected transitions; 27 corrupt session/pause cases; optional pauses, feedback, Content-Free atomicity, and v7 round trips).
+Bloom Content-Free verification passed (102 rejected transitions; 23 corrupt history cases; activation cycles, manual undo, ownership guards, progress selection, and v7 round trips).
+Bloom Reset continuity verification passed (all 15 requested regression groups, fractional/boundary credit, multiple restarts, undo corrections, isolated injected clock, saved offers, retries, and v7 preservation).
+Bloom behavior-slip verification passed (54 preview/mutation scenarios; 58 rejected inputs; atomic ownership, current-attempt boundaries, source tombstones, existing undo, and v7 persistence).
+Bloom simple session correction verification passed (70 rejected corrections; immutable feedback edits, deletion, Reset ownership, and v7 round trips).
+Bloom session Content-Free correction verification passed (43 rejected atomic corrections; activation applicability, tombstones, safe deletion, and v7 round trips).
+Bloom current Urge Control verification passed (112 rejected transitions; 54 malformed persisted cases; current stages, all outcomes/eight triggers, explicit skip, legacy separation, immutable history, and v7 round trips).
+Bloom Urge Control verification passed (204 rejected transitions; 24 malformed persisted cases; all guided stages, descriptive answers, independent lifecycle, compatible hydration, and v7 round trips).
+Bloom product policy verification passed (36 Tracking toggle combinations; 60 availability combinations; elapsed Reset boundaries, disabled unfinished-work preservation, pure selectors, and v7 round trips).
+Bloom product-policy integration verification passed (current-attempt Day-15 ±1ms boundaries, event-time routing, unchanged Reset, and v7 round trips).
+Bloom Home priority verification passed (9 action cases; 72 session precedence combinations; 31 Urge precedence/stage combinations; elapsed Reset completion and stored recommendation identity).
+Bloom Home composition verification passed (optional derived Reset advice with preserved primary priorities, tracker independence, selector equivalence, invalid-input safety, frozen/legacy-isolated reads, and v7 round trips).
+Bloom V4 Progress verification passed (8 groups: empty/unknown, shared Tracking semantics, 15-day Reset lifecycle, earned continuity, undo, history/legacy isolation, real failed-save durable boundary, and v7 round trips; frozen deterministic reads without writes).
+Bloom Home activation verification passed (accepted Content-Free, acknowledged retry, no duplicate or auto-session, restart, preserved history, and Reset restriction).
+Bloom product-action facade verification passed (all 37 grouped commands; exact transition delegation, caller facts, runtime-supplied current state, no-ops, acknowledgement passthrough, and rapid sequential commands).
+Bloom product actions runtime verification passed (accepted/durable state, retry without replay, no-op and lifecycle blocks, atomic behavior-slip ownership, rapid current Urge lifecycle, and provider wiring).
+Bloom product flow-action verification passed (all 34 paths; 72 exact-input cases; one-time mechanical facts, Reset recommendation acceptance/retry, current Urge lifecycle/resume/trigger retry, legacy operations, atomic behavior-slip retry/no-op safety, and v7 isolation).
+Bloom Home flow-intent verification passed (all 11 current actions, no assessment action or intent, exact payloads, frozen/deterministic mapping, and dependency isolation).
+Bloom React product-flow adapter verification passed (actual hook dependency wiring, stable command memoization, no provider-state reads, deferred fact generation, and acknowledgement identity). This uses a controlled hook harness, not a mounted React renderer.
+Bloom product-route verification passed (eleven ready routes with both recommendations parameter-free, zero pending destinations, discarded stale recommendation payloads, navigation execution, and legacy isolation).
+Bloom nonretryable recovery verification passed (12 actual-hook/runtime cases; durable-only exit, whole-state mismatch, current exact-save recovery, deletion, repeated failure, and no domain replay).
+Bloom Masturbation Session feature verification passed (explicit start, duplicate-operation guards, canonical route identity, pause/end/feedback, accepted/durable recovery, retry without replay, elapsed policy, and feature wiring).
+Bloom Content-Free feature verification passed (explicit lifecycle, canonical progress/history, stale-event guards, acknowledged retry without replay, Reset ownership, v7 reloads, and controlled hook/screen wiring).
+Bloom Reset feature verification passed (explicit baseline, restart/undo atomicity, elapsed boundaries, direct completion, preserved Tracking preferences, stale route guards, durable-only navigation/retry, v7 reloads, and controlled hook/forms).
+Bloom Panic feature verification passed (independent branches, current/legacy resume, canonical impact previews, one-command slip/start, stale-state guards, durable navigation, failed-save retry, obsolete receipt escape, and controlled hook/screen wiring).
+Bloom Urge Control feature verification passed (current/legacy executable steps, every-step failure/retry, strict identity, stale stage/handlers, immutable cue isolation, guarded terminal recovery, durable Today navigation, legacy safety, and controlled screen drafts).
+Bloom Reset recommendation feature verification passed (derived/compatibility views, authoritative no-op, stale references, one-command acceptance, retained successor retry, durable actual-ID navigation, superseded saves, close isolation, and controlled hook/screen execution).
+Bloom Starting recommendation feature verification passed (four historical plans without rescoring, atomic existing acceptance, exact successor retry, all-four-reference stale guards, durable destinations, no-op/conflict recovery, Home priorities, and controlled hook/screen execution).
+Bloom persistence verification passed.

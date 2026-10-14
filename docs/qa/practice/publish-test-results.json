@@ -1,0 +1,22 @@
+[
+  {
+    "suite": "typecheck",
+    "exit": 0
+  },
+  {
+    "suite": "verify:practice",
+    "exit": 0
+  },
+  {
+    "suite": "verify:navigation",
+    "exit": 0
+  },
+  {
+    "suite": "verify:persistence",
+    "exit": 0
+  },
+  {
+    "suite": "verify:persistence-acknowledgement",
+    "exit": 0
+  }
+]

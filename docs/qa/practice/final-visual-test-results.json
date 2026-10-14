@@ -1,0 +1,30 @@
+[
+  {
+    "suite": "typecheck",
+    "exit": 0
+  },
+  {
+    "suite": "practice",
+    "exit": 0
+  },
+  {
+    "suite": "navigation",
+    "exit": 0
+  },
+  {
+    "suite": "persistence",
+    "exit": 0
+  },
+  {
+    "suite": "persistence-acknowledgement",
+    "exit": 0
+  },
+  {
+    "suite": "native-normal",
+    "exit": 0
+  },
+  {
+    "suite": "native-largest",
+    "exit": 0
+  }
+]

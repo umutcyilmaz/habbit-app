@@ -1,0 +1,67 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Practice accessible text scroll and fixed controls
+---
+- openLink: "tms-e2e:///debug/practice"
+- assertVisible: {id: "practice.intro"}
+- takeScreenshot: "15-native-large-intro"
+- scrollUntilVisible:
+    element: {text: "Süre sadece bir trend"}
+    direction: DOWN
+    centerElement: true
+    timeout: 60000
+- tapOn: {id: "practice.start"}
+- scrollUntilVisible:
+    element: {id: "practice.start.confirm"}
+    direction: DOWN
+    centerElement: true
+    timeout: 60000
+- tapOn: {id: "practice.start.confirm"}
+- assertVisible: {id: "practice.running"}
+- takeScreenshot: "16-native-large-practice"
+- scrollUntilVisible:
+    element: {text: "Bu pratikte hedef"}
+    direction: DOWN
+    centerElement: true
+    timeout: 60000
+- takeScreenshot: "17-native-large-practice-scroll"
+- tapOn: {id: "practice.pause"}
+- scrollUntilVisible:
+    element: {text: "Seviye dörde inince devam edebilirsin."}
+    direction: DOWN
+    centerElement: true
+    timeout: 60000
+- takeScreenshot: "18-native-large-pause"
+- tapOn: {id: "practice.finish"}
+- scrollUntilVisible:
+    element: {id: "practice.quality.8"}
+    direction: DOWN
+    centerElement: true
+    timeout: 60000
+- tapOn: {id: "practice.quality.8"}
+- takeScreenshot: "19-native-large-question-1"
+- tapOn: {id: "practice.next"}
+- scrollUntilVisible:
+    element: {id: "practice.content.yes"}
+    direction: DOWN
+    centerElement: true
+    timeout: 60000
+- tapOn: {id: "practice.content.yes"}
+- takeScreenshot: "20-native-large-question-2"
+- tapOn: {id: "practice.next"}
+- scrollUntilVisible:
+    element: {id: "practice.ending.stopped"}
+    direction: DOWN
+    centerElement: true
+    timeout: 60000
+- tapOn: {id: "practice.ending.stopped"}
+- takeScreenshot: "21-native-large-question-3"
+- tapOn: {id: "practice.next"}
+- takeScreenshot: "22-native-large-summary"
+- scrollUntilVisible:
+    element: {text: "Seviye girişleri"}
+    direction: DOWN
+    centerElement: true
+    timeout: 60000
+- takeScreenshot: "23-native-large-summary-scroll"
+- tapOn: {id: "practice.done"}
+- assertVisible: {id: "bloom.home"}

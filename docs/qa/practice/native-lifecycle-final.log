@@ -1,0 +1,58 @@
+Running on iPhone 17 Pro - iOS 26.3 - E280FA31-F2B5-4FF9-B57E-A8991C051C77
+ > Flow Practice background rapid controls and restart
+Open tms-e2e:///debug/practice... COMPLETED
+Assert that id: practice.intro is visible... COMPLETED
+Tap on id: practice.start... COMPLETED
+Tap on id: practice.start.confirm... COMPLETED
+Assert that id: practice.running is visible... COMPLETED
+Press Home key... COMPLETED
+Launch app "com.umutcyilmaz.bloom.e2e" without stopping app... COMPLETED
+Assert that id: practice.background is visible... COMPLETED
+Copy text from element with id: practice.elapsed... COMPLETED
+Run ${output.frozen = maestro.copiedText}... COMPLETED
+Take screenshot 11-native-background-return... COMPLETED
+Assert that "${output.frozen}" is visible... COMPLETED
+Tap on id: practice.foreground... COMPLETED
+Assert that id: practice.running is visible... COMPLETED
+Repeat 3 times...
+  Tap on (Optional) id: practice.pause... COMPLETED
+Repeat 3 times... COMPLETED
+Assert that id: practice.paused is visible... COMPLETED
+Press Home key... COMPLETED
+Launch app "com.umutcyilmaz.bloom.e2e" without stopping app... COMPLETED
+Assert that id: practice.background is visible... COMPLETED
+Take screenshot 12-native-pause-background... COMPLETED
+Tap on id: practice.foreground... COMPLETED
+Repeat 3 times...
+  Tap on (Optional) id: practice.resume... COMPLETED
+Repeat 3 times... COMPLETED
+Assert that id: practice.running is visible... COMPLETED
+Assert that "toplam süre · 1 duraklama" is visible... COMPLETED
+Tap on id: practice.pause... COMPLETED
+Tap on id: practice.finish... COMPLETED
+Tap on id: practice.quality.8... COMPLETED
+Take screenshot 06b-native-question-1-selected... COMPLETED
+Tap on id: practice.skip... COMPLETED
+Tap on id: practice.skip... COMPLETED
+Tap on id: practice.skip... COMPLETED
+Assert that id: practice.summary is visible... COMPLETED
+Assert that id: practice.unsaved is visible... COMPLETED
+Take screenshot 13-native-paused-finish-summary... COMPLETED
+Tap on id: practice.done... COMPLETED
+Open tms-e2e:///debug/practice... COMPLETED
+Tap on id: practice.start... COMPLETED
+Tap on id: practice.start.confirm... COMPLETED
+Stop com.umutcyilmaz.bloom.e2e... COMPLETED
+Launch app "com.umutcyilmaz.bloom.e2e"... COMPLETED
+Open tms-e2e:///debug/practice... COMPLETED
+Assert that id: practice.intro is visible... COMPLETED
+Assert that id: practice.running is not visible... COMPLETED
+Take screenshot 14-native-restarted-no-draft... COMPLETED
+Tap on id: practice.exit... COMPLETED
+Assert that id: bloom.home is visible... COMPLETED
+Tap on id: bloom.tab.library... COMPLETED
+Assert that id: bloom.library is visible... COMPLETED
+Tap on id: bloom.tab.kegel... COMPLETED
+Assert that id: kegel.persisted-feature is visible... COMPLETED
+Tap on id: bloom.tab.profile... COMPLETED
+Assert that id: bloom.profile is visible... COMPLETED

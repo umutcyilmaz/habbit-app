@@ -1,0 +1,21 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Practice final typography normal
+---
+- openLink: "tms-e2e:///debug/practice"
+- assertVisible: {id: "practice.intro"}
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "01-native-intro"
+- tapOn: {id: "practice.start"}
+- tapOn: {id: "practice.start.confirm"}
+- assertVisible: {id: "practice.running"}
+- tapOn: {id: "practice.finish"}
+- assertVisible: {id: "practice.question.1"}
+- assertVisible: "1 · Zayıf"
+- assertVisible: "10 · Tam"
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "06-native-question-1"
+- tapOn: {id: "practice.quality.8"}
+- takeScreenshot: "06b-native-question-1-selected"
+- tapOn: {id: "practice.exit"}
+- tapOn: {id: "practice.exit.confirm"}
+- assertVisible: {id: "bloom.home"}

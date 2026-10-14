@@ -1,0 +1,94 @@
+[
+  {
+    "suite": "practice",
+    "exit": 0
+  },
+  {
+    "suite": "persistence",
+    "exit": 0
+  },
+  {
+    "suite": "persistence-acknowledgement",
+    "exit": 0
+  },
+  {
+    "suite": "navigation",
+    "exit": 0
+  },
+  {
+    "suite": "guided-flows",
+    "exit": 0
+  },
+  {
+    "suite": "kegel",
+    "exit": 0
+  },
+  {
+    "suite": "kegel:persistence",
+    "exit": 0
+  },
+  {
+    "suite": "library",
+    "exit": 0
+  },
+  {
+    "suite": "profile",
+    "exit": 0
+  },
+  {
+    "suite": "settings",
+    "exit": 0
+  },
+  {
+    "suite": "audio",
+    "exit": 0
+  },
+  {
+    "suite": "counter-history",
+    "exit": 0
+  },
+  {
+    "suite": "home-ui",
+    "exit": 0
+  },
+  {
+    "suite": "reset-continuity",
+    "exit": 0
+  },
+  {
+    "suite": "protection-reset",
+    "exit": 0
+  },
+  {
+    "suite": "release-debug-guards",
+    "exit": 0
+  },
+  {
+    "suite": "e2e-runtime",
+    "exit": 0
+  },
+  {
+    "suite": "e2e-app-identity",
+    "exit": 0
+  },
+  {
+    "suite": "practice-ui-and-motion",
+    "exit": 0
+  },
+  {
+    "suite": "typecheck",
+    "exit": 0
+  },
+  {
+    "suite": "native-normal-clean",
+    "exit": 0
+  },
+  {
+    "suite": "native-lifecycle-final",
+    "exit": 0
+  },
+  {
+    "suite": "native-largest-clean",
+    "exit": 0
+  }
+]

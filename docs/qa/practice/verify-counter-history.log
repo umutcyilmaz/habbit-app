@@ -1,0 +1,6 @@
+
+> tms@0.1.0 verify:counter-history
+> node scripts/run-bloom-counter-history-verification.cjs
+
+History clock passed: one snapshot / 60 ticks, exact live calendar seconds, completed-row reuse, first-second coverage, future events, rollback, local midnight, timezone/foreground and DST refresh.
+Counter/history metrics passed: actual transitions, undo, stop/restart gaps, earned Reset dates, incomplete/future records, midnight, timezone regrouping both DST boundaries, midnight DST and skipped civil dates.

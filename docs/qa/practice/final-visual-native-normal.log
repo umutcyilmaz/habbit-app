@@ -1,0 +1,20 @@
+Running on iPhone 17 Pro - iOS 26.3 - E280FA31-F2B5-4FF9-B57E-A8991C051C77
+ > Flow Practice final typography normal
+Open tms-e2e:///debug/practice... COMPLETED
+Assert that id: practice.intro is visible... COMPLETED
+Assert that "Refreshing.*" is not visible... COMPLETED
+Take screenshot 01-native-intro... COMPLETED
+Tap on id: practice.start... COMPLETED
+Tap on id: practice.start.confirm... COMPLETED
+Assert that id: practice.running is visible... COMPLETED
+Tap on id: practice.finish... COMPLETED
+Assert that id: practice.question.1 is visible... COMPLETED
+Assert that "1 · Zayıf" is visible... COMPLETED
+Assert that "10 · Tam" is visible... COMPLETED
+Assert that "Refreshing.*" is not visible... COMPLETED
+Take screenshot 06-native-question-1... COMPLETED
+Tap on id: practice.quality.8... COMPLETED
+Take screenshot 06b-native-question-1-selected... COMPLETED
+Tap on id: practice.exit... COMPLETED
+Tap on id: practice.exit.confirm... COMPLETED
+Assert that id: bloom.home is visible... COMPLETED

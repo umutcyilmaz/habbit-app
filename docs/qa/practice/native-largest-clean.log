@@ -1,0 +1,34 @@
+Running on iPhone 17 Pro - iOS 26.3 - E280FA31-F2B5-4FF9-B57E-A8991C051C77
+ > Flow Practice accessible text scroll and fixed controls
+Open tms-e2e:///debug/practice... COMPLETED
+Assert that id: practice.intro is visible... COMPLETED
+Take screenshot 15-native-large-intro... COMPLETED
+Scrolling DOWN until "Süre sadece bir trend" is visible with speed 40, visibility percentage 100%, timeout 60000 ms, with centering enabled... COMPLETED
+Tap on id: practice.start... COMPLETED
+Scrolling DOWN until id: practice.start.confirm is visible with speed 40, visibility percentage 100%, timeout 60000 ms, with centering enabled... COMPLETED
+Tap on id: practice.start.confirm... COMPLETED
+Assert that id: practice.running is visible... COMPLETED
+Take screenshot 16-native-large-practice... COMPLETED
+Scrolling DOWN until "Bu pratikte hedef" is visible with speed 40, visibility percentage 100%, timeout 60000 ms, with centering enabled... COMPLETED
+Take screenshot 17-native-large-practice-scroll... COMPLETED
+Tap on id: practice.pause... COMPLETED
+Scrolling DOWN until "Seviye dörde inince devam edebilirsin." is visible with speed 40, visibility percentage 100%, timeout 60000 ms, with centering enabled... COMPLETED
+Take screenshot 18-native-large-pause... COMPLETED
+Tap on id: practice.finish... COMPLETED
+Scrolling DOWN until id: practice.quality.8 is visible with speed 40, visibility percentage 100%, timeout 60000 ms, with centering enabled... COMPLETED
+Tap on id: practice.quality.8... COMPLETED
+Take screenshot 19-native-large-question-1... COMPLETED
+Tap on id: practice.next... COMPLETED
+Scrolling DOWN until id: practice.content.yes is visible with speed 40, visibility percentage 100%, timeout 60000 ms, with centering enabled... COMPLETED
+Tap on id: practice.content.yes... COMPLETED
+Take screenshot 20-native-large-question-2... COMPLETED
+Tap on id: practice.next... COMPLETED
+Scrolling DOWN until id: practice.ending.stopped is visible with speed 40, visibility percentage 100%, timeout 60000 ms, with centering enabled... COMPLETED
+Tap on id: practice.ending.stopped... COMPLETED
+Take screenshot 21-native-large-question-3... COMPLETED
+Tap on id: practice.next... COMPLETED
+Take screenshot 22-native-large-summary... COMPLETED
+Scrolling DOWN until "Seviye girişleri" is visible with speed 40, visibility percentage 100%, timeout 60000 ms, with centering enabled... COMPLETED
+Take screenshot 23-native-large-summary-scroll... COMPLETED
+Tap on id: practice.done... COMPLETED
+Assert that id: bloom.home is visible... COMPLETED

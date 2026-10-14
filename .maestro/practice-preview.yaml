@@ -1,0 +1,79 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Native Practice temporary full flow
+---
+- openLink: "tms-e2e:///debug/practice"
+- assertVisible: {id: "practice.intro"}
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "01-native-intro"
+- tapOn: {id: "practice.start"}
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "02-native-start-confirm"
+- tapOn: {id: "practice.start.cancel"}
+- tapOn: {id: "practice.start"}
+- tapOn: {id: "practice.start.confirm"}
+- assertVisible: {id: "practice.running"}
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "03-native-practice"
+- tapOn: {id: "practice.level.open"}
+- scrollUntilVisible:
+    element: {id: "practice.level.7"}
+    direction: DOWN
+    centerElement: true
+- tapOn: {id: "practice.level.7"}
+- assertVisible: "Seviyemi belirt.*7 / 10.*"
+- tapOn: {id: "practice.pause"}
+- assertVisible: {id: "practice.paused"}
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "04-native-pause"
+- tapOn: {id: "practice.resume"}
+- assertVisible: {id: "practice.running"}
+- tapOn: {id: "practice.exit"}
+- assertVisible: "Pratikten çıkmak istiyor musun?"
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "05-native-exit-confirm"
+- tapOn: {id: "practice.exit.keep"}
+- tapOn: {id: "practice.finish"}
+- assertVisible: {id: "practice.question.1"}
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "06-native-question-1"
+- tapOn: {id: "practice.quality.8"}
+- tapOn: {id: "practice.next"}
+- assertVisible: {id: "practice.question.2"}
+- tapOn: {id: "practice.content.yes"}
+- assertVisible: "Sayaç sıfırlanmayacak"
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "07-native-question-2-yes"
+- tapOn: {id: "practice.next"}
+- assertVisible: {id: "practice.question.3"}
+- tapOn: {id: "practice.ending.stopped"}
+- tapOn: {id: "practice.feeling.0"}
+- tapOn: {id: "practice.feeling.1"}
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "08-native-question-3"
+- tapOn: {id: "practice.next"}
+- assertVisible: {id: "practice.summary"}
+- assertVisible: {id: "practice.unsaved"}
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "09-native-summary"
+- scrollUntilVisible:
+    element: {text: "ÖZET · KULLANICI BEYANI"}
+    direction: DOWN
+- assertVisible: "8 / 10"
+- assertVisible: "Evet"
+- assertNotVisible: "Refreshing.*"
+- takeScreenshot: "10-native-summary-answers"
+- tapOn: {id: "practice.edit"}
+- assertVisible: {id: "practice.question.1"}
+- tapOn: {id: "practice.skip"}
+- tapOn: {id: "practice.skip"}
+- tapOn: {id: "practice.skip"}
+- assertVisible: {id: "practice.summary"}
+- tapOn: {id: "practice.done"}
+- assertVisible: {id: "bloom.home"}
+- openLink: "tms-e2e:///debug/practice"
+- assertVisible: {id: "practice.intro"}
+- tapOn: {id: "practice.start"}
+- tapOn: {id: "practice.start.confirm"}
+- tapOn: {id: "practice.exit"}
+- tapOn: {id: "practice.exit.confirm"}
+- assertVisible: {id: "bloom.home"}

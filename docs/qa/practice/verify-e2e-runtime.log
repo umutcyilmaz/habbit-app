@@ -1,0 +1,6 @@
+
+> tms@0.1.0 verify:e2e-runtime
+> node scripts/run-bloom-e2e-runtime-verification.cjs
+
+Bloom E2E runtime verification passed.
+Bloom Phase 10 / new Home-run Simulator QA verification passed.
