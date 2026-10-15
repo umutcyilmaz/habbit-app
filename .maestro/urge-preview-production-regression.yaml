@@ -11,10 +11,16 @@ name: Urge preview production branch regression isolated namespace
 - assertVisible: {id: "bloom.panic.slip"}
 - takeScreenshot: "production-panic-branches"
 - tapOn: {id: "bloom.panic.triggered"}
-- assertVisible: {id: "bloom.urge.resume"}
-- assertVisible: {id: "bloom.urge.interrupt.complete"}
+- assertVisible: {id: "bloom.urge.exercise.ready"}
+- assertVisible: {id: "bloom.urge.exercise.evaluate"}
 - takeScreenshot: "production-urge-interrupt"
-- tapOn: {id: "bloom.urge.interrupt.complete"}
+- tapOn: {id: "bloom.urge.exercise.exit"}
+- assertVisible: {id: "bloom.urge.exercise.exit.dialog"}
+- tapOn: {id: "bloom.urge.exercise.exit.confirm"}
+- assertVisible: {id: "bloom.home"}
+- tapOn: {id: "bloom.home.primary.action"}
+- assertVisible: {id: "bloom.urge.exercise.ready"}
+- tapOn: {id: "bloom.urge.exercise.evaluate"}
 - assertVisible: {id: "bloom.urge.outcome.unchanged"}
 - tapOn: {id: "bloom.urge.outcome.unchanged"}
 - scrollUntilVisible:

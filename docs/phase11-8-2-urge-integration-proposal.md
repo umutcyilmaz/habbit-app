@@ -1,7 +1,8 @@
 # Phase 11.8.2 — Doğrudan Zor An entegrasyon sözleşmesi
 
-15 Ekim 2026. Phase 11.8.2A reusable egzersiz sınırını hazırlar; üretim
-bağlantısı Phase 11.8.2B incelemesinden sonra yapılacaktır.
+15 Ekim 2026. Phase 11.8.2A reusable egzersiz sınırını hazırladı. Phase
+11.8.2B bu sınırı mevcut üretim resume route'una bağladı; doküman aşağıdaki
+uygulanmış sözleşmeyi ve Phase 11.8.2C için kalan inceleme alanlarını kaydeder.
 
 ## Onaylanan ürün akışı
 
@@ -71,18 +72,28 @@ değiştirmez.
 
 ## Phase 11.8.2B bağlantısı
 
-Phase 11.8.2B yalnız güncel event’in `interrupt` görünümünde reusable egzersizi
-render etmelidir. Adapter şu sorumlulukları taşımalıdır:
+Üretim `UrgeControlResumeScreen`, yalnız kimliği doğrulanmış güncel event’in
+canonical `interrupt` görünümünde reusable egzersizi doğrudan ve tam ekran
+render eder. Event kimliği component key’i olduğu için farklı event eski timer
+örneğini devralmaz. `outcome`, `triggers`, `readyToComplete`, legacy ve geçersiz
+route görünümleri mevcut ekranlarında kalır.
 
-1. “Durum kontrolüne geç” eylemini mevcut `actions.completeInterrupt` yoluna
-   bağlamak ve acknowledged persistence tamamlanmadan sonraki aşamayı güvenli
-   kabul etmemek.
-2. Exit onayında event’i mutasyona uğratmadan, bekleyen/unconfirmed kayıt
-   korumasını aşmadan Home’a dönmek.
-3. Üretim test kimlikleri ve üretime uygun çıkış/kayıt metinlerini sağlamak;
-   QA “kaydedilmez” metinlerini taşımamak.
-4. Legacy ve interrupt dışındaki güncel aşamalarda mevcut üretim ekranını aynen
-   kullanmak.
+“Durum kontrolüne geç” yalnız `actions.completeInterrupt` çağırır. Accepted
+state outcome’a ilerlese bile durable aynı event’in interrupt geçişini
+doğrulayana kadar egzersiz ekranda kalır; saving/unconfirmed mesajı ve mevcut
+receipt retry eylemi egzersizin scroll alanında erişilebilir olur. Pending
+durumda timer/evaluation ve çıkış onayı devre dışıdır. Retry aynı persistence
+token’ını kullanır ve domain komutunu yeniden çağırmaz.
+
+X ve platform Back reusable exit onayını açar; iOS swipe-back bu ekranda
+`gestureEnabled: false` ile kapalıdır. Onay yalnız mevcut Home route’una gider;
+event’e, outcome’a veya başka domain slice’ına dokunmaz. Navigation throw ederse
+egzersiz çıkış kilidini geri kurar, hata metnini gösterir ve aynı onay
+penceresinden açık yeniden denemeye izin verir. Bekleyen ya da durable olmayan
+Urge state’i Home’a çıkarılamaz.
+
+Üretim test kimliği `bloom.urge.exercise` kökünü kullanır. Preview’a ait QA
+metinleri ve kısa completion fixture’ı production adapter’a taşınmamıştır.
 
 Kayıt retry’si komutu yeniden uygulamamalı; mevcut accepted/durable slice ve
 receipt kuralları geçerli kalmalıdır. Event discard yalnız mevcut açık
@@ -100,6 +111,15 @@ schema sürümü veya migration eklenmez. v9 persistence, event identity,
 eder. `completeInterrupt`, `recordOutcome`, `recordTriggers`, `complete` ve
 `discardActive` komutları aynı validation ve persistence acknowledgement
 sınırından geçer.
+
+## Phase 11.8.2C inceleme notları
+
+Phase 11.8.2B yeni domain veya persistence işi bırakmaz. Bir sonraki incelemede
+yalnız üretim kanıtlarının yayın kapsamı ile mevcut downstream outcome/triggers
+ekranlarının maksimum Dynamic Type deneyimi ele alınmalıdır. Bu ekranlar
+kontrolleri scroll ile erişilebilir tutar, ancak dar cihazdaki en büyük sistem
+yazı boyutu yoğun kaydırma gerektirir; Phase 11.8.2B kapsamındaki reusable
+egzersiz bu ekranların tipografisini değiştirmemiştir.
 
 ## Phase 11.8.2B kabul denetimleri
 

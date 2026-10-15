@@ -128,8 +128,11 @@ name: Home real records new streak resume Urge and restart in this phase isolate
     direction: DOWN
     centerElement: true
 - tapOn: { id: "bloom.panic.triggered" }
-- assertVisible: { id: "bloom.urge.resume" }
-- openLink: "tms-e2e:///today"
+- assertVisible: { id: "bloom.urge.exercise.ready" }
+- tapOn: { id: "bloom.urge.exercise.exit" }
+- assertVisible: { id: "bloom.urge.exercise.exit.dialog" }
+- tapOn: { id: "bloom.urge.exercise.exit.confirm" }
+- assertVisible: { id: "bloom.home" }
 - scrollUntilVisible:
     element: { id: "bloom.home.primary.action" }
     direction: UP
@@ -137,10 +140,10 @@ name: Home real records new streak resume Urge and restart in this phase isolate
 - takeScreenshot: "12-native-urge-resume-priority"
 - tapOn: { id: "bloom.home.primary.action" }
 - scrollUntilVisible:
-    element: { id: "bloom.urge.interrupt.complete" }
+    element: { id: "bloom.urge.exercise.evaluate" }
     direction: DOWN
     centerElement: true
-- tapOn: { id: "bloom.urge.interrupt.complete" }
+- tapOn: { id: "bloom.urge.exercise.evaluate" }
 - scrollUntilVisible:
     element: { id: "bloom.urge.outcome.reduced" }
     direction: DOWN

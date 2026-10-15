@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
+import { StackActions } from "@react-navigation/native";
 import { useBloomProductFlowActions } from "../../app/flows/useBloomProductFlowActions";
 import { useBloomLocalState } from "../../app/providers/BloomLocalStateProvider";
 import { routes } from "../../constants/navigation";
@@ -13,6 +14,7 @@ const readDisplayTime = () => new Date(Date.now()).toISOString();
 
 export function useUrgeControlFeature() {
   const router = useRouter();
+  const navigation = useNavigation();
   const params = useLocalSearchParams<{ eventId?: string | string[]; stage?: string | string[] }>();
   // Keep malformed/duplicate identity distinguishable; stage is only a hint.
   const eventId = params.eventId;
@@ -21,6 +23,7 @@ export function useUrgeControlFeature() {
   const { state, durableState, getAcceptedState, retryPersistedMutation, hasHydrated, hydrationStatus } = useBloomLocalState();
   const [now, setNow] = useState(Date.now);
   const [navigationError, setNavigationError] = useState<string | null>(null);
+  const [exerciseExitFailed, setExerciseExitFailed] = useState(false);
   const mounted = useRef(false);
   const durable = useRef(durableState);
   durable.current = durableState;
@@ -42,9 +45,20 @@ export function useUrgeControlFeature() {
   const unconfirmed = urge !== durableState.urgeControl;
   const receiptPending = operation.acceptedUrge === urge && operation.result?.ok !== true && unconfirmed;
   const locked = !hasHydrated || operation.busy || unconfirmed || receiptPending;
+  const displayTime = new Date(now).toISOString();
+  const acceptedView: UrgeControlRouteView = hasHydrated ? getUrgeControlRouteView(urge, eventId, displayTime) : { kind: "unavailable" };
+  const durableView: UrgeControlRouteView = hasHydrated ? getUrgeControlRouteView(durableState.urgeControl, eventId, displayTime) : { kind: "unavailable" };
+  // An optimistic interrupt transition must retain its exercise/recovery UI.
+  const holdInterruptForAcknowledgement = unconfirmed && acceptedView.kind === "current" && acceptedView.progress.stage === "outcome" &&
+    durableView.kind === "current" && durableView.progress.stage === "interrupt" && acceptedView.event.id === durableView.event.id;
+  const view = holdInterruptForAcknowledgement ? durableView : acceptedView;
+  const exerciseVisible = view.kind === "current" && view.progress.stage === "interrupt";
   // Recovery stays protected after an accepted write fails, including terminal
   // snapshots where there is no active event left for the route to render.
-  const allowNavigation = usePersistenceNavigationGuard(operation.busy || unconfirmed || receiptPending);
+  // One gesture owner for the production route. The exercise owns its Back
+  // confirmation, including while persistence blocks the confirmed exit.
+  const allowNavigation = usePersistenceNavigationGuard(operation.busy || unconfirmed || receiptPending,
+    { gesturesDisabled: exerciseVisible, handleHardwareBack: !exerciseVisible });
   const navigateSaved = (accepted: UrgeControlState) => {
     if (!hasHydrated || getAcceptedState().urgeControl !== accepted || accepted.activeEvent !== null) return;
     allowNavigation();
@@ -56,12 +70,11 @@ export function useUrgeControlFeature() {
     catch { setNavigationError("Kayıt kaydedildi. Home ekranını açmak için Devam et düğmesini kullanın."); }
   };
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
-  useEffect(() => { setNavigationError(null); }, [controller]);
+  useEffect(() => { setNavigationError(null); setExerciseExitFailed(false); }, [controller]);
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
   }, []);
-  const view: UrgeControlRouteView = hasHydrated ? getUrgeControlRouteView(urge, eventId, new Date(now).toISOString()) : { kind: "unavailable" };
   const acceptedUrge = operation.acceptedUrge === urge ? operation.acceptedUrge : null;
   const terminalReceipt = acceptedUrge !== null && acceptedUrge.activeEvent === null &&
     (operation.operation === "complete" || operation.operation === "discardActive");
@@ -76,13 +89,16 @@ export function useUrgeControlFeature() {
     ? hydrationStatus === "error" ? "unavailable" : "loading"
     : operation.busy ? "saving" : unconfirmed || receiptPending ? "unconfirmed" : "saved";
   const invoke = (command: () => ReturnType<typeof controller.complete>, retry = false) => {
-    if (!mounted.current || currentController.current !== controller || !hasHydrated || (!retry && locked)) return;
+    if (!mounted.current || currentController.current !== controller || !hasHydrated || (!retry && locked)) return false;
     setNavigationError(null);
+    setExerciseExitFailed(false);
     const pending = command();
-    if (pending !== null) void pending.catch(() => {});
+    if (pending === null) return false;
+    void pending.catch(() => {});
+    return true;
   };
   return {
-    view, busy: operation.busy, locked, saveState, canRetry, canContinue, terminalReceipt,
+    view, busy: operation.busy, locked, saveState, canRetry, canContinue, terminalReceipt, exerciseExitFailed,
     message: navigationError ?? operation.message,
     actions: {
       completeInterrupt: () => invoke(() => controller.completeInterrupt(urge)),
@@ -95,6 +111,32 @@ export function useUrgeControlFeature() {
       complete: () => invoke(() => controller.complete(urge)),
       discardActive: () => invoke(() => controller.discardActive(urge)),
       retry: () => invoke(controller.retry, true),
+      exitExercise: () => {
+        const latestUrge = getAcceptedState().urgeControl;
+        const latestView = getUrgeControlRouteView(latestUrge, eventId, readDisplayTime());
+        if (!mounted.current || currentController.current !== controller || !hasHydrated || locked || controller.getSnapshot().busy ||
+          latestUrge !== urge || latestUrge !== durable.current.urgeControl || latestView.kind !== "current" || latestView.progress.stage !== "interrupt") return false;
+        setNavigationError(null);
+        setExerciseExitFailed(false);
+        try {
+          // Expo Router queues replace and cannot report a cancelled action.
+          // Dispatch the existing Home destination synchronously so an unchanged
+          // stack (router boundary/beforeRemove rejection) restores the modal.
+          const before = navigation.getState();
+          if (before === undefined) return false;
+          const source = before.routes[before.index]?.key;
+          if (source === undefined || !navigation.isFocused()) return false;
+          navigation.dispatch({ ...StackActions.replace("(tabs)", { screen: "today" }), source, target: before.key });
+          const after = navigation.getState();
+          if (after !== undefined && !after.routes.some(route => route.key === source)) return true;
+        }
+        catch {
+          // The same recovery is used for thrown and silently rejected actions.
+        }
+        setExerciseExitFailed(true);
+        setNavigationError("Home açılamadı. Çıkış penceresinden yeniden deneyin.");
+        return false;
+      },
       continueAfterSave: () => {
         if (!mounted.current || currentController.current !== controller || controller.getSnapshot().busy || !canContinue || acceptedUrge === null) return;
         try { navigateSaved(acceptedUrge); } catch { setNavigationError("Home açılamadı. Yeniden deneyin."); }

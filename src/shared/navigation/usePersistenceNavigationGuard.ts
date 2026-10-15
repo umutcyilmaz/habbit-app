@@ -3,7 +3,8 @@ import { usePreventRemove } from "@react-navigation/native";
 import { useNavigation } from "expo-router";
 import { BackHandler, Platform } from "react-native";
 
-export function usePersistenceNavigationGuard(blocked: boolean) {
+export function usePersistenceNavigationGuard(blocked: boolean, { gesturesDisabled = false, handleHardwareBack = true }:
+  { gesturesDisabled?: boolean; handleHardwareBack?: boolean } = {}) {
   const navigation = useNavigation();
   const allowNextRemovalRef = useRef(false);
   const allowanceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
@@ -11,8 +12,8 @@ export function usePersistenceNavigationGuard(blocked: boolean) {
   );
 
   useEffect(() => {
-    navigation.setOptions({ gestureEnabled: !blocked });
-  }, [blocked, navigation]);
+    navigation.setOptions({ gestureEnabled: !blocked && !gesturesDisabled });
+  }, [blocked, gesturesDisabled, navigation]);
 
   usePreventRemove(blocked, ({ data }) => {
     if (!allowNextRemovalRef.current) {
@@ -54,7 +55,7 @@ export function usePersistenceNavigationGuard(blocked: boolean) {
   );
 
   useEffect(() => {
-    if (!blocked || Platform.OS === "web") {
+    if (!blocked || !handleHardwareBack || Platform.OS === "web") {
       return undefined;
     }
 
@@ -64,7 +65,7 @@ export function usePersistenceNavigationGuard(blocked: boolean) {
     );
 
     return () => subscription.remove();
-  }, [blocked]);
+  }, [blocked, handleHardwareBack]);
 
   return useCallback(() => {
     allowNextRemovalRef.current = true;

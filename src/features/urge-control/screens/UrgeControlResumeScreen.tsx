@@ -7,6 +7,7 @@ import { AppCard } from "../../../shared/components/v4/AppCard";
 import { AppScreen } from "../../../shared/components/v4/AppScreen";
 import { AppText } from "../../../shared/components/v4/AppText";
 import { theme } from "../../../shared/design-system/v4/theme";
+import { UrgeExercise } from "../exercise/UrgeExercise";
 import { useUrgeControlFeature } from "../useUrgeControlFeature";
 
 const outcomes: Array<[UrgeControlOutcome, string]> = [["reduced", "Azaldı"], ["stillStrong", "Hâlâ güçlü"], ["stronger", "Daha güçlü"], ["unchanged", "Değişmedi"]];
@@ -20,9 +21,32 @@ const stageLabels = { interrupt: "Kısa bir ara", outcome: "Durum kontrolü", tr
 export function UrgeControlResumeScreen() {
   const feature = useUrgeControlFeature();
   const { view, actions, locked } = feature;
-  const [touched, setTouched] = useState<0 | 1 | 2>(0);
   const active = view.kind === "current" || view.kind === "legacy";
   const needsStatusPanel = feature.saveState !== "saved" || feature.message !== null || feature.canRetry || feature.terminalReceipt;
+
+  if (view.kind === "current" && view.progress.stage === "interrupt") {
+    return <UrgeExercise
+      key={view.event.id}
+      testIDPrefix="bloom.urge.exercise"
+      closeAccessibilityLabel="Egzersizden çık"
+      completionAnnouncement="Süre doldu. Hazır olduğunda durum kontrolüne geçebilirsin."
+      completionActionLabel="Durum kontrolüne geç"
+      exitDescription="Egzersiz kapanır. Aktif Urge Control oturumun Ana sayfadan yeniden açabilmen için korunur."
+      exitConfirmLabel={feature.exerciseExitFailed ? "Home’a dönmeyi yeniden dene" : "Egzersizden çık"}
+      onExitConfirmed={actions.exitExercise}
+      evaluationAction={{ label:"Durum kontrolüne geç", onPress:actions.completeInterrupt }}
+      confirmExitWhenIdle
+      manageGestures={false}
+      interactionDisabled={locked}
+      statusContent={needsStatusPanel ? <>
+        <AppText testID="bloom.urge.save-state" accessibilityLiveRegion="polite" variant="bodySmall" tone={feature.saveState === "unconfirmed" ? "warning" : "secondary"}>
+          {saveLabels[feature.saveState]}
+        </AppText>
+        {feature.message !== null ? <AppText testID="bloom.urge.message" accessibilityRole="alert" tone="danger">{feature.message}</AppText> : null}
+        {feature.canRetry ? <AppButton testID="bloom.urge.retry" label="Yeniden kaydet" variant="secondary" disabled={feature.busy} onPress={actions.retry} /> : null}
+      </> : undefined}
+    />;
+  }
 
   return (
     <AppScreen scroll includeBottomNavClearance={false}>
@@ -48,20 +72,6 @@ export function UrgeControlResumeScreen() {
         ) : active ? (
           <View style={styles.stack}>
             <AppText testID="bloom.urge.stage" variant="overline" tone="accent">{stageLabels[view.progress.stage]}</AppText>
-            {view.progress.stage === "interrupt" ? (
-              <View style={styles.stack}>
-                <View style={styles.cardStack}>
-                  <AppText variant="display" accessibilityRole="header">Şunu bitir</AppText>
-                  <AppText variant="bodyLarge" tone="secondary">Dürtüyü fark et. Bir nefes al, sonra dikkatini çevrene taşı. Hazır olduğunda devam et.</AppText>
-                </View>
-                <View style={styles.circleRow}>
-                  <AppButton testID="bloom.urge.interrupt.breathe" label="Nefes al" accessibilityLabel="Nefes almaya odaklan" variant={touched === 1 ? "primary" : "secondary"} style={styles.circleButton} onPress={() => setTouched(1)} />
-                  <AppButton testID="bloom.urge.interrupt.notice" label="Çevrene bak" accessibilityLabel="Çevreni fark et" variant={touched === 2 ? "primary" : "secondary"} style={styles.circleButton} onPress={() => setTouched(2)} />
-                </View>
-                <AppText variant="bodySmall" tone="secondary" style={styles.centerText}>Bir süre hedefi yok. Bu kısa ara sana ait.</AppText>
-                <AppButton testID="bloom.urge.interrupt.complete" label="Devam et" disabled={locked} onPress={actions.completeInterrupt} />
-              </View>
-            ) : null}
             {view.progress.stage === "outcome" ? (
               <View style={styles.stack}>
                 <View style={styles.cardStack}>
@@ -189,8 +199,6 @@ const styles = StyleSheet.create({
   cardStack: { gap: theme.spacing.md },
   statusLine: { alignItems: "center" },
   statusPanel: { gap: theme.spacing.sm, padding: theme.spacing.md, borderRadius: theme.radius.lg, backgroundColor: theme.colors.bg.surface },
-  circleRow: { flexDirection: "row", justifyContent: "center", gap: theme.spacing.md, width: "100%" },
-  circleButton: { flex: 1, width: "auto", maxWidth: 116, aspectRatio: 1, borderRadius: theme.radius.pill, paddingHorizontal: theme.spacing.sm },
   centerText: { textAlign: "center" },
   choiceList: { gap: theme.spacing.sm },
   triggerGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", gap: theme.spacing.xs },

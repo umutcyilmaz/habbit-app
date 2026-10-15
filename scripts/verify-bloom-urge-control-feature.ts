@@ -3,6 +3,7 @@ import { createRequire } from "node:module";
 import { resolve } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { runInNewContext } from "node:vm";
+import type { NavigationAction } from "@react-navigation/routers";
 import { createBloomProductFlowActions } from "../src/app/flows/bloomProductFlowActions";
 import { createBloomProductAcknowledgedActions } from "../src/app/providers/bloomProductAcknowledgedActions";
 import { createBloomLocalStateMutationRuntime, type BloomPersistedMutationResult } from "../src/app/providers/bloomLocalStateMutationRuntime";
@@ -18,16 +19,18 @@ import { createPopulatedState } from "./verify-bloom-product-persistence";
 
 const at = "2026-11-01T12:00:00.000Z";
 const ts: typeof import("typescript") = createRequire(resolve("package.json"))("typescript");
+const { StackActions, StackRouter }: typeof import("@react-navigation/routers") = createRequire(resolve("package.json"))("@react-navigation/routers");
 type Harness = ReturnType<typeof harness>;
 type Feature = {
   view: ReturnType<typeof getUrgeControlRouteView>;
-  locked: boolean; busy: boolean; canRetry: boolean; canContinue: boolean; terminalReceipt: boolean;
+  locked: boolean; busy: boolean; canRetry: boolean; canContinue: boolean; terminalReceipt: boolean; exerciseExitFailed: boolean;
   saveState: "loading" | "unavailable" | "saving" | "saved" | "unconfirmed"; message: string | null;
   actions: {
     completeInterrupt: () => void; selectTechnique: (value: UrgeControlTechnique) => void;
     startPhoneAway: () => void; endPhoneAway: () => void; recordOutcome: (value: UrgeControlOutcome) => void;
     recordTrigger: (value: LegacyUrgeControlTrigger) => void; recordTriggers: (value: CurrentUrgeControlTrigger[]) => void;
-    complete: () => void; discardActive: () => void; retry: () => void; continueAfterSave: () => void; closeUnavailable: () => void;
+    complete: () => void; discardActive: () => void; retry: () => void; exitExercise: () => boolean;
+    continueAfterSave: () => void; closeUnavailable: () => void;
   };
 };
 const currentTriggers = ["boredom", "stress", "loneliness", "fatigue", "explicitContentCue", "habitAutomatic", "specificSituation", "other"];
@@ -230,7 +233,28 @@ async function verifyHookRecovery() {
   const external = harness(); const e = hookHarness(external); e.render();
   const externalCommand = external.flowActions.urgeControl.completeInterrupt();
   feature = e.render(); assert(feature.locked && e.blocked() && feature.saveState === "unconfirmed", "Externally accepted-undurable Urge facts remain protected even without a local receipt.");
+  assert(feature.view.kind === "current" && feature.view.progress.stage === "interrupt", "Accepted-undurable interrupt completion cannot reveal outcome early.");
   external.attempts[0]!.succeed(); await externalCommand; assert(!e.render().locked, "Durable external facts release the guard."); e.hooks.unmount();
+
+  const exiting = harness(); const x = hookHarness(exiting); feature = x.render();
+  const activeBeforeExit = exiting.runtime.getState().urgeControl.activeEvent;
+  x.failNavigation(); assert(!feature.actions.exitExercise(), "A thrown exercise exit navigation must remain on screen.");
+  feature = x.render(); assert(feature.exerciseExitFailed && feature.message !== null && x.navigation.length === 0,
+    "A failed exercise exit must expose recoverable presentation state.");
+  assert(feature.actions.exitExercise(), "A failed exercise exit must allow an explicit retry.");
+  equal(x.navigation, ["/(tabs)/today"], "Exercise exit retry replaces with existing Today.");
+  assert(exiting.runtime.getState().urgeControl.activeEvent === activeBeforeExit && exiting.counts().mutations === 0,
+    "Exercise exit must preserve the active event and dispatch no domain command.");
+  x.hooks.unmount();
+
+  const pendingExit = harness(); const px = hookHarness(pendingExit); feature = px.render();
+  feature.actions.completeInterrupt(); feature = px.render();
+  assert(feature.view.kind === "current" && feature.view.progress.stage === "interrupt" && !feature.actions.exitExercise() && px.navigation.length === 0,
+    "Pending interrupt persistence must keep the exercise visible and block exit navigation.");
+  pendingExit.attempts[0]!.succeed(); await flush();
+  feature = px.render(); assert(feature.view.kind === "current" && feature.view.progress.stage === "outcome",
+    "Outcome becomes available only after the interrupt transition is durable.");
+  px.hooks.unmount();
 
   const superseded = harness(); const s = hookHarness(superseded); feature = s.render();
   feature.actions.discardActive(); const newEvent = superseded.flowActions.urgeControl.start();
@@ -312,19 +336,25 @@ function harness(initialState = initial()) {
   return { runtime, controller, flowActions, attempts, persisted, setTime: (value: string) => { time = value; }, setRoute: (value: unknown) => { eventId = value; }, counts: () => ({ clocks, ids, mutations }) };
 }
 
-function hookHarness(h: Harness) {
-  const hooks = controlledHooks();
+function hookHarness(h: Harness, overrides: { hooks?: ReturnType<typeof controlledHooks>; navigation?: unknown; guard?: unknown } = {}) {
+  const hooks = overrides.hooks ?? controlledHooks();
   const navigation: unknown[] = []; let guard = false; let throwNavigation = false;
   let hasHydrated = true; let hydrationStatus: "loading" | "error" | "ready" = "ready";
   let params: { eventId?: string | string[]; stage?: string | string[] } = { eventId: "urge-feature", stage: "interrupt" };
   const timers = new Set<() => void>();
   const dependencies: Record<string, unknown> = {
     react: hooks.react,
-    "expo-router": { useRouter: () => ({ replace: (route: unknown) => { if (throwNavigation) { throwNavigation = false; throw new Error("Navigation failed"); } navigation.push(route); } }), useLocalSearchParams: () => params },
+    "expo-router": { useRouter: () => ({ replace: (route: unknown) => { if (throwNavigation) { throwNavigation = false; throw new Error("Navigation failed"); } navigation.push(route); } }), useLocalSearchParams: () => params,
+      useNavigation: () => overrides.navigation ?? {
+        getState: () => ({key:"root",index:0,routes:navigation.length ? [{key:"home",name:"(tabs)"}] : [{key:"urge",name:"bloom/urge-control/resume"}]}),
+        isFocused: () => true,
+        dispatch: () => { if (throwNavigation) { throwNavigation = false; throw new Error("Navigation failed"); } navigation.push("/(tabs)/today"); }
+      } },
+    "@react-navigation/native": { StackActions },
     "../../app/flows/useBloomProductFlowActions": { useBloomProductFlowActions: () => h.flowActions },
     "../../app/providers/BloomLocalStateProvider": { useBloomLocalState: () => ({ state: h.runtime.getState(), durableState: h.runtime.getDurableState(), getAcceptedState: h.runtime.getState, retryPersistedMutation: h.runtime.retryPersistence, hasHydrated, hydrationStatus }) },
     "../../constants/navigation": { routes: { home: "/(tabs)/today" } },
-    "../../shared/navigation/usePersistenceNavigationGuard": { usePersistenceNavigationGuard: (blocked: boolean) => { guard = blocked; return () => {}; } },
+    "../../shared/navigation/usePersistenceNavigationGuard": { usePersistenceNavigationGuard: overrides.guard ?? ((blocked: boolean) => { guard = blocked; return () => {}; }) },
     "./urgeControlController": { createUrgeControlController }, "./urgeControlView": { getUrgeControlRouteView }
   };
   class DisplayDate extends Date { static now() { return Date.parse(at); } }
@@ -335,20 +365,143 @@ function hookHarness(h: Harness) {
 }
 
 type Element = { type: unknown; props: Record<string, unknown> };
+
+// Execute both application guards with the installed StackRouter and its actual
+// beforeRemove/usePreventRemove implementation. Only native surfaces and React
+// scheduling are controlled; guard callbacks and router rejection stay real.
+export async function verifyBloomUrgeNavigationGuards() {
+  for (const childFirst of [false, true]) for (const pendingScenario of [false, true]) {
+    const h = harness(), featureHooks = controlledHooks(), exerciseHooks = controlledHooks();
+    const listeners = new Set<(event: { data: { action: NavigationAction }; preventDefault: () => void }) => void>();
+    const prevented: Record<string, { preventRemove:boolean }> = {};
+    const options = { routeNames:["(tabs)", "bloom/urge-control/resume"], routeParamList:{}, routeGetIdList:{} };
+    const stack = StackRouter({ initialRouteName:"(tabs)" });
+    let navState = stack.getRehydratedState({ stale:true, index:1, routes:[{key:"home",name:"(tabs)"},{key:"urge",name:"bloom/urge-control/resume"}] }, options);
+    let gesture = true, now = 0, guardId = 0;
+    let writeOwner = "", feature!: Feature, tree: unknown;
+    const writes: Array<{ owner:string; value:boolean }> = [];
+    const createBoundary = compile("src/shared/navigation/guardBloomNavigation.ts",{}).createBloomRouterBoundary as
+      (router:unknown, getPrevented:()=>unknown, hasUnconfirmed:()=>boolean)=>{getStateForAction:(state:typeof navState, action:NavigationAction, config:typeof options)=>typeof navState|null};
+    const boundary = createBoundary(stack, () => ({urge:{preventRemove:Object.values(prevented).some(value => value.preventRemove)}}),
+      () => h.runtime.getState() !== h.runtime.getDurableState());
+    const shouldPreventRemove = compile("node_modules/@react-navigation/core/src/useOnPreventRemove.tsx", {
+      react:{}, "./NavigationBuilderContext":{}, "./NavigationProvider":{}
+    }).shouldPreventRemove as (emitter: unknown, children: unknown, before: unknown, after: unknown, action: NavigationAction) => boolean;
+    const emitter = { emit: (data: {data:{action:NavigationAction}}) => {
+      let defaultPrevented = false;
+      listeners.forEach(listener => listener({data:data.data,preventDefault:()=>{defaultPrevented=true;}}));
+      return {defaultPrevented};
+    } };
+    const navigation = {
+      getState: () => navState, isFocused: () => true,
+      setOptions: (value: {gestureEnabled:boolean}) => { gesture=value.gestureEnabled; writes.push({owner:writeOwner,value:gesture}); },
+      addListener: (_: string, listener: typeof listeners extends Set<infer T> ? T : never) => {listeners.add(listener); return () => {listeners.delete(listener);};},
+      dispatch: (action: NavigationAction) => {
+        const next = boundary.getStateForAction!(navState, action, options);
+        if (next !== null && next !== navState && !shouldPreventRemove(emitter, {}, navState.routes, next.routes, action)) navState=next;
+      }
+    };
+    function preventRemoveHook(hooks: ReturnType<typeof controlledHooks>) {
+      const native = compile("node_modules/@react-navigation/core/src/usePreventRemove.tsx", {
+        react:hooks.react, "nanoid/non-secure":{nanoid:()=>String(++guardId)},
+        "use-latest-callback": {default:(callback: (...args: never[]) => unknown) => {
+          const ref=hooks.react.useRef(callback); ref.current=callback;
+          return hooks.react.useMemo(() => (...args: never[]) => ref.current(...args), []);
+        }},
+        "./useNavigation":{useNavigation:()=>navigation}, "./useRoute":{useRoute:()=>({key:"urge"})},
+        "./usePreventRemoveContext":{usePreventRemoveContext:()=>({setPreventRemove:(id:string,_route:string,value:boolean)=>{prevented[id]={preventRemove:value};}})}
+      });
+      return native.usePreventRemove;
+    }
+    const backListeners = new Set<() => boolean>();
+    const native = { View:"View", Text:"Text", Pressable:"Pressable", ScrollView:"ScrollView", Modal:"Modal", Platform:{OS:"ios"},
+      StyleSheet:{create:(value:unknown)=>value,flatten:(values:unknown[])=>Object.assign({},...values)},
+      AppState:{currentState:"active",addEventListener:()=>({remove:()=>{}})},
+      BackHandler:{addEventListener:(_event:string,listener:()=>boolean)=>{backListeners.add(listener);return {remove:()=>backListeners.delete(listener)};}},
+      AccessibilityInfo:{announceForAccessibility:()=>{}},useWindowDimensions:()=>({width:402,height:874,fontScale:1}) };
+    const guard = compile("src/shared/navigation/usePersistenceNavigationGuard.ts", {
+      react:featureHooks.react,"expo-router":{useNavigation:()=>navigation},"react-native":native,
+      "@react-navigation/native":{usePreventRemove:preventRemoveHook(featureHooks)}
+    }, {setTimeout:()=>{throw new Error("Exercise exit cannot depend on a timeout");},clearTimeout:()=>{}}).usePersistenceNavigationGuard;
+    const hook = hookHarness(h,{hooks:featureHooks,navigation,guard});
+    const model = compile("src/features/urge-control/exercise/urgeExerciseTimer.ts",{});
+    const intervals = new Set<() => void>();
+    const jsx=(type:unknown,props:Record<string,unknown>)=>({type,props});
+    const exercise = compile("src/features/urge-control/exercise/UrgeExercise.tsx",{
+      react:exerciseHooks.react,"react/jsx-runtime":{jsx,jsxs:jsx,Fragment:"Fragment"},"react-native":native,
+      "@react-navigation/native":{useIsFocused:()=>true,usePreventRemove:preventRemoveHook(exerciseHooks)},
+      "expo-router":{useNavigation:()=>navigation},"expo-status-bar":{StatusBar:"StatusBar"},
+      "react-native-safe-area-context":{useSafeAreaInsets:()=>({top:62,bottom:34})},
+      "./UrgeExerciseVisuals":{UrgeExerciseAtmosphere:"Atmosphere",UrgeExerciseLCD:"LCD"},
+      "./useUrgeExerciseReducedMotion":{useUrgeExerciseReducedMotion:()=>false},"./urgeExerciseTimer":model
+    },{performance:{now:()=>now},setInterval:(tick:()=>void)=>{intervals.add(tick);return tick;},clearInterval:(tick:()=>void)=>intervals.delete(tick)}).UrgeExercise as (props:Record<string,unknown>)=>unknown;
+    const renderFeature=()=>{writeOwner="persistence";feature=hook.render();};
+    const renderExercise=()=>{writeOwner="exercise";tree=exerciseHooks.render(()=>expand(exercise({
+      testIDPrefix:"bloom.urge.exercise", confirmExitWhenIdle:true, manageGestures:false,
+      interactionDisabled:feature.locked,onExitConfirmed:feature.actions.exitExercise,
+      evaluationAction:{label:"Durum kontrolüne geç",onPress:feature.actions.completeInterrupt}
+    })));};
+    const render=()=>{for(let i=0;i<3;i++){if(childFirst && feature !== undefined){renderExercise();renderFeature();}else{renderFeature();renderExercise();}}};
+    const tap=(suffix:string)=>{now+=400;press(tree,`bloom.urge.exercise.${suffix}`);render();};
+    const dialog=()=>nodes(tree).some(node=>node.type==="Modal" && node.props.visible===true);
+    render();
+    assert(!gesture && writes.every(write=>write.owner==="persistence" && !write.value), "Ready production gesture policy has one owner regardless of effect order.");
+    tap("start"); assert(!gesture,"Running cannot enable swipe-back.");
+    tap("pause"); assert(!gesture,"Paused cannot enable swipe-back.");
+    [...backListeners].reverse().some(listener=>listener()); render();
+    assert(dialog(),"Hardware Back opens the exercise confirmation with both guards mounted.");
+    tap("exit.keep"); assert(!dialog() && !gesture,"Cancel stays protected on the exercise.");
+    tap("resume"); now+=600_000; intervals.forEach(tick=>tick()); render();
+    assert(ids(tree,"bloom.urge.exercise.completed").length===1 && !gesture,"Completed exercise retains the same disabled gesture policy.");
+    if (pendingScenario) {
+      tap("evaluate");
+      assert(feature.locked && !gesture,"Pending evaluation cannot enable gestures.");
+      [...backListeners].reverse().some(listener=>listener()); render();
+      assert(dialog(),"Hardware Back still opens confirmation while persistence is pending.");
+      tap("exit.confirm");
+      navigation.dispatch(StackActions.replace("(tabs)",{screen:"today"}));
+      assert(navState.routes.some(route=>route.key==="urge") && !gesture,"Neither confirmed exit nor raw navigation can bypass a pending write.");
+      h.attempts[0]!.succeed(); await flush(); renderFeature(); exerciseHooks.unmount();
+      assert(feature.view.kind==="current" && feature.view.progress.stage==="outcome" && gesture,
+        "The same authoritative owner restores downstream navigation only once the transition is durable.");
+      featureHooks.unmount();
+      continue;
+    }
+    // A real root boundary silently rejects navigation while a different slice
+    // has a pending write, even though the Urge slice itself is durable.
+    const external=h.runtime.applyAcknowledgedMutation(state=>({...state,debug:{...state.debug,dateOffsetDays:1}}));
+    tap("exit"); tap("exit.confirm");
+    assert(navState.routes.some(route=>route.key==="urge") && dialog() && feature.exerciseExitFailed && !gesture,
+      "Silent boundary rejection restores the modal/guard and exposes explicit retry.");
+    assert(Object.values(prevented).some(value=>value.preventRemove),"Rejected exit cannot leave removal protection released.");
+    h.attempts[0]!.succeed(); await external; render();
+    const cancel=(event:{preventDefault:()=>void})=>event.preventDefault(); listeners.add(cancel);
+    tap("exit.confirm"); listeners.delete(cancel);
+    assert(dialog() && feature.exerciseExitFailed && !gesture,"A real beforeRemove cancellation must also restore a retryable modal.");
+    const originalEvent=h.runtime.getState().urgeControl.activeEvent;
+    tap("exit.confirm");
+    assert(!navState.routes.some(route=>route.key==="urge") && h.runtime.getState().urgeControl.activeEvent===originalEvent && h.counts().mutations===0,
+      "Retry reaches Home without discarding or completing the event.");
+    exerciseHooks.unmount(); featureHooks.unmount();
+  }
+  console.log("Combined Urge navigation guards passed: both effect orders, ready/running/paused/completed, one gesture owner, hardware Back/cancel, pending protection, durable downstream release, real root-boundary rejection, real beforeRemove cancellation, retry and preserved event.");
+}
+
 function verifyScreensAndDraft() {
   const hooks = controlledHooks(); const submitted: unknown[] = []; const actions: Record<string, (...values: unknown[]) => void> = {};
   for (const name of ["completeInterrupt", "selectTechnique", "startPhoneAway", "endPhoneAway", "recordOutcome", "recordTrigger", "complete", "discardActive", "retry", "continueAfterSave", "closeUnavailable"]) actions[name] = (...values) => { submitted.push([name, ...values]); };
+  actions.exitExercise = () => true;
   actions.recordTriggers = (values) => { submitted.push(values); };
   let urge = initial().urgeControl;
   urge = { ...urge, activeEvent: { id: "urge-feature", flowVersion: 2, status: "active", startedAt: at, interruptCompletedAt: at, outcome: "reduced" } };
-  let feature = { view: getUrgeControlRouteView(urge, "urge-feature", at), actions, locked: false, busy: false, saveState: "saved", message: null, canRetry: false, canContinue: false, terminalReceipt: false };
+  let feature = { view: getUrgeControlRouteView(urge, "urge-feature", at), actions, locked: false, busy: false, saveState: "saved", message: null, canRetry: false, canContinue: false, terminalReceipt: false, exerciseExitFailed: false };
   const jsx = (type: unknown, props: Record<string, unknown>): Element => ({ type, props });
   const dependencies: Record<string, unknown> = { react: hooks.react, "react-native": { View: "View", StyleSheet: { create: (value: unknown) => value } },
     "react/jsx-runtime": { jsx, jsxs: jsx, Fragment: "Fragment" },
     "../../../shared/design-system/v4/theme": { theme: {
       spacing: { xl2: 32, xl3: 48, xs: 8, lg: 20, md: 16, sm: 12 },
       radius: { lg: 14, pill: 9999 }, colors: { bg: { surface: "surface" } }
-    } }, "../useUrgeControlFeature": { useUrgeControlFeature: () => feature } };
+    } }, "../useUrgeControlFeature": { useUrgeControlFeature: () => feature }, "../exercise/UrgeExercise": { UrgeExercise: "UrgeExercise" } };
   for (const name of ["AppButton", "AppCard", "AppScreen", "AppText"]) dependencies[`../../../shared/components/v4/${name}`] = { [name]: name };
   const module = compile("src/features/urge-control/screens/UrgeControlResumeScreen.tsx", dependencies);
   const render = () => hooks.render(() => expand((module.UrgeControlResumeScreen as () => Element)()));
@@ -368,13 +521,14 @@ function verifyScreensAndDraft() {
   equal(ids(tree, "bloom.urge.outcome."), ["reduced", "stillStrong", "stronger", "unchanged"].map((value) => `bloom.urge.outcome.${value}`), "Current outcome UI exposes exactly the four established outcomes.");
   press(tree, "bloom.urge.outcome.stronger"); equal(submitted[3], ["recordOutcome", "stronger"], "Outcome choice sends only the existing semantic value.");
   feature = { ...feature, view: getUrgeControlRouteView(initial().urgeControl, "urge-feature", at) }; tree = render();
-  const interruptButton = nodes(tree).find((node) => node.props.testID === "bloom.urge.interrupt.complete");
-  assert(interruptButton?.props.disabled === false, "Interrupt completion is available immediately without a 60-second UI lock.");
-  assert(ids(tree, "bloom.urge.interrupt.").includes("bloom.urge.interrupt.breathe") &&
-    ids(tree, "bloom.urge.interrupt.").includes("bloom.urge.interrupt.notice") &&
-    !nodes(tree).some((node) => node.type === "AppText" && /\d+\s*(?:\/\s*60|saniye)/.test(String(node.props.children))),
-  "Current interrupt must offer both local touch targets without a visible seconds target.");
-  press(tree, "bloom.urge.interrupt.complete"); equal(submitted[4], ["completeInterrupt"], "Interrupt screen invokes only the existing completion command.");
+  const exercise = nodes(tree).find((node) => node.type === "UrgeExercise");
+  assert(exercise?.props.testIDPrefix === "bloom.urge.exercise" && exercise.props.confirmExitWhenIdle === true && exercise.props.interactionDisabled === false && exercise.props.manageGestures === false,
+    "Current interrupt must directly render the reusable production exercise.");
+  assert(!ids(tree, "bloom.urge.interrupt.").length && !nodes(tree).some((node) => node.type === "AppText" && node.props.children === "Şunu bitir"),
+    "The former interrupt card must not remain beside the native exercise.");
+  const evaluation = exercise?.props.evaluationAction as { label: string; onPress: () => void } | undefined;
+  assert(evaluation?.label === "Durum kontrolüne geç", "Production exercise must expose explicit evaluation in its adapter.");
+  evaluation?.onPress(); equal(submitted[4], ["completeInterrupt"], "Exercise evaluation invokes only the existing completion command.");
   urge = { activeEvent: { id: "urge-feature", flowVersion: 2, status: "active", startedAt: at,
     interruptCompletedAt: at, outcome: "reduced", triggers: ["stress", "fatigue"] }, records: [] };
   feature = { ...feature, view: getUrgeControlRouteView(urge, "urge-feature", at) }; tree = render();
@@ -419,10 +573,11 @@ function controlledHooks() {
   const pending: Array<() => void> = [];
   const same = (a: readonly unknown[], b: readonly unknown[]) => a.length === b.length && a.every((value, index) => Object.is(value, b[index]));
   const react = {
+    useCallback: <T>(callback:T) => { cursor++; return callback; },
     useRef: <T>(initial: T) => { const index = cursor++; if (slots[index] === undefined) slots[index] = { current: initial }; return slots[index] as { current: T }; },
     useState: <T>(initial: T | (() => T)) => { const index = cursor++; if (slots[index] === undefined) slots[index] = { value: typeof initial === "function" ? (initial as () => T)() : initial }; const cell = slots[index] as { value: T }; return [cell.value, (value: T | ((old: T) => T)) => { cell.value = typeof value === "function" ? (value as (old: T) => T)(cell.value) : value; }] as const; },
     useMemo: <T>(create: () => T, dependencies: readonly unknown[]) => { const index = cursor++; const previous = slots[index] as { value: T; dependencies: readonly unknown[] } | undefined; if (previous === undefined || !same(previous.dependencies, dependencies)) slots[index] = { value: create(), dependencies: [...dependencies] }; return (slots[index] as { value: T }).value; },
-    useEffect: (setup: () => void | (() => void), dependencies: readonly unknown[]) => { const index = cursor++; const old = slots[index] as { dependencies: readonly unknown[]; cleanup?: () => void } | undefined; if (old === undefined || !same(old.dependencies, dependencies)) { const effect = { setup, dependencies: [...dependencies], cleanup: undefined as (() => void) | undefined }; slots[index] = effect; if (old !== undefined) effects.delete(old as never); effects.add(effect); pending.push(() => { old?.cleanup?.(); effect.cleanup = setup() ?? undefined; }); } },
+    useEffect: (setup: () => void | (() => void), dependencies?: readonly unknown[]) => { const index = cursor++; const old = slots[index] as { dependencies: readonly unknown[]; cleanup?: () => void } | undefined; if (old === undefined || dependencies === undefined || !same(old.dependencies, dependencies)) { const effect = { setup, dependencies: [...(dependencies ?? [])], cleanup: undefined as (() => void) | undefined }; slots[index] = effect; if (old !== undefined) effects.delete(old as never); effects.add(effect); pending.push(() => { old?.cleanup?.(); effect.cleanup = setup() ?? undefined; }); } },
     useSyncExternalStore: (_subscribe: unknown, get: () => unknown) => { cursor++; return get(); }
   };
   return { react, render: <T>(fn: () => T) => { cursor = 0; const value = fn(); pending.splice(0).forEach((effect) => effect()); return value; },

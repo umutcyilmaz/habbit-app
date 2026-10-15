@@ -1,0 +1,46 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Production Urge swipe protection and confirmed event-preserving exit
+---
+# Enter from Home with an existing current interrupt event, preview mode OFF.
+# No clearState or fixture reseed.
+- assertVisible: { id: "bloom.home" }
+- tapOn: { id: "bloom.home.primary.action" }
+- assertVisible: { id: "bloom.urge.exercise.ready" }
+- swipe:
+    start: "1%,50%"
+    end: "90%,50%"
+    duration: 500
+- assertVisible: { id: "bloom.urge.exercise.ready" }
+- tapOn: { id: "bloom.urge.exercise.exit" }
+- assertVisible: { id: "bloom.urge.exercise.exit.dialog" }
+- tapOn: { id: "bloom.urge.exercise.exit.keep" }
+- assertVisible: { id: "bloom.urge.exercise.ready" }
+- tapOn: { id: "bloom.urge.exercise.duration.15" }
+- tapOn: { id: "bloom.urge.exercise.start" }
+- swipe:
+    start: "1%,50%"
+    end: "90%,50%"
+    duration: 500
+- assertVisible: { id: "bloom.urge.exercise.running" }
+- tapOn: { id: "bloom.urge.exercise.pause" }
+- swipe:
+    start: "1%,50%"
+    end: "90%,50%"
+    duration: 500
+- assertVisible: { id: "bloom.urge.exercise.paused" }
+- tapOn: { id: "bloom.urge.exercise.exit" }
+- assertVisible: { id: "bloom.urge.exercise.exit.dialog" }
+- tapOn: { id: "bloom.urge.exercise.exit.keep" }
+- assertVisible: { id: "bloom.urge.exercise.paused" }
+- tapOn: { id: "bloom.urge.exercise.exit" }
+- tapOn: { id: "bloom.urge.exercise.exit.confirm" }
+- assertVisible: { id: "bloom.home" }
+- assertVisible: "Devam eden dürtü kontrolü"
+- tapOn: { id: "bloom.home.primary.action" }
+- assertVisible: { id: "bloom.urge.exercise.ready" }
+- assertVisible:
+    id: "bloom.urge.exercise.lcd"
+    text: "Kalan süre: 10 dakika 0 saniye"
+- tapOn: { id: "bloom.urge.exercise.exit" }
+- tapOn: { id: "bloom.urge.exercise.exit.confirm" }
+- assertVisible: { id: "bloom.home" }
