@@ -1,0 +1,10 @@
+Starting project at /Users/umutcyilmaz/Desktop/tms
+Starting Metro Bundler
+Waiting on http://localhost:8083
+Logs for your project will appear below.
+| (node:3228) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:3227) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+iOS Bundled 689ms node_modules/expo-router/entry.js (1981 modules)
+ INFO  PRACTICE_QA_VIEWPORT {"width":402,"height":874,"fontScale":1}

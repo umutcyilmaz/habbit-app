@@ -1,3 +1,5 @@
+import { createDefaultPracticeState, type PracticeState } from "../domain/models/PracticeState";
+export { acknowledgePracticeIntroductionState, saveCompletedPracticeSessionState } from "./bloomPracticeTransitions";
 export { setLibraryArticleState } from "./bloomLibraryTransitions";
 import type {
   ContentFreeState,
@@ -493,6 +495,7 @@ export type OnboardingState = {
 };
 
 export type BloomLocalState = {
+  practice: PracticeState;
   library: { bookmarkedArticleIds: string[]; completedArticleIds: string[] };
   kegel: KegelState;
   activePlan: ActivePlan;
@@ -512,6 +515,7 @@ export type BloomLocalState = {
 
 export function createDefaultBloomState(): BloomLocalState {
   return {
+    practice: createDefaultPracticeState(),
     library: { bookmarkedArticleIds: [], completedArticleIds: [] },
     kegel: { onboardingCompletedAt: null, sessions: [] },
     activePlan: {

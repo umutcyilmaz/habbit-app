@@ -1,0 +1,317 @@
+{
+  "scope": "Rendered text/styles/structure, not native pixels; approved pre-reliability PracticePreviewScreen",
+  "cases": [
+    {
+      "case": "375/1/intro",
+      "sha256": "02a2d143655aca24100f6708bb754de9d932750fe74d1f998599b07ccd03fff2"
+    },
+    {
+      "case": "375/1/ready",
+      "sha256": "1ea50eae94feeabe4ef493a0bdf109bf74e7052a664f3754f490d32c057261a5"
+    },
+    {
+      "case": "375/1/start-dialog",
+      "sha256": "3b3ffcd0d3dcae909480ff7b4f7ba79cb630d18d84c0eaa43a3c1a3258b8b331"
+    },
+    {
+      "case": "375/1/running",
+      "sha256": "d342694b403480ee0180be98f5ac553d8ab28b461b9d4ec5598f2bdd60ca91b3"
+    },
+    {
+      "case": "375/1/background",
+      "sha256": "b3829de889b1a61b306033bd76e328c01c7a978f90c002cd364b8d3415cbd606"
+    },
+    {
+      "case": "375/1/paused",
+      "sha256": "84cf7a17152de5a3819529178dce7a938f2440d3c1dea7292bc5c5b201e64796"
+    },
+    {
+      "case": "375/1/exit-dialog",
+      "sha256": "46c5a896f09147e312e87622b880de60cf1d7a6ff4ae43b8b60a9f7c83d06de2"
+    },
+    {
+      "case": "375/1/question-1",
+      "sha256": "00e260e91a7bc5440ed481563d1fd19e4dc570a01a46398bdbdc6836475e2223"
+    },
+    {
+      "case": "375/1/question-2",
+      "sha256": "734c1a255a4b4ff2685bb46f09461454f1c82cc353c21b08f0681676a2ac86b7"
+    },
+    {
+      "case": "375/1/question-3",
+      "sha256": "fd8cd01e194a205e70c5ceaa9d87ba7ad7cb11eb2336a3fd6d7bf9b95cb4ca11"
+    },
+    {
+      "case": "375/1/summary",
+      "sha256": "5d867bd28f23bab40683ce2e47f8c4d28aef0cff751afe081325323bcc7ded5f"
+    },
+    {
+      "case": "375/1/saved",
+      "sha256": "19504bb6cd34061dfbc25c4958106e1c113fbd10e858497065b446b2c249c586"
+    },
+    {
+      "case": "375/1/retry",
+      "sha256": "f659a680bf58e302e378b0d5cf46771592fcb546b29f7c7e73326f19efaf3778"
+    },
+    {
+      "case": "375/1.353/intro",
+      "sha256": "2d53c6fc48c2185604739650df64e72ccc2854fceffe4771fd2a7d8c10a7a3c3"
+    },
+    {
+      "case": "375/1.353/ready",
+      "sha256": "485d7196629b632aef22f9388e45bceb219df2374f768b852287edb9180f24da"
+    },
+    {
+      "case": "375/1.353/start-dialog",
+      "sha256": "baa434d4157b28ec61676a336a861800a00d3ba7299eb8918848091ca977bbae"
+    },
+    {
+      "case": "375/1.353/running",
+      "sha256": "46141e43754dadbff66188f11111bb0995fe1f1bcf79f57dd2661c979fe115c2"
+    },
+    {
+      "case": "375/1.353/background",
+      "sha256": "c082f55f6165c61efc03ca0930ae121455ea1fb34630d810a8d428af953ac32f"
+    },
+    {
+      "case": "375/1.353/paused",
+      "sha256": "883bcf5fb30aefaed1e58688ef1041832669930dbb9bde6c22f8b044b3062418"
+    },
+    {
+      "case": "375/1.353/exit-dialog",
+      "sha256": "5b6853b9ad069c29541c56b6048eb924cfbd13e7057d8c9f1529618a65353cb1"
+    },
+    {
+      "case": "375/1.353/question-1",
+      "sha256": "81e70d1e49bc8f0952947b1b8e496610984ac41750647ed8c5a7788f93da83a1"
+    },
+    {
+      "case": "375/1.353/question-2",
+      "sha256": "019b132aab491cc8554bf37b38d0b01ea258521f01ec3451a48c8bbbae940a43"
+    },
+    {
+      "case": "375/1.353/question-3",
+      "sha256": "5139fb8891cc55f3616e7e8e6a9e377ae4183f075de4c1aafdbcd1516299d00a"
+    },
+    {
+      "case": "375/1.353/summary",
+      "sha256": "62921b812bc87b275d98e26112c766b5a528130f46461cdb53851a9ba997bfe9"
+    },
+    {
+      "case": "375/1.353/saved",
+      "sha256": "53d1b5ec45d7ac354306115f4849610be104887a66dec5ba8d9a87ebe2b9a07d"
+    },
+    {
+      "case": "375/1.353/retry",
+      "sha256": "60ad7029b25ca334a03b89db0f193e6b88cfd36312f76f67a242761b8eba1878"
+    },
+    {
+      "case": "375/3.571/intro",
+      "sha256": "2d53c6fc48c2185604739650df64e72ccc2854fceffe4771fd2a7d8c10a7a3c3"
+    },
+    {
+      "case": "375/3.571/ready",
+      "sha256": "485d7196629b632aef22f9388e45bceb219df2374f768b852287edb9180f24da"
+    },
+    {
+      "case": "375/3.571/start-dialog",
+      "sha256": "baa434d4157b28ec61676a336a861800a00d3ba7299eb8918848091ca977bbae"
+    },
+    {
+      "case": "375/3.571/running",
+      "sha256": "46141e43754dadbff66188f11111bb0995fe1f1bcf79f57dd2661c979fe115c2"
+    },
+    {
+      "case": "375/3.571/background",
+      "sha256": "c082f55f6165c61efc03ca0930ae121455ea1fb34630d810a8d428af953ac32f"
+    },
+    {
+      "case": "375/3.571/paused",
+      "sha256": "883bcf5fb30aefaed1e58688ef1041832669930dbb9bde6c22f8b044b3062418"
+    },
+    {
+      "case": "375/3.571/exit-dialog",
+      "sha256": "5b6853b9ad069c29541c56b6048eb924cfbd13e7057d8c9f1529618a65353cb1"
+    },
+    {
+      "case": "375/3.571/question-1",
+      "sha256": "32d62025655933ade10f2e912997726795d99ff594ac5c71927ba3d56cfc8910"
+    },
+    {
+      "case": "375/3.571/question-2",
+      "sha256": "019b132aab491cc8554bf37b38d0b01ea258521f01ec3451a48c8bbbae940a43"
+    },
+    {
+      "case": "375/3.571/question-3",
+      "sha256": "5139fb8891cc55f3616e7e8e6a9e377ae4183f075de4c1aafdbcd1516299d00a"
+    },
+    {
+      "case": "375/3.571/summary",
+      "sha256": "62921b812bc87b275d98e26112c766b5a528130f46461cdb53851a9ba997bfe9"
+    },
+    {
+      "case": "375/3.571/saved",
+      "sha256": "53d1b5ec45d7ac354306115f4849610be104887a66dec5ba8d9a87ebe2b9a07d"
+    },
+    {
+      "case": "375/3.571/retry",
+      "sha256": "60ad7029b25ca334a03b89db0f193e6b88cfd36312f76f67a242761b8eba1878"
+    },
+    {
+      "case": "402/1/intro",
+      "sha256": "02a2d143655aca24100f6708bb754de9d932750fe74d1f998599b07ccd03fff2"
+    },
+    {
+      "case": "402/1/ready",
+      "sha256": "1ea50eae94feeabe4ef493a0bdf109bf74e7052a664f3754f490d32c057261a5"
+    },
+    {
+      "case": "402/1/start-dialog",
+      "sha256": "3b3ffcd0d3dcae909480ff7b4f7ba79cb630d18d84c0eaa43a3c1a3258b8b331"
+    },
+    {
+      "case": "402/1/running",
+      "sha256": "d342694b403480ee0180be98f5ac553d8ab28b461b9d4ec5598f2bdd60ca91b3"
+    },
+    {
+      "case": "402/1/background",
+      "sha256": "b3829de889b1a61b306033bd76e328c01c7a978f90c002cd364b8d3415cbd606"
+    },
+    {
+      "case": "402/1/paused",
+      "sha256": "84cf7a17152de5a3819529178dce7a938f2440d3c1dea7292bc5c5b201e64796"
+    },
+    {
+      "case": "402/1/exit-dialog",
+      "sha256": "46c5a896f09147e312e87622b880de60cf1d7a6ff4ae43b8b60a9f7c83d06de2"
+    },
+    {
+      "case": "402/1/question-1",
+      "sha256": "00e260e91a7bc5440ed481563d1fd19e4dc570a01a46398bdbdc6836475e2223"
+    },
+    {
+      "case": "402/1/question-2",
+      "sha256": "734c1a255a4b4ff2685bb46f09461454f1c82cc353c21b08f0681676a2ac86b7"
+    },
+    {
+      "case": "402/1/question-3",
+      "sha256": "fd8cd01e194a205e70c5ceaa9d87ba7ad7cb11eb2336a3fd6d7bf9b95cb4ca11"
+    },
+    {
+      "case": "402/1/summary",
+      "sha256": "5d867bd28f23bab40683ce2e47f8c4d28aef0cff751afe081325323bcc7ded5f"
+    },
+    {
+      "case": "402/1/saved",
+      "sha256": "19504bb6cd34061dfbc25c4958106e1c113fbd10e858497065b446b2c249c586"
+    },
+    {
+      "case": "402/1/retry",
+      "sha256": "f659a680bf58e302e378b0d5cf46771592fcb546b29f7c7e73326f19efaf3778"
+    },
+    {
+      "case": "402/1.353/intro",
+      "sha256": "2d53c6fc48c2185604739650df64e72ccc2854fceffe4771fd2a7d8c10a7a3c3"
+    },
+    {
+      "case": "402/1.353/ready",
+      "sha256": "485d7196629b632aef22f9388e45bceb219df2374f768b852287edb9180f24da"
+    },
+    {
+      "case": "402/1.353/start-dialog",
+      "sha256": "baa434d4157b28ec61676a336a861800a00d3ba7299eb8918848091ca977bbae"
+    },
+    {
+      "case": "402/1.353/running",
+      "sha256": "46141e43754dadbff66188f11111bb0995fe1f1bcf79f57dd2661c979fe115c2"
+    },
+    {
+      "case": "402/1.353/background",
+      "sha256": "c082f55f6165c61efc03ca0930ae121455ea1fb34630d810a8d428af953ac32f"
+    },
+    {
+      "case": "402/1.353/paused",
+      "sha256": "883bcf5fb30aefaed1e58688ef1041832669930dbb9bde6c22f8b044b3062418"
+    },
+    {
+      "case": "402/1.353/exit-dialog",
+      "sha256": "5b6853b9ad069c29541c56b6048eb924cfbd13e7057d8c9f1529618a65353cb1"
+    },
+    {
+      "case": "402/1.353/question-1",
+      "sha256": "81e70d1e49bc8f0952947b1b8e496610984ac41750647ed8c5a7788f93da83a1"
+    },
+    {
+      "case": "402/1.353/question-2",
+      "sha256": "019b132aab491cc8554bf37b38d0b01ea258521f01ec3451a48c8bbbae940a43"
+    },
+    {
+      "case": "402/1.353/question-3",
+      "sha256": "5139fb8891cc55f3616e7e8e6a9e377ae4183f075de4c1aafdbcd1516299d00a"
+    },
+    {
+      "case": "402/1.353/summary",
+      "sha256": "62921b812bc87b275d98e26112c766b5a528130f46461cdb53851a9ba997bfe9"
+    },
+    {
+      "case": "402/1.353/saved",
+      "sha256": "53d1b5ec45d7ac354306115f4849610be104887a66dec5ba8d9a87ebe2b9a07d"
+    },
+    {
+      "case": "402/1.353/retry",
+      "sha256": "60ad7029b25ca334a03b89db0f193e6b88cfd36312f76f67a242761b8eba1878"
+    },
+    {
+      "case": "402/3.571/intro",
+      "sha256": "2d53c6fc48c2185604739650df64e72ccc2854fceffe4771fd2a7d8c10a7a3c3"
+    },
+    {
+      "case": "402/3.571/ready",
+      "sha256": "485d7196629b632aef22f9388e45bceb219df2374f768b852287edb9180f24da"
+    },
+    {
+      "case": "402/3.571/start-dialog",
+      "sha256": "baa434d4157b28ec61676a336a861800a00d3ba7299eb8918848091ca977bbae"
+    },
+    {
+      "case": "402/3.571/running",
+      "sha256": "46141e43754dadbff66188f11111bb0995fe1f1bcf79f57dd2661c979fe115c2"
+    },
+    {
+      "case": "402/3.571/background",
+      "sha256": "c082f55f6165c61efc03ca0930ae121455ea1fb34630d810a8d428af953ac32f"
+    },
+    {
+      "case": "402/3.571/paused",
+      "sha256": "883bcf5fb30aefaed1e58688ef1041832669930dbb9bde6c22f8b044b3062418"
+    },
+    {
+      "case": "402/3.571/exit-dialog",
+      "sha256": "5b6853b9ad069c29541c56b6048eb924cfbd13e7057d8c9f1529618a65353cb1"
+    },
+    {
+      "case": "402/3.571/question-1",
+      "sha256": "32d62025655933ade10f2e912997726795d99ff594ac5c71927ba3d56cfc8910"
+    },
+    {
+      "case": "402/3.571/question-2",
+      "sha256": "019b132aab491cc8554bf37b38d0b01ea258521f01ec3451a48c8bbbae940a43"
+    },
+    {
+      "case": "402/3.571/question-3",
+      "sha256": "5139fb8891cc55f3616e7e8e6a9e377ae4183f075de4c1aafdbcd1516299d00a"
+    },
+    {
+      "case": "402/3.571/summary",
+      "sha256": "62921b812bc87b275d98e26112c766b5a528130f46461cdb53851a9ba997bfe9"
+    },
+    {
+      "case": "402/3.571/saved",
+      "sha256": "53d1b5ec45d7ac354306115f4849610be104887a66dec5ba8d9a87ebe2b9a07d"
+    },
+    {
+      "case": "402/3.571/retry",
+      "sha256": "60ad7029b25ca334a03b89db0f193e6b88cfd36312f76f67a242761b8eba1878"
+    }
+  ]
+}

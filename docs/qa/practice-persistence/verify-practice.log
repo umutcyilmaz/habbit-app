@@ -1,0 +1,9 @@
+
+> tms@0.1.0 verify:practice
+> node scripts/run-bloom-practice-verification.cjs && node scripts/verify-bloom-practice-ui.cjs
+
+Practice runtime: elapsed, pause, resume, background, exit, reflections, skips, edit, restart, cleanup passed.
+Practice UI: actual screen controls, rapid presses, navigation confirmation, AppState, timer cleanup, reflection/edit/skip and 36 preview guard combinations passed.
+Practice motion: Reduced Motion disables entries, modal fades, curve loop and tweens; animation cancellation passed.
+Practice button: responsive short visible label retains full accessibility label, wrapping and font scaling.
+Production Practice shared UI: explicit guarded start, acknowledged-intro revisit, completed-only explicit save, skipped null answers, immutable save controls, persistence navigation guard and durable-only saved/leave state passed.

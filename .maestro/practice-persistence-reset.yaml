@@ -1,0 +1,28 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Isolated canonical Reset blocks Practice while history remains available
+---
+- openLink: "tms-e2e:///debug/practice-persistence"
+- assertVisible: "Kalıcı pratik: 1"
+- tapOn: {id: "practice.qa.start"}
+- assertVisible: {id: "practice.blocked"}
+- assertNotVisible: {id: "practice.running"}
+- takeScreenshot: "native-reset-blocked"
+- tapOn: {id: "practice.blocked.history"}
+- assertVisible: {id: "practice.history.record"}
+- takeScreenshot: "native-history-during-reset"
+- openLink: "tms-e2e:///today"
+- scrollUntilVisible:
+    element: {id: "practice.entry.home"}
+    direction: DOWN
+    centerElement: true
+- assertNotVisible: {id: "practice.entry.home.start"}
+- takeScreenshot: "native-reset-home-lower-card"
+- tapOn: {id: "practice.entry.home.history"}
+- assertVisible: {id: "practice.history.record"}
+- openLink: "tms-e2e:///library"
+- scrollUntilVisible:
+    element: {id: "practice.entry.library"}
+    direction: DOWN
+    centerElement: true
+- assertNotVisible: {id: "practice.entry.library.start"}
+- takeScreenshot: "native-reset-library"

@@ -396,6 +396,7 @@ async function verifyPartialCurrentNormalization() {
       version: BLOOM_PERSISTENCE_VERSION,
       savedAt: fixedNow().toISOString(),
       state: {
+        practice: defaults.practice,
         kegel: defaults.kegel,
         onboarding: { completed: true },
         productOnboarding: defaults.productOnboarding,
@@ -416,7 +417,7 @@ async function verifyPartialCurrentNormalization() {
 
 async function verifyPartialLegacyMigration() {
   const client = new TestStorageClient();
-  const legacyKey = BLOOM_LEGACY_STATE_STORAGE_KEYS[1];
+  const legacyKey = "bloom.localState.v6";
   await client.setItem(
     legacyKey,
     JSON.stringify({
@@ -473,7 +474,7 @@ async function verifyPlanDerivation() {
     }
   };
   await client.setItem(
-    BLOOM_LEGACY_STATE_STORAGE_KEYS[1],
+    "bloom.localState.v6",
     JSON.stringify(conflictingState)
   );
 
@@ -505,7 +506,7 @@ async function verifyFeatureStatePreservation() {
     durationSeconds: 600
   };
   await client.setItem(
-    BLOOM_LEGACY_STATE_STORAGE_KEYS[1],
+    "bloom.localState.v6",
     JSON.stringify({
       protection: {
         isEnabled: true,
@@ -579,13 +580,13 @@ async function verifyCorruptPayloadPreservation() {
 async function verifyMalformedNestedStatePreservation() {
   const client = new TestStorageClient();
   const rawPayload = JSON.stringify({ onboarding: { quizResult: {} } });
-  await client.setItem(BLOOM_LEGACY_STATE_STORAGE_KEYS[1], rawPayload);
+  await client.setItem("bloom.localState.v6", rawPayload);
 
   const result = await loadBloomLocalState(client, fixedNow);
 
   assert(result.status === "corrupt", "Malformed nested state should not crash or load.");
   assert(
-    (await client.getItem(BLOOM_LEGACY_STATE_STORAGE_KEYS[1])) === rawPayload,
+    (await client.getItem("bloom.localState.v6")) === rawPayload,
     "Malformed legacy state must not be overwritten with defaults."
   );
   assert(
@@ -617,7 +618,7 @@ async function verifyUnsupportedVersionPreservation() {
 
 async function verifyFailedMigrationKeepsLegacyPayload() {
   const client = new TestStorageClient();
-  const legacyKey = BLOOM_LEGACY_STATE_STORAGE_KEYS[1];
+  const legacyKey = "bloom.localState.v6";
   const rawPayload = JSON.stringify({ onboarding: { completed: true } });
   await client.setItem(legacyKey, rawPayload);
   client.failWritesFor.add(BLOOM_STATE_STORAGE_KEY);
@@ -693,7 +694,7 @@ async function verifyQueuedSnapshotCapture() {
 
 async function verifyScopedDeletion() {
   const client = new TestStorageClient();
-  const legacyKey = BLOOM_LEGACY_STATE_STORAGE_KEYS[1];
+  const legacyKey = "bloom.localState.v6";
   const firstCorruptKey = `${BLOOM_CORRUPT_BACKUP_PREFIX}first`;
   const secondCorruptKey = `${BLOOM_CORRUPT_BACKUP_PREFIX}second`;
   const unrelatedKey = "another-library.state";
@@ -807,7 +808,7 @@ async function verifyDeletionInvalidatesDelayedLoad() {
 
 async function verifyDeletionDrainsDelayedMigration() {
   const client = new TestStorageClient();
-  const legacyKey = BLOOM_LEGACY_STATE_STORAGE_KEYS[1];
+  const legacyKey = "bloom.localState.v6";
   await client.setItem(
     legacyKey,
     JSON.stringify({ onboarding: { completed: true } })
@@ -839,7 +840,7 @@ async function verifyDeletionDrainsDelayedMigration() {
 
 async function verifyDeletionDrainsDelayedLegacyCleanup() {
   const client = new TestStorageClient();
-  const legacyKey = BLOOM_LEGACY_STATE_STORAGE_KEYS[1];
+  const legacyKey = "bloom.localState.v6";
   await client.setItem(
     legacyKey,
     JSON.stringify({ onboarding: { completed: true } })

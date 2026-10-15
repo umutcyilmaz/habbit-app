@@ -1,0 +1,66 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Practice typography default reset-active
+---
+- tapOn: {text: "Open", optional: true}
+- tapOn: {text: "Continue", optional: true}
+- tapOn: {id: "xmark", optional: true}
+- openLink: "tms-e2e:///bloom/practice"
+- waitForAnimationToEnd: {timeout: 1800}
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "reset-blocked"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.blocked.history"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: true
+    timeout: 90000
+    speed: 65
+- swipe: {start: "50%, 75%", end: "50%, 40%", duration: 400}
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "reset-blocked-actions"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.blocked.history"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: true
+    timeout: 90000
+    speed: 65
+- tapOn: {id: "practice.blocked.history"}
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "reset-history"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.history.answers"}
+    direction: DOWN
+    visibilityPercentage: 25
+    centerElement: true
+    timeout: 90000
+    speed: 65
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "reset-history-answers"}
+- runScript: capture-native.js
+- openLink: "tms-e2e:///today"
+- waitForAnimationToEnd: {timeout: 1800}
+- scrollUntilVisible:
+    element: {id: "practice.rule.1.title"}
+    direction: DOWN
+    visibilityPercentage: 25
+    centerElement: true
+    timeout: 90000
+    speed: 65
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "reset-home-practice"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.entry.home.history"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: true
+    timeout: 90000
+    speed: 65
+- swipe: {start: "50%, 75%", end: "50%, 40%", duration: 400}
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "reset-home-actions"}
+- runScript: capture-native.js

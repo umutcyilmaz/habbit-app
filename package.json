@@ -50,7 +50,9 @@
     "verify:audio": "node scripts/run-bloom-audio-verification.cjs",
     "verify:settings": "node scripts/verify-bloom-settings.cjs",
     "start:e2e:practice": "APP_VARIANT=e2e EXPO_PUBLIC_E2E_MODE=1 EXPO_PUBLIC_PRACTICE_PREVIEW=1 expo start --dev-client --localhost --port 8082",
-    "verify:practice": "node scripts/run-bloom-practice-verification.cjs && node scripts/verify-bloom-practice-ui.cjs"
+    "verify:practice": "node scripts/run-bloom-practice-verification.cjs && node scripts/verify-bloom-practice-ui.cjs",
+    "verify:practice:persistence": "node scripts/run-bloom-practice-persistence-verification.cjs && node scripts/verify-bloom-practice-integration.cjs",
+    "start:e2e:practice:persistence": "node scripts/require-practice-qa-run.cjs && APP_VARIANT=e2e EXPO_PUBLIC_E2E_MODE=1 EXPO_PUBLIC_PRACTICE_PERSISTENCE_QA=1 expo start --dev-client --localhost --port 8082"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",

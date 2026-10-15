@@ -1,0 +1,92 @@
+[
+  {
+    "file": "src/app/providers/AppProviders.tsx",
+    "before": "63b6f2cb52203ffc53a2e2ae8d4cb30d70afd5133d41506168f236d58f8accec",
+    "after": "63b6f2cb52203ffc53a2e2ae8d4cb30d70afd5133d41506168f236d58f8accec"
+  },
+  {
+    "file": "src/app/providers/BloomLocalStateProvider.tsx",
+    "before": "461d550432a71f10d5e8c97d73e17d528c0892b70dcd4cbb8fadd490e2f986c4",
+    "after": "461d550432a71f10d5e8c97d73e17d528c0892b70dcd4cbb8fadd490e2f986c4"
+  },
+  {
+    "file": "src/app/providers/bloomProductAcknowledgedActions.ts",
+    "before": "f2fa21c5c661c02bc88e67b1f64372bc34f512e3eb8c6f35f04add419047508e",
+    "after": "f2fa21c5c661c02bc88e67b1f64372bc34f512e3eb8c6f35f04add419047508e"
+  },
+  {
+    "file": "src/storage/bloomState.ts",
+    "before": "103fc87bdaa9c48952f58f4dc57e93218ec93f8b2c6dd7f3b9f4e349bf623802",
+    "after": "103fc87bdaa9c48952f58f4dc57e93218ec93f8b2c6dd7f3b9f4e349bf623802"
+  },
+  {
+    "file": "src/storage/bloomStatePersistence.ts",
+    "before": "37b1d99c1e39d62ce374262b59d2648225d8186b271395117d53ed9a3fb01e20",
+    "after": "37b1d99c1e39d62ce374262b59d2648225d8186b271395117d53ed9a3fb01e20"
+  },
+  {
+    "file": "src/storage/bloomStateSchema.ts",
+    "before": "5abf5dbe1581ef1fa7231afe8c1e61636e81b0738ad2a8d230192350f75ee682",
+    "after": "5abf5dbe1581ef1fa7231afe8c1e61636e81b0738ad2a8d230192350f75ee682"
+  },
+  {
+    "file": "src/app/providers/readPracticeAvailability.ts",
+    "before": "718a1eeae515f7d3ec517728a07dbfb138a9905dc5ca5ca5021a474cc9b6ffb6",
+    "after": "718a1eeae515f7d3ec517728a07dbfb138a9905dc5ca5ca5021a474cc9b6ffb6"
+  },
+  {
+    "file": "src/domain/models/PracticeState.ts",
+    "before": "850faa13f51254398810a35fb76771300823f223bc6de9822082c8e9a4aa7143",
+    "after": "850faa13f51254398810a35fb76771300823f223bc6de9822082c8e9a4aa7143"
+  },
+  {
+    "file": "src/domain/productPolicy/getPracticeAvailability.ts",
+    "before": "b741c59c32cae33d3196f78edad774298356d6d3f5e77da48361c0b593f007ef",
+    "after": "b741c59c32cae33d3196f78edad774298356d6d3f5e77da48361c0b593f007ef"
+  },
+  {
+    "file": "src/storage/bloomPracticeSchema.ts",
+    "before": "bcba791aaa33a4b3ddc4cfa2616edaefea1fef6f5b0e0185307f1dda6ca33559",
+    "after": "bcba791aaa33a4b3ddc4cfa2616edaefea1fef6f5b0e0185307f1dda6ca33559"
+  },
+  {
+    "file": "src/storage/bloomPracticeTransitions.ts",
+    "before": "89034c1dba8b9e905deb7d3ef0e26ebc5861d9a00423caf3c0a2a04173d4a244",
+    "after": "89034c1dba8b9e905deb7d3ef0e26ebc5861d9a00423caf3c0a2a04173d4a244"
+  },
+  {
+    "file": "package.json",
+    "before": "2279c67ebc16ff710233c53f5226306b907c87e893d4ce1b32478231bb7d240f",
+    "after": "2279c67ebc16ff710233c53f5226306b907c87e893d4ce1b32478231bb7d240f"
+  },
+  {
+    "file": "src/features/practice/practiceHistory.ts",
+    "before": "7cfafc1a675e3f91c7e42d00aa5e1ee1e175e29889d576f3be4b531588e86829",
+    "after": "7cfafc1a675e3f91c7e42d00aa5e1ee1e175e29889d576f3be4b531588e86829"
+  },
+  {
+    "file": "src/features/practice/practicePersistenceController.ts",
+    "before": "85db922f8e79ee8dc6e637db9757f160a088beacccd4f787446ff9e6d208339e",
+    "after": "85db922f8e79ee8dc6e637db9757f160a088beacccd4f787446ff9e6d208339e"
+  },
+  {
+    "file": "src/features/practice/practicePreviewRuntime.ts",
+    "before": "2c28178431c6b614dba49b3b9dc53b78599b6338e59cedb2d66777830ef9a1d9",
+    "after": "2c28178431c6b614dba49b3b9dc53b78599b6338e59cedb2d66777830ef9a1d9"
+  },
+  {
+    "file": "src/features/practice/practiceSession.ts",
+    "before": "51cd8f74ed29513cafee9fc1a6f5f989008e5332eaad5cc377943c98dd4bd471",
+    "after": "51cd8f74ed29513cafee9fc1a6f5f989008e5332eaad5cc377943c98dd4bd471"
+  },
+  {
+    "file": "src/shared/components/v4/AppText.tsx",
+    "before": "19364d2143e0a881b5795b20cd0adb142750164d9d68d378ae90b17a1cabe7b4",
+    "after": "19364d2143e0a881b5795b20cd0adb142750164d9d68d378ae90b17a1cabe7b4"
+  },
+  {
+    "file": "src/shared/design-system/v4/typography.ts",
+    "before": "9b8bd0be41a14bae3e4cf2a4f68d095d4c203e9bf8d9729932efbe986f79fc9a",
+    "after": "9b8bd0be41a14bae3e4cf2a4f68d095d4c203e9bf8d9729932efbe986f79fc9a"
+  }
+]

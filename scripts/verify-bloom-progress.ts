@@ -252,7 +252,7 @@ async function verifyDurableBoundary() {
 }
 
 async function verifyV7RoundTrips() {
-  assert(BLOOM_PERSISTENCE_VERSION === 8 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v8", "Progress must preserve persistence v7.");
+  assert(BLOOM_PERSISTENCE_VERSION === 9 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v9", "Progress must preserve persistence v7.");
   const f = createResetContinuityFixture();
   const completed = completeElapsedResetPeriodState(f.state, { observedAt: f.observeDays(20) });
   const continued = decideResetContentFreeContinuationState(completed, { decision: "accepted", decidedAt: f.observeDays(20), activationId: "roundtrip-credit" });

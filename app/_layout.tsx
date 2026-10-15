@@ -46,6 +46,8 @@ export default function RootLayout() {
         <Stack.Screen name="bloom/library/category" options={{animation:reduced ? "none" : "slide_from_right"}} />
         <Stack.Screen name="bloom/library/sound" options={{animation:reduced ? "none" : "slide_from_right"}} />
         <Stack.Screen name="bloom/library/article" options={{animation:reduced ? "none" : "slide_from_right"}} />
+        <Stack.Screen name="bloom/practice/index" options={{animation:reduced ? "none" : "fade"}} />
+        <Stack.Screen name="bloom/practice/history" options={{animation:reduced ? "none" : "slide_from_right"}} />
         <Stack.Screen name="bloom/kegel" options={{animation:reduced ? "none" : "fade"}} />
         {settingsHeaders.map(([name,title])=><Stack.Screen key={name} name={name} options={{
           title,headerShown:true,headerStyle:{backgroundColor:"#000"},headerShadowVisible:false,headerTintColor:"#fff",

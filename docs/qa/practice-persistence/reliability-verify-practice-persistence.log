@@ -1,0 +1,6 @@
+
+> tms@0.1.0 verify:practice:persistence
+> node scripts/run-bloom-practice-persistence-verification.cjs && node scripts/verify-bloom-practice-integration.cjs
+
+Practice persistence: strict domain invariants; empty/populated v8 lossless migration + raw recovery; corrupt/future fail closed; intro acknowledgement; duplicate/delayed/unknown/failed writes + exact retry; immutable identity; concurrent supersession/current confirmation; deletion barriers/relaunch; durable history/timezone; all cross-feature slices preserved — passed.
+Practice integration: 108 QA gate combinations, invalid startup fails closed, new-namespace-only initialization/faults/deletion/no reseeding, canonical/prior-QA sentinels, actual Home/Library/article/history CTA handlers + stale state/Reset guard and production route isolation passed.

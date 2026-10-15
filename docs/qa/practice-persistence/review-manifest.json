@@ -1,0 +1,21 @@
+{
+  "baseline": "45523f688a123185f3b5504b9eb242ed7d192ad2",
+  "branch": "feature/product-ui-v1",
+  "proposalOnly": true,
+  "changedFileCount": 331,
+  "textFileCount": 271,
+  "pngCount": 60,
+  "totalBytes": 14827028,
+  "pngBytes": 12779072,
+  "localOnlyPNGCount": 308,
+  "sizeMeaning": "Working-tree byte sum; not compressed Git pack/upload bytes",
+  "noStagingCommitOrPush": true,
+  "excluded": [
+    "308 raw/intermediate PNGs retained locally (per-folder .gitignore)",
+    "local-raw-screenshots.json inventories",
+    "docs/patches/ (all local patches preserved)",
+    ".local-design/",
+    "temporary files",
+    "unrelated prior QA/log files"
+  ]
+}

@@ -36,8 +36,8 @@ const legacyKeys = ["onboarding", "activePlan", "tenDayReset", "protection", "pa
 type AcceptanceInput = Parameters<typeof acceptProductOnboardingRecommendationState>[1];
 
 export async function verifyBloomPlanAcceptance() {
-  assert(BLOOM_PERSISTENCE_VERSION === 8 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v8", "Plan acceptance must use canonical v7 persistence.");
-  equal(BLOOM_LEGACY_STATE_STORAGE_KEYS, [v7Key, v6Key, v5Key, v4Key, v3Key, v2Key, v1Key], "Migration must prefer v6, v5, v4, v3, v2, then v1.");
+  assert(BLOOM_PERSISTENCE_VERSION === 9 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v9", "Plan acceptance must use canonical v7 persistence.");
+  equal(BLOOM_LEGACY_STATE_STORAGE_KEYS, ["bloom.localState.v8", v7Key, v6Key, v5Key, v4Key, v3Key, v2Key, v1Key], "Migration must prefer v6, v5, v4, v3, v2, then v1.");
   verifyRecommendationTransitions();
   const rejectedInputs = verifySafePreconditions();
   await verifyAcceptedRoundTrips();
@@ -213,7 +213,7 @@ async function verifyOlderMigrationAndPrecedence() {
   const v5 = { ...current, debug: { dateOffsetDays: 5 } };
   const previous = asV4(withPendingResult(createPopulatedState(), "reset"));
   const client = new PlanTestStorage();
-  client.values.set(BLOOM_STATE_STORAGE_KEY, envelope(8, current));
+  client.values.set(BLOOM_STATE_STORAGE_KEY, envelope(9, current));
   client.values.set(v6Key, envelope(6, v6));
   client.values.set(v5Key, envelope(5, v5));
   client.values.set(v4Key, envelope(4, previous));
@@ -296,10 +296,10 @@ async function verifyMalformedAcceptance() {
     const state = clone(accepted) as unknown as { productOnboarding: Record<string, unknown> };
     if (marker === undefined) delete state.productOnboarding.planAcceptance;
     else state.productOnboarding.planAcceptance = marker;
-    await assertCorruptPreserved(envelope(8, state), BLOOM_STATE_STORAGE_KEY, label);
+    await assertCorruptPreserved(envelope(9, state), BLOOM_STATE_STORAGE_KEY, label);
   }
   for (const marker of [null, { acceptedAt, recommendation: "content_free" }]) {
-    await assertCorruptPreserved(envelope(8, { ...createDefaultBloomState(), productOnboarding: { status: "notCompleted", result: null, planAcceptance: marker } }), BLOOM_STATE_STORAGE_KEY, "notCompleted must not carry acceptance");
+    await assertCorruptPreserved(envelope(9, { ...createDefaultBloomState(), productOnboarding: { status: "notCompleted", result: null, planAcceptance: marker } }), BLOOM_STATE_STORAGE_KEY, "notCompleted must not carry acceptance");
   }
   const v4 = asV4(withPendingResult(createDefaultBloomState(), "content_free"));
   await assertCorruptPreserved(envelope(4, { ...v4, productOnboarding: { ...v4.productOnboarding, inventedFact: true } }), v4Key, "v4 must still validate its original onboarding shape");

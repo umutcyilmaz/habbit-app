@@ -1,0 +1,26 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Production Practice available Home Library and accessible saved history
+---
+- openLink: "tms-e2e:///today"
+- scrollUntilVisible:
+    element: {id: "practice.entry.home"}
+    direction: DOWN
+    centerElement: true
+- takeScreenshot: "22-native-home-available"
+- tapOn: {id: "practice.entry.home.start"}
+- assertVisible: {id: "practice.instructions"}
+- assertNotVisible: {id: "practice.running"}
+- tapOn: {id: "practice.exit"}
+- openLink: "tms-e2e:///library"
+- scrollUntilVisible:
+    element: {id: "practice.entry.library"}
+    direction: DOWN
+    centerElement: true
+- takeScreenshot: "23-native-library-available"
+- tapOn: {id: "practice.entry.library.start"}
+- assertVisible: {id: "practice.instructions"}
+- assertNotVisible: {id: "practice.running"}
+- tapOn: {id: "practice.exit"}
+- openLink: "tms-e2e:///bloom/practice/history"
+- assertVisible: {id: "practice.history.record"}
+- takeScreenshot: "24-native-history-normal"

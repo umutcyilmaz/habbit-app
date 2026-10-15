@@ -1,0 +1,32 @@
+[
+  {
+    "case": "camera-narrow-default-reset",
+    "practiceSliceMatchesOriginalFixture": true,
+    "nonPracticeDifferingFields": []
+  },
+  {
+    "case": "camera-narrow-maximum-reset-heightfinal",
+    "practiceSliceMatchesOriginalFixture": true,
+    "nonPracticeDifferingFields": []
+  },
+  {
+    "case": "camera-narrow-moderate-reset",
+    "practiceSliceMatchesOriginalFixture": true,
+    "nonPracticeDifferingFields": []
+  },
+  {
+    "case": "camera-target-default-reset",
+    "practiceSliceMatchesOriginalFixture": true,
+    "nonPracticeDifferingFields": []
+  },
+  {
+    "case": "camera-target-maximum-reset-heightfinal",
+    "practiceSliceMatchesOriginalFixture": true,
+    "nonPracticeDifferingFields": []
+  },
+  {
+    "case": "camera-target-moderate-reset",
+    "practiceSliceMatchesOriginalFixture": true,
+    "nonPracticeDifferingFields": []
+  }
+]

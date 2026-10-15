@@ -1,0 +1,19 @@
+Running on iPhone 17 Pro - iOS 26.3 - E280FA31-F2B5-4FF9-B57E-A8991C051C77
+ > Flow Whole-app deletion confined to NEW isolated Practice namespace
+Open tms-e2e:///debug/practice-persistence... COMPLETED
+Assert that "İzole Practice QA" is visible... COMPLETED
+Open tms-e2e:///settings/data-controls... COMPLETED
+Scrolling DOWN until id: bloom.settings.delete-open is visible with speed 40, visibility percentage 100%, timeout 20000 ms, with centering enabled... COMPLETED
+Tap on id: bloom.settings.delete-open... COMPLETED
+Scrolling DOWN until id: bloom.settings.delete-accessible is visible with speed 40, visibility percentage 100%, timeout 20000 ms, with centering enabled... COMPLETED
+Tap on id: bloom.settings.delete-accessible... COMPLETED
+Tap on "Kalıcı olarak sil"... COMPLETED
+Assert that id: bloom.onboarding.intro is visible... COMPLETED
+Take screenshot native-deletion-completed... COMPLETED
+Stop com.umutcyilmaz.bloom.e2e... COMPLETED
+Launch app "com.umutcyilmaz.bloom.e2e"... COMPLETED
+Open tms-e2e:///bloom/practice/history... COMPLETED
+Assert that id: practice.history.empty is visible... COMPLETED
+Take screenshot native-deletion-rehydrated-empty-history... COMPLETED
+Open tms-e2e:///debug/practice-persistence... COMPLETED
+Assert that "Kalıcı pratik: 0" is visible... COMPLETED

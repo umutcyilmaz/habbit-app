@@ -1,0 +1,7 @@
+
+> tms@0.1.0 verify:home-ui
+> node scripts/run-bloom-home-ui-verification.cjs
+
+Bloom Home UI verification passed (inactive activation, saving/retry feedback, presentation metrics, card ordering, semantic actions, hydration, and durable hook wiring).
+Home animation/clock harness passed: real elapsed values, capped Reset, invalid/future clocks, focus/foreground cleanup, native fog and Reduced Motion. Not a mounted renderer.
+Content-Free root transition harness passed: actual route chooses no animation for Reduced Motion; route path and guarded navigator unchanged.

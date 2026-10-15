@@ -1,0 +1,39 @@
+{
+  "baselineHead": "45523f688a123185f3b5504b9eb242ed7d192ad2",
+  "baselinedSourceCount": 109,
+  "changedSourceFiles": [
+    "src/features/practice/PracticeFeatureScreen.tsx",
+    "src/features/practice/PracticePreviewScreen.tsx"
+  ],
+  "otherBaselinedSourcesUnchanged": 107,
+  "allOriginalRawPNGsUnchanged": true,
+  "rawPNGCount": 368,
+  "rawPNGBytes": 83249883,
+  "storageAccessedByThisTask": false,
+  "protectedTypographySources": [
+    {
+      "file": "src/features/practice/PracticeButton.tsx",
+      "sha256": "10a090ebe4b2594b0ac26b2d0e6a17afa03447bac12e3cd2734a8cbfca7bb205"
+    },
+    {
+      "file": "src/features/practice/PracticeText.tsx",
+      "sha256": "92f2f2b525ed4d6cb532acb1030284934077b307c6417c6c28522ce058141935"
+    },
+    {
+      "file": "src/features/practice/PracticeVisuals.tsx",
+      "sha256": "1b580ed4204642699a08589d4c027a9e6990c3b98318cc39730e0d60c1ce4c33"
+    },
+    {
+      "file": "src/features/practice/practiceTypography.ts",
+      "sha256": "4ae4ade15ad7090fabf4b32c5908dca8ddd886eb3c3e650ecbe1feaaea796dd6"
+    },
+    {
+      "file": "src/shared/components/v4/AppText.tsx",
+      "sha256": "19364d2143e0a881b5795b20cd0adb142750164d9d68d378ae90b17a1cabe7b4"
+    },
+    {
+      "file": "src/shared/design-system/v4/typography.ts",
+      "sha256": "9b8bd0be41a14bae3e4cf2a4f68d095d4c203e9bf8d9729932efbe986f79fc9a"
+    }
+  ]
+}

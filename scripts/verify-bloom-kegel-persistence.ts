@@ -46,7 +46,7 @@ async function verify(){
   assert.equal(loaded.source,"legacy");assert.deepEqual(withoutKegel(loaded.state),withoutKegel(baseline));
   assert.deepEqual(loaded.state.kegel,{onboardingCompletedAt:null,sessions:[]});
   assert.equal(storage.values.get("bloom.localState.v7"),rawV7,"v7 recovery bytes retained after durable v8 migration");
-  assert.equal(JSON.parse(storage.values.get(BLOOM_STATE_STORAGE_KEY)!).version,8);
+  assert.equal(JSON.parse(storage.values.get(BLOOM_STATE_STORAGE_KEY)!).version,9);
   const h=harness(loaded.state,storage);
   assert((await h.controller.completeOnboarding(now().toISOString()))?.ok);
   const first=session("kegel-first"),second=session("kegel-second");

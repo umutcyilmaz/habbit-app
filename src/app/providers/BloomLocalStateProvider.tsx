@@ -1,3 +1,4 @@
+import { readPracticeAvailability } from "./readPracticeAvailability";
 import {
   createContext,
   useCallback,
@@ -109,6 +110,7 @@ type BloomLocalStateContextValue = {
   durableState: BloomLocalState;
   getAcceptedState: () => BloomLocalState;
   getDurableState: () => BloomLocalState;
+  getPracticeAvailability: () => ReturnType<typeof readPracticeAvailability>;
   confirmCurrentPersistence: () => Promise<BloomPersistedMutationResult>;
   productActions: BloomProductAcknowledgedActions;
   isLoading: boolean;
@@ -415,14 +417,16 @@ export function BloomLocalStateProvider({ children, runtime = defaultRuntime }: 
   const getAcceptedState = useCallback(() => mutationRuntime.getState(), [mutationRuntime]);
 
   const getDurableState = useCallback(() => mutationRuntime.getDurableState(), [mutationRuntime]);
+  const getPracticeAvailability = useCallback(() => readPracticeAvailability(mutationRuntime), [mutationRuntime]);
   const confirmCurrentPersistence = useCallback(() => mutationRuntime.confirmCurrentPersistence(), [mutationRuntime]);
 
   const productActions = useMemo(
     () =>
       createBloomProductAcknowledgedActions({
-        applyAcknowledgedMutation: applyAcknowledgedStateMutation
+        applyAcknowledgedMutation: applyAcknowledgedStateMutation,
+        isPracticeStateConfirmed: state => mutationRuntime.getHydrationStatus() === "ready" && !mutationRuntime.isWritesBlocked() && state === mutationRuntime.getDurableState()
       }),
-    [applyAcknowledgedStateMutation]
+    [applyAcknowledgedStateMutation, mutationRuntime]
   );
 
   const {
@@ -753,6 +757,7 @@ export function BloomLocalStateProvider({ children, runtime = defaultRuntime }: 
       durableState,
       getAcceptedState,
       getDurableState,
+      getPracticeAvailability,
       confirmCurrentPersistence,
       productActions,
       isLoading,
@@ -817,6 +822,7 @@ export function BloomLocalStateProvider({ children, runtime = defaultRuntime }: 
       hasHydrated,
       getAcceptedState,
       getDurableState,
+      getPracticeAvailability,
       confirmCurrentPersistence,
       runtime,
       hydrationError,

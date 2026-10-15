@@ -1,0 +1,25 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Isolated populated v8 migration and independent explicit-content Practice
+---
+- openLink: "tms-e2e:///debug/practice-persistence"
+- assertVisible: "Kalıcı pratik: 0"
+- tapOn: {id: "practice.qa.history"}
+- assertVisible: {id: "practice.history.empty"}
+- takeScreenshot: "native-empty-history"
+- openLink: "tms-e2e:///debug/practice-persistence"
+- tapOn: {id: "practice.qa.start"}
+- tapOn: {id: "practice.start"}
+- tapOn: {id: "practice.start.confirm"}
+- assertVisible: {id: "practice.running"}
+- tapOn: {id: "practice.finish"}
+- tapOn: {id: "practice.skip"}
+- tapOn: {id: "practice.content.yes"}
+- tapOn: {id: "practice.next"}
+- tapOn: {id: "practice.skip"}
+- tapOn: {id: "practice.save"}
+- assertVisible: {id: "practice.saved"}
+- tapOn: {id: "practice.done"}
+- assertVisible: {id: "practice.history.record"}
+- takeScreenshot: "native-populated-preserved-history"
+- openLink: "tms-e2e:///debug/practice-persistence"
+- assertVisible: "Kalıcı pratik: 1"

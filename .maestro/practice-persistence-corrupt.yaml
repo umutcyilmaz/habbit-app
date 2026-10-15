@@ -1,0 +1,12 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Isolated corrupt or future v9 fails closed without fallback
+---
+- openLink: "tms-e2e:///bloom/practice"
+- assertVisible: "Bloom couldn’t load your local data."
+- assertNotVisible: {id: "practice.start"}
+- assertNotVisible: {id: "practice.running"}
+- takeScreenshot: "native-storage-fails-closed"
+- stopApp
+- launchApp:
+    clearState: false
+- assertVisible: "Bloom couldn’t load your local data."

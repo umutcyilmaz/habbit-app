@@ -1,0 +1,392 @@
+[
+  {
+    "file": "narrow-default-intro.png",
+    "bytes": 354368,
+    "sha256": "ed8ea5c9077df740965dbe8c6b433650cf7aa740073c2e9c319d3280d599158e",
+    "width": 1080,
+    "height": 2340,
+    "visualCorrectnessEstablishedByHash": false,
+    "explicitPixelInspectionRecorded": true,
+    "rejectedCandidate": false
+  },
+  {
+    "file": "narrow-maximum-intro-actions.png",
+    "bytes": 269637,
+    "sha256": "05f647a2968dd66966ba60e10f2ad6f575fd6c8884faf7c1ad083e174a08fd7e",
+    "width": 1080,
+    "height": 2340,
+    "visualCorrectnessEstablishedByHash": false,
+    "explicitPixelInspectionRecorded": true,
+    "rejectedCandidate": false
+  },
+  {
+    "file": "narrow-maximum-intro.png",
+    "bytes": 294887,
+    "sha256": "342e7b771af988a532eaca2203c40ce48d575c56560e226670228bf90e6c7410",
+    "width": 1080,
+    "height": 2340,
+    "visualCorrectnessEstablishedByHash": false,
+    "explicitPixelInspectionRecorded": true,
+    "rejectedCandidate": false
+  },
+  {
+    "file": "narrow-maximum-question-1-endpoints.png",
+    "bytes": 182072,
+    "sha256": "8ac0137439445cfeff88a208593d5a754d6cc7d4be97c3f3d251e813e6df8e2a",
+    "width": 1080,
+    "height": 2340,
+    "visualCorrectnessEstablishedByHash": false,
+    "explicitPixelInspectionRecorded": true,
+    "rejectedCandidate": false
+  },
+  {
+    "file": "narrow-maximum-question-2-warning.png",
+    "bytes": 283471,
+    "sha256": "13f353263b3e93ed8b3e132106750c89b00f52e773e66ee6c124d1a9aceaae54",
+    "width": 1080,
+    "height": 2340,
+    "visualCorrectnessEstablishedByHash": false,
+    "explicitPixelInspectionRecorded": true,
+    "rejectedCandidate": false
+  },
+  {
+    "file": "narrow-maximum-reset-reset-home-actions.png",
+    "bytes": 271311,
+    "sha256": "d71173e435b721faa76ba1b9dab1975ffb938ec2c3d7540f2562598c57ff3e0e",
+    "width": 1080,
+    "height": 2340,
+    "visualCorrectnessEstablishedByHash": false,
+    "explicitPixelInspectionRecorded": true,
+    "rejectedCandidate": false
+  },
+  {
+    "file": "narrow-maximum-save-retry.png",
+    "bytes": 273374,
+    "sha256": "c81b9aa9a1c4310064f354cebbfe96dadbb8624f2070ca2276ea14f46411bb24",
+    "width": 1080,
+    "height": 2340,
+    "visualCorrectnessEstablishedByHash": false,
+    "explicitPixelInspectionRecorded": true,
+    "rejectedCandidate": false
+  },
+  {
+    "file": "narrow-moderate-intro.png",
+    "bytes": 315830,
+    "sha256": "edac9e8aec0cb34efb22d6715810d33968085b97c920d5c96d4d95b3d792968f",
+    "width": 1080,
+    "height": 2340,
+    "visualCorrectnessEstablishedByHash": false,
+    "explicitPixelInspectionRecorded": true,
+    "rejectedCandidate": false
+  },
+  {
+    "file": "rejected-narrow-maximum-paragraph.png",
+    "bytes": 275452,
+    "sha256": "b673762538404fced5204f3d893585c64901d79a271d74eabb544c9a931ecf10",
+    "width": 1080,
+    "height": 2340,
+    "visualCorrectnessEstablishedByHash": false,
+    "explicitPixelInspectionRecorded": true,
+    "rejectedCandidate": true
+  },
+  {
+    "file": "target-default-history-answers.png",
+    "bytes": 266064,
+    "sha256": "b562ad22a62ab2bcd47178d7c4ee445cdbf7a53d7f2a236465262ed1a8a6582a",
+    "width": 1206,
+    "height": 2622,
+    "visualCorrectnessEstablishedByHash": false,
+    "explicitPixelInspectionRecorded": true,
+    "rejectedCandidate": false
+  },
+  {
+    "file": "target-default-intro.png",
+    "bytes": 271767,
+    "sha256": "62b228de894b8a714d191017356fccc15dd2a23c6bc23062c8bf991e218653bd",
+    "width": 1206,
+    "height": 2622,
+    "visualCorrectnessEstablishedByHash": false,
+    "explicitPixelInspectionRecorded": true,
+    "rejectedCandidate": false
+  },
+  {
+    "file": "target-default-paused-actions.png",
+    "bytes": 208960,
+    "sha256": "1756cd870539d376ad60174b313c2cfed03755a5c2d2a4d08fa217943a7f6f9d",
+    "width": 1206,
+    "height": 2622,
+    "visualCorrectnessEstablishedByHash": false,
+    "explicitPixelInspectionRecorded": true,
+    "rejectedCandidate": false
+  },
+  {
+    "file": "target-default-question-1-endpoints.png",
+    "bytes": 179810,
+    "sha256": "8cb9df54995d0f5ec40791e811e3002c9a7f876aad87d8a2754c0f896331d608",
+    "width": 1206,
+    "height": 2622,
+    "visualCorrectnessEstablishedByHash": false,
+    "explicitPixelInspectionRecorded": true,
+    "rejectedCandidate": false
+  },
+  {
+    "file": "target-default-question-2-warning.png",
+    "bytes": 200305,
+    "sha256": "42255ed29266c2fbed8259175771e90823dc58c6ab9b5b77a9286cff93e8c3dc",
+    "width": 1206,
+    "height": 2622,
+    "visualCorrectnessEstablishedByHash": false,
+    "explicitPixelInspectionRecorded": true,
+    "rejectedCandidate": false
+  },
+  {
+    "file": "target-default-question-3-feelings.png",
+    "bytes": 196306,
+    "sha256": "48b87c92eca46f7d3a93c078952c00f93347e908e3cef37214fe1eebe702ff15",
+    "width": 1206,
+    "height": 2622,
+    "visualCorrectnessEstablishedByHash": false,
+    "explicitPixelInspectionRecorded": true,
+    "rejectedCandidate": false
+  },
+  {
+    "file": "target-default-running.png",
+    "bytes": 211796,
+    "sha256": "0fcdf5b5ce6075cbf36820ff559623a06f49f72e1135cbcd631d9cdc110f1af7",
+    "width": 1206,
+    "height": 2622,
+    "visualCorrectnessEstablishedByHash": false,
+    "explicitPixelInspectionRecorded": true,
+    "rejectedCandidate": false
+  },
+  {
+    "file": "target-default-save-retry.png",
+    "bytes": 192204,
+    "sha256": "9cebde025d26b5ff1d4e17329d15e36bdc59f1b0441108ad4327bcdc82b87513",
+    "width": 1206,
+    "height": 2622,
+    "visualCorrectnessEstablishedByHash": false,
+    "explicitPixelInspectionRecorded": true,
+    "rejectedCandidate": false
+  },
+  {
+    "file": "target-default-saved-actions.png",
+    "bytes": 203013,
+    "sha256": "f6432abb5fa630b96e13e087a84ab84c6ee619c0db03f3fc359402f7de269cb6",
+    "width": 1206,
+    "height": 2622,
+    "visualCorrectnessEstablishedByHash": false,
+    "explicitPixelInspectionRecorded": true,
+    "rejectedCandidate": false
+  },
+  {
+    "file": "target-default-start-dialog.png",
+    "bytes": 235081,
+    "sha256": "519793683b8b5a1e5f8d1c6f044283f84e89446e29e139fbef578f898d73e828",
+    "width": 1206,
+    "height": 2622,
+    "visualCorrectnessEstablishedByHash": false,
+    "explicitPixelInspectionRecorded": true,
+    "rejectedCandidate": false
+  },
+  {
+    "file": "target-default-summary-actions.png",
+    "bytes": 189216,
+    "sha256": "456b03f1a07160c688e2cfa4f10cbf09bd9ad5b781c3065e8d77e9d50470da35",
+    "width": 1206,
+    "height": 2622,
+    "visualCorrectnessEstablishedByHash": false,
+    "explicitPixelInspectionRecorded": true,
+    "rejectedCandidate": false
+  },
+  {
+    "file": "target-maximum-exit-dialog-actions.png",
+    "bytes": 201675,
+    "sha256": "6025a43603b22403bc68c85eb59ccc5d4668171e9239a79840969c9fe45aeafa",
+    "width": 1206,
+    "height": 2622,
+    "visualCorrectnessEstablishedByHash": false,
+    "explicitPixelInspectionRecorded": true,
+    "rejectedCandidate": false
+  },
+  {
+    "file": "target-maximum-history-answers.png",
+    "bytes": 196483,
+    "sha256": "44151f2516e89976b0f11328ec9937470cd3584b55f94fa6b3c35d050f086ef0",
+    "width": 1206,
+    "height": 2622,
+    "visualCorrectnessEstablishedByHash": false,
+    "explicitPixelInspectionRecorded": true,
+    "rejectedCandidate": false
+  },
+  {
+    "file": "target-maximum-history-empty-body.png",
+    "bytes": 226710,
+    "sha256": "58542fd0ebcacc289a236aee7a12bdaf4af4bec0d2e6a1807fd681509f24285e",
+    "width": 1206,
+    "height": 2622,
+    "visualCorrectnessEstablishedByHash": false,
+    "explicitPixelInspectionRecorded": true,
+    "rejectedCandidate": false
+  },
+  {
+    "file": "target-maximum-home-practice-actions.png",
+    "bytes": 240976,
+    "sha256": "6863dd6330684e82e3927f02c0fa12b69101d668cb2af30a00c705f1affb86f3",
+    "width": 1206,
+    "height": 2622,
+    "visualCorrectnessEstablishedByHash": false,
+    "explicitPixelInspectionRecorded": true,
+    "rejectedCandidate": false
+  },
+  {
+    "file": "target-maximum-intro.png",
+    "bytes": 231648,
+    "sha256": "443857f4aa9857802902a8ccee59e0a6773d735ad37a763ecdc0df17078c11d0",
+    "width": 1206,
+    "height": 2622,
+    "visualCorrectnessEstablishedByHash": false,
+    "explicitPixelInspectionRecorded": true,
+    "rejectedCandidate": false
+  },
+  {
+    "file": "target-maximum-paused-actions.png",
+    "bytes": 188856,
+    "sha256": "a59c06e430b0b2e188a0d72af2c1381d515f310a196cba11402704dadfc74d51",
+    "width": 1206,
+    "height": 2622,
+    "visualCorrectnessEstablishedByHash": false,
+    "explicitPixelInspectionRecorded": true,
+    "rejectedCandidate": false
+  },
+  {
+    "file": "target-maximum-question-1-endpoints.png",
+    "bytes": 157384,
+    "sha256": "73026c0aaeb23f27f77d90f8ca4775bd187489ad7eb031c878b8f2b7355c4fe9",
+    "width": 1206,
+    "height": 2622,
+    "visualCorrectnessEstablishedByHash": false,
+    "explicitPixelInspectionRecorded": true,
+    "rejectedCandidate": false
+  },
+  {
+    "file": "target-maximum-question-2-warning.png",
+    "bytes": 219579,
+    "sha256": "4f386cf5e49cec4a853d5c3ca56497014ebb03dbaad197dc9c6a432807baa669",
+    "width": 1206,
+    "height": 2622,
+    "visualCorrectnessEstablishedByHash": false,
+    "explicitPixelInspectionRecorded": true,
+    "rejectedCandidate": false
+  },
+  {
+    "file": "target-maximum-question-3-feelings.png",
+    "bytes": 210021,
+    "sha256": "37edb2f74323734a3a6619ea206a8da960943631af21dd02263d29b290dbf3ba",
+    "width": 1206,
+    "height": 2622,
+    "visualCorrectnessEstablishedByHash": false,
+    "explicitPixelInspectionRecorded": true,
+    "rejectedCandidate": false
+  },
+  {
+    "file": "target-maximum-reset-reset-blocked-actions.png",
+    "bytes": 225460,
+    "sha256": "44d44827b58e6e4afd7e22787a865508947e63dd1662bc64148be32f835c938a",
+    "width": 1206,
+    "height": 2622,
+    "visualCorrectnessEstablishedByHash": false,
+    "explicitPixelInspectionRecorded": true,
+    "rejectedCandidate": false
+  },
+  {
+    "file": "target-maximum-running.png",
+    "bytes": 211147,
+    "sha256": "267cf5eb44f60396a7987996b3779b8e21f7396e6b7231490c6ae7f0f6e69229",
+    "width": 1206,
+    "height": 2622,
+    "visualCorrectnessEstablishedByHash": false,
+    "explicitPixelInspectionRecorded": true,
+    "rejectedCandidate": false
+  },
+  {
+    "file": "target-maximum-save-retry.png",
+    "bytes": 217481,
+    "sha256": "14539efd3665cbb37be585f04fcb4261a4c56edfe739719494690ac150a74aea",
+    "width": 1206,
+    "height": 2622,
+    "visualCorrectnessEstablishedByHash": false,
+    "explicitPixelInspectionRecorded": true,
+    "rejectedCandidate": false
+  },
+  {
+    "file": "target-maximum-saved-actions.png",
+    "bytes": 190292,
+    "sha256": "a4cb62df45691a3d178d7124544a4d7dd85129bf8df4ab02e94400edb384bd03",
+    "width": 1206,
+    "height": 2622,
+    "visualCorrectnessEstablishedByHash": false,
+    "explicitPixelInspectionRecorded": true,
+    "rejectedCandidate": false
+  },
+  {
+    "file": "target-maximum-saved.png",
+    "bytes": 188768,
+    "sha256": "a544059257ea75e80fcf565e7c5b3fae8f6b96b47a98ca0789903491db42d0f8",
+    "width": 1206,
+    "height": 2622,
+    "visualCorrectnessEstablishedByHash": false,
+    "explicitPixelInspectionRecorded": true,
+    "rejectedCandidate": false
+  },
+  {
+    "file": "target-maximum-start-dialog-actions.png",
+    "bytes": 192587,
+    "sha256": "d1080868dcfab0d0d139f43bad50d0f7e5c12c38af73c12a2c1c784055b35506",
+    "width": 1206,
+    "height": 2622,
+    "visualCorrectnessEstablishedByHash": false,
+    "explicitPixelInspectionRecorded": true,
+    "rejectedCandidate": false
+  },
+  {
+    "file": "target-maximum-summary-actions.png",
+    "bytes": 179162,
+    "sha256": "6eaba5294f0088dd90b057828e5bb118b33354010016d1ceb382250f5e96a1c0",
+    "width": 1206,
+    "height": 2622,
+    "visualCorrectnessEstablishedByHash": false,
+    "explicitPixelInspectionRecorded": true,
+    "rejectedCandidate": false
+  },
+  {
+    "file": "target-maximum-summary-reports.png",
+    "bytes": 179162,
+    "sha256": "6eaba5294f0088dd90b057828e5bb118b33354010016d1ceb382250f5e96a1c0",
+    "width": 1206,
+    "height": 2622,
+    "visualCorrectnessEstablishedByHash": false,
+    "explicitPixelInspectionRecorded": true,
+    "rejectedCandidate": false
+  },
+  {
+    "file": "target-moderate-intro.png",
+    "bytes": 229983,
+    "sha256": "a46ea5d9e7c9d20bf75524d0284d4583d3ee79a7ef65de149460a60978adef9b",
+    "width": 1206,
+    "height": 2622,
+    "visualCorrectnessEstablishedByHash": false,
+    "explicitPixelInspectionRecorded": true,
+    "rejectedCandidate": false
+  },
+  {
+    "file": "target-moderate-question-1-endpoints.png",
+    "bytes": 190942,
+    "sha256": "5a806bd8239d6afbe4c95eccc3a53e2e750c3ddaaeca93cf7dde4fbce3065ca8",
+    "width": 1206,
+    "height": 2622,
+    "visualCorrectnessEstablishedByHash": false,
+    "explicitPixelInspectionRecorded": true,
+    "rejectedCandidate": false
+  }
+]

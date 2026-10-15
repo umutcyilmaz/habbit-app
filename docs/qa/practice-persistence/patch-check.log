@@ -1,0 +1,2 @@
+git apply --check --reverse docs/patches/phase11-7-2-reliability-publication-text-only.patch: passed (exit 0)
+Previous local review patches remain intact; not regenerated.

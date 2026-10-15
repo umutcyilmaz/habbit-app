@@ -1,0 +1,329 @@
+Running on Bloom Practice Typography QA Target - iOS 26.3 - 3C8CE983-39F5-41A0-B781-2AACDBCD1273
+ > Flow Practice typography maximum fresh-v8
+Tap on (Optional) "Open"... WARNED
+Tap on (Optional) "Continue"... WARNED
+Tap on (Optional) id: xmark... WARNED
+Open tms-e2e:///bloom/practice/history... COMPLETED
+Wait for animation to end within 1800 ms... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "history-empty"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.history.empty.heading is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "history-empty-heading"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.history.empty.body is visible with speed 65, visibility percentage 25%, timeout 90000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "history-empty-body"}... COMPLETED
+Run capture-native.js... COMPLETED
+Open tms-e2e:///bloom/practice... COMPLETED
+Wait for animation to end within 1800 ms... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "intro"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.rule.0.title is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "intro-rule-0-title"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.rule.0.detail is visible with speed 65, visibility percentage 25%, timeout 90000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "intro-rule-0-detail"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.rule.1.title is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "intro-rule-1-title"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.rule.1.detail is visible with speed 65, visibility percentage 25%, timeout 90000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "intro-rule-1-detail"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.rule.2.title is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "intro-rule-2-title"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.rule.2.detail is visible with speed 65, visibility percentage 25%, timeout 90000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "intro-rule-2-detail"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.rule.3.title is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "intro-rule-3-title"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.rule.3.detail is visible with speed 65, visibility percentage 25%, timeout 90000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "intro-rule-3-detail"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.start is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Swipe from (50%, 75%) to (50%, 40%) in 400 ms... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "intro-actions"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.start is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Tap on id: practice.start... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "start-dialog"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.dialog.body is visible with speed 65, visibility percentage 25%, timeout 90000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "start-dialog-body"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.start.confirm is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Swipe from (50%, 75%) to (50%, 40%) in 400 ms... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "start-dialog-actions"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.start.confirm is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Tap on id: practice.start.confirm... COMPLETED
+Assert that id: practice.running is visible... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "running"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.guide is visible with speed 65, visibility percentage 25%, timeout 90000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "running-guide"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.level.open is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "running-guide-lower"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.level.open is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Tap on id: practice.level.open... COMPLETED
+Scrolling DOWN until id: practice.level.grid is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "running-levels"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.level.7 is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Tap on id: practice.level.7... COMPLETED
+Assert that id: practice.running is visible... COMPLETED
+Scrolling DOWN until id: practice.target is visible with speed 65, visibility percentage 25%, timeout 90000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "running-target"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.pause is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Swipe from (50%, 75%) to (50%, 40%) in 400 ms... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "running-actions"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.pause is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Tap on id: practice.pause... COMPLETED
+Assert that id: practice.paused is visible... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "paused"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.pause.guidance is visible with speed 65, visibility percentage 25%, timeout 90000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "paused-guidance"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.resume is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Swipe from (50%, 75%) to (50%, 40%) in 400 ms... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "paused-actions"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.resume is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Tap on id: practice.resume... COMPLETED
+Assert that id: practice.running is visible... COMPLETED
+Scrolling DOWN until id: practice.exit is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Tap on id: practice.exit... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "exit-dialog"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.exit.keep is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Swipe from (50%, 75%) to (50%, 40%) in 400 ms... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "exit-dialog-actions"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.exit.keep is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Tap on id: practice.exit.keep... COMPLETED
+Assert that id: practice.running is visible... COMPLETED
+Scrolling DOWN until id: practice.finish is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Tap on id: practice.finish... COMPLETED
+Assert that id: practice.question.1 is visible... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "question-1"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.quality.grid is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "question-1-choices"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.quality.8 is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Tap on id: practice.quality.8... COMPLETED
+Scrolling DOWN until id: practice.quality.high is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "question-1-endpoints"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.hint is visible with speed 65, visibility percentage 25%, timeout 90000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "question-1-hint"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.next is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Swipe from (50%, 75%) to (50%, 40%) in 400 ms... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "question-1-actions"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.next is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Tap on id: practice.next... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "question-2"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.content.yes is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Tap on id: practice.content.yes... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "question-2-selected"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.hint is visible with speed 65, visibility percentage 25%, timeout 90000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "question-2-hint"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.content.warning is visible with speed 65, visibility percentage 25%, timeout 90000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "question-2-warning"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.next is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Swipe from (50%, 75%) to (50%, 40%) in 400 ms... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "question-2-actions"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.next is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Tap on id: practice.next... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "question-3"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.ending.stopped is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Tap on id: practice.ending.stopped... COMPLETED
+Scrolling DOWN until id: practice.feeling.1 is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "question-3-feelings"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.feeling.1 is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Tap on id: practice.feeling.1... COMPLETED
+Scrolling DOWN until id: practice.next is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Swipe from (50%, 75%) to (50%, 40%) in 400 ms... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "question-3-actions"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.next is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Tap on id: practice.next... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "summary"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.summary.row.Toplam süre is visible with speed 65, visibility percentage 25%, timeout 90000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "summary-total"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.summary.row.1.* is visible with speed 65, visibility percentage 25%, timeout 90000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "summary-pause"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.summary.row.Bitiş is visible with speed 65, visibility percentage 25%, timeout 90000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "summary-ending"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.summary.row.Seviye girişleri is visible with speed 65, visibility percentage 25%, timeout 90000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "summary-reports"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.save is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Swipe from (50%, 75%) to (50%, 40%) in 400 ms... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "summary-actions"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.save is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Tap on id: practice.save... COMPLETED
+Scrolling UP until id: practice.saved is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "saved"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.done is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Swipe from (50%, 75%) to (50%, 40%) in 400 ms... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "saved-actions"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.done is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Tap on id: practice.done... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "history"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.history.answers is visible with speed 65, visibility percentage 25%, timeout 90000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "history-answers"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.history.reports is visible with speed 65, visibility percentage 25%, timeout 90000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "history-reports"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.entry.history.start is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Swipe from (50%, 75%) to (50%, 40%) in 400 ms... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "history-actions"}... COMPLETED
+Run capture-native.js... COMPLETED
+Open tms-e2e:///debug/practice-persistence... COMPLETED
+Wait for animation to end within 1800 ms... COMPLETED
+Scrolling DOWN until id: practice.qa.fail is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Tap on id: practice.qa.fail... COMPLETED
+Scrolling DOWN until id: practice.qa.start is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Tap on id: practice.qa.start... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "ready"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.start is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Tap on id: practice.start... COMPLETED
+Scrolling DOWN until id: practice.dialog.heading is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "retry-start-dialog"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.start.confirm is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Swipe from (50%, 75%) to (50%, 40%) in 400 ms... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "retry-start-dialog-actions"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.start.confirm is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Tap on id: practice.start.confirm... COMPLETED
+Assert that id: practice.running is visible... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "retry-running"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.finish is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Tap on id: practice.finish... COMPLETED
+Assert that id: practice.question.1 is visible... COMPLETED
+Scrolling DOWN until id: practice.skip is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Tap on id: practice.skip... COMPLETED
+Scrolling DOWN until id: practice.skip is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Tap on id: practice.skip... COMPLETED
+Scrolling DOWN until id: practice.skip is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Tap on id: practice.skip... COMPLETED
+Scrolling DOWN until id: practice.save is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Tap on id: practice.save... COMPLETED
+Scrolling DOWN until id: practice.save.status is visible with speed 65, visibility percentage 25%, timeout 90000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "save-error"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.save.retry is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Swipe from (50%, 75%) to (50%, 40%) in 400 ms... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "save-retry"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.save.retry is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Tap on id: practice.save.retry... COMPLETED
+Assert that id: practice.done is visible... COMPLETED
+Scrolling UP until id: practice.saved is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "retry-saved"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.done is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Tap on id: practice.done... COMPLETED
+Open tms-e2e:///today... COMPLETED
+Wait for animation to end within 1800 ms... COMPLETED
+Scrolling DOWN until id: practice.rule.1.title is visible with speed 65, visibility percentage 25%, timeout 90000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "home-practice"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.entry.home.history is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering disabled... COMPLETED
+Swipe from (50%, 75%) to (50%, 40%) in 400 ms... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "home-practice-actions"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.entry.home.detail is visible with speed 65, visibility percentage 25%, timeout 90000 ms, with centering disabled... COMPLETED
+Swipe from (50%, 75%) to (50%, 40%) in 400 ms... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "home-practice-detail"}... COMPLETED
+Run capture-native.js... COMPLETED

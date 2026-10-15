@@ -1,0 +1,118 @@
+[
+  {
+    "fixture": "corrupt-v9",
+    "exitCode": 0,
+    "prefix": "bloom.e2e.practice.practice1172_20261014_8f71.corrupt-v9.",
+    "storageRawUnchanged": true
+  },
+  {
+    "fixture": "fresh-v8",
+    "exitCode": 0,
+    "prefix": "bloom.e2e.practice.practice1172_20261014_8f71.fresh-v8.",
+    "nonPracticeSlicesEqual": true,
+    "retainedV8Bytes": true,
+    "practiceCount": 4,
+    "trackingEnabled": false,
+    "answers": [
+      {
+        "id": "practice-1791998766920-qmbwghvi2wg-qaxemu8rj69",
+        "erectionQuality": 8,
+        "explicitContent": true,
+        "ending": "stopped",
+        "consistentDurations": true
+      },
+      {
+        "id": "practice-1791998791919-43a6xc0tn5f-xjsazayoxhn",
+        "erectionQuality": null,
+        "explicitContent": null,
+        "ending": null,
+        "consistentDurations": true
+      },
+      {
+        "id": "practice-1791999214817-87ovcn9gpoc-3su4egmwg22",
+        "erectionQuality": null,
+        "explicitContent": null,
+        "ending": null,
+        "consistentDurations": true
+      },
+      {
+        "id": "practice-1791999826271-2q60d0d0mnj-5p5oxov401m",
+        "erectionQuality": null,
+        "explicitContent": null,
+        "ending": null,
+        "consistentDurations": true
+      }
+    ]
+  },
+  {
+    "fixture": "populated-v8",
+    "exitCode": 0,
+    "prefix": "bloom.e2e.practice.practice1172_20261014_8f71.populated-v8.",
+    "nonPracticeSlicesEqual": true,
+    "retainedV8Bytes": true,
+    "practiceCount": 1,
+    "trackingEnabled": true,
+    "answers": [
+      {
+        "id": "practice-1791999508575-jphxgrg21s-awq2erbdeum",
+        "erectionQuality": null,
+        "explicitContent": true,
+        "ending": null,
+        "consistentDurations": true
+      }
+    ],
+    "preservedIds": {
+      "masturbationTracking": [
+        "source-session",
+        "session-1",
+        "session-2",
+        "session-3",
+        "session-4",
+        "session-5"
+      ],
+      "kegel": [
+        "qa-kegel-preserved"
+      ],
+      "arousalControl": [
+        "legacy-arousal-log"
+      ],
+      "pause": [
+        "legacy-pause-record"
+      ]
+    }
+  },
+  {
+    "fixture": "reset-active",
+    "exitCode": 0,
+    "prefix": "bloom.e2e.practice.practice1172_20261014_8f71.reset-active.",
+    "stateUnchanged": true,
+    "practiceCount": 1
+  },
+  {
+    "fixture": "reset-baseline",
+    "exitCode": 0,
+    "prefix": "bloom.e2e.practice.practice1172_20261014_8f71.reset-baseline.",
+    "stateUnchanged": true,
+    "practiceCount": 1
+  },
+  {
+    "fixture": "reset-completed-pending",
+    "exitCode": 0,
+    "prefix": "bloom.e2e.practice.practice1172_20261014_8f71.reset-completed-pending.",
+    "stateUnchanged": true,
+    "practiceCount": 1
+  },
+  {
+    "fixture": "reset-elapsed",
+    "exitCode": 0,
+    "prefix": "bloom.e2e.practice.practice1172_20261014_8f71.reset-elapsed.",
+    "stateUnchanged": true,
+    "practiceCount": 1
+  },
+  {
+    "fixture": "unsupported-v9",
+    "exitCode": 0,
+    "prefix": "bloom.e2e.practice.practice1172_20261014_8f71.unsupported-v9.",
+    "storageRawUnchanged": true
+  }
+]

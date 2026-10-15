@@ -1,0 +1,27 @@
+Running on iPhone 17 Pro - iOS 26.3 - E280FA31-F2B5-4FF9-B57E-A8991C051C77
+ > Flow Practice v9 isolated abandon background and restart
+Open tms-e2e:///bloom/practice... COMPLETED
+Tap on id: practice.start... COMPLETED
+Tap on id: practice.start.confirm... COMPLETED
+Tap on id: practice.pause... COMPLETED
+Press Home key... COMPLETED
+Launch app "com.umutcyilmaz.bloom.e2e" without stopping app... COMPLETED
+Assert that id: practice.background is visible... COMPLETED
+Take screenshot 14-native-background... COMPLETED
+Tap on id: practice.foreground... COMPLETED
+Tap on id: practice.resume... COMPLETED
+Tap on id: practice.exit... COMPLETED
+Tap on id: practice.exit.confirm... COMPLETED
+Open tms-e2e:///debug/practice-persistence... COMPLETED
+Assert that "Kalıcı pratik: 2" is visible... COMPLETED
+Tap on id: practice.qa.start... COMPLETED
+Tap on id: practice.start... COMPLETED
+Tap on id: practice.start.confirm... COMPLETED
+Stop com.umutcyilmaz.bloom.e2e... COMPLETED
+Launch app "com.umutcyilmaz.bloom.e2e"... COMPLETED
+Open tms-e2e:///bloom/practice... COMPLETED
+Assert that id: practice.intro is visible... COMPLETED
+Assert that id: practice.instructions is visible... COMPLETED
+Assert that id: practice.running is not visible... COMPLETED
+Open tms-e2e:///debug/practice-persistence... COMPLETED
+Assert that "Kalıcı pratik: 2" is visible... COMPLETED

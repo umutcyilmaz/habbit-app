@@ -1,3 +1,4 @@
+import { PracticeEntryCard } from "../../practice/PracticeEntryCard";
 import { useRouter } from "expo-router";
 import { Pressable, ScrollView, View } from "react-native";
 import Animated, { FadeInDown, useReducedMotion } from "react-native-reanimated";
@@ -33,6 +34,7 @@ export function LibraryEntryScreen() {
         </Pressable><View style={s.group}>{articles.map((a,i)=><LibraryArticleRow key={a.id} article={a} border={i>0}/>)}</View>
       </Animated.View>;
     })}
+    <PracticeEntryCard location="library" />
     <SoundLibrarySection />
     {["Araştırmalar"].map(title=><View key={title}><View style={s.sectionHeader}><AppText style={s.section}>{title}</AppText><AppText style={s.muted}>Yakında</AppText></View><View style={[s.group,{padding:18}]}><AppText style={s.muted}>Bu içerikler henüz kullanıma açık değil.</AppText></View></View>)}
   </ScrollView></View>;

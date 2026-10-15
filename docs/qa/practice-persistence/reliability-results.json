@@ -1,0 +1,63 @@
+{
+  "checks": [
+    {
+      "command": "npm run typecheck",
+      "exitCode": 0,
+      "log": "reliability-typecheck.log"
+    },
+    {
+      "command": "npm run verify:practice",
+      "exitCode": 0,
+      "log": "reliability-verify-practice.log"
+    },
+    {
+      "command": "npm run verify:practice:persistence",
+      "exitCode": 0,
+      "log": "reliability-verify-practice-persistence.log"
+    },
+    {
+      "command": "npm run verify:persistence-acknowledgement",
+      "exitCode": 0,
+      "log": "reliability-verify-persistence-acknowledgement.log"
+    },
+    {
+      "command": "npm run verify:reset-continuity",
+      "exitCode": 0,
+      "log": "reliability-verify-reset-continuity.log"
+    },
+    {
+      "command": "npm run verify:navigation",
+      "exitCode": 0,
+      "log": "reliability-verify-navigation.log"
+    },
+    {
+      "command": "npm run verify:persistence",
+      "exitCode": 0,
+      "log": "reliability-verify-persistence.log"
+    },
+    {
+      "command": "npm run verify:protection-reset",
+      "exitCode": 0,
+      "log": "reliability-verify-protection-reset.log"
+    }
+  ],
+  "deterministicStartupCases": 9,
+  "arbitrarySleeps": false,
+  "originalAndReservationMutantDetected": true,
+  "renderContractCases": 78,
+  "newNativeScreenshotRun": false,
+  "approvedNativePNGsPreserved": true,
+  "retainedCaptureReinspection": {
+    "newCapture": false,
+    "root": "docs/qa/practice-typography",
+    "files": [
+      "target-default-history-answers.png",
+      "target-default-paused-actions.png",
+      "target-default-question-1-endpoints.png",
+      "target-default-question-2-warning.png",
+      "target-maximum-intro.png",
+      "narrow-maximum-question-1-endpoints.png"
+    ],
+    "notes": "Seçili mevcut normal kareler gerçekten yeniden açıldı: tam cevaplar, iki pause eylemi, 1–10 ve uç etiketleri, Content-Free ayrımı okunur. Mevcut maksimum introda Türkçe sözcükler bütün; dar maksimumda 1–10 seçenekler ve alt alta uç etiketleri korunmuş. Sonraki içerik scroll devamında; bu kareler yeni app koşusu değildir."
+  }
+}

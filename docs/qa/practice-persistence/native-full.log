@@ -1,0 +1,66 @@
+Running on iPhone 17 Pro - iOS 26.3 - E280FA31-F2B5-4FF9-B57E-A8991C051C77
+ > Flow Practice v9 isolated full durable save and exact retry
+Open tms-e2e:///debug/practice-persistence... COMPLETED
+Assert that id: practice.qa.start is visible... COMPLETED
+Tap on id: practice.qa.start... COMPLETED
+Assert that id: practice.intro.heading is visible... COMPLETED
+Take screenshot 01-native-intro... COMPLETED
+Tap on id: practice.start... COMPLETED
+Take screenshot 02-native-start-confirm... COMPLETED
+Tap on id: practice.start.confirm... COMPLETED
+Assert that id: practice.running is visible... COMPLETED
+Take screenshot 03-native-running... COMPLETED
+Tap on id: practice.level.open... COMPLETED
+Scrolling DOWN until id: practice.level.7 is visible with speed 40, visibility percentage 100%, timeout 20000 ms, with centering enabled... COMPLETED
+Tap on id: practice.level.7... COMPLETED
+Tap on id: practice.pause... COMPLETED
+Assert that id: practice.paused is visible... COMPLETED
+Take screenshot 04-native-pause... COMPLETED
+Tap on id: practice.resume... COMPLETED
+Assert that id: practice.running is visible... COMPLETED
+Tap on id: practice.exit... COMPLETED
+Assert that id: practice.exit.keep is visible... COMPLETED
+Take screenshot 05-native-exit-confirm... COMPLETED
+Tap on id: practice.exit.keep... COMPLETED
+Tap on id: practice.finish... COMPLETED
+Assert that id: practice.question.1 is visible... COMPLETED
+Take screenshot 06-native-question-1... COMPLETED
+Tap on id: practice.quality.8... COMPLETED
+Tap on id: practice.next... COMPLETED
+Tap on id: practice.content.yes... COMPLETED
+Take screenshot 07-native-question-2... COMPLETED
+Tap on id: practice.next... COMPLETED
+Tap on id: practice.ending.stopped... COMPLETED
+Tap on id: practice.feeling.1... COMPLETED
+Take screenshot 08-native-question-3... COMPLETED
+Tap on id: practice.next... COMPLETED
+Assert that id: practice.unsaved is visible... COMPLETED
+Take screenshot 09-native-unsaved-summary... COMPLETED
+Tap on id: practice.save... COMPLETED
+Assert that id: practice.saved is visible... COMPLETED
+Take screenshot 10-native-saved-summary... COMPLETED
+Tap on id: practice.done... COMPLETED
+Assert that id: practice.history.record is visible... COMPLETED
+Take screenshot 11-native-history... COMPLETED
+Open tms-e2e:///debug/practice-persistence... COMPLETED
+Assert that "Kalıcı pratik: 1" is visible... COMPLETED
+Tap on id: practice.qa.fail... COMPLETED
+Tap on id: practice.qa.start... COMPLETED
+Assert that id: practice.instructions is visible... COMPLETED
+Tap on id: practice.start... COMPLETED
+Tap on id: practice.start.confirm... COMPLETED
+Tap on id: practice.finish... COMPLETED
+Tap on id: practice.skip... COMPLETED
+Tap on id: practice.skip... COMPLETED
+Tap on id: practice.skip... COMPLETED
+Tap on id: practice.save... COMPLETED
+Assert that id: practice.save.retry is visible... COMPLETED
+Assert that id: practice.saved is not visible... COMPLETED
+Take screenshot 12-native-save-retry... COMPLETED
+Tap on id: practice.save.retry... COMPLETED
+Assert that id: practice.saved is visible... COMPLETED
+Tap on id: practice.done... COMPLETED
+Assert that id: practice.history.record is visible... COMPLETED
+Take screenshot 13-native-history-skipped... COMPLETED
+Open tms-e2e:///debug/practice-persistence... COMPLETED
+Assert that "Kalıcı pratik: 2" is visible... COMPLETED

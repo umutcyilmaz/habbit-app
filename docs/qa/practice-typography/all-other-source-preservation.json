@@ -1,0 +1,122 @@
+[
+  {
+    "file": "app/_layout.tsx",
+    "sha256": "eeb3f03d208bd351b475d08ddeffd25136b5090c2f160c045316172e90a6be87",
+    "unchangedFromPendingPhase1172": true
+  },
+  {
+    "file": "app/bloom/practice/index.tsx",
+    "sha256": "ad147de318621753b1b3d54fdfb38e75237dd8468770dc844f0eaf9c145f74b7",
+    "unchangedFromPendingPhase1172": true
+  },
+  {
+    "file": "app/bloom/practice/history.tsx",
+    "sha256": "68f445f83f9e4f5307c941544543eba73de1811417b81ac7fb5f60dd2571c1bb",
+    "unchangedFromPendingPhase1172": true
+  },
+  {
+    "file": "app/debug/practice-persistence.tsx",
+    "sha256": "67d96a349a06d73de9c8c24902bff406e4cb533e8a66dda82437d42626bdb0cd",
+    "unchangedFromPendingPhase1172": true
+  },
+  {
+    "file": "src/app/providers/bloomProductAcknowledgedActions.ts",
+    "sha256": "f2fa21c5c661c02bc88e67b1f64372bc34f512e3eb8c6f35f04add419047508e",
+    "unchangedFromPendingPhase1172": true
+  },
+  {
+    "file": "src/app/providers/readPracticeAvailability.ts",
+    "sha256": "718a1eeae515f7d3ec517728a07dbfb138a9905dc5ca5ca5021a474cc9b6ffb6",
+    "unchangedFromPendingPhase1172": true
+  },
+  {
+    "file": "src/app/providers/AppProviders.tsx",
+    "sha256": "63b6f2cb52203ffc53a2e2ae8d4cb30d70afd5133d41506168f236d58f8accec",
+    "unchangedFromPendingPhase1172": true
+  },
+  {
+    "file": "src/app/providers/BloomLocalStateProvider.tsx",
+    "sha256": "461d550432a71f10d5e8c97d73e17d528c0892b70dcd4cbb8fadd490e2f986c4",
+    "unchangedFromPendingPhase1172": true
+  },
+  {
+    "file": "src/features/home/screens/BloomHomeScreen.tsx",
+    "sha256": "3bcdccddb2393a993566ec732f5666fde4a8030034dd2b9e3a9c00a58d5ecad2",
+    "unchangedFromPendingPhase1172": true
+  },
+  {
+    "file": "src/features/library/screens/LibraryEntryScreen.tsx",
+    "sha256": "88852d7e8c7b782cc005c5f9766946f498fb3d395960d66a9792ac5d50e20ff7",
+    "unchangedFromPendingPhase1172": true
+  },
+  {
+    "file": "src/features/library/screens/LibraryArticleScreen.tsx",
+    "sha256": "705211d7aea81b605c691b984f556a9d82c0aa302fbf6d52bc359217994db57d",
+    "unchangedFromPendingPhase1172": true
+  },
+  {
+    "file": "src/features/practice/practicePreviewRuntime.ts",
+    "sha256": "2c28178431c6b614dba49b3b9dc53b78599b6338e59cedb2d66777830ef9a1d9",
+    "unchangedFromPendingPhase1172": true
+  },
+  {
+    "file": "src/features/practice/practiceHistory.ts",
+    "sha256": "7cfafc1a675e3f91c7e42d00aa5e1ee1e175e29889d576f3be4b531588e86829",
+    "unchangedFromPendingPhase1172": true
+  },
+  {
+    "file": "src/features/practice/practicePersistenceController.ts",
+    "sha256": "85db922f8e79ee8dc6e637db9757f160a088beacccd4f787446ff9e6d208339e",
+    "unchangedFromPendingPhase1172": true
+  },
+  {
+    "file": "src/features/practice/qa/practicePersistenceQa.ts",
+    "sha256": "bc75f96566220f73327054a4d94e194b504da05b393e4087bbce9d434c0acaed",
+    "unchangedFromPendingPhase1172": true
+  },
+  {
+    "file": "src/features/practice/qa/practiceQaFixtures.ts",
+    "sha256": "335c98cb80d3abb262b8c7253cb9deb57d6c780de1fbfc60442f6ad679bc7681",
+    "unchangedFromPendingPhase1172": true
+  },
+  {
+    "file": "src/features/practice/qa/populatedV8Fixture.ts",
+    "sha256": "9973514c016673a91aff7a224c212019c089c629fdd264779dd51fb8b1d23c08",
+    "unchangedFromPendingPhase1172": true
+  },
+  {
+    "file": "src/storage/bloomPracticeTransitions.ts",
+    "sha256": "89034c1dba8b9e905deb7d3ef0e26ebc5861d9a00423caf3c0a2a04173d4a244",
+    "unchangedFromPendingPhase1172": true
+  },
+  {
+    "file": "src/storage/bloomStateSchema.ts",
+    "sha256": "5abf5dbe1581ef1fa7231afe8c1e61636e81b0738ad2a8d230192350f75ee682",
+    "unchangedFromPendingPhase1172": true
+  },
+  {
+    "file": "src/storage/bloomPracticeSchema.ts",
+    "sha256": "bcba791aaa33a4b3ddc4cfa2616edaefea1fef6f5b0e0185307f1dda6ca33559",
+    "unchangedFromPendingPhase1172": true
+  },
+  {
+    "file": "src/storage/bloomState.ts",
+    "sha256": "103fc87bdaa9c48952f58f4dc57e93218ec93f8b2c6dd7f3b9f4e349bf623802",
+    "unchangedFromPendingPhase1172": true
+  },
+  {
+    "file": "src/storage/bloomStatePersistence.ts",
+    "sha256": "37b1d99c1e39d62ce374262b59d2648225d8186b271395117d53ed9a3fb01e20",
+    "unchangedFromPendingPhase1172": true
+  },
+  {
+    "file": "src/domain/productPolicy/getPracticeAvailability.ts",
+    "sha256": "b741c59c32cae33d3196f78edad774298356d6d3f5e77da48361c0b593f007ef",
+    "unchangedFromPendingPhase1172": true
+  },
+  {
+    "file": "src/domain/models/PracticeState.ts",
+    "sha256": "850faa13f51254398810a35fb76771300823f223bc6de9822082c8e9a4aa7143",
+    "unchangedFromPendingPhase1172": true
+  }
+]

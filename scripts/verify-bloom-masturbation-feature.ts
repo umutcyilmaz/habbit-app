@@ -31,7 +31,7 @@ const day = 24 * 60 * 60 * 1000;
 const ts: typeof import("typescript") = createRequire(resolve("package.json"))("typescript");
 
 export async function verifyBloomMasturbationFeature() {
-  assert(BLOOM_PERSISTENCE_VERSION === 8 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v8", "The executable feature must retain v7 persistence.");
+  assert(BLOOM_PERSISTENCE_VERSION === 9 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v9", "The executable feature must retain v7 persistence.");
   await verifyExecutableLifecycle();
   await verifyRouteGuardsAndRecovery();
   await verifyAcknowledgementRetry();

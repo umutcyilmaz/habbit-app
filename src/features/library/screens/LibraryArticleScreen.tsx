@@ -1,3 +1,4 @@
+import { PracticeEntryCard } from "../../practice/PracticeEntryCard";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -83,7 +84,7 @@ function ArticleReader({article}:{article:LibraryArticle|undefined}) {
             if(block[0]==="quote")return <AppText key={i} style={styles.quote}>{block[1]}</AppText>;
             if(block[0]==="list")return <View key={i} style={{gap:10,marginTop:14}}>{block[1].map((text,j)=><View key={j} style={styles.listItem}><View style={styles.dot}/><AppText style={styles.listText}><RichText text={text}/></AppText></View>)}</View>;
             if(block[0]==="try")return <View key={i} style={styles.tryBox}><View style={{flexDirection:"row",gap:14,alignItems:"center"}}><View accessible={false} style={{width:44,height:44,borderRadius:14,backgroundColor:"#3a4bff",alignItems:"center",justifyContent:"center"}}><View style={{width:0,height:0,borderLeftWidth:12,borderTopWidth:7,borderBottomWidth:7,borderLeftColor:"#fff",borderTopColor:"transparent",borderBottomColor:"transparent",marginLeft:3}}/></View><View style={{flex:1,gap:2}}><AppText style={s.rowTitle}>{block[1]}</AppText><AppText style={s.muted}>{block[2]}</AppText></View></View>
-              {block[4]==="practice" ? <View testID="library.practice.unavailable" style={{gap:4,marginTop:8}}><AppText style={s.rowTitle}>Pratik yakında</AppText><AppText style={s.muted}>Yeni Pratik deneyimi henüz kullanıma açık değil.</AppText></View> : block[4]==="run60" ? <AppText style={s.muted}>Bir dakikalık nefes uygulaması henüz kullanıma açık değil.</AppText> : <Pressable testID="library.practice.kegel" accessibilityRole="button" disabled={recovery.navigationBlocked} style={[s.button,{backgroundColor:"#3a4bff",marginTop:8}]} onPress={goKegel}><AppText style={[s.buttonText,{color:"#fff"}]}>{block[3]}</AppText></Pressable>}
+              {block[4]==="practice" ? <PracticeEntryCard location="article" disabled={recovery.navigationBlocked}/> : block[4]==="run60" ? <AppText style={s.muted}>Bir dakikalık nefes uygulaması henüz kullanıma açık değil.</AppText> : <Pressable testID="library.practice.kegel" accessibilityRole="button" disabled={recovery.navigationBlocked} style={[s.button,{backgroundColor:"#3a4bff",marginTop:8}]} onPress={goKegel}><AppText style={[s.buttonText,{color:"#fff"}]}>{block[3]}</AppText></Pressable>}
             </View>;
             return null;
           })}

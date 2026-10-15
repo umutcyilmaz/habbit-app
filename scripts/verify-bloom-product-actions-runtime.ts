@@ -35,8 +35,8 @@ export async function verifyBloomProductActionsRuntime() {
   await verifyResetRecommendationUsesLatestAcceptedState();
   verifyProviderIntegration();
   assert(
-    BLOOM_PERSISTENCE_VERSION === 8 &&
-      BLOOM_STATE_STORAGE_KEY === "bloom.localState.v8",
+    BLOOM_PERSISTENCE_VERSION === 9 &&
+      BLOOM_STATE_STORAGE_KEY === "bloom.localState.v9",
     "Application commands must keep the existing v7 persistence contract."
   );
   console.log(
@@ -373,8 +373,8 @@ function verifyProviderIntegration() {
   );
   assert(
     (source.match(/createBloomProductAcknowledgedActions\s*\(/g) ?? []).length === 1 &&
-      /const productActions\s*=\s*useMemo\(\s*\(\)\s*=>\s*createBloomProductAcknowledgedActions\(\{\s*applyAcknowledgedMutation\s*:\s*applyAcknowledgedStateMutation\s*,?\s*\}\),\s*\[applyAcknowledgedStateMutation\]\s*\)/.test(source),
-    "One memoized productActions factory must depend only on the stable acknowledged runtime callback."
+      /const productActions\s*=\s*useMemo\(\s*\(\)\s*=>\s*createBloomProductAcknowledgedActions\(\{\s*applyAcknowledgedMutation\s*:\s*applyAcknowledgedStateMutation\s*,\s*isPracticeStateConfirmed\s*:\s*state\s*=>\s*mutationRuntime\.getHydrationStatus\(\)\s*===\s*"ready"\s*&&\s*!mutationRuntime\.isWritesBlocked\(\)\s*&&\s*state\s*===\s*mutationRuntime\.getDurableState\(\)\s*\}\),\s*\[applyAcknowledgedStateMutation,\s*mutationRuntime\]\s*\)/.test(source),
+    "One memoized productActions factory must use stable runtime dependencies and guard Practice against unconfirmed or deleting state."
   );
   assert(
     /const applyAcknowledgedStateMutation\s*=\s*useCallback\([\s\S]*?mutationRuntime\.applyAcknowledgedMutation\(mutation\),\s*\[mutationRuntime\]\s*\)/.test(source),

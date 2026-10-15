@@ -15,6 +15,11 @@ try {
   if (process.exitCode === 0) {
     const result = spawnSync(process.execPath, [join(output, "scripts", "verify-bloom-practice.js")], { cwd: root, stdio: "inherit" });
     process.exitCode = result.status ?? 1;
+    for (const verification of ["verify-bloom-practice-startup.cjs", "verify-bloom-practice-visual-contract.cjs"]) {
+      if (process.exitCode !== 0) break;
+      const check = spawnSync(process.execPath, [join(root, "scripts", verification)], { cwd: root, stdio: "inherit" });
+      process.exitCode = check.status ?? 1;
+    }
   }
 } finally {
   rmSync(output, { recursive: true, force: true });

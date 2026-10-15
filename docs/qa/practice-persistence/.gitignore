@@ -1,0 +1,24 @@
+# Keep all raw captures on disk. Only curated publication PNGs enter Git.
+/*.png
+/local-*
+!/01-native-intro.png
+!/03-native-running.png
+!/04-native-pause.png
+!/06-native-question-1.png
+!/07-native-question-2.png
+!/08-native-question-3.png
+!/10-native-saved-summary.png
+!/12-native-save-retry.png
+!/15-native-largest-intro.png
+!/26-native-memory-preview-unsaved.png
+!/corrupt-v9-native-storage-fails-closed.png
+!/html-intro.png
+!/html-pause.png
+!/html-practice.png
+!/html-question-1.png
+!/html-question-2.png
+!/html-question-3.png
+!/html-summary.png
+!/native-deletion-rehydrated-empty-history.png
+!/populated-v8-native-populated-preserved-history.png
+!/unsupported-v9-native-storage-fails-closed.png

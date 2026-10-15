@@ -130,7 +130,7 @@ function assertOnlySliceChanged(before: BloomLocalState, after: BloomLocalState,
 }
 
 async function roundTrip(state: BloomLocalState, label: string) {
-  assert(BLOOM_PERSISTENCE_VERSION === 8 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v8", "Product policy must retain persistence v7.");
+  assert(BLOOM_PERSISTENCE_VERSION === 9 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v9", "Product policy must retain persistence v7.");
   assert(validateAndNormalizeBloomState(state).success, `${label}: policy-produced state must remain persistable.`);
   const storage = createMemoryStorageClient();
   await persistBloomLocalState(state, storage, clock);

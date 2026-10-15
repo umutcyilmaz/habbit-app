@@ -1,0 +1,25 @@
+export const PRACTICE_INTRO_VERSION = 1 as const;
+export const practiceEndingLabels = { came: "Boşaldım", stopped: "Boşalmadan bitirdim", soft: "Sertlik azaldı, bıraktım", other: "Diğer" } as const;
+export const practiceFeelingValues = ["Kontrollü", "Sakin", "Aceleci", "Kaygılı", "Yorgun"] as const;
+export type PracticeEnding = keyof typeof practiceEndingLabels;
+export type PracticeFeeling = typeof practiceFeelingValues[number];
+export type PracticeIntroduction = { version: number; acknowledgedAt: string };
+export type CompletedPracticeSession = {
+  readonly id: string;
+  readonly version: 1;
+  readonly source: "guided_practice";
+  readonly startedAt: string;
+  readonly completedAt: string;
+  readonly timezone: { readonly name: string; readonly utcOffsetMinutes: number };
+  readonly foregroundExerciseMs: number;
+  readonly activeMs: number;
+  readonly intentionalPauseMs: number;
+  readonly pauses: readonly { readonly startMs: number; readonly endMs: number }[];
+  readonly arousalReports: readonly { readonly atMs: number; readonly reportedAt: string; readonly level: number }[];
+  readonly erectionQuality: number | null;
+  readonly explicitContent: boolean | null;
+  readonly ending: PracticeEnding | null;
+  readonly feelings: readonly PracticeFeeling[];
+};
+export type PracticeState = { introduction: PracticeIntroduction | null; sessions: CompletedPracticeSession[] };
+export const createDefaultPracticeState = (): PracticeState => ({ introduction: null, sessions: [] });

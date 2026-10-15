@@ -1,0 +1,70 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Practice v9 isolated full durable save and exact retry
+---
+- openLink: "tms-e2e:///debug/practice-persistence"
+- assertVisible: {id: "practice.qa.start"}
+- tapOn: {id: "practice.qa.start"}
+- assertVisible: {id: "practice.intro.heading"}
+- takeScreenshot: "01-native-intro"
+- tapOn: {id: "practice.start"}
+- takeScreenshot: "02-native-start-confirm"
+- tapOn: {id: "practice.start.confirm"}
+- assertVisible: {id: "practice.running"}
+- takeScreenshot: "03-native-running"
+- tapOn: {id: "practice.level.open"}
+- scrollUntilVisible:
+    element: {id: "practice.level.7"}
+    direction: DOWN
+    centerElement: true
+- tapOn: {id: "practice.level.7"}
+- tapOn: {id: "practice.pause"}
+- assertVisible: {id: "practice.paused"}
+- takeScreenshot: "04-native-pause"
+- tapOn: {id: "practice.resume"}
+- assertVisible: {id: "practice.running"}
+- tapOn: {id: "practice.exit"}
+- assertVisible: {id: "practice.exit.keep"}
+- takeScreenshot: "05-native-exit-confirm"
+- tapOn: {id: "practice.exit.keep"}
+- tapOn: {id: "practice.finish"}
+- assertVisible: {id: "practice.question.1"}
+- takeScreenshot: "06-native-question-1"
+- tapOn: {id: "practice.quality.8"}
+- tapOn: {id: "practice.next"}
+- tapOn: {id: "practice.content.yes"}
+- takeScreenshot: "07-native-question-2"
+- tapOn: {id: "practice.next"}
+- tapOn: {id: "practice.ending.stopped"}
+- tapOn: {id: "practice.feeling.1"}
+- takeScreenshot: "08-native-question-3"
+- tapOn: {id: "practice.next"}
+- assertVisible: {id: "practice.unsaved"}
+- takeScreenshot: "09-native-unsaved-summary"
+- tapOn: {id: "practice.save"}
+- assertVisible: {id: "practice.saved"}
+- takeScreenshot: "10-native-saved-summary"
+- tapOn: {id: "practice.done"}
+- assertVisible: {id: "practice.history.record"}
+- takeScreenshot: "11-native-history"
+- openLink: "tms-e2e:///debug/practice-persistence"
+- assertVisible: "Kalıcı pratik: 1"
+- tapOn: {id: "practice.qa.fail"}
+- tapOn: {id: "practice.qa.start"}
+- assertVisible: {id: "practice.instructions"}
+- tapOn: {id: "practice.start"}
+- tapOn: {id: "practice.start.confirm"}
+- tapOn: {id: "practice.finish"}
+- tapOn: {id: "practice.skip"}
+- tapOn: {id: "practice.skip"}
+- tapOn: {id: "practice.skip"}
+- tapOn: {id: "practice.save"}
+- assertVisible: {id: "practice.save.retry"}
+- assertNotVisible: {id: "practice.saved"}
+- takeScreenshot: "12-native-save-retry"
+- tapOn: {id: "practice.save.retry"}
+- assertVisible: {id: "practice.saved"}
+- tapOn: {id: "practice.done"}
+- assertVisible: {id: "practice.history.record"}
+- takeScreenshot: "13-native-history-skipped"
+- openLink: "tms-e2e:///debug/practice-persistence"
+- assertVisible: "Kalıcı pratik: 2"

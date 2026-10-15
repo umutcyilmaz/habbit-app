@@ -1,0 +1,12 @@
+[
+  {
+    "candidate": "original",
+    "exitCode": 1,
+    "detected": true
+  },
+  {
+    "candidate": "reservation",
+    "exitCode": 1,
+    "detected": true
+  }
+]

@@ -1,0 +1,22 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Final production start manual level and durable save with live runtime guard
+---
+- openLink: "tms-e2e:///debug/practice-persistence"
+- tapOn: {id: "practice.qa.start"}
+- tapOn: {id: "practice.start"}
+- tapOn: {id: "practice.start.confirm"}
+- assertVisible: {id: "practice.running"}
+- tapOn: {id: "practice.level.open"}
+- scrollUntilVisible:
+    element: {id: "practice.level.5"}
+    direction: DOWN
+    centerElement: true
+- tapOn: {id: "practice.level.5"}
+- tapOn: {id: "practice.finish"}
+- tapOn: {id: "practice.skip"}
+- tapOn: {id: "practice.skip"}
+- tapOn: {id: "practice.skip"}
+- tapOn: {id: "practice.save"}
+- assertVisible: {id: "practice.saved"}
+- tapOn: {id: "practice.done"}
+- assertVisible: {id: "practice.history.record"}

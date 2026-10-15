@@ -232,7 +232,7 @@ async function verifyDuplicateLinks() {
   expectNoop(duplicate, () => edit(duplicate, false, undoneAt), "Conflicting linked records must block the whole feedback correction.");
   expectNoop(duplicate, () => remove(duplicate, undoneAt), "Conflicting linked records must block deletion.");
   const storage = createMemoryStorageClient();
-  const raw = JSON.stringify({ version: 8, savedAt: now().toISOString(), state: duplicate });
+  const raw = JSON.stringify({ version: 9, savedAt: now().toISOString(), state: duplicate });
   await storage.setItem(BLOOM_STATE_STORAGE_KEY, raw);
   const loaded = await loadBloomLocalState(storage, now);
   assert(loaded.status === "corrupt" && loaded.backupKey !== null, "Malformed linked sources must follow the existing corruption preservation strategy.");
@@ -342,7 +342,7 @@ function activeContent(state: BloomLocalState): Extract<ContentFreeState, { stat
 }
 
 async function roundTrip(state: BloomLocalState, label: string) {
-  assert(BLOOM_PERSISTENCE_VERSION === 8 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v8", "Session corrections must retain persistence v7.");
+  assert(BLOOM_PERSISTENCE_VERSION === 9 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v9", "Session corrections must retain persistence v7.");
   valid(state, label);
   const storage = createMemoryStorageClient();
   await persistBloomLocalState(state, storage, now);

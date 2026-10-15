@@ -1,0 +1,116 @@
+{
+  "version": 1,
+  "purpose": "Curated, unedited screenshots intended for Git; raw archive stays local and is ignored",
+  "rawCaptureCount": 57,
+  "rawBytes": 12658959,
+  "publishedCaptureCount": 21,
+  "publishedBytes": 4025832,
+  "localOnlyCaptureCount": 36,
+  "screenshots": [
+    {
+      "file": "01-native-intro.png",
+      "bytes": 242930,
+      "sha256": "8f46bba2fe126e3389d70f1a42c7e27741600da6784c8f7cf39f94440cca0f31"
+    },
+    {
+      "file": "03-native-running.png",
+      "bytes": 184623,
+      "sha256": "69a7c5dfb38ffc6e47c1e95f7f92ae0ca8e9214487dc3dd69c9bdb404c8ac173"
+    },
+    {
+      "file": "04-native-pause.png",
+      "bytes": 164939,
+      "sha256": "79704c689190772c02470d960b3f0c826f137cdee5a72b29331da37129e4f38d"
+    },
+    {
+      "file": "06-native-question-1.png",
+      "bytes": 146118,
+      "sha256": "7caf92bec8fae503722ddd5d0834ac6205bfb85e081db43f3633071d2f59e041"
+    },
+    {
+      "file": "07-native-question-2.png",
+      "bytes": 173721,
+      "sha256": "2950940fa0354000af12ccf27d8f510490eae93305ae24b883a7a1e7a2b794f5"
+    },
+    {
+      "file": "08-native-question-3.png",
+      "bytes": 174696,
+      "sha256": "513c658de5033080374ce6aeca6b66f17e66a49a167f2029c8c0e0021ed5f5cc"
+    },
+    {
+      "file": "10-native-saved-summary.png",
+      "bytes": 177569,
+      "sha256": "2956f493c1565d5ccdc46fe9b0e9228ff07afdf2fff54921cd6a8c300914e678"
+    },
+    {
+      "file": "12-native-save-retry.png",
+      "bytes": 174979,
+      "sha256": "a17e765607f688c7fcab2b5d7ab60686fe52e49e18870263b71cfb8195a2e215"
+    },
+    {
+      "file": "15-native-largest-intro.png",
+      "bytes": 154589,
+      "sha256": "6b0dd884d141e0587e94e97b72ac314265df52e403bb96bb79008fed4623bba8"
+    },
+    {
+      "file": "26-native-memory-preview-unsaved.png",
+      "bytes": 166072,
+      "sha256": "d1c7bf756b62d831c1d638c84e251ae4f2bcde8f95c9483cba5cd7b13dc17bef"
+    },
+    {
+      "file": "corrupt-v9-native-storage-fails-closed.png",
+      "bytes": 398709,
+      "sha256": "16879811d3b2219b7290d0d054e25bce89b41557c75f7c69d112bb5215af3bc7"
+    },
+    {
+      "file": "html-intro.png",
+      "bytes": 143420,
+      "sha256": "1e37c1c17ac494450f5fb8e1f9f8f80e3238ddc9b956beddf496c3d7a6a83077"
+    },
+    {
+      "file": "html-pause.png",
+      "bytes": 99261,
+      "sha256": "f62db06478ddcc7eac1060e0e66125e4b7b5e76f5269949449e2580f97825d5b"
+    },
+    {
+      "file": "html-practice.png",
+      "bytes": 93380,
+      "sha256": "cce46dcecb77258e7ce4522111b598b1e4ebed503717d25982ae016ee09be6c4"
+    },
+    {
+      "file": "html-question-1.png",
+      "bytes": 194985,
+      "sha256": "ef7f38ce56465ccb124a6c2a06ed77c799de6e695dc24617b5e6d6ba5aaee396"
+    },
+    {
+      "file": "html-question-2.png",
+      "bytes": 207812,
+      "sha256": "9dbfef281cb300366c1b64fbdb2c8b6650c943db9c7e04031bb987b192372b2c"
+    },
+    {
+      "file": "html-question-3.png",
+      "bytes": 206894,
+      "sha256": "ce9593ef89ba4211eeae7bcb6a4c21cd03a1cfbf60f2dd493d388c080291a2ba"
+    },
+    {
+      "file": "html-summary.png",
+      "bytes": 118340,
+      "sha256": "e90f641f4398589dc08f44f20c531a60a86781b1c72ed6effbf325abbb312ce3"
+    },
+    {
+      "file": "native-deletion-rehydrated-empty-history.png",
+      "bytes": 175577,
+      "sha256": "ccc4b2c5c621ae13692a1980629a9722bc5fae153738e3c5136b2f340f2d6ad0"
+    },
+    {
+      "file": "populated-v8-native-populated-preserved-history.png",
+      "bytes": 225652,
+      "sha256": "b4e11bd95af7ac761af0c03f029288cf74ea037ffec558ac0198a5efe6a6517a"
+    },
+    {
+      "file": "unsupported-v9-native-storage-fails-closed.png",
+      "bytes": 401566,
+      "sha256": "cd7fd2be0d4dd65b42c79d21b35365d5ae89331910bdbe049a5bbe27a74b695b"
+    }
+  ]
+}

@@ -1,3 +1,7 @@
+import { practicePreviewEnabled } from "../../features/practice/practicePreviewMode";
+import { practicePreviewRuntime } from "../../features/practice/practicePreviewRuntime";
+import { View, Text } from "react-native";
+import { practiceQaInvalidConfiguration, practicePersistenceQaEnabled, practicePersistenceQaRuntime } from "../../features/practice/qa/practicePersistenceQa";
 import type { PropsWithChildren } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -14,11 +18,12 @@ import { kegelPreviewRuntime } from "../../features/kegel/kegelPreviewRuntime";
 import { kegelPersistenceQaEnabled, kegelPersistenceQaRuntime } from "../../features/kegel/kegelPersistenceQa";
 
 export function AppProviders({ children }: PropsWithChildren) {
+  if(practiceQaInvalidConfiguration)return <View><Text>Practice QA için yeni ve geçerli bir run adı gerekli. Mevcut veri açılmadı.</Text></View>;
   return (
     <SafeAreaProvider>
-      {kegelPersistenceQaEnabled ? <LocalProviders runtime={kegelPersistenceQaRuntime}>{children}</LocalProviders> : kegelPreviewEnabled ? <LocalProviders runtime={kegelPreviewRuntime}>{children}</LocalProviders> : phase10QaEnabled ? <Phase10QaProvider>
+      {practicePersistenceQaEnabled ? <LocalProviders runtime={practicePersistenceQaRuntime}>{children}</LocalProviders> : kegelPersistenceQaEnabled ? <LocalProviders runtime={kegelPersistenceQaRuntime}>{children}</LocalProviders> : kegelPreviewEnabled ? <LocalProviders runtime={kegelPreviewRuntime}>{children}</LocalProviders> : phase10QaEnabled ? <Phase10QaProvider>
         <LocalProviders>{children}</LocalProviders>
-      </Phase10QaProvider> : <LocalProviders>{children}</LocalProviders>}
+      </Phase10QaProvider> : practicePreviewEnabled ? <LocalProviders runtime={practicePreviewRuntime}>{children}</LocalProviders> : <LocalProviders>{children}</LocalProviders>}
     </SafeAreaProvider>
   );
 }

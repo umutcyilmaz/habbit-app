@@ -1,0 +1,614 @@
+[
+  {
+    "device": "3C8CE983-39F5-41A0-B781-2AACDBCD1273",
+    "category": "default",
+    "fixture": "fresh-v8",
+    "run": "typography1172_20261014_target_default_fresh_v8_io_final_c44d",
+    "prefix": "bloom.e2e.practice.typography1172_20261014_target_default_fresh_v8_io_final_c44d.fresh-v8.",
+    "exitCode": 0,
+    "visualInspectionRequired": true,
+    "case": "target-default",
+    "verificationPass": "responsive-layout-main-matrix",
+    "viewports": [
+      {
+        "width": 402,
+        "height": 874,
+        "fontScale": 1
+      }
+    ],
+    "viewportMeasurementSource": "camera-target-default",
+    "viewportMeasuredInThisCase": true,
+    "captureCount": 37,
+    "durableRecords": 2,
+    "sessionIdsUnique": true,
+    "actualSelectionsVerified": true,
+    "nonPracticeStatePreserved": true,
+    "resetFixtureUnchanged": false,
+    "manualInspection": {
+      "reviewed": [
+        "history-empty",
+        "history-empty-heading",
+        "history-empty-body",
+        "intro",
+        "running",
+        "paused",
+        "question-1",
+        "question-2-selected",
+        "question-3",
+        "summary",
+        "saved",
+        "history",
+        "intro-actions",
+        "start-dialog",
+        "exit-dialog",
+        "summary-actions",
+        "saved-actions",
+        "question-3-feelings",
+        "save-error",
+        "save-retry",
+        "retry-saved",
+        "home-practice-actions"
+      ],
+      "notes": "Raw framebuffer: normal full labels/1–10/summary/saved/history, touch controls and safe area inspected; no blank capture."
+    },
+    "hashProvesVisualCorrectness": false,
+    "rawCapturesRetainedLocally": true,
+    "gitScreenshotSelection": "publication-assets.json"
+  },
+  {
+    "device": "3C8CE983-39F5-41A0-B781-2AACDBCD1273",
+    "category": "default",
+    "fixture": "reset-active",
+    "run": "typography1172_20261014_target_default_reset_active_io_final_c44d",
+    "prefix": "bloom.e2e.practice.typography1172_20261014_target_default_reset_active_io_final_c44d.reset-active.",
+    "exitCode": 0,
+    "visualInspectionRequired": true,
+    "case": "target-default-reset",
+    "verificationPass": "responsive-layout-main-matrix",
+    "viewports": [
+      {
+        "width": 402,
+        "height": 874,
+        "fontScale": 1
+      }
+    ],
+    "viewportMeasurementSource": "camera-target-default",
+    "viewportMeasuredInThisCase": false,
+    "captureCount": 6,
+    "durableRecords": 1,
+    "sessionIdsUnique": true,
+    "actualSelectionsVerified": true,
+    "nonPracticeStatePreserved": true,
+    "resetFixtureUnchanged": true,
+    "manualInspection": {
+      "reviewed": [
+        "reset-blocked",
+        "reset-blocked-actions",
+        "reset-history",
+        "reset-home-actions"
+      ],
+      "notes": "Normal Reset engeli, geçmiş ve Home CTA; framebuffer, safe area ve tam label düzgün."
+    },
+    "hashProvesVisualCorrectness": false,
+    "rawCapturesRetainedLocally": true,
+    "gitScreenshotSelection": "publication-assets.json"
+  },
+  {
+    "device": "3C8CE983-39F5-41A0-B781-2AACDBCD1273",
+    "category": "moderate",
+    "fixture": "fresh-v8",
+    "run": "typography1172_20261014_target_moderate_fresh_v8_io_final_c44d",
+    "prefix": "bloom.e2e.practice.typography1172_20261014_target_moderate_fresh_v8_io_final_c44d.fresh-v8.",
+    "exitCode": 0,
+    "visualInspectionRequired": true,
+    "case": "target-moderate",
+    "verificationPass": "responsive-layout-main-matrix",
+    "viewports": [
+      {
+        "width": 402,
+        "height": 874,
+        "fontScale": 1.353
+      }
+    ],
+    "viewportMeasurementSource": "camera-target-moderate",
+    "viewportMeasuredInThisCase": true,
+    "captureCount": 37,
+    "durableRecords": 2,
+    "sessionIdsUnique": true,
+    "actualSelectionsVerified": true,
+    "nonPracticeStatePreserved": true,
+    "resetFixtureUnchanged": false,
+    "manualInspection": {
+      "reviewed": [
+        "intro",
+        "intro-actions",
+        "start-dialog",
+        "running",
+        "running-levels",
+        "running-actions",
+        "paused",
+        "paused-actions",
+        "exit-dialog-actions",
+        "question-1",
+        "question-1-endpoints",
+        "question-2",
+        "question-2-warning",
+        "question-3",
+        "question-3-feelings",
+        "summary",
+        "summary-reports",
+        "saved",
+        "saved-actions",
+        "history",
+        "history-answers",
+        "history-empty-body",
+        "save-error",
+        "save-retry",
+        "retry-saved",
+        "ready",
+        "home-practice-actions"
+      ],
+      "notes": "Orta boyutta tam sözcükler, 3 sütun 1–10 seçim, alt alta uç etiketleri, scroll sonundaki eylemler ve stacked özet incelendi. Önceki içerik scroll sınırında kısmen kalabilir; devam kareleri bütün metni tamamlıyor."
+    },
+    "hashProvesVisualCorrectness": false,
+    "rawCapturesRetainedLocally": true,
+    "gitScreenshotSelection": "publication-assets.json"
+  },
+  {
+    "device": "3C8CE983-39F5-41A0-B781-2AACDBCD1273",
+    "category": "moderate",
+    "fixture": "reset-active",
+    "run": "typography1172_20261014_target_moderate_reset_active_io_final_c44d",
+    "prefix": "bloom.e2e.practice.typography1172_20261014_target_moderate_reset_active_io_final_c44d.reset-active.",
+    "exitCode": 0,
+    "visualInspectionRequired": true,
+    "case": "target-moderate-reset",
+    "verificationPass": "responsive-layout-main-matrix",
+    "viewports": [
+      {
+        "width": 402,
+        "height": 874,
+        "fontScale": 1.353
+      }
+    ],
+    "viewportMeasurementSource": "camera-target-moderate",
+    "viewportMeasuredInThisCase": false,
+    "captureCount": 6,
+    "durableRecords": 1,
+    "sessionIdsUnique": true,
+    "actualSelectionsVerified": true,
+    "nonPracticeStatePreserved": true,
+    "resetFixtureUnchanged": true,
+    "manualInspection": {
+      "reviewed": [
+        "reset-blocked",
+        "reset-blocked-actions",
+        "reset-history",
+        "reset-home-actions"
+      ],
+      "notes": "Orta Reset metni/eylemler, geçmiş ve Home kartı tam okunuyor; status bar ve dört tab çakışmıyor."
+    },
+    "hashProvesVisualCorrectness": false,
+    "rawCapturesRetainedLocally": true,
+    "gitScreenshotSelection": "publication-assets.json"
+  },
+  {
+    "device": "3C8CE983-39F5-41A0-B781-2AACDBCD1273",
+    "category": "maximum",
+    "fixture": "fresh-v8",
+    "run": "typography1172_20261015_target_ax5_fresh_v8_heightfinal",
+    "prefix": "bloom.e2e.practice.typography1172_20261015_target_ax5_fresh_v8_heightfinal.fresh-v8.",
+    "exitCode": 0,
+    "visualInspectionRequired": true,
+    "case": "target-maximum",
+    "verificationPass": "native-paragraph-height-followup",
+    "viewports": [
+      {
+        "width": 402,
+        "height": 874,
+        "fontScale": 3.571
+      }
+    ],
+    "viewportMeasurementSource": "camera-target-maximum-heightfinal",
+    "viewportMeasuredInThisCase": true,
+    "captureCount": 62,
+    "durableRecords": 2,
+    "sessionIdsUnique": true,
+    "actualSelectionsVerified": true,
+    "nonPracticeStatePreserved": true,
+    "resetFixtureUnchanged": false,
+    "manualInspection": {
+      "reviewed": [
+        "intro",
+        "intro-rule-1-detail",
+        "intro-rule-3-detail",
+        "intro-actions",
+        "history-empty-body",
+        "start-dialog",
+        "start-dialog-actions",
+        "running",
+        "running-levels",
+        "running-actions",
+        "paused",
+        "paused-actions",
+        "exit-dialog-actions",
+        "question-1",
+        "question-1-endpoints",
+        "question-2-warning",
+        "question-2",
+        "question-2-actions",
+        "question-3",
+        "question-3-feelings",
+        "summary",
+        "summary-actions",
+        "summary-reports",
+        "saved",
+        "saved-actions",
+        "history",
+        "history-answers",
+        "history-actions",
+        "ready",
+        "save-error",
+        "save-retry",
+        "retry-saved",
+        "home-practice-actions",
+        "home-practice-detail"
+      ],
+      "notes": "Hedef AX5 final native paragraf ölçümü: başlık sözcükleri bütün, uzun kart metinleri doğal scroll; değerlendirmeyiz/Tamamladığında/kaydetmeyi/seçebilirsin tam. Başlat CTA içerikle akıyor, ölçüsü makul ve tam. Boş history başlığı/uzun sözcükler bütün ve scroll ile sürer. Onay üst/alt metni ve iki eylem tam; timer tek satır, dekoratif eğri açıklaması tam; manuel değerler iki sütun, çalışma eylemleri ulaşılır. Mola ve çıkış modalı tam eylemlerle kullanılabilir. Kalite 1–10 iki sütun, uç etiketleri ayrı; ikinci soru ayrım açıklaması son değiştirmez. sözcüğüne kadar tam. Üç soru, tüm bitiş yanıtları ve hisler, özetin gerçek beyanları ve kaydet/düzenle okunabilir. Saved/History CTA tam; history uzun cevapları doğal sarar, değer kaybı yok. Kart açıklamasının bağımsızdır. sonu tam. Ready yönergesi, hata ve exact retry açıklamasının son noktası tam; uzun retry iki satır. Retry-saved karesinin Bu cihaza üst satırı scroll sınırında; tam durum metni ilk saved üst karesinde incelendi, kaydedildi satırı/özet doğal scroll ile erişilir. Home iki tam eylem ve bağımsızdır. sonu incelendi; kontroller içerikle akıyor, tab bar üstünde erişilir."
+    },
+    "hashProvesVisualCorrectness": false,
+    "rawCapturesRetainedLocally": true,
+    "gitScreenshotSelection": "publication-assets.json"
+  },
+  {
+    "device": "3C8CE983-39F5-41A0-B781-2AACDBCD1273",
+    "category": "maximum",
+    "fixture": "reset-active",
+    "run": "typography1172_20261015_target_ax5_reset_active_heightfinal",
+    "prefix": "bloom.e2e.practice.typography1172_20261015_target_ax5_reset_active_heightfinal.reset-active.",
+    "exitCode": 0,
+    "visualInspectionRequired": true,
+    "case": "target-maximum-reset",
+    "verificationPass": "native-paragraph-height-followup",
+    "viewports": [
+      {
+        "width": 402,
+        "height": 874,
+        "fontScale": 3.571
+      }
+    ],
+    "viewportMeasurementSource": "camera-target-maximum-heightfinal",
+    "viewportMeasuredInThisCase": false,
+    "captureCount": 7,
+    "durableRecords": 1,
+    "sessionIdsUnique": true,
+    "actualSelectionsVerified": true,
+    "nonPracticeStatePreserved": true,
+    "resetFixtureUnchanged": true,
+    "manualInspection": {
+      "reviewed": [
+        "reset-blocked",
+        "reset-blocked-actions",
+        "reset-history",
+        "reset-history-answers",
+        "reset-home-actions",
+        "reset-home-detail"
+      ],
+      "notes": "Hedef AX5 Reset son sürüm: tam Pratik duraklatıldı başlığı ve görüntüleyebilirsin. sonuna kadar sözcükler bütün. Geçmiş/Ana sayfa eylemleri tam, kaydırma ile erişilir; safe-area korunur. History tam Pratik geçmişi ve 44pt geri kontrolü kullanılabilir. Cevap kartında 8 / 10 satırlara taşar fakat değer tam; Hayır ve pause süreleri okunur. Scroll üst sınırında önceki Duraklama başlığının kesiti normal kaydırma konumudur. Home engel açıklaması/Pratik geçmişi ve bağımsızdır. sonu tam; tab bar içeriğin scroll alt boşluğuyla erişimi engellemez."
+    },
+    "hashProvesVisualCorrectness": false,
+    "rawCapturesRetainedLocally": true,
+    "gitScreenshotSelection": "publication-assets.json"
+  },
+  {
+    "device": "890ADA65-17D8-4EEC-AFDE-853AEE570448",
+    "category": "default",
+    "fixture": "fresh-v8",
+    "run": "typography1172_20261014_narrow_default_fresh_v8_io_final_c44d",
+    "prefix": "bloom.e2e.practice.typography1172_20261014_narrow_default_fresh_v8_io_final_c44d.fresh-v8.",
+    "exitCode": 0,
+    "visualInspectionRequired": true,
+    "case": "narrow-default",
+    "verificationPass": "responsive-layout-main-matrix",
+    "viewports": [
+      {
+        "width": 375,
+        "height": 812,
+        "fontScale": 1
+      }
+    ],
+    "viewportMeasurementSource": "camera-narrow-default",
+    "viewportMeasuredInThisCase": true,
+    "captureCount": 37,
+    "durableRecords": 2,
+    "sessionIdsUnique": true,
+    "actualSelectionsVerified": true,
+    "nonPracticeStatePreserved": true,
+    "resetFixtureUnchanged": false,
+    "manualInspection": {
+      "reviewed": [
+        "history-empty-body",
+        "intro",
+        "intro-actions",
+        "start-dialog",
+        "start-dialog-actions",
+        "running",
+        "running-levels",
+        "running-actions",
+        "paused",
+        "paused-actions",
+        "exit-dialog",
+        "question-1",
+        "question-1-endpoints",
+        "question-2-selected",
+        "question-2-warning",
+        "question-3",
+        "question-3-feelings",
+        "summary",
+        "summary-reports",
+        "saved",
+        "saved-actions",
+        "history",
+        "history-answers",
+        "ready",
+        "save-error",
+        "save-retry",
+        "retry-saved",
+        "home-practice-actions"
+      ],
+      "notes": "375 pt normal: heading iki satır ve fark et birlikte; normal HTML düzeni korunuyor. Boş geçmiş, dialog, 5 sütun seviye ve tam CTA etiketleri incelendi; native safe-area düzgün."
+    },
+    "hashProvesVisualCorrectness": false,
+    "rawCapturesRetainedLocally": true,
+    "gitScreenshotSelection": "publication-assets.json"
+  },
+  {
+    "device": "890ADA65-17D8-4EEC-AFDE-853AEE570448",
+    "category": "default",
+    "fixture": "reset-active",
+    "run": "typography1172_20261014_narrow_default_reset_active_io_final_c44d",
+    "prefix": "bloom.e2e.practice.typography1172_20261014_narrow_default_reset_active_io_final_c44d.reset-active.",
+    "exitCode": 0,
+    "visualInspectionRequired": true,
+    "case": "narrow-default-reset",
+    "verificationPass": "responsive-layout-main-matrix",
+    "viewports": [
+      {
+        "width": 375,
+        "height": 812,
+        "fontScale": 1
+      }
+    ],
+    "viewportMeasurementSource": "camera-narrow-default",
+    "viewportMeasuredInThisCase": false,
+    "captureCount": 6,
+    "durableRecords": 1,
+    "sessionIdsUnique": true,
+    "actualSelectionsVerified": true,
+    "nonPracticeStatePreserved": true,
+    "resetFixtureUnchanged": true,
+    "manualInspection": {
+      "reviewed": [
+        "reset-blocked",
+        "reset-history",
+        "reset-home-actions"
+      ],
+      "notes": "Dar cihaz normal Reset açıklaması ve eylemler, korunmuş sentetik history ve Home geçmiş CTA görsel olarak okunuyor. Üst/alt safe area ve tab bar düzgün."
+    },
+    "hashProvesVisualCorrectness": false,
+    "rawCapturesRetainedLocally": true,
+    "gitScreenshotSelection": "publication-assets.json"
+  },
+  {
+    "device": "890ADA65-17D8-4EEC-AFDE-853AEE570448",
+    "category": "moderate",
+    "fixture": "fresh-v8",
+    "run": "typography1172_20261014_narrow_moderate_fresh_v8_io_final_c44d",
+    "prefix": "bloom.e2e.practice.typography1172_20261014_narrow_moderate_fresh_v8_io_final_c44d.fresh-v8.",
+    "exitCode": 0,
+    "visualInspectionRequired": true,
+    "case": "narrow-moderate",
+    "verificationPass": "responsive-layout-main-matrix",
+    "viewports": [
+      {
+        "width": 375,
+        "height": 812,
+        "fontScale": 1.353
+      }
+    ],
+    "viewportMeasurementSource": "camera-narrow-moderate",
+    "viewportMeasuredInThisCase": true,
+    "captureCount": 37,
+    "durableRecords": 2,
+    "sessionIdsUnique": true,
+    "actualSelectionsVerified": true,
+    "nonPracticeStatePreserved": true,
+    "resetFixtureUnchanged": false,
+    "manualInspection": {
+      "reviewed": [
+        "history-empty-body",
+        "intro",
+        "intro-actions",
+        "start-dialog",
+        "start-dialog-actions",
+        "running",
+        "running-levels",
+        "running-actions",
+        "paused",
+        "paused-actions",
+        "exit-dialog-actions",
+        "question-1",
+        "question-1-endpoints",
+        "question-2-selected",
+        "question-2-warning",
+        "question-3-feelings",
+        "question-3",
+        "summary",
+        "summary-reports",
+        "saved",
+        "saved-actions",
+        "history",
+        "history-answers",
+        "history-actions",
+        "ready",
+        "save-error",
+        "save-retry",
+        "retry-saved",
+        "home-practice-actions"
+      ],
+      "notes": "Dar cihaz XXXL: tam giriş başlığı dengeli iki satır, uzun Türkçe sözcükler bütün; ikonlar üstte ve CTA scroll sonunda. Boş geçmiş, tam history başlığı ve başlangıç onayı native safe-area içinde okunuyor. Çalışma ve mola: üç sütunlu 1–10 seçenekleri, tam yönergeler ve scroll içindeki bütün kontroller okunabilir; örtüşme yok. Üç soru, ölçek uçları, açık içerik uyarısı, bitiş/his seçenekleri ve özet/save scroll sonunda bütün sözcükler ve değerlerle okunuyor. Durable kayıt bildirimi, geçmiş CTA ve tarihçe tam görünür; kayıt içerikleri/uzun alanlar kırpılmadan kaydırılıyor. Hata açıklaması ve aynı kaydı yeniden dene tam; başarılı retry sonrası durable bildirimi okunuyor. Home Practice kartı tam başlat/geçmiş etiketleri ve bağımsızlık açıklamasıyla kullanılabilir."
+    },
+    "hashProvesVisualCorrectness": false,
+    "rawCapturesRetainedLocally": true,
+    "gitScreenshotSelection": "publication-assets.json"
+  },
+  {
+    "device": "890ADA65-17D8-4EEC-AFDE-853AEE570448",
+    "category": "moderate",
+    "fixture": "reset-active",
+    "run": "typography1172_20261014_narrow_moderate_reset_active_io_final_c44d",
+    "prefix": "bloom.e2e.practice.typography1172_20261014_narrow_moderate_reset_active_io_final_c44d.reset-active.",
+    "exitCode": 0,
+    "visualInspectionRequired": true,
+    "case": "narrow-moderate-reset",
+    "verificationPass": "responsive-layout-main-matrix",
+    "viewports": [
+      {
+        "width": 375,
+        "height": 812,
+        "fontScale": 1.353
+      }
+    ],
+    "viewportMeasurementSource": "camera-narrow-moderate",
+    "viewportMeasuredInThisCase": false,
+    "captureCount": 6,
+    "durableRecords": 1,
+    "sessionIdsUnique": true,
+    "actualSelectionsVerified": true,
+    "nonPracticeStatePreserved": true,
+    "resetFixtureUnchanged": true,
+    "manualInspection": {
+      "reviewed": [
+        "reset-blocked",
+        "reset-blocked-actions",
+        "reset-history",
+        "reset-home-actions"
+      ],
+      "notes": "Dar cihaz XXXL: Reset engeli tam yönergeyle okunuyor; geçmiş ve Home dönüş kontrolleri tam label, safe-area içinde. History başlığı/fixture cevapları bütün sözcüklerle okunur. Home engelli Practice kartı geçmiş CTA ve kısıt açıklamasıyla okunabilir; engellenmiş başlat CTA gösterilmez."
+    },
+    "hashProvesVisualCorrectness": false,
+    "rawCapturesRetainedLocally": true,
+    "gitScreenshotSelection": "publication-assets.json"
+  },
+  {
+    "device": "890ADA65-17D8-4EEC-AFDE-853AEE570448",
+    "category": "maximum",
+    "fixture": "fresh-v8",
+    "run": "typography1172_20261015_narrow_ax5_fresh_v8_heightfinal",
+    "prefix": "bloom.e2e.practice.typography1172_20261015_narrow_ax5_fresh_v8_heightfinal.fresh-v8.",
+    "exitCode": 0,
+    "visualInspectionRequired": true,
+    "case": "narrow-maximum",
+    "verificationPass": "native-paragraph-height-followup",
+    "viewports": [
+      {
+        "width": 375,
+        "height": 812,
+        "fontScale": 3.571
+      }
+    ],
+    "viewportMeasurementSource": "camera-narrow-maximum-heightfinal",
+    "viewportMeasuredInThisCase": true,
+    "captureCount": 62,
+    "durableRecords": 2,
+    "sessionIdsUnique": true,
+    "actualSelectionsVerified": true,
+    "nonPracticeStatePreserved": true,
+    "resetFixtureUnchanged": false,
+    "manualInspection": {
+      "reviewed": [
+        "intro",
+        "history-empty-body",
+        "intro-rule-1-detail",
+        "intro-rule-3-detail",
+        "intro-actions",
+        "start-dialog",
+        "start-dialog-actions",
+        "running",
+        "running-levels",
+        "running-actions",
+        "paused",
+        "paused-actions",
+        "exit-dialog-actions",
+        "question-1",
+        "question-1-endpoints",
+        "question-1-actions",
+        "question-2-warning",
+        "question-2-actions",
+        "question-3-feelings",
+        "question-2",
+        "question-3",
+        "summary",
+        "summary-ending",
+        "summary-reports",
+        "summary-actions",
+        "saved",
+        "saved-actions",
+        "history",
+        "history-answers",
+        "history-reports",
+        "history-actions",
+        "ready",
+        "save-error",
+        "save-retry",
+        "retry-saved",
+        "home-practice-actions",
+        "home-practice-detail"
+      ],
+      "notes": "Son paragraf yüksekliği düzeltmesiyle dar cihaz AX5: tam giriş başlığı ve uzun Türkçe sözcükler bütün; boş geçmiş başlığı ve görünen yönerge sözcükleri bütün, body doğal scroll, header/safe-area ayrı. İncelenen kareler ham native framebuffer. Tanıtımın uzun kart metni ve son kart kuyruğu/CTA incelendi: değerlendirmeyiz, Tamamladığında, kaydetmeyi, seçebilirsin sözcükleri bütün. CTA ~74pt ve scroll sonunda tam. Başlangıç modalında üst metin/alt iki eylem ayrı karelerde eksiksiz; timer tek satır, fizyolojik değil açıklaması tam, manuel 1–10 iki sütun. Çalışma/mola eylemleri, orb dışındaki nefes yönergesi, çıkış modalının alt metni ve üç eylemi tam. Uzun modal eylemi iki satır; kontroller içerik üstüne binmiyor. Kalite 1–10/iki uç ayrı satır; açıklama ve ilerle/atla tam. Önce kesilen ikinci soru son sözcüğü şimdi değiştirmez. olarak tam; uyarı kuyruğu ve kontroller tam. Hisler iki sütuna sarılır, Özet CTA erişilir. İkinci/üçüncü soru başlıkları, özet henüz kaydedilmedi etiketi ve gerçek cevaplar 8/10/Evet/Boşalmadan bitirdim/Sakin/7/10 tam; değerler alt alta doğal sarılıyor. Kaydet/düzenle erişilir. Kaydedildi etiketi tam, geçmişe git iki satırda tam. History tam başlık ve geri hedefi ayrı; kayıt cevapları uzun sözcükler bozulmadan doğal scroll. History beyan/CF ayrımı ve kartın bağımsızlık açıklaması okunuyor; acknowledged ready başlığı doğal üç satır. Hata ve retry açıklaması son noktaya kadar tam; doğrulanmadı sözcüğü bütün. Aynı kaydı yeniden dene iki satır ve tam, ~112pt; doğal scroll içinde. Retry sonrası saved tam. Home kartındaki iki tam CTA 74pt ve alt tab bar üstünde; açıklama scroll ile devam ediyor."
+    },
+    "hashProvesVisualCorrectness": false,
+    "rawCapturesRetainedLocally": true,
+    "gitScreenshotSelection": "publication-assets.json"
+  },
+  {
+    "device": "890ADA65-17D8-4EEC-AFDE-853AEE570448",
+    "category": "maximum",
+    "fixture": "reset-active",
+    "run": "typography1172_20261015_narrow_ax5_reset_active_heightfinal",
+    "prefix": "bloom.e2e.practice.typography1172_20261015_narrow_ax5_reset_active_heightfinal.reset-active.",
+    "exitCode": 0,
+    "visualInspectionRequired": true,
+    "case": "narrow-maximum-reset",
+    "verificationPass": "native-paragraph-height-followup",
+    "viewports": [
+      {
+        "width": 375,
+        "height": 812,
+        "fontScale": 3.571
+      }
+    ],
+    "viewportMeasurementSource": "camera-narrow-maximum-heightfinal",
+    "viewportMeasuredInThisCase": false,
+    "captureCount": 7,
+    "durableRecords": 1,
+    "sessionIdsUnique": true,
+    "actualSelectionsVerified": true,
+    "nonPracticeStatePreserved": true,
+    "resetFixtureUnchanged": true,
+    "manualInspection": {
+      "reviewed": [
+        "reset-blocked",
+        "reset-blocked-actions",
+        "reset-history",
+        "reset-history-answers",
+        "reset-home-actions",
+        "reset-home-detail"
+      ],
+      "notes": "Dar AX5 Reset: başlık ve engel yönergesi bütün Türkçe sözcüklerle okunuyor; son görüntüleyebilirsin. tam. Scroll sonrası geçmiş ve Home dönüşü tam ve erişilebilir; history tam başlığı ve geri kontrolü safe-area içinde. Reset geçmiş cevapları tam; Home engelli kartta geçmiş CTA, başlatılamaz açıklaması ve bağımsızlık metninin son noktası footer üstünde okunur."
+    },
+    "hashProvesVisualCorrectness": false,
+    "rawCapturesRetainedLocally": true,
+    "gitScreenshotSelection": "publication-assets.json"
+  }
+]

@@ -52,9 +52,9 @@ export async function verifyBloomProductPersistence() {
 }
 
 function verifyTruthfulDefaults() {
-  assert(BLOOM_PERSISTENCE_VERSION === 8, "The current envelope must be version 7.");
-  assert(BLOOM_STATE_STORAGE_KEY === "bloom.localState.v8", "Current writes must use the v7 key.");
-  equal(BLOOM_LEGACY_STATE_STORAGE_KEYS, [v7Key, v6Key, v5Key, v4Key, v3Key, v2Key, v1Key], "Migration sources must prefer v6, then v5, then v4, then v3, then v2, then v1.");
+  assert(BLOOM_PERSISTENCE_VERSION === 9, "The current envelope must be version 7.");
+  assert(BLOOM_STATE_STORAGE_KEY === "bloom.localState.v9", "Current writes must use the v7 key.");
+  equal(BLOOM_LEGACY_STATE_STORAGE_KEYS, ["bloom.localState.v8", v7Key, v6Key, v5Key, v4Key, v3Key, v2Key, v1Key], "Migration sources must prefer v6, then v5, then v4, then v3, then v2, then v1.");
   const first = createDefaultBloomState();
   const second = createDefaultBloomState();
   assertSafeProductDefaults(first, "fresh state");
@@ -81,7 +81,7 @@ async function verifyPopulatedV7RoundTrips() {
     const payload = client.values.get(BLOOM_STATE_STORAGE_KEY);
     assert(payload !== undefined, `${label}: a v7 envelope must become durable.`);
     const parsed = JSON.parse(payload) as { version: unknown; state: unknown };
-    assert(parsed.version === 8, `${label}: saved envelopes must explicitly declare v7.`);
+    assert(parsed.version === 9, `${label}: saved envelopes must explicitly declare v7.`);
     equal(parsed.state, state, `${label}: saving must preserve the expanded snapshot.`);
     const loaded = await loadBloomLocalState(client, now);
     assert(loaded.status === "success" && loaded.source === "current" && !loaded.needsPersist, `${label}: durable v7 must reload without migration.`);
@@ -112,7 +112,7 @@ async function verifyV2Migration() {
     assert(!client.values.has(v2Key), `${label}: v2 is removed after successful migration.`);
     const durable = client.values.get(BLOOM_STATE_STORAGE_KEY);
     assert(durable !== undefined, `${label}: migrated v7 must remain durable.`);
-    equal(JSON.parse(durable), { version: 8, savedAt: now().toISOString(), state: loaded.state }, `${label}: durable migration envelope must match the returned state.`);
+    equal(JSON.parse(durable), { version: 9, savedAt: now().toISOString(), state: loaded.state }, `${label}: durable migration envelope must match the returned state.`);
     const second = await loadBloomLocalState(client, now);
     assert(second.status === "success" && second.source === "current" && !second.needsPersist, `${label}: reload must not repeat migration.`);
     equal(second.state, loaded.state, `${label}: migration must preserve its canonical result on reload.`);
@@ -195,7 +195,7 @@ async function verifyStoragePrecedenceAndRawCompatibility() {
   const v2 = { ...legacy, debug: { dateOffsetDays: 20 } };
   const v1 = { ...legacy, debug: { dateOffsetDays: 10 } };
   const client = new ProductTestStorage();
-  client.values.set(BLOOM_STATE_STORAGE_KEY, envelope(8, current));
+  client.values.set(BLOOM_STATE_STORAGE_KEY, envelope(9, current));
   client.values.set(v6Key, envelope(6, v6));
   client.values.set(v5Key, envelope(5, v5));
   client.values.set(v4Key, envelope(4, v4));
@@ -250,7 +250,7 @@ async function verifyStoragePrecedenceAndRawCompatibility() {
   assert(migrated.status === "success" && migrated.state.debug.dateOffsetDays === 20, "v2 must take precedence over older raw v1.");
   assert(!previous.readKeys.includes(v1Key), "Migration must not merge older v1 facts into valid v2.");
 
-  for (const key of [BLOOM_STATE_STORAGE_KEY, v6Key, v5Key, v4Key, v3Key, v2Key, v1Key]) {
+  for (const key of BLOOM_LEGACY_STATE_STORAGE_KEYS) {
     const rawClient = new ProductTestStorage();
     rawClient.values.set(key, JSON.stringify(createPopulatedState()));
     const rawLoaded = await loadBloomLocalState(rawClient, now);
@@ -260,7 +260,7 @@ async function verifyStoragePrecedenceAndRawCompatibility() {
   }
 
   const relocated = new ProductTestStorage();
-  relocated.values.set(v2Key, envelope(8, current));
+  relocated.values.set(v2Key, envelope(9, current));
   const relocation = await loadBloomLocalState(relocated, now);
   assert(relocation.status === "success" && relocation.source === "legacy", "A current envelope in an old key should relocate safely.");
   equal(relocation.state, current, "Envelope version, not key name, must preserve valid v7 facts during relocation.");
@@ -277,7 +277,7 @@ async function verifyAllVersionDeletion() {
 }
 
 async function verifyFutureAndMalformedEnvelopePreservation() {
-  for (const key of [BLOOM_STATE_STORAGE_KEY, v6Key, v5Key, v4Key, v3Key, v2Key, v1Key]) {
+  for (const key of BLOOM_LEGACY_STATE_STORAGE_KEYS) {
     const client = new ProductTestStorage();
     const raw = envelope(99, { privateFact: "future schema must survive" });
     client.values.set(key, raw);

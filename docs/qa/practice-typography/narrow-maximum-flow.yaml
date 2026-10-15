@@ -1,0 +1,792 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Practice typography maximum fresh-v8
+---
+- tapOn: {text: "Open", optional: true}
+- tapOn: {text: "Continue", optional: true}
+- tapOn: {id: "xmark", optional: true}
+- openLink: "tms-e2e:///bloom/practice/history"
+- waitForAnimationToEnd: {timeout: 1800}
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "history-empty"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.history.empty.heading"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "history-empty-heading"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.history.empty.body"}
+    direction: DOWN
+    visibilityPercentage: 25
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "history-empty-body"}
+- runScript: capture-native.js
+- openLink: "tms-e2e:///bloom/practice"
+- waitForAnimationToEnd: {timeout: 1800}
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "intro"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.rule.0.title"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "intro-rule-0-title"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.rule.0.detail"}
+    direction: DOWN
+    visibilityPercentage: 25
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "intro-rule-0-detail"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.rule.1.title"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "intro-rule-1-title"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.rule.1.detail"}
+    direction: DOWN
+    visibilityPercentage: 25
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "intro-rule-1-detail"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.rule.2.title"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "intro-rule-2-title"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.rule.2.detail"}
+    direction: DOWN
+    visibilityPercentage: 25
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "intro-rule-2-detail"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.rule.3.title"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "intro-rule-3-title"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.rule.3.detail"}
+    direction: DOWN
+    visibilityPercentage: 25
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "intro-rule-3-detail"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.start"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- swipe: {start: "50%, 75%", end: "50%, 40%", duration: 400}
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "intro-actions"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.start"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- tapOn: {id: "practice.start"}
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "start-dialog"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.dialog.body"}
+    direction: DOWN
+    visibilityPercentage: 25
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "start-dialog-body"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.start.confirm"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- swipe: {start: "50%, 75%", end: "50%, 40%", duration: 400}
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "start-dialog-actions"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.start.confirm"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- tapOn: {id: "practice.start.confirm"}
+- assertVisible: {id: "practice.running"}
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "running"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.guide"}
+    direction: DOWN
+    visibilityPercentage: 25
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "running-guide"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.level.open"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "running-guide-lower"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.level.open"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- tapOn: {id: "practice.level.open"}
+- scrollUntilVisible:
+    element: {id: "practice.level.grid"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "running-levels"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.level.7"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- tapOn: {id: "practice.level.7"}
+- assertVisible: {id: "practice.running"}
+- scrollUntilVisible:
+    element: {id: "practice.target"}
+    direction: DOWN
+    visibilityPercentage: 25
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "running-target"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.pause"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- swipe: {start: "50%, 75%", end: "50%, 40%", duration: 400}
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "running-actions"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.pause"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- tapOn: {id: "practice.pause"}
+- assertVisible: {id: "practice.paused"}
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "paused"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.pause.guidance"}
+    direction: DOWN
+    visibilityPercentage: 25
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "paused-guidance"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.resume"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- swipe: {start: "50%, 75%", end: "50%, 40%", duration: 400}
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "paused-actions"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.resume"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- tapOn: {id: "practice.resume"}
+- assertVisible: {id: "practice.running"}
+- scrollUntilVisible:
+    element: {id: "practice.exit"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- tapOn: {id: "practice.exit"}
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "exit-dialog"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.exit.keep"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- swipe: {start: "50%, 75%", end: "50%, 40%", duration: 400}
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "exit-dialog-actions"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.exit.keep"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- tapOn: {id: "practice.exit.keep"}
+- assertVisible: {id: "practice.running"}
+- scrollUntilVisible:
+    element: {id: "practice.finish"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- tapOn: {id: "practice.finish"}
+- assertVisible: {id: "practice.question.1"}
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "question-1"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.quality.grid"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "question-1-choices"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.quality.8"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- tapOn: {id: "practice.quality.8"}
+- scrollUntilVisible:
+    element: {id: "practice.quality.high"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "question-1-endpoints"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.hint"}
+    direction: DOWN
+    visibilityPercentage: 25
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "question-1-hint"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.next"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- swipe: {start: "50%, 75%", end: "50%, 40%", duration: 400}
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "question-1-actions"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.next"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- tapOn: {id: "practice.next"}
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "question-2"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.content.yes"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- tapOn: {id: "practice.content.yes"}
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "question-2-selected"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.hint"}
+    direction: DOWN
+    visibilityPercentage: 25
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "question-2-hint"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.content.warning"}
+    direction: DOWN
+    visibilityPercentage: 25
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "question-2-warning"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.next"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- swipe: {start: "50%, 75%", end: "50%, 40%", duration: 400}
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "question-2-actions"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.next"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- tapOn: {id: "practice.next"}
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "question-3"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.ending.stopped"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- tapOn: {id: "practice.ending.stopped"}
+- scrollUntilVisible:
+    element: {id: "practice.feeling.1"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "question-3-feelings"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.feeling.1"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- tapOn: {id: "practice.feeling.1"}
+- scrollUntilVisible:
+    element: {id: "practice.next"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- swipe: {start: "50%, 75%", end: "50%, 40%", duration: 400}
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "question-3-actions"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.next"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- tapOn: {id: "practice.next"}
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "summary"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.summary.row.Toplam süre"}
+    direction: DOWN
+    visibilityPercentage: 25
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "summary-total"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.summary.row.1.*"}
+    direction: DOWN
+    visibilityPercentage: 25
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "summary-pause"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.summary.row.Bitiş"}
+    direction: DOWN
+    visibilityPercentage: 25
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "summary-ending"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.summary.row.Seviye girişleri"}
+    direction: DOWN
+    visibilityPercentage: 25
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "summary-reports"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.save"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- swipe: {start: "50%, 75%", end: "50%, 40%", duration: 400}
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "summary-actions"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.save"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- tapOn: {id: "practice.save"}
+- scrollUntilVisible:
+    element: {id: "practice.saved"}
+    direction: UP
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "saved"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.done"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- swipe: {start: "50%, 75%", end: "50%, 40%", duration: 400}
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "saved-actions"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.done"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- tapOn: {id: "practice.done"}
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "history"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.history.answers"}
+    direction: DOWN
+    visibilityPercentage: 25
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "history-answers"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.history.reports"}
+    direction: DOWN
+    visibilityPercentage: 25
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "history-reports"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.entry.history.start"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- swipe: {start: "50%, 75%", end: "50%, 40%", duration: 400}
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "history-actions"}
+- runScript: capture-native.js
+- openLink: "tms-e2e:///debug/practice-persistence"
+- waitForAnimationToEnd: {timeout: 1800}
+- scrollUntilVisible:
+    element: {id: "practice.qa.fail"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- tapOn: {id: "practice.qa.fail"}
+- scrollUntilVisible:
+    element: {id: "practice.qa.start"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- tapOn: {id: "practice.qa.start"}
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "ready"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.start"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- tapOn: {id: "practice.start"}
+- scrollUntilVisible:
+    element: {id: "practice.dialog.heading"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "retry-start-dialog"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.start.confirm"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- swipe: {start: "50%, 75%", end: "50%, 40%", duration: 400}
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "retry-start-dialog-actions"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.start.confirm"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- tapOn: {id: "practice.start.confirm"}
+- assertVisible: {id: "practice.running"}
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "retry-running"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.finish"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- tapOn: {id: "practice.finish"}
+- assertVisible: {id: "practice.question.1"}
+- scrollUntilVisible:
+    element: {id: "practice.skip"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- tapOn: {id: "practice.skip"}
+- scrollUntilVisible:
+    element: {id: "practice.skip"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- tapOn: {id: "practice.skip"}
+- scrollUntilVisible:
+    element: {id: "practice.skip"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- tapOn: {id: "practice.skip"}
+- scrollUntilVisible:
+    element: {id: "practice.save"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- tapOn: {id: "practice.save"}
+- scrollUntilVisible:
+    element: {id: "practice.save.status"}
+    direction: DOWN
+    visibilityPercentage: 25
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "save-error"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.save.retry"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- swipe: {start: "50%, 75%", end: "50%, 40%", duration: 400}
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "save-retry"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.save.retry"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- tapOn: {id: "practice.save.retry"}
+- assertVisible: {id: "practice.done"}
+- scrollUntilVisible:
+    element: {id: "practice.saved"}
+    direction: UP
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "retry-saved"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.done"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- tapOn: {id: "practice.done"}
+- openLink: "tms-e2e:///today"
+- waitForAnimationToEnd: {timeout: 1800}
+- scrollUntilVisible:
+    element: {id: "practice.rule.1.title"}
+    direction: DOWN
+    visibilityPercentage: 25
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "home-practice"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.entry.home.history"}
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- swipe: {start: "50%, 75%", end: "50%, 40%", duration: 400}
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "home-practice-actions"}
+- runScript: capture-native.js
+- scrollUntilVisible:
+    element: {id: "practice.entry.home.detail"}
+    direction: DOWN
+    visibilityPercentage: 25
+    centerElement: false
+    timeout: 90000
+    speed: 65
+- swipe: {start: "50%, 75%", end: "50%, 40%", duration: 400}
+- waitForAnimationToEnd: {timeout: 1200}
+- evalScript: ${output.captureName = "home-practice-detail"}
+- runScript: capture-native.js

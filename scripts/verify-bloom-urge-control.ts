@@ -28,7 +28,7 @@ type Transition = (state: BloomLocalState, input: never) => BloomLocalState;
 type Operation = [Transition, BloomLocalState, Record<string, unknown>];
 
 export async function verifyBloomUrgeControl() {
-  assert(BLOOM_PERSISTENCE_VERSION === 8 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v8", "Urge Control must retain persistence v7 and its existing key.");
+  assert(BLOOM_PERSISTENCE_VERSION === 9 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v9", "Urge Control must retain persistence v7 and its existing key.");
   await verifyLifecycleAndResume();
   verifyAnswersAndOptionalSupport();
   verifyTimingBoundaries();
@@ -226,7 +226,7 @@ async function verifyRawLegacyV7Hydration() {
   for (const [expectedStage, activeEvent] of fixtures) {
     const state = createDefaultBloomState();
     state.urgeControl = { activeEvent, records: [historicalCompleted] };
-    const raw = JSON.stringify({ version: 8, savedAt: now().toISOString(), state });
+    const raw = JSON.stringify({ version: 9, savedAt: now().toISOString(), state });
     const client = new UrgeTestStorage();
     client.values.set(BLOOM_STATE_STORAGE_KEY, raw);
     const validation = validateAndNormalizeBloomState(state);
@@ -343,7 +343,7 @@ async function verifyMalformedPersistence() {
     assert(!validateAndNormalizeBloomState(malformed).success, `${label}: malformed facts must fail persisted validation.`);
     assert(discardActiveUrgeControlEventState(malformed) === malformed, `${label}: transitions must reject malformed existing containers instead of stripping facts.`);
     const client = new UrgeTestStorage();
-    const raw = JSON.stringify({ version: 8, savedAt: now().toISOString(), state: malformed }, null, 2);
+    const raw = JSON.stringify({ version: 9, savedAt: now().toISOString(), state: malformed }, null, 2);
     client.values.set(BLOOM_STATE_STORAGE_KEY, raw);
     const loaded = await loadBloomLocalState(client, now);
     assert(loaded.status === "corrupt" && loaded.sourceKey === BLOOM_STATE_STORAGE_KEY, `${label}: hydration must use existing corruption handling.`);

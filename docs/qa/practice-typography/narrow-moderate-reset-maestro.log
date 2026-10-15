@@ -1,0 +1,35 @@
+Running on Bloom Practice Typography QA Narrow - iOS 26.3 - 890ADA65-17D8-4EEC-AFDE-853AEE570448
+ > Flow Practice typography moderate reset-active
+Tap on (Optional) "Open"... WARNED
+Tap on (Optional) "Continue"... WARNED
+Tap on (Optional) id: xmark... WARNED
+Open tms-e2e:///bloom/practice... COMPLETED
+Wait for animation to end within 1800 ms... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "reset-blocked"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.blocked.history is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering enabled... COMPLETED
+Swipe from (50%, 75%) to (50%, 40%) in 400 ms... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "reset-blocked-actions"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.blocked.history is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering enabled... COMPLETED
+Tap on id: practice.blocked.history... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "reset-history"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.history.answers is visible with speed 65, visibility percentage 25%, timeout 90000 ms, with centering enabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "reset-history-answers"}... COMPLETED
+Run capture-native.js... COMPLETED
+Open tms-e2e:///today... COMPLETED
+Wait for animation to end within 1800 ms... COMPLETED
+Scrolling DOWN until id: practice.rule.1.title is visible with speed 65, visibility percentage 25%, timeout 90000 ms, with centering enabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "reset-home-practice"}... COMPLETED
+Run capture-native.js... COMPLETED
+Scrolling DOWN until id: practice.entry.home.history is visible with speed 65, visibility percentage 100%, timeout 90000 ms, with centering enabled... COMPLETED
+Swipe from (50%, 75%) to (50%, 40%) in 400 ms... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Run ${output.captureName = "reset-home-actions"}... COMPLETED
+Run capture-native.js... COMPLETED

@@ -16,7 +16,7 @@ const now = () => new Date("2026-10-30T12:00:00.000Z");
 type Transition = (state: BloomLocalState, input: never) => BloomLocalState;
 
 export async function verifyBloomSessionCorrections() {
-  assert(BLOOM_PERSISTENCE_VERSION === 8 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v8", "Completed-session corrections must retain the existing v7 schema/key.");
+  assert(BLOOM_PERSISTENCE_VERSION === 9 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v9", "Completed-session corrections must retain the existing v7 schema/key.");
   await verifySimpleEdits();
   await verifyIndependentDeletion();
   verifyResetOwnership();

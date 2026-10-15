@@ -244,7 +244,7 @@ async function verifyMalformedCurrentPersistence() {
     assert(!validateAndNormalizeBloomState(malformed).success, `${label}: malformed current facts must fail persisted validation.`);
     assert(discardActiveUrgeControlEventState(malformed) === malformed, `${label}: discard cannot hide corrupted active/history facts.`);
     const client = createMemoryStorageClient();
-    const raw = JSON.stringify({ version: 8, savedAt: now().toISOString(), state: malformed }, null, 2);
+    const raw = JSON.stringify({ version: 9, savedAt: now().toISOString(), state: malformed }, null, 2);
     await client.setItem(BLOOM_STATE_STORAGE_KEY, raw);
     const loaded = await loadBloomLocalState(client, now);
     assert(loaded.status === "corrupt" && loaded.sourceKey === BLOOM_STATE_STORAGE_KEY, `${label}: malformed current records must retain existing corruption handling.`);
@@ -286,7 +286,7 @@ function changed(state: BloomLocalState, fn: Transition, input: unknown) {
 function event(state: BloomLocalState): Extract<CurrentUrgeControlEvent, { status: "active" }> { const active = state.urgeControl.activeEvent; assert(active !== null && active.flowVersion === 2, "Current versioned active fixture required."); return active; }
 function unrelated(before: BloomLocalState, after: BloomLocalState) { for (const key of Object.keys(before) as Array<keyof BloomLocalState>) if (key !== "urgeControl") assert(after[key] === before[key], `Current Urge Control must preserve unrelated ${key} by reference.`); }
 async function roundTrip(state: BloomLocalState) {
-  assert(BLOOM_PERSISTENCE_VERSION === 8 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v8", "Current per-event flow version must not change global v7 persistence.");
+  assert(BLOOM_PERSISTENCE_VERSION === 9 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v9", "Current per-event flow version must not change global v7 persistence.");
   const validated = validateAndNormalizeBloomState(state);
   assert(validated.success, "Current/mixed fixture must validate before persistence.");
   equal(validated.state, state, "Normalization must preserve current and legacy event shapes without remapping trigger observations.");

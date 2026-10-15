@@ -44,8 +44,8 @@ const ts: typeof import("typescript") = createRequire(resolve("package.json"))(
 
 export async function verifyBloomContentFreeFeature() {
   assert(
-    BLOOM_PERSISTENCE_VERSION === 8 &&
-      BLOOM_STATE_STORAGE_KEY === "bloom.localState.v8",
+    BLOOM_PERSISTENCE_VERSION === 9 &&
+      BLOOM_STATE_STORAGE_KEY === "bloom.localState.v9",
     "The Content-Free feature must retain the current v7 persistence contract.",
   );
   await verifyLifecycle();

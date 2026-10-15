@@ -1,0 +1,15 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Final largest Practice history heading
+---
+- openLink: "tms-e2e:///bloom/practice/history"
+- assertVisible: {id: "practice.history.heading"}
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: "21-native-largest-history"
+- scrollUntilVisible:
+    element: {text: "KULLANICI BEYANI"}
+    direction: DOWN
+    centerElement: true
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: "25-native-largest-history-record"

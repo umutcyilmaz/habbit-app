@@ -237,7 +237,7 @@ async function verifyCompatibilityAndValidation(accepted: BloomLocalState) {
   ]) {
     const malformed = JSON.parse(JSON.stringify(accepted)); mutate(malformed);
     assert(!validateAndNormalizeBloomState(malformed).success, "Malformed credit and decision records must be rejected, never silently normalized away.");
-    const raw = JSON.stringify({ version: 8, savedAt: "2026-12-01T00:00:00.000Z", state: malformed });
+    const raw = JSON.stringify({ version: 9, savedAt: "2026-12-01T00:00:00.000Z", state: malformed });
     const client = createMemoryStorageClient(); await client.setItem(BLOOM_STATE_STORAGE_KEY, raw);
     const result = await loadBloomLocalState(client);
     assert(result.status === "corrupt" && result.backupKey !== null && JSON.parse((await client.getItem(result.backupKey))!).rawPayload === raw && await client.getItem(BLOOM_STATE_STORAGE_KEY) === raw, "Corrupt new fields must preserve original payload for recovery.");

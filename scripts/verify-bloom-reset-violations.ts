@@ -17,7 +17,7 @@ const reasons = ["masturbation", "intentionalExplicitContent", "masturbationWith
 type ViolationInput = Parameters<typeof recordActiveResetViolationState>[1];
 
 export async function verifyBloomResetViolations() {
-  assert(BLOOM_PERSISTENCE_VERSION === 8 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v8", "Recorded Reset violations must use canonical v7 persistence and its key.");
+  assert(BLOOM_PERSISTENCE_VERSION === 9 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v9", "Recorded Reset violations must use canonical v7 persistence and its key.");
   await verifyAllReasonTransitions();
   verifyProgressAndStreakBoundaries();
   verifyDeduplicationAndSameDayEvents();
@@ -345,7 +345,7 @@ function replaceAtPath(root: unknown, path: string, value: unknown, remove: bool
 
 async function assertCorruptPreserved(state: BloomLocalState, label: string) {
   assert(!validateAndNormalizeBloomState(state).success, `${label}: malformed linked records must fail direct validation rather than be repaired.`);
-  const raw = JSON.stringify({ version: 8, savedAt: now().toISOString(), state });
+  const raw = JSON.stringify({ version: 9, savedAt: now().toISOString(), state });
   const client = new ViolationTestStorage();
   client.values.set(BLOOM_STATE_STORAGE_KEY, raw);
   const loaded = await loadBloomLocalState(client, now);

@@ -1,0 +1,9 @@
+{
+  "device": "890ADA65-17D8-4EEC-AFDE-853AEE570448",
+  "category": "maximum",
+  "fixture": "reset-active",
+  "run": "typography1172_20261015_narrow_ax5_reset_active_heightfinal",
+  "prefix": "bloom.e2e.practice.typography1172_20261015_narrow_ax5_reset_active_heightfinal.reset-active.",
+  "exitCode": 0,
+  "visualInspectionRequired": true
+}

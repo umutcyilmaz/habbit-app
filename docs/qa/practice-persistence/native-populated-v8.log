@@ -1,0 +1,24 @@
+Running on iPhone 17 Pro - iOS 26.3 - E280FA31-F2B5-4FF9-B57E-A8991C051C77
+ > Flow Isolated populated v8 migration and independent explicit-content Practice
+Open tms-e2e:///debug/practice-persistence... COMPLETED
+Assert that "Kalıcı pratik: 0" is visible... COMPLETED
+Tap on id: practice.qa.history... COMPLETED
+Assert that id: practice.history.empty is visible... COMPLETED
+Take screenshot native-empty-history... COMPLETED
+Open tms-e2e:///debug/practice-persistence... COMPLETED
+Tap on id: practice.qa.start... COMPLETED
+Tap on id: practice.start... COMPLETED
+Tap on id: practice.start.confirm... COMPLETED
+Assert that id: practice.running is visible... COMPLETED
+Tap on id: practice.finish... COMPLETED
+Tap on id: practice.skip... COMPLETED
+Tap on id: practice.content.yes... COMPLETED
+Tap on id: practice.next... COMPLETED
+Tap on id: practice.skip... COMPLETED
+Tap on id: practice.save... COMPLETED
+Assert that id: practice.saved is visible... COMPLETED
+Tap on id: practice.done... COMPLETED
+Assert that id: practice.history.record is visible... COMPLETED
+Take screenshot native-populated-preserved-history... COMPLETED
+Open tms-e2e:///debug/practice-persistence... COMPLETED
+Assert that "Kalıcı pratik: 1" is visible... COMPLETED

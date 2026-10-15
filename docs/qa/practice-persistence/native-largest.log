@@ -1,0 +1,25 @@
+Running on iPhone 17 Pro - iOS 26.3 - E280FA31-F2B5-4FF9-B57E-A8991C051C77
+ > Flow Production Practice largest Dynamic Type
+Open tms-e2e:///bloom/practice... COMPLETED
+Scrolling DOWN until id: practice.instructions is visible with speed 40, visibility percentage 100%, timeout 20000 ms, with centering enabled... COMPLETED
+Tap on id: practice.instructions... COMPLETED
+Take screenshot 15-native-largest-intro... COMPLETED
+Swiping in UP direction in 500 ms... COMPLETED
+Take screenshot 16-native-largest-intro-heading... COMPLETED
+Tap on id: practice.start... COMPLETED
+Scrolling DOWN until id: practice.start.confirm is visible with speed 40, visibility percentage 100%, timeout 20000 ms, with centering enabled... COMPLETED
+Tap on id: practice.start.confirm... COMPLETED
+Assert that id: practice.running is visible... COMPLETED
+Take screenshot 17-native-largest-running... COMPLETED
+Tap on id: practice.finish... COMPLETED
+Scrolling DOWN until id: practice.quality.high is visible with speed 40, visibility percentage 100%, timeout 20000 ms, with centering enabled... COMPLETED
+Take screenshot 18-native-largest-quality-endpoints... COMPLETED
+Tap on id: practice.skip... COMPLETED
+Tap on id: practice.skip... COMPLETED
+Tap on id: practice.skip... COMPLETED
+Take screenshot 19-native-largest-summary... COMPLETED
+Tap on id: practice.save... COMPLETED
+Assert that id: practice.saved is visible... COMPLETED
+Take screenshot 20-native-largest-saved... COMPLETED
+Tap on id: practice.done... COMPLETED
+Take screenshot 21-native-largest-history... COMPLETED

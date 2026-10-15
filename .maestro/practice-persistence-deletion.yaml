@@ -1,0 +1,29 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Whole-app deletion confined to NEW isolated Practice namespace
+---
+- openLink: "tms-e2e:///debug/practice-persistence"
+- assertVisible: "İzole Practice QA"
+- openLink: "tms-e2e:///settings/data-controls"
+- scrollUntilVisible:
+    element: {id: "bloom.settings.delete-open"}
+    direction: DOWN
+    centerElement: true
+- tapOn: {id: "bloom.settings.delete-open"}
+- scrollUntilVisible:
+    element: {id: "bloom.settings.delete-accessible"}
+    direction: DOWN
+    centerElement: true
+- tapOn: {id: "bloom.settings.delete-accessible"}
+- tapOn: "Kalıcı olarak sil"
+- extendedWaitUntil:
+    visible: {id: "bloom.onboarding.intro"}
+    timeout: 20000
+- takeScreenshot: "native-deletion-completed"
+- stopApp
+- launchApp:
+    clearState: false
+- openLink: "tms-e2e:///bloom/practice/history"
+- assertVisible: {id: "practice.history.empty"}
+- takeScreenshot: "native-deletion-rehydrated-empty-history"
+- openLink: "tms-e2e:///debug/practice-persistence"
+- assertVisible: "Kalıcı pratik: 0"

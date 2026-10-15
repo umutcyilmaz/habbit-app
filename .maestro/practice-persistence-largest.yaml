@@ -1,0 +1,37 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Production Practice largest Dynamic Type
+---
+- openLink: "tms-e2e:///bloom/practice"
+- scrollUntilVisible:
+    element: {id: "practice.instructions"}
+    direction: DOWN
+    centerElement: true
+- tapOn: {id: "practice.instructions"}
+- takeScreenshot: "15-native-largest-intro"
+- swipe:
+    direction: UP
+    duration: 500
+- takeScreenshot: "16-native-largest-intro-heading"
+- tapOn: {id: "practice.start"}
+- scrollUntilVisible:
+    element: {id: "practice.start.confirm"}
+    direction: DOWN
+    centerElement: true
+- tapOn: {id: "practice.start.confirm"}
+- assertVisible: {id: "practice.running"}
+- takeScreenshot: "17-native-largest-running"
+- tapOn: {id: "practice.finish"}
+- scrollUntilVisible:
+    element: {id: "practice.quality.high"}
+    direction: DOWN
+    centerElement: true
+- takeScreenshot: "18-native-largest-quality-endpoints"
+- tapOn: {id: "practice.skip"}
+- tapOn: {id: "practice.skip"}
+- tapOn: {id: "practice.skip"}
+- takeScreenshot: "19-native-largest-summary"
+- tapOn: {id: "practice.save"}
+- assertVisible: {id: "practice.saved"}
+- takeScreenshot: "20-native-largest-saved"
+- tapOn: {id: "practice.done"}
+- takeScreenshot: "21-native-largest-history"

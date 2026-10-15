@@ -18,7 +18,7 @@ const now = () => new Date("2026-10-30T12:00:00.000Z");
 type PeriodInput = Parameters<typeof completeElapsedResetPeriodState>[1];
 
 export async function verifyBloomResetCompletion() {
-  assert(BLOOM_PERSISTENCE_VERSION === 8 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v8", "New transitions writing established finished Reset shapes must keep persistence v7 and its key.");
+  assert(BLOOM_PERSISTENCE_VERSION === 9 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v9", "New transitions writing established finished Reset shapes must keep persistence v7 and its key.");
   await verifyElapsedCompletion();
   await verifyLegacyHydration();
   verifyEveryHistoricalAssessmentAnswer();
@@ -103,7 +103,7 @@ async function verifyLegacyHydration() {
     equal(validated.state, expected, "Legacy normalization must change only Reset status, preserving every completion fact and unrelated slice.");
     assert(JSON.stringify(legacy) === original, "Normalization must not mutate its legacy input.");
     const client = new CompletionTestStorage();
-    const raw = JSON.stringify({ version: 8, savedAt: now().toISOString(), state: legacy });
+    const raw = JSON.stringify({ version: 9, savedAt: now().toISOString(), state: legacy });
     client.values.set(BLOOM_STATE_STORAGE_KEY, raw);
     const loaded = await loadBloomLocalState(client, now);
     assert(loaded.status === "success" && loaded.source === "current" && loaded.needsPersist && loaded.persistenceError === null, "Legacy v7 hydration must use current-key normalization writeback without a version migration.");
@@ -118,7 +118,7 @@ async function verifyLegacyHydration() {
     assert(reloaded.status === "success" && !reloaded.needsPersist, "Persisted normalized v7 completion must reload stably without repeating normalization.");
     equal(reloaded.state, expected, "Normalization writeback must retain all user facts.");
     const durable = client.values.get(BLOOM_STATE_STORAGE_KEY);
-    assert(durable !== undefined && (JSON.parse(durable) as { version: unknown }).version === 8 && !durable.includes('"assessment_pending"'), "Existing writeback must replace the retired status under v7, without a new key.");
+    assert(durable !== undefined && (JSON.parse(durable) as { version: unknown }).version === 9 && !durable.includes('"assessment_pending"'), "Existing writeback must replace the retired status under v7, without a new key.");
 
     for (const readiness of ["ready", "notReady", "notSure"] as const) {
       assert(expected.resetJourney.status === "completed", "Historical fixture requires finished facts.");
@@ -354,7 +354,7 @@ async function assertRoundTrip(state: BloomLocalState, status: "completed") {
   const client = new CompletionTestStorage();
   await persistBloomLocalState(state, client, now);
   const payload = client.values.get(BLOOM_STATE_STORAGE_KEY);
-  assert(payload !== undefined && (JSON.parse(payload) as { version: unknown }).version === 8, "Finished states must persist under unchanged v7 storage.");
+  assert(payload !== undefined && (JSON.parse(payload) as { version: unknown }).version === 9, "Finished states must persist under unchanged v7 storage.");
   const loaded = await loadBloomLocalState(client, now);
   assert(loaded.status === "success" && loaded.source === "current" && loaded.state.resetJourney.status === status, `${status}: valid persisted lifecycle must reload without automatic advancement.`);
   equal(loaded.state, state, `${status}: complete Reset history, independent Content-Free, tracking state, and legacy facts must survive save/load unchanged.`);
@@ -362,7 +362,7 @@ async function assertRoundTrip(state: BloomLocalState, status: "completed") {
 
 async function assertCorruptPreserved(state: unknown, label: string) {
   assert(!validateAndNormalizeBloomState(state).success, `${label}: contradictory finished facts must fail direct validation rather than be repaired.`);
-  const raw = JSON.stringify({ version: 8, savedAt: now().toISOString(), state });
+  const raw = JSON.stringify({ version: 9, savedAt: now().toISOString(), state });
   const client = new CompletionTestStorage();
   client.values.set(BLOOM_STATE_STORAGE_KEY, raw);
   const result = await loadBloomLocalState(client, now);

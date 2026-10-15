@@ -1,0 +1,1 @@
+const response = http.post("http://127.0.0.1:8084/capture", {headers:{"Content-Type":"application/json"}, body:JSON.stringify({name:output.captureName})}); if (!response.ok) throw new Error("Native capture failed: "+response.body);

@@ -1,3 +1,4 @@
+import { normalizePracticeState } from "./bloomPracticeSchema";
 import { normalizeKegelState } from "./bloomKegelSchema";
 import {
   activePlanFromQuizResult,
@@ -72,7 +73,7 @@ export {
   isValidBloomTime
 } from "./bloomValueValidation";
 
-export const BLOOM_PERSISTENCE_VERSION = 8 as const;
+export const BLOOM_PERSISTENCE_VERSION = 9 as const;
 
 export type PersistedBloomEnvelopeV2 = {
   version: 2;
@@ -110,7 +111,9 @@ export type PersistedBloomEnvelopeV7 = {
   state: unknown;
 };
 
-export type PersistedBloomEnvelopeV8 = {
+export type PersistedBloomEnvelopeV8 = { version: 8; savedAt: string; state: unknown };
+
+export type PersistedBloomEnvelopeV9 = {
   version: typeof BLOOM_PERSISTENCE_VERSION;
   savedAt: string;
   state: unknown;
@@ -123,11 +126,11 @@ export type ParsedPersistedPayload =
 export type PersistedEnvelopeReadResult =
   | {
       status: "current";
-      envelope: PersistedBloomEnvelopeV8;
+      envelope: PersistedBloomEnvelopeV9;
     }
   | {
       status: "legacy";
-      sourceVersion: 2 | 3 | 4 | 5 | 6 | 7 | null;
+      sourceVersion: 2 | 3 | 4 | 5 | 6 | 7 | 8 | null;
       state: unknown;
     }
   | {
@@ -221,6 +224,7 @@ export function readPersistedEnvelope(value: unknown): PersistedEnvelopeReadResu
 
   if (
     value.version !== BLOOM_PERSISTENCE_VERSION &&
+    value.version !== 8 &&
     value.version !== 7 &&
     value.version !== 6 &&
     value.version !== 5 &&
@@ -241,7 +245,7 @@ export function readPersistedEnvelope(value: unknown): PersistedEnvelopeReadResu
     };
   }
 
-  if (value.version === 2 || value.version === 3 || value.version === 4 || value.version === 5 || value.version === 6 || value.version === 7) {
+  if (value.version === 2 || value.version === 3 || value.version === 4 || value.version === 5 || value.version === 6 || value.version === 7 || value.version === 8) {
     return {
       status: "legacy",
       sourceVersion: value.version,
@@ -261,15 +265,16 @@ export function readPersistedEnvelope(value: unknown): PersistedEnvelopeReadResu
 
 export function validateAndNormalizeBloomState(
   value: unknown,
-  mode: "current" | "v7" | "v6" | "v5" | "v4" | "v3" | "legacy" = "current"
+  mode: "current" | "v8" | "v7" | "v6" | "v5" | "v4" | "v3" | "legacy" = "current"
 ): BloomStateValidationResult {
   try {
     const record = requireRecord(value, "state");
     const defaults = createDefaultBloomState();
     const onboarding = normalizeOnboarding(record.onboarding, defaults.onboarding);
     const state: BloomLocalState = {
-      library: mode === "current" ? normalizeLibraryState(record.library) : defaults.library,
-      kegel: mode === "current" ? normalizeKegelState(record.kegel) : defaults.kegel,
+      practice: mode === "current" || record.practice !== undefined ? normalizePracticeState(record.practice) : defaults.practice,
+      library: mode === "current" || mode === "v8" ? normalizeLibraryState(record.library) : defaults.library,
+      kegel: mode === "current" || mode === "v8" ? normalizeKegelState(record.kegel) : defaults.kegel,
       activePlan:
         onboarding.quizResult !== null
           ? activePlanFromQuizResult(onboarding.quizResult)
@@ -295,7 +300,7 @@ export function validateAndNormalizeBloomState(
         mode === "legacy"
           ? defaults.resetJourney
           : normalizeResetJourney(record.resetJourney,
-            mode === "current" || mode === "v7" ? "current" : mode === "v6" ? "v6" : "preV6"),
+            mode === "current" || mode === "v8" || mode === "v7" ? "current" : mode === "v6" ? "v6" : "preV6"),
       urgeControl:
         mode === "legacy"
           ? defaults.urgeControl
@@ -303,7 +308,7 @@ export function validateAndNormalizeBloomState(
       // V5 owns results and acceptance. V4 owns results but never acceptance.
       // V3 and older cannot supply either fact, even with similarly named fields.
       productOnboarding:
-        mode === "current" || mode === "v7" || mode === "v6" || mode === "v5" || mode === "v4"
+        mode === "current" || mode === "v8" || mode === "v7" || mode === "v6" || mode === "v5" || mode === "v4"
           ? normalizeProductOnboarding(record.productOnboarding, mode === "v4" ? "v4" : "current")
           : defaults.productOnboarding
     };

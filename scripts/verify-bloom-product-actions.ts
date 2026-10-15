@@ -1,3 +1,4 @@
+import { practiceQaRecord } from "../src/features/practice/qa/practiceQaFixtures";
 import { readFileSync } from "node:fs";
 import { isDeepStrictEqual } from "node:util";
 import {
@@ -9,7 +10,7 @@ import type {
   BloomPersistenceRetryToken
 } from "../src/app/providers/bloomLocalStateMutationRuntime";
 import {
-  setLibraryArticleState, createDefaultBloomState, completeKegelOnboardingState, saveCompletedKegelSessionState, saveProductOnboardingResultState, acceptProductOnboardingRecommendationState,
+  acknowledgePracticeIntroductionState, saveCompletedPracticeSessionState, setLibraryArticleState, createDefaultBloomState, completeKegelOnboardingState, saveCompletedKegelSessionState, saveProductOnboardingResultState, acceptProductOnboardingRecommendationState,
   startResetFromBaselineState, recordActiveResetViolationState, undoActiveResetViolationState,
   completeElapsedResetPeriodState, recordBehaviorSlipState, acceptResetRecommendationState,
   enableMasturbationTrackingState, disableMasturbationTrackingState,
@@ -44,6 +45,7 @@ type Acknowledged<T> = T extends (state: BloomLocalState, ...input: infer A) => 
   ? (...input: A) => Promise<BloomPersistedMutationResult>
   : never;
 type ExpectedProductActions = {
+  practice: { acknowledgeIntroduction: Acknowledged<typeof acknowledgePracticeIntroductionState>; saveCompletedSession: Acknowledged<typeof saveCompletedPracticeSessionState> };
   library: { setArticleState: Acknowledged<typeof setLibraryArticleState> };
   kegel: {
     completeOnboarding: Acknowledged<typeof completeKegelOnboardingState>;
@@ -110,23 +112,23 @@ export async function verifyBloomProductActions() {
   assert(exactCommandTypes, "All facade input tuples and Promise result types must exactly match their pure transitions.");
   verifyFactoryIsolation();
   const cases = commandCases();
-  const api = createBloomProductAcknowledgedActions({ applyAcknowledgedMutation: async () => success(1) });
-  equal(commandPaths(api).sort(), cases.map((item) => item.name).sort(), "The facade must expose exactly the 37 grouped command paths covered by delegation tests.");
-  assert(cases.length === 37 && !("completeAssessment" in api.reset), "Every current product transition must have one focused command case; Reset assessment must no longer be a command.");
+  const api = createBloomProductAcknowledgedActions({ isPracticeStateConfirmed:()=>true, applyAcknowledgedMutation: async () => success(1) });
+  equal(commandPaths(api).sort(), cases.map((item) => item.name).sort(), "The facade must expose exactly the 39 grouped command paths covered by delegation tests.");
+  assert(cases.length === 39 && !("completeAssessment" in api.reset), "Every current product transition must have one focused command case; Reset assessment must no longer be a command.");
   equal(Object.keys(api.behaviorSlip), ["record"], "The shared behavior-slip facade must not introduce a generic undo command.");
   for (const item of cases) {
     await verifyDelegation(item);
     await verifyResultPassthrough(item);
   }
   await verifyRapidSequentialCommands();
-  console.log("Bloom product-action facade verification passed (all 37 grouped commands; exact transition delegation, caller facts, runtime-supplied current state, no-ops, acknowledgement passthrough, and rapid sequential commands).");
+  console.log("Bloom product-action facade verification passed (all 39 grouped commands; exact transition delegation, caller facts, runtime-supplied current state, no-ops, acknowledgement passthrough, and rapid sequential commands).");
   await verifyBloomProductActionsRuntime();
 }
 
 async function verifyDelegation(item: CommandCase) {
   const mutations: Mutation[] = [];
   const acknowledgement = deferred<BloomPersistedMutationResult>();
-  const actions = createBloomProductAcknowledgedActions({ applyAcknowledgedMutation: (mutation) => { mutations.push(mutation); return acknowledgement.promise; } });
+  const actions = createBloomProductAcknowledgedActions({ isPracticeStateConfirmed:()=>true, applyAcknowledgedMutation: (mutation) => { mutations.push(mutation); return acknowledgement.promise; } });
   const pending = item.invoke(actions);
   assert(pending instanceof Promise && mutations.length === 1, `${item.name}: every invocation must submit exactly one acknowledged mutation and return a promise.`);
   // Supply a distinct current snapshot only after the command has been issued.
@@ -153,7 +155,7 @@ async function verifyDelegation(item: CommandCase) {
   assert(item.transition(noOpState) === noOpState, `${item.name}: the no-op fixture must actually be rejected/idempotent in the pure transition.`);
   let calls = 0;
   const rejected: BloomPersistedMutationResult = { ok: false, accepted: false, persisted: false, sequence: 44, reason: "invalidSession", retryable: false };
-  const noOpActions = createBloomProductAcknowledgedActions({ applyAcknowledgedMutation: async (mutation) => {
+  const noOpActions = createBloomProductAcknowledgedActions({ isPracticeStateConfirmed:()=>true, applyAcknowledgedMutation: async (mutation) => {
     calls++;
     assert(mutation(noOpState) === noOpState, `${item.name}: a domain no-op must preserve the exact state without a forced write.`);
     return rejected;
@@ -173,7 +175,7 @@ async function verifyResultPassthrough(item: CommandCase) {
   ];
   for (const result of results) {
     let calls = 0;
-    const actions = createBloomProductAcknowledgedActions({ applyAcknowledgedMutation: async () => { calls++; return result; } });
+    const actions = createBloomProductAcknowledgedActions({ isPracticeStateConfirmed:()=>true, applyAcknowledgedMutation: async () => { calls++; return result; } });
     assert(await item.invoke(actions) === result && calls === 1, `${item.name}: runtime decisions, accepted/durable distinctions, sequence, and retry tokens must pass through without facade reinterpretation.`);
   }
 }
@@ -182,7 +184,7 @@ async function verifyRapidSequentialCommands() {
   let current = blankProductState();
   const initial = current;
   const acknowledgements: Array<ReturnType<typeof deferred<BloomPersistedMutationResult>>> = [];
-  const actions = createBloomProductAcknowledgedActions({ applyAcknowledgedMutation: (mutation) => {
+  const actions = createBloomProductAcknowledgedActions({ isPracticeStateConfirmed:()=>true, applyAcknowledgedMutation: (mutation) => {
     current = mutation(current);
     const acknowledgement = deferred<BloomPersistedMutationResult>();
     acknowledgements.push(acknowledgement);
@@ -257,6 +259,8 @@ function commandCases(): CommandCase[] {
     program:{configurationId:"test-provisional",provisional:true as const,repetitions:10,contractionSeconds:3,relaxationSeconds:3,countdownSeconds:3,dailyTarget:3},
     completedRepetitions:10,metrics:{activeExerciseSeconds:60,elapsedSeconds:63,pausedSeconds:0,pauseCount:0}};
   return [
+    command("practice.acknowledgeIntroduction", blank, acknowledgePracticeIntroductionState, a=>a.practice.acknowledgeIntroduction, {version:1,acknowledgedAt:at}),
+    command("practice.saveCompletedSession", acknowledgePracticeIntroductionState(blank,{version:1,acknowledgedAt:at}), saveCompletedPracticeSessionState, a=>a.practice.saveCompletedSession, practiceQaRecord("caller-practice")),
     command("library.setArticleState", blank, setLibraryArticleState, (a) => a.library.setArticleState, "bookmark", "wave", true),
     command("kegel.completeOnboarding",blank,completeKegelOnboardingState,a=>a.kegel.completeOnboarding,at),
     command("kegel.saveCompletedSession",blank,saveCompletedKegelSessionState,a=>a.kegel.saveCompletedSession,kegelSession),

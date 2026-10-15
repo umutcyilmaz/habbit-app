@@ -1,0 +1,12 @@
+
+> tms@0.1.0 verify:practice
+> node scripts/run-bloom-practice-verification.cjs && node scripts/verify-bloom-practice-ui.cjs
+
+Practice runtime: elapsed, pause, resume, background, exit, reflections, skips, edit, restart, cleanup passed.
+Practice startup lifecycle passed: real parent/preview/session/controller; inactive before ACK, during write, commit boundary and immediately after ACK/start; explicit foreground restart/resume; exact startedAt; one intro write/runtime/record/ID; rapid/stale/unmount/current-read guards. No sleeps or arbitrary timeouts.
+Practice visual contract passed: 78 rendered states at 375/402pt × normal/moderate/maximum; text/styles/layout identical to approved pre-fix UI. Not a new native pixel test.
+Practice UI: actual screen controls, rapid presses, navigation confirmation, AppState, timer cleanup, reflection/edit/skip and 36 preview guard combinations passed.
+Practice motion: Reduced Motion disables entries, modal fades, curve loop and tweens; animation cancellation passed.
+Practice button: full visible/accessibility label, gradual control typography, wrapping and native scaling retained.
+Practice typography: native word measurement, full prose/labels, no truncation, continuous role scaling, 375/402 widths, default/moderate/maximum scroll controls and scrollable dialogs passed. Pixel correctness requires inspected Simulator captures.
+Production Practice shared UI: explicit guarded start, acknowledged-intro revisit, completed-only explicit save, skipped null answers, immutable save controls, persistence navigation guard and durable-only saved/leave state passed.

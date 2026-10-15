@@ -46,6 +46,7 @@ const required = (name: string): unknown => {
   if (name === "react-native-reanimated") return { default: { View: "AnimatedView" }, useReducedMotion: () => true, FadeIn: { duration: () => ({}) } };
   if (name === "react-native-svg") return { default: "Svg", Path: "SvgPath" };
   if (name === "react-native") return { View: "View", Pressable: "Pressable", AppState: {}, useWindowDimensions: () => ({ fontScale: 1 }), StyleSheet: { create: (styles: unknown) => styles } };
+  if (name.endsWith("/PracticeEntryCard")) return { PracticeEntryCard: "PracticeEntryCard" };
   if (name.endsWith("/AppButton")) return { AppButton: "AppButton" };
   if (name.endsWith("/AppCard")) return { AppCard: "AppCard" };
   if (name.endsWith("/AppScreen")) return { AppScreen: "AppScreen" };

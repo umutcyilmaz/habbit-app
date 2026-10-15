@@ -1,0 +1,19 @@
+#!/usr/bin/env python3
+"""Curated persistence evidence; excluded raw captures remain intact on disk."""
+from pathlib import Path
+import hashlib,html,json,struct
+root=Path(__file__).resolve().parent.parent/'docs/qa/practice-persistence';assets=json.loads((root/'publication-assets.json').read_text());selected={r['file']:r for r in assets['screenshots']};entries=[]
+for name,row in sorted(selected.items()):
+ data=(root/name).read_bytes();assert hashlib.sha256(data).hexdigest()==row['sha256'];w,h=struct.unpack('>II',data[16:24]);entries.append({**row,'width':w,'height':h,'visualCorrectnessEstablishedByHash':False,'kind':'HTML design sample' if name.startswith('html-') else 'historical isolated native evidence'})
+(root/'screenshot-hashes.json').write_text(json.dumps(entries,indent=2)+'\n')
+def figure(name,label):
+ assert name in selected,name
+ return '<figure><a href="'+name+'"><img loading="lazy" src="'+name+'" alt="'+html.escape(label)+'"></a><figcaption>'+html.escape(label)+'</figcaption></figure>'
+parts=['''<!doctype html><html lang="tr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Practice · Persistence QA</title><style>body{max-width:1200px;margin:auto;padding:24px;background:#09090d;color:#eee;font:16px/1.6 system-ui}a{color:#acb4ff}.grid,.pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}figure{margin:0;padding:10px;background:#17171b;border-radius:14px}img{width:100%;height:auto}figcaption{font-size:13px}@media(max-width:700px){.grid,.pair{grid-template-columns:1fr}}</style><h1>Bloom · Phase 11.7.2 persistence QA</h1><p>İlk persistence koşusunun seçilmiş tarihsel HTML/native, migration ve retry kanıtları. Önceki en büyük yazı değerlendirmesi geri çekilmiştir; güncel tipografi ve normal/maksimum örnekleri ayrı galeridedir. Ham görüntüler silinmez; yüzlerce ara PNG Git kapsamı dışında yerelde korunur.</p><p><a href="../../phase11-7-2-practice-persistence-qa.md">QA raporu</a> · <a href="../../phase11-7-2-practice-data-contract.md">Veri sözleşmesi</a> · <a href="../practice-typography/index.html">Onaylı responsive tipografi</a> · <a href="publication-scope.md">Git / yerel kapsam</a> · <a href="publication-assets.json">Git screenshot manifesti</a> · <a href="screenshot-hashes.json">Hashler (yalnız bütünlük)</a> · <a href="native-migration-evidence.json">Migration kanıtı</a> · <a href="storage-preservation.json">Veri koruma</a></p>''']
+for title,ref,native in [('Tanıtım','intro','01-native-intro.png'),('Egzersiz','practice','03-native-running.png'),('Duraklama','pause','04-native-pause.png'),('Soru 1/3','question-1','06-native-question-1.png'),('Soru 2/3','question-2','07-native-question-2.png'),('Soru 3/3','question-3','08-native-question-3.png'),('Durable kayıt','summary','10-native-saved-summary.png')]:
+ parts.append('<h2>'+title+'</h2><div class="pair">'+figure('html-'+ref+'.png','HTML · tasarım örneği')+figure(native,'Tarihsel native persistence akışı · geçerli tipografi örneği için yeni galeri')+'</div>')
+parts.append('<h2>Migration, exact retry, fail-closed, deletion ve preview sınırı</h2><div class="grid">')
+for name in sorted(selected):
+ if name.startswith('html-') or name in ['01-native-intro.png','03-native-running.png','04-native-pause.png','06-native-question-1.png','07-native-question-2.png','08-native-question-3.png','10-native-saved-summary.png','15-native-largest-intro.png']:continue
+ parts.append(figure(name,'İzole sentetik QA · '+name.removesuffix('.png')))
+parts.append('</div><h2>Reddedilen önceki en büyük tipografi</h2><p>Başarılı görsel kanıt değildir. Orijinal dosya korunur.</p>'+figure('15-native-largest-intro.png','REDDEDİLEN ADAY · önceki aşırı büyük/bozuk intro')+'</html>');(root/'index.html').write_text(''.join(parts)+'\n');print('Persistence gallery:',len(selected),'published PNGs; raw archive unchanged')

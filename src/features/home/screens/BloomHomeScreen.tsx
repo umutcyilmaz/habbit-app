@@ -1,3 +1,4 @@
+import { PracticeEntryCard } from "../../practice/PracticeEntryCard";
 import { useCallback, useRef, useState } from "react";
 import { useFocusEffect } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from "react-native";
@@ -73,6 +74,7 @@ export function BloomHomeScreen() {
         <AppButton testID="bloom.home.reset-recommendation.action" label="Detayları gör" variant="secondary" style={styles.button} onPress={() => feature.openAction(model.resetRecommendationAction!)} />
       </AppCard> : null}
       <TrackingHistoryCard history={feature.history} />
+      <PracticeEntryCard location="home" />
       <AppText style={styles.footer}>Bu alan kayıtlı takiplerini özetler. Takiplerini ayrı ayrı yönetebilirsin.</AppText>
     </AppScreen>
   </View>;

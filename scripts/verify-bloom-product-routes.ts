@@ -415,7 +415,8 @@ function verifyNamespaceAndDependencies() {
     "The central contract must expose exactly the unique Bloom namespace paths."
   );
   assert(
-    isDeepStrictEqual(readdirSync(resolve("app/bloom")).sort(), ["content-free.tsx", "kegel.tsx", "library", "masturbation-session", "panic.tsx", "profile", "reset", "starting-recommendation.tsx", "urge-control"]) &&
+    isDeepStrictEqual(readdirSync(resolve("app/bloom")).sort(), ["content-free.tsx", "kegel.tsx", "library", "masturbation-session", "panic.tsx", "practice", "profile", "reset", "starting-recommendation.tsx", "urge-control"]) &&
+      isDeepStrictEqual(readdirSync(resolve("app/bloom/practice")).sort(), ["history.tsx", "index.tsx"]) &&
       isDeepStrictEqual(readdirSync(resolve("app/bloom/profile")).sort(), ["saved.tsx"]) &&
       isDeepStrictEqual(readdirSync(resolve("app/bloom/library")).sort(), ["article.tsx", "category.tsx", "sound.tsx"]) &&
       isDeepStrictEqual(
@@ -430,7 +431,7 @@ function verifyNamespaceAndDependencies() {
         readdirSync(resolve("app/bloom/urge-control")).sort(),
         ["resume.tsx"]
       ),
-    "Exactly Library, Profile saved articles, Kegel, the session, Content-Free, Reset including recommendation, Panic, and Urge resume and Starting recommendation routes must exist."
+    "Exactly Practice/history, Library, Profile saved articles, Kegel, the session, Content-Free, Reset including recommendation, Panic, and Urge resume and Starting recommendation routes must exist."
   );
   for (const [file, feature] of [
     ["app/bloom/masturbation-session/start.tsx", "masturbation-tracking"],

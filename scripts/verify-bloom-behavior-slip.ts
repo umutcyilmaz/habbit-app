@@ -250,7 +250,7 @@ function verifyInvalidFactsAndAtomicRejection() {
 }
 
 async function verifyV7RoundTrips() {
-  assert(BLOOM_PERSISTENCE_VERSION === 8 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v8", "Behavior-slip coordination must retain v7 and its existing key.");
+  assert(BLOOM_PERSISTENCE_VERSION === 9 && BLOOM_STATE_STORAGE_KEY === "bloom.localState.v9", "Behavior-slip coordination must retain v7 and its existing key.");
   const active = createActiveState(false, true);
   const input = slipInput("intentionalExplicitContent");
   const linked = recordBehaviorSlipState(active, input);

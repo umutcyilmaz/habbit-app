@@ -1,0 +1,19 @@
+Running on iPhone 17 Pro - iOS 26.3 - E280FA31-F2B5-4FF9-B57E-A8991C051C77
+ > Flow Production Practice available Home Library and accessible saved history
+Open tms-e2e:///today... COMPLETED
+Scrolling DOWN until id: practice.entry.home is visible with speed 40, visibility percentage 100%, timeout 20000 ms, with centering enabled... COMPLETED
+Take screenshot 22-native-home-available... COMPLETED
+Tap on id: practice.entry.home.start... COMPLETED
+Assert that id: practice.instructions is visible... COMPLETED
+Assert that id: practice.running is not visible... COMPLETED
+Tap on id: practice.exit... COMPLETED
+Open tms-e2e:///library... COMPLETED
+Scrolling DOWN until id: practice.entry.library is visible with speed 40, visibility percentage 100%, timeout 20000 ms, with centering enabled... COMPLETED
+Take screenshot 23-native-library-available... COMPLETED
+Tap on id: practice.entry.library.start... COMPLETED
+Assert that id: practice.instructions is visible... COMPLETED
+Assert that id: practice.running is not visible... COMPLETED
+Tap on id: practice.exit... COMPLETED
+Open tms-e2e:///bloom/practice/history... COMPLETED
+Assert that id: practice.history.record is visible... COMPLETED
+Take screenshot 24-native-history-normal... COMPLETED

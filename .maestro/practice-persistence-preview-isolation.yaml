@@ -1,0 +1,26 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Visual Practice preview has no device persistence capability
+---
+- openLink: "tms-e2e:///debug/practice"
+- assertVisible: {id: "practice.intro"}
+- tapOn: {id: "practice.start"}
+- tapOn: {id: "practice.start.confirm"}
+- assertVisible: {id: "practice.running"}
+- tapOn: {id: "practice.finish"}
+- tapOn: {id: "practice.skip"}
+- tapOn: {id: "practice.skip"}
+- tapOn: {id: "practice.skip"}
+- assertVisible: {id: "practice.unsaved"}
+- assertNotVisible: {id: "practice.save"}
+- takeScreenshot: "26-native-memory-preview-unsaved"
+- tapOn: {id: "practice.done"}
+- stopApp
+- launchApp:
+    clearState: false
+- openLink: "tms-e2e:///bloom/practice"
+- assertVisible: {id: "practice.intro"}
+- assertVisible: "QA · Kaydedilmez"
+- assertNotVisible: {id: "practice.save"}
+- openLink: "tms-e2e:///bloom/practice/history"
+- assertVisible: {id: "practice.intro"}
+- assertNotVisible: {id: "practice.history"}

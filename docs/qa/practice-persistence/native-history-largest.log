@@ -1,0 +1,9 @@
+Running on iPhone 17 Pro - iOS 26.3 - E280FA31-F2B5-4FF9-B57E-A8991C051C77
+ > Flow Final largest Practice history heading
+Open tms-e2e:///bloom/practice/history... COMPLETED
+Assert that id: practice.history.heading is visible... COMPLETED
+Wait for animation to end within 3000 ms... COMPLETED
+Take screenshot 21-native-largest-history... COMPLETED
+Scrolling DOWN until "KULLANICI BEYANI" is visible with speed 40, visibility percentage 100%, timeout 20000 ms, with centering enabled... COMPLETED
+Wait for animation to end within 3000 ms... COMPLETED
+Take screenshot 25-native-largest-history-record... COMPLETED

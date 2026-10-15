@@ -1,0 +1,9 @@
+{
+  "device": "890ADA65-17D8-4EEC-AFDE-853AEE570448",
+  "category": "moderate",
+  "fixture": "reset-active",
+  "run": "typography1172_20261014_narrow_moderate_reset_active_io_final_c44d",
+  "prefix": "bloom.e2e.practice.typography1172_20261014_narrow_moderate_reset_active_io_final_c44d.reset-active.",
+  "exitCode": 0,
+  "visualInspectionRequired": true
+}

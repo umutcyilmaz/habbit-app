@@ -1,4 +1,6 @@
 import {
+  acknowledgePracticeIntroductionState,
+  saveCompletedPracticeSessionState,
   setLibraryArticleState,
   completeKegelOnboardingState,
   saveCompletedKegelSessionState,
@@ -43,13 +45,14 @@ import type { BloomPersistedMutationResult } from "./bloomLocalStateMutationRunt
 type BloomStateMutation = (state: BloomLocalState) => BloomLocalState;
 
 type BloomProductAcknowledgedActionOptions = {
+  isPracticeStateConfirmed?: (state: BloomLocalState) => boolean;
   applyAcknowledgedMutation: (
     mutation: BloomStateMutation
   ) => Promise<BloomPersistedMutationResult>;
 };
 
 export function createBloomProductAcknowledgedActions({
-  applyAcknowledgedMutation
+  applyAcknowledgedMutation, isPracticeStateConfirmed = () => false
 }: BloomProductAcknowledgedActionOptions) {
   // Preserve each transition's input signature and use the runtime's current
   // accepted state. Validation and no-op handling stay in their existing layers.
@@ -61,6 +64,10 @@ export function createBloomProductAcknowledgedActions({
     );
 
   return {
+    practice: {
+      acknowledgeIntroduction: (input: Parameters<typeof acknowledgePracticeIntroductionState>[1]) => applyAcknowledgedMutation(state => isPracticeStateConfirmed(state) ? acknowledgePracticeIntroductionState(state,input) : state),
+      saveCompletedSession: (input: Parameters<typeof saveCompletedPracticeSessionState>[1]) => applyAcknowledgedMutation(state => isPracticeStateConfirmed(state) ? saveCompletedPracticeSessionState(state,input) : state)
+    },
     library: { setArticleState: acknowledge(setLibraryArticleState) },
     kegel: {
       completeOnboarding: acknowledge(completeKegelOnboardingState),

@@ -1,0 +1,31 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Practice v9 isolated abandon background and restart
+---
+- openLink: "tms-e2e:///bloom/practice"
+- tapOn: {id: "practice.start"}
+- tapOn: {id: "practice.start.confirm"}
+- tapOn: {id: "practice.pause"}
+- pressKey: Home
+- launchApp:
+    clearState: false
+    stopApp: false
+- assertVisible: {id: "practice.background"}
+- takeScreenshot: "14-native-background"
+- tapOn: {id: "practice.foreground"}
+- tapOn: {id: "practice.resume"}
+- tapOn: {id: "practice.exit"}
+- tapOn: {id: "practice.exit.confirm"}
+- openLink: "tms-e2e:///debug/practice-persistence"
+- assertVisible: "Kalıcı pratik: 2"
+- tapOn: {id: "practice.qa.start"}
+- tapOn: {id: "practice.start"}
+- tapOn: {id: "practice.start.confirm"}
+- stopApp
+- launchApp:
+    clearState: false
+- openLink: "tms-e2e:///bloom/practice"
+- assertVisible: {id: "practice.intro"}
+- assertVisible: {id: "practice.instructions"}
+- assertNotVisible: {id: "practice.running"}
+- openLink: "tms-e2e:///debug/practice-persistence"
+- assertVisible: "Kalıcı pratik: 2"

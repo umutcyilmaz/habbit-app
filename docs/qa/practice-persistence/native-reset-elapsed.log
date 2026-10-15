@@ -1,0 +1,21 @@
+Running on iPhone 17 Pro - iOS 26.3 - E280FA31-F2B5-4FF9-B57E-A8991C051C77
+ > Flow Isolated canonical Reset blocks Practice while history remains available
+Open tms-e2e:///debug/practice-persistence... COMPLETED
+Assert that "Kalıcı pratik: 1" is visible... COMPLETED
+Tap on id: practice.qa.start... COMPLETED
+Assert that id: practice.blocked is visible... COMPLETED
+Assert that id: practice.running is not visible... COMPLETED
+Take screenshot native-reset-blocked... COMPLETED
+Tap on id: practice.blocked.history... COMPLETED
+Assert that id: practice.history.record is visible... COMPLETED
+Take screenshot native-history-during-reset... COMPLETED
+Open tms-e2e:///today... COMPLETED
+Scrolling DOWN until id: practice.entry.home is visible with speed 40, visibility percentage 100%, timeout 20000 ms, with centering enabled... COMPLETED
+Assert that id: practice.entry.home.start is not visible... COMPLETED
+Take screenshot native-reset-home-lower-card... COMPLETED
+Tap on id: practice.entry.home.history... COMPLETED
+Assert that id: practice.history.record is visible... COMPLETED
+Open tms-e2e:///library... COMPLETED
+Scrolling DOWN until id: practice.entry.library is visible with speed 40, visibility percentage 100%, timeout 20000 ms, with centering enabled... COMPLETED
+Assert that id: practice.entry.library.start is not visible... COMPLETED
+Take screenshot native-reset-library... COMPLETED

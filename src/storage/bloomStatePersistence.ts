@@ -4,12 +4,13 @@ import {
   parsePersistedPayload,
   readPersistedEnvelope,
   validateAndNormalizeBloomState,
-  type PersistedBloomEnvelopeV8
+  type PersistedBloomEnvelopeV9
 } from "./bloomStateSchema";
 import type { StorageClient } from "./storageAdapters";
 
-export const BLOOM_STATE_STORAGE_KEY = "bloom.localState.v8";
+export const BLOOM_STATE_STORAGE_KEY = "bloom.localState.v9";
 export const BLOOM_LEGACY_STATE_STORAGE_KEYS = [
+  "bloom.localState.v8",
   "bloom.localState.v7",
   "bloom.localState.v6",
   "bloom.localState.v5",
@@ -137,7 +138,7 @@ function serializeBloomLocalState(
   state: BloomLocalState,
   now: Clock
 ): string {
-  const envelope: PersistedBloomEnvelopeV8 = {
+  const envelope: PersistedBloomEnvelopeV9 = {
     version: BLOOM_PERSISTENCE_VERSION,
     savedAt: now().toISOString(),
     state
@@ -364,6 +365,10 @@ async function loadStoredPayload(
     };
   }
 
+  if (sourceKey === BLOOM_STATE_STORAGE_KEY && envelopeResult.status === "legacy") {
+    return createCorruptResult(sourceKey, rawPayload, "The v9 key must contain a v9 envelope.", client, now);
+  }
+
   const storedState =
     envelopeResult.status === "current"
       ? envelopeResult.envelope.state
@@ -372,7 +377,9 @@ async function loadStoredPayload(
     storedState,
     envelopeResult.status === "current"
       ? "current"
-      : envelopeResult.sourceVersion === 7
+      : envelopeResult.sourceVersion === 8
+        ? "v8"
+        : envelopeResult.sourceVersion === 7
         ? "v7"
         : envelopeResult.sourceVersion === 6
         ? "v6"
@@ -405,8 +412,9 @@ async function loadStoredPayload(
         serializeBloomLocalState(validationResult.state, now)
       );
 
-      // Retain v7 byte-for-byte as the pre-Kegel recovery copy.
-      if (sourceKey !== BLOOM_STATE_STORAGE_KEY && sourceKey !== "bloom.localState.v7") {
+      // Retain v8 and v7 byte-for-byte as recovery sources. Never fall back
+      // to them when a v9 payload exists.
+      if (sourceKey !== BLOOM_STATE_STORAGE_KEY && sourceKey !== "bloom.localState.v7" && sourceKey !== "bloom.localState.v8") {
         try {
           await client.removeItem(sourceKey);
         } catch {

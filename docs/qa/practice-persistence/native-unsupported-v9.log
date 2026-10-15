@@ -1,0 +1,10 @@
+Running on iPhone 17 Pro - iOS 26.3 - E280FA31-F2B5-4FF9-B57E-A8991C051C77
+ > Flow Isolated corrupt or future v9 fails closed without fallback
+Open tms-e2e:///bloom/practice... COMPLETED
+Assert that "Bloom couldn’t load your local data." is visible... COMPLETED
+Assert that id: practice.start is not visible... COMPLETED
+Assert that id: practice.running is not visible... COMPLETED
+Take screenshot native-storage-fails-closed... COMPLETED
+Stop com.umutcyilmaz.bloom.e2e... COMPLETED
+Launch app "com.umutcyilmaz.bloom.e2e"... COMPLETED
+Assert that "Bloom couldn’t load your local data." is visible... COMPLETED

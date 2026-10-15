@@ -1,0 +1,96 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Practice maximum responsive typography control smoke
+---
+- openLink: "tms-e2e:///bloom/practice"
+- waitForAnimationToEnd: {timeout: 1200}
+- takeScreenshot: "intro-top"
+- scrollUntilVisible:
+    element: {id: "practice.start"}
+    direction: DOWN
+    centerElement: false
+    timeout: 45000
+- takeScreenshot: "intro-controls"
+- tapOn: {id: "practice.start"}
+- scrollUntilVisible:
+    element: {id: "practice.start.confirm"}
+    direction: DOWN
+    centerElement: false
+    timeout: 45000
+- takeScreenshot: "dialog-controls"
+- tapOn: {id: "practice.start.confirm"}
+- assertVisible: {id: "practice.running"}
+- waitForAnimationToEnd: {timeout: 1200}
+- takeScreenshot: "running-top"
+- scrollUntilVisible:
+    element: {id: "practice.level.open"}
+    direction: DOWN
+    centerElement: false
+    timeout: 45000
+- takeScreenshot: "level-open"
+- tapOn: {id: "practice.level.open"}
+- assertVisible: {id: "practice.level.1"}
+- scrollUntilVisible:
+    element: {id: "practice.level.7"}
+    direction: DOWN
+    centerElement: false
+- takeScreenshot: "levels"
+- tapOn: {id: "practice.level.7"}
+- scrollUntilVisible:
+    element: {id: "practice.pause"}
+    direction: DOWN
+    centerElement: false
+- takeScreenshot: "running-controls"
+- tapOn: {id: "practice.pause"}
+- waitForAnimationToEnd: {timeout: 1200}
+- takeScreenshot: "paused-top"
+- scrollUntilVisible:
+    element: {id: "practice.resume"}
+    direction: DOWN
+    centerElement: false
+- tapOn: {id: "practice.resume"}
+- scrollUntilVisible:
+    element: {id: "practice.finish"}
+    direction: DOWN
+    centerElement: false
+- tapOn: {id: "practice.finish"}
+- scrollUntilVisible:
+    element: {id: "practice.quality.8"}
+    direction: DOWN
+    centerElement: false
+- takeScreenshot: "question-1"
+- tapOn: {id: "practice.quality.8"}
+- scrollUntilVisible:
+    element: {id: "practice.next"}
+    direction: DOWN
+    centerElement: false
+- tapOn: {id: "practice.next"}
+- scrollUntilVisible:
+    element: {id: "practice.content.no"}
+    direction: DOWN
+    centerElement: false
+- tapOn: {id: "practice.content.no"}
+- scrollUntilVisible:
+    element: {id: "practice.next"}
+    direction: DOWN
+    centerElement: false
+- tapOn: {id: "practice.next"}
+- scrollUntilVisible:
+    element: {id: "practice.ending.stopped"}
+    direction: DOWN
+    centerElement: false
+- takeScreenshot: "question-3"
+- tapOn: {id: "practice.ending.stopped"}
+- scrollUntilVisible:
+    element: {id: "practice.next"}
+    direction: DOWN
+    centerElement: false
+- tapOn: {id: "practice.next"}
+- waitForAnimationToEnd: {timeout: 1200}
+- takeScreenshot: "summary-top"
+- scrollUntilVisible:
+    element: {id: "practice.save"}
+    direction: DOWN
+    centerElement: false
+- takeScreenshot: "summary-controls"
+- tapOn: {id: "practice.save"}
+- assertVisible: {id: "practice.done"}

@@ -1,0 +1,9 @@
+{
+  "existingCanonicalV8SlicesEqual": true,
+  "addedPractice": {
+    "introduction": null,
+    "sessions": []
+  },
+  "originalFilesUnchanged": true,
+  "incident": "Previous Metro refresh automatically added canonical v9 migration copy before the process was stopped. No existing payload was changed or removed; the new recovery copy was retained."
+}

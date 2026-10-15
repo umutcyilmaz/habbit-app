@@ -43,7 +43,7 @@ async function verify() {
   }
   const baseline=createPopulatedState();baseline.kegel.onboardingCompletedAt=now().toISOString();
   const oldV8={...baseline} as Partial<BloomLocalState>;delete oldV8.library;
-  const store=new Storage();const raw=JSON.stringify({version:8,savedAt:now().toISOString(),state:oldV8});store.values.set(BLOOM_STATE_STORAGE_KEY,raw);
+  const store=new Storage();const raw=JSON.stringify({version:9,savedAt:now().toISOString(),state:oldV8});store.values.set(BLOOM_STATE_STORAGE_KEY,raw);
   const persistence=createBloomStatePersistenceCoordinator(store,now),load=await persistence.load();
   assert(load.status==="success" && load.needsPersist);assert.deepEqual(load.state,baseline);assert.equal(store.values.get(BLOOM_STATE_STORAGE_KEY),raw,"Loading old v8 does not rewrite without acknowledgement");
   store.fail=true;await assert.rejects(persistence.enqueueWrite(load.state));assert.equal(store.values.get(BLOOM_STATE_STORAGE_KEY),raw);
@@ -85,7 +85,7 @@ async function verify() {
   assert.throws(()=>setLibraryArticleState(baseline,"completion","removed",true));
   const unknownLoad=await unknown.persistence.load();assert(unknownLoad.status==="success");assert.deepEqual(unknownLoad.state.library.completedArticleIds,["removed"],"Unknown IDs survive until explicitly removed, never synthesize content");
   for(const library of [null,{completedArticleIds:[]}, {bookmarkedArticleIds:[4],completedArticleIds:[]},{bookmarkedArticleIds:[" "],completedArticleIds:[]}]) {
-    const s=new Storage(),broken=JSON.stringify({version:8,savedAt:now().toISOString(),state:{...baseline,library}});s.values.set(BLOOM_STATE_STORAGE_KEY,broken);
+    const s=new Storage(),broken=JSON.stringify({version:9,savedAt:now().toISOString(),state:{...baseline,library}});s.values.set(BLOOM_STATE_STORAGE_KEY,broken);
     assert.equal((await createBloomStatePersistenceCoordinator(s,now).load()).status,"corrupt");assert.equal(s.values.get(BLOOM_STATE_STORAGE_KEY),broken);assert([...s.values.keys()].some(key=>key.startsWith(BLOOM_CORRUPT_BACKUP_PREFIX)));
   }
   const invalidated=harness(baseline);invalidated.storage.fail=true;
