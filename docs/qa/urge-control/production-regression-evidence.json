@@ -1,0 +1,15 @@
+{
+  "namespace": "bloom.e2e.home.urge1181_prod_20261015_01.",
+  "version": 9,
+  "completedUrgeRecords": 1,
+  "activeUrgeEvent": null,
+  "explicitUserOutcome": "unchanged",
+  "explicitUserTriggers": [
+    "explicitContentCue"
+  ],
+  "manualResetViolations": 1,
+  "linkedContentFreeViolations": 1,
+  "productionPreviewFlagDisabledRedirectPassed": true,
+  "legacyPauseRecords": 0,
+  "interpretation": "Tek Urge sonucu explicit kullanıcı yanıtıdır. Ardından ayrı Panic slip dalındaki açık onay bir manual Reset ve bağlı Content-Free ihlali üretmiştir. Bu yalnız yeni QA namespace’idir."
+}

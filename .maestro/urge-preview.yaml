@@ -1,0 +1,60 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Urge preview isolated interaction lifecycle
+---
+- openLink: "tms-e2e:///debug/urge-control"
+- assertVisible: {id: "urge.preview.ready"}
+- takeScreenshot: "01-native-ready"
+- tapOn: {id: "urge.preview.duration.5"}
+- assertVisible: "Kalan süre: 5 dakika 0 saniye"
+- tapOn: {id: "urge.preview.duration.15"}
+- assertVisible: "Kalan süre: 15 dakika 0 saniye"
+- tapOn: {id: "urge.preview.duration.20"}
+- assertVisible: "Kalan süre: 20 dakika 0 saniye"
+- tapOn: {id: "urge.preview.duration.10"}
+- tapOn: {id: "urge.preview.start"}
+- assertVisible: {id: "urge.preview.running"}
+- takeScreenshot: "02-native-running"
+- tapOn: {id: "urge.preview.pause"}
+- assertVisible: {id: "urge.preview.paused"}
+- takeScreenshot: "03-native-paused"
+- tapOn: {id: "urge.preview.resume"}
+- assertVisible: {id: "urge.preview.running"}
+- pressKey: Home
+- launchApp: {stopApp: false}
+- assertVisible: {id: "urge.preview.background"}
+- assertVisible: {id: "urge.preview.paused"}
+- takeScreenshot: "04-native-background"
+- tapOn: {id: "urge.preview.resume"}
+- repeat:
+    times: 3
+    commands:
+      - tapOn: {id: "urge.preview.pause", optional: true}
+- assertVisible: {id: "urge.preview.paused"}
+- tapOn: {id: "urge.preview.resume"}
+- tapOn: {id: "urge.preview.finish"}
+- assertVisible: {id: "urge.preview.exit.dialog"}
+- takeScreenshot: "05-native-exit-dialog"
+- tapOn: {id: "urge.preview.exit.keep"}
+- assertVisible: {id: "urge.preview.paused"}
+- tapOn: {id: "urge.preview.exit"}
+- tapOn: {id: "urge.preview.exit.confirm"}
+- assertNotVisible: {id: "urge.preview.paused"}
+- openLink: "tms-e2e:///debug/urge-control?fixture=completion"
+- assertVisible: {id: "urge.preview.fixture"}
+- tapOn: {id: "urge.preview.start"}
+- extendedWaitUntil:
+    visible: {id: "urge.preview.completed"}
+    timeout: 10000
+- assertVisible: {id: "urge.preview.unsaved"}
+- takeScreenshot: "06-native-completed"
+- tapOn: {id: "urge.preview.reset"}
+- assertVisible: {id: "urge.preview.ready"}
+- tapOn: {id: "urge.preview.exit"}
+- openLink: "tms-e2e:///debug/urge-control"
+- tapOn: {id: "urge.preview.start"}
+- stopApp
+- launchApp: {clearState: false}
+- openLink: "tms-e2e:///debug/urge-control"
+- assertVisible: {id: "urge.preview.ready"}
+- assertVisible: "Kalan süre: 10 dakika 0 saniye"
+- takeScreenshot: "07-native-restarted"

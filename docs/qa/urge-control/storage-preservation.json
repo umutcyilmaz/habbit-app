@@ -1,0 +1,24 @@
+{
+  "previewTarget": {
+    "originalKeyCount": 34,
+    "finalKeyCount": 34,
+    "allValuesUnchanged": true
+  },
+  "previewNarrow": {
+    "originalKeyCount": 45,
+    "finalKeyCount": 45,
+    "allValuesUnchanged": true
+  },
+  "productionRegression": {
+    "originalKeyCount": 34,
+    "finalKeyCount": 36,
+    "originalValuesPreserved": true,
+    "changedOrRemovedOriginalKeys": [],
+    "addedKeys": [
+      "bloom.e2e.home.urge1181_prod_20261015_01.bloom.localState.v9",
+      "bloom.e2e.home.urge1181_prod_20261015_01.clock"
+    ],
+    "onlyFreshQaNamespaceAdded": true
+  },
+  "noResetUninstallOrUserDataDeletion": true
+}

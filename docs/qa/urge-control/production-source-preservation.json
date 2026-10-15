@@ -1,0 +1,72 @@
+[
+  {
+    "file": "src/features/panic/screens/PanicScreen.tsx",
+    "unchangedFromApprovedBaseline": true,
+    "sha256": "39183be5d9361539f059ef9eb7d63fffa84a74e6369665e133a61a3909b91c2f"
+  },
+  {
+    "file": "src/features/panic/usePanicFeature.ts",
+    "unchangedFromApprovedBaseline": true,
+    "sha256": "223f1d22ca4fcd3b499662a3f5abcfe799739a3e030c8b21b5af6427420f13e7"
+  },
+  {
+    "file": "src/features/panic/panicController.ts",
+    "unchangedFromApprovedBaseline": true,
+    "sha256": "940ac13ced2241d65193ddf746e1137b39148834d71c70131abcecf008c12e09"
+  },
+  {
+    "file": "src/features/urge-control/screens/UrgeControlResumeScreen.tsx",
+    "unchangedFromApprovedBaseline": true,
+    "sha256": "b963d6f4cd63ebb7f814553230e09df4e80a770a663bcfd45b40e7626a1910b5"
+  },
+  {
+    "file": "src/features/urge-control/useUrgeControlFeature.ts",
+    "unchangedFromApprovedBaseline": true,
+    "sha256": "e2d3ad90d5f17666efaf3fa26b9d183c98371c7b5e1af70cedc7003894f02c8f"
+  },
+  {
+    "file": "src/features/urge-control/urgeControlController.ts",
+    "unchangedFromApprovedBaseline": true,
+    "sha256": "409c14482a32a6e0fe3ba856af77ceff7108de069afdd363111917b7ee8420c0"
+  },
+  {
+    "file": "src/domain/models/UrgeControlEvent.ts",
+    "unchangedFromApprovedBaseline": true,
+    "sha256": "89eab40dda5ac9949dafcd23559dc39bbcafee50892f7db57b8a30573f5f5700"
+  },
+  {
+    "file": "src/domain/models/UrgeControlState.ts",
+    "unchangedFromApprovedBaseline": true,
+    "sha256": "13042c63794e102d172a75ffb3e0101ecb53f02ca32b204173e0fa536e8f3e76"
+  },
+  {
+    "file": "src/domain/urgeControl/getUrgeControlProgress.ts",
+    "unchangedFromApprovedBaseline": true,
+    "sha256": "cacf8b368553858be122a71d789fd7a0fd830b0871cf4321cecbb3c9f4dc1a82"
+  },
+  {
+    "file": "src/storage/bloomUrgeControlTransitions.ts",
+    "unchangedFromApprovedBaseline": true,
+    "sha256": "c79fae3d3acdf227abc11aec6a6554ff3eaadb97054fa3c13cde38ad6c2de545"
+  },
+  {
+    "file": "src/features/pause/screens/PauseTimerScreen.tsx",
+    "unchangedFromApprovedBaseline": true,
+    "sha256": "625ca4c75cd93aac472a0bbe149b239f705702a2fedfa63933de2174aaf4bce3"
+  },
+  {
+    "file": "src/features/pause/pauseTimerState.ts",
+    "unchangedFromApprovedBaseline": true,
+    "sha256": "c2e28c8e1a8439d3c101aa99ea7d96fe44cdeb454dfa195b1325509dda48b8f7"
+  },
+  {
+    "file": "src/storage/bloomStateSchema.ts",
+    "unchangedFromApprovedBaseline": true,
+    "sha256": "5abf5dbe1581ef1fa7231afe8c1e61636e81b0738ad2a8d230192350f75ee682"
+  },
+  {
+    "file": "src/storage/bloomStatePersistence.ts",
+    "unchangedFromApprovedBaseline": true,
+    "sha256": "37b1d99c1e39d62ce374262b59d2648225d8186b271395117d53ed9a3fb01e20"
+  }
+]

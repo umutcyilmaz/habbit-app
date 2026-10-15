@@ -1,0 +1,60 @@
+Running on Bloom Practice Typography QA Narrow - iOS 26.3 - 890ADA65-17D8-4EEC-AFDE-853AEE570448
+ > Flow Urge preview accessible typography
+Open tms-e2e:///debug/urge-control... COMPLETED
+Assert that id: urge.preview.ready is visible... COMPLETED
+Tap on id: urge.preview.exit... COMPLETED
+Open tms-e2e:///debug/urge-control... COMPLETED
+Assert that id: urge.preview.ready is visible... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Take screenshot ready-top... COMPLETED
+Scrolling DOWN until id: urge.preview.duration.20 is visible with speed 40, visibility percentage 100%, timeout 20000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Take screenshot ready-presets... COMPLETED
+Tap on id: urge.preview.duration.20... COMPLETED
+Scrolling DOWN until id: urge.preview.start is visible with speed 40, visibility percentage 100%, timeout 20000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Take screenshot ready-start... COMPLETED
+Scrolling DOWN until id: urge.preview.intro.prose is visible with speed 40, visibility percentage 30%, timeout 20000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Take screenshot ready-prose... COMPLETED
+Scrolling DOWN until id: urge.preview.intro.guide is visible with speed 40, visibility percentage 30%, timeout 20000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Take screenshot ready-guide... COMPLETED
+Scrolling UP until id: urge.preview.start is visible with speed 40, visibility percentage 100%, timeout 20000 ms, with centering disabled... COMPLETED
+Tap on id: urge.preview.start... COMPLETED
+Assert that id: urge.preview.running is visible... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Take screenshot running-top... COMPLETED
+Scrolling DOWN until id: urge.preview.pause is visible with speed 40, visibility percentage 100%, timeout 20000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Take screenshot running-actions... COMPLETED
+Tap on id: urge.preview.pause... COMPLETED
+Run flow when id: urge.preview.pause is visible...
+Run flow when id: urge.preview.pause is visible... SKIPPED
+Assert that id: urge.preview.paused is visible... COMPLETED
+Scrolling DOWN until id: urge.preview.resume is visible with speed 40, visibility percentage 100%, timeout 20000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Take screenshot paused-actions... COMPLETED
+Tap on id: urge.preview.finish... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Take screenshot exit-top... COMPLETED
+Scrolling DOWN until id: urge.preview.exit.keep is visible with speed 40, visibility percentage 100%, timeout 20000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Take screenshot exit-actions... COMPLETED
+Tap on id: urge.preview.exit.keep... COMPLETED
+Scrolling DOWN until id: urge.preview.resume is visible with speed 40, visibility percentage 100%, timeout 20000 ms, with centering disabled... COMPLETED
+Tap on id: urge.preview.resume... COMPLETED
+Assert that id: urge.preview.running is visible... COMPLETED
+Tap on id: urge.preview.exit... COMPLETED
+Scrolling DOWN until id: urge.preview.exit.confirm is visible with speed 40, visibility percentage 100%, timeout 20000 ms, with centering disabled... COMPLETED
+Tap on id: urge.preview.exit.confirm... COMPLETED
+Open tms-e2e:///debug/urge-control?fixture=completion... COMPLETED
+Scrolling DOWN until id: urge.preview.start is visible with speed 40, visibility percentage 100%, timeout 20000 ms, with centering disabled... COMPLETED
+Tap on id: urge.preview.start... COMPLETED
+Assert that id: urge.preview.completed is visible... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Take screenshot completed-top... COMPLETED
+Scrolling DOWN until id: urge.preview.done is visible with speed 40, visibility percentage 100%, timeout 20000 ms, with centering disabled... COMPLETED
+Wait for animation to end within 1200 ms... COMPLETED
+Take screenshot completed-actions... COMPLETED
+Tap on id: urge.preview.done... COMPLETED

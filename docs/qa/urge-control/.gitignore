@@ -1,0 +1,32 @@
+# Phase 11.8.1: preserve all captures locally; publish only this explicit selection.
+/*.png
+!/html-ready.png
+!/html-running.png
+!/01-native-ready.png
+!/02-native-running.png
+!/03-native-paused.png
+!/06-native-completed.png
+!/05-native-exit-dialog.png
+!/04-native-background.png
+!/07-native-restarted.png
+!/target-moderate-ready-guide.png
+!/target-moderate-exit-actions.png
+!/target-maximum-ready-top.png
+!/target-maximum-running-actions.png
+!/target-maximum-exit-actions.png
+!/narrow-maximum-ready-top.png
+!/narrow-maximum-paused-actions.png
+!/narrow-maximum-exit-actions.png
+!/narrow-maximum-completed-actions.png
+!/reduced-motion-running.png
+!/production-panic-branches.png
+!/production-urge-ready.png
+!/production-slip-explicit-confirm.png
+
+/local-archive/
+# Local per-key storage hash dumps; publish preservation summaries only.
+/storage-before.json
+/storage-after-preview.json
+/storage-after-production.json
+/narrow-storage-before.json
+/narrow-retry-storage-after.json

@@ -1,0 +1,41 @@
+# Requires preview flag OFF, Phase10 QA ON and a NEW EXPO_PUBLIC_HOME_QA_RUN.
+# Never re-seed an existing namespace; no clearState/uninstall/data deletion.
+appId: com.umutcyilmaz.bloom.e2e
+name: Urge preview production branch regression isolated namespace
+---
+- openLink: "tms-e2e:///debug/phase10"
+- assertVisible: {id: "bloom.qa.phase10.day10-credit"}
+- tapOn: {id: "bloom.qa.phase10.day10-credit"}
+- openLink: "tms-e2e:///bloom/panic"
+- assertVisible: {id: "bloom.panic.triggered"}
+- assertVisible: {id: "bloom.panic.slip"}
+- takeScreenshot: "production-panic-branches"
+- tapOn: {id: "bloom.panic.triggered"}
+- assertVisible: {id: "bloom.urge.resume"}
+- assertVisible: {id: "bloom.urge.interrupt.complete"}
+- takeScreenshot: "production-urge-interrupt"
+- tapOn: {id: "bloom.urge.interrupt.complete"}
+- assertVisible: {id: "bloom.urge.outcome.unchanged"}
+- tapOn: {id: "bloom.urge.outcome.unchanged"}
+- scrollUntilVisible:
+    element: {id: "bloom.urge.triggers.explicitContentCue"}
+- tapOn: {id: "bloom.urge.triggers.explicitContentCue"}
+- scrollUntilVisible:
+    element: {id: "bloom.urge.triggers.save"}
+- tapOn: {id: "bloom.urge.triggers.save"}
+- scrollUntilVisible:
+    element: {id: "bloom.urge.complete"}
+- takeScreenshot: "production-urge-ready"
+- tapOn: {id: "bloom.urge.complete"}
+- assertVisible: {id: "bloom.home"}
+- openLink: "tms-e2e:///bloom/panic"
+- tapOn: {id: "bloom.panic.slip"}
+- assertVisible: {id: "bloom.panic.slip.form"}
+- tapOn: {id: "bloom.panic.slip.reason.intentionalExplicitContent"}
+- scrollUntilVisible:
+    element: {id: "bloom.panic.slip.confirm"}
+- takeScreenshot: "production-slip-explicit-confirm"
+- tapOn: {id: "bloom.panic.slip.confirm"}
+- assertVisible: {id: "bloom.home"}
+- openLink: "tms-e2e:///debug/urge-control"
+- assertNotVisible: {id: "urge.preview.ready"}

@@ -1,0 +1,23 @@
+{
+  "proposalOnly": true,
+  "changedFileCount": 81,
+  "textFileCount": 59,
+  "imageCount": 22,
+  "totalBytes": 27861782,
+  "imageBytes": 27686366,
+  "originalImageCount": 75,
+  "originalImageBytes": 110180646,
+  "localOnlyImageCount": 53,
+  "sizeMeaning": "Working-tree byte sum; not Git pack, ZIP or transfer size",
+  "noStagingCommitOrPush": true,
+  "excluded": [
+    "53 unselected PNGs retained locally",
+    "local-archive/",
+    "per-key storage hash dumps",
+    "raw storage payloads",
+    "secrets",
+    "docs/patches/",
+    ".local-design/",
+    "unrelated files and logs"
+  ]
+}

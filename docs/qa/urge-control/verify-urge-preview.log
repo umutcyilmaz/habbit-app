@@ -1,0 +1,9 @@
+
+> tms@0.1.0 verify:urge-preview
+> node scripts/verify-bloom-urge-preview.cjs
+
+Timer: presets, explicit start, monotonic anchors, delayed ticks, pause/resume, background, exit, completion, restart, unmount and 4-4-6 boundaries passed.
+UI: actual handlers, rapid presses, navigation guard release, completion, dialog, AppState/focus, one interval, unmount and scrolling layout passed.
+Motion: phase remainder synchronized; Reduced Motion and pause remove tweens; all animations cancel; LCD has one non-live spoken timer label.
+Reduced Motion: native changes update mounted UI; stale async read and post-unmount updates are ignored; subscription removed.
+Isolation: 36 gate combinations, release redirect, root memory precedence, no feature mutation imports, no device save acknowledgement and unchanged v9 passed.

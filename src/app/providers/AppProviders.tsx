@@ -1,4 +1,6 @@
 import { practicePreviewEnabled } from "../../features/practice/practicePreviewMode";
+import { urgePreviewEnabled } from "../../features/urge-control/preview/urgePreviewMode";
+import { urgePreviewRuntime } from "../../features/urge-control/preview/urgePreviewRuntime";
 import { practicePreviewRuntime } from "../../features/practice/practicePreviewRuntime";
 import { View, Text } from "react-native";
 import { practiceQaInvalidConfiguration, practicePersistenceQaEnabled, practicePersistenceQaRuntime } from "../../features/practice/qa/practicePersistenceQa";
@@ -21,7 +23,7 @@ export function AppProviders({ children }: PropsWithChildren) {
   if(practiceQaInvalidConfiguration)return <View><Text>Practice QA için yeni ve geçerli bir run adı gerekli. Mevcut veri açılmadı.</Text></View>;
   return (
     <SafeAreaProvider>
-      {practicePersistenceQaEnabled ? <LocalProviders runtime={practicePersistenceQaRuntime}>{children}</LocalProviders> : kegelPersistenceQaEnabled ? <LocalProviders runtime={kegelPersistenceQaRuntime}>{children}</LocalProviders> : kegelPreviewEnabled ? <LocalProviders runtime={kegelPreviewRuntime}>{children}</LocalProviders> : phase10QaEnabled ? <Phase10QaProvider>
+      {urgePreviewEnabled ? <LocalProviders runtime={urgePreviewRuntime}>{children}</LocalProviders> : practicePersistenceQaEnabled ? <LocalProviders runtime={practicePersistenceQaRuntime}>{children}</LocalProviders> : kegelPersistenceQaEnabled ? <LocalProviders runtime={kegelPersistenceQaRuntime}>{children}</LocalProviders> : kegelPreviewEnabled ? <LocalProviders runtime={kegelPreviewRuntime}>{children}</LocalProviders> : phase10QaEnabled ? <Phase10QaProvider>
         <LocalProviders>{children}</LocalProviders>
       </Phase10QaProvider> : practicePreviewEnabled ? <LocalProviders runtime={practicePreviewRuntime}>{children}</LocalProviders> : <LocalProviders>{children}</LocalProviders>}
     </SafeAreaProvider>
@@ -51,6 +53,6 @@ function RouteStatusBar() {
   const pathname = usePathname();
   const darkCanvas = pathname === "/" || pathname === "/today" ||
     pathname.startsWith("/bloom/") || pathname.startsWith("/settings") || pathname === "/onboarding" ||
-    pathname.startsWith("/onboarding/") || pathname === "/debug/phase10";
+    pathname.startsWith("/onboarding/") || pathname === "/debug/phase10" || pathname === "/debug/urge-control";
   return <StatusBar style={darkCanvas ? "light" : "dark"} />;
 }

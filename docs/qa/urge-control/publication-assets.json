@@ -1,0 +1,165 @@
+{
+  "version": 1,
+  "purpose": "Git için seçilmiş, değiştirilmemiş Phase 11.8.1 kareleri; 75 orijinal PNG yerelde korunur.",
+  "rawCaptureCount": 75,
+  "rawBytes": 110180646,
+  "publishedCaptureCount": 22,
+  "publishedBytes": 27686366,
+  "localOnlyCaptureCount": 53,
+  "screenshots": [
+    {
+      "file": "html-ready.png",
+      "group": "HTML",
+      "reason": "Hazır ekran referansı",
+      "bytes": 188037,
+      "sha256": "0053c6604039749562b89b5d64dc6538712cfb50d5004a741b4e513475d0b9a7"
+    },
+    {
+      "file": "html-running.png",
+      "group": "HTML",
+      "reason": "Sayım referansı",
+      "bytes": 361086,
+      "sha256": "e9308e6c7a3200933f0a5420a55248d15e2beae5e55d71d34bc10c813a008508"
+    },
+    {
+      "file": "01-native-ready.png",
+      "group": "Normal",
+      "reason": "LCD ve süre seçimi",
+      "bytes": 1685222,
+      "sha256": "2ad27415a1376cc7b893eaccac1ea7146d7eeea1a180f4201d4f709bf95d8f35"
+    },
+    {
+      "file": "02-native-running.png",
+      "group": "Normal",
+      "reason": "Sayım ve nefes ritmi",
+      "bytes": 2077648,
+      "sha256": "4109df418f7b5653b90cefb1dc31f3efad39b108633c484a62dd0220e3ddcb1f"
+    },
+    {
+      "file": "03-native-paused.png",
+      "group": "Normal",
+      "reason": "Duraklatma ve devam",
+      "bytes": 2072517,
+      "sha256": "fb5526d3115e8d7f016acec1817a01f1fcc22715e9f42125226a900599875254"
+    },
+    {
+      "file": "06-native-completed.png",
+      "group": "Normal",
+      "reason": "Nötr bitiş",
+      "bytes": 1840224,
+      "sha256": "c4b7fc209a3a3488dea61602681f96bd4babd65f066580ec8a129a48442ae88c"
+    },
+    {
+      "file": "05-native-exit-dialog.png",
+      "group": "Normal",
+      "reason": "Çıkış onayı",
+      "bytes": 754213,
+      "sha256": "5ef4462d1c4c133b197f664678765eba148ddd96c390c5e3312e7b8915a518ab"
+    },
+    {
+      "file": "04-native-background.png",
+      "group": "Normal",
+      "reason": "Arka plan sonrası açık devam",
+      "bytes": 2474815,
+      "sha256": "92f241500c763af080061d594a036a968c117ba87de0987884c082a478070a34"
+    },
+    {
+      "file": "07-native-restarted.png",
+      "group": "Normal",
+      "reason": "Restart sonrası hazır durum",
+      "bytes": 1547166,
+      "sha256": "3e346eea96835f6957ed323d579f1fe0446ff6f03b154143ca43884a7c22e596"
+    },
+    {
+      "file": "target-moderate-ready-guide.png",
+      "group": "Orta metin",
+      "reason": "Kaydırılan yönerge ve kılavuz",
+      "bytes": 1770808,
+      "sha256": "dd9a6fdf43f7faaec0d4fd183e59fc2108584c6414f9299f7b1b0bfea2151c78"
+    },
+    {
+      "file": "target-moderate-exit-actions.png",
+      "group": "Orta metin",
+      "reason": "Dialog metni ve eylemleri",
+      "bytes": 646018,
+      "sha256": "7370dfbd382565adac907f1bbcb9715a2306ccb3133fd59abd45cec6754b6516"
+    },
+    {
+      "file": "target-maximum-ready-top.png",
+      "group": "Hedef maksimum metin",
+      "reason": "Tek kolon süreler ve safe-area",
+      "bytes": 1786696,
+      "sha256": "0b5a806c25b3f9dfa775a09444b5afe79252067de9b8dc986b0483e2045e4c00"
+    },
+    {
+      "file": "target-maximum-running-actions.png",
+      "group": "Hedef maksimum metin",
+      "reason": "Kaydırmayla erişilen çalışma kontrolleri",
+      "bytes": 2104573,
+      "sha256": "86a32830c22d99553a51a9a85cdb24cebcf6d4d59f17dcce45dcbbaed4746bd6"
+    },
+    {
+      "file": "target-maximum-exit-actions.png",
+      "group": "Hedef maksimum metin",
+      "reason": "Kaydırılan çıkış eylemleri",
+      "bytes": 407833,
+      "sha256": "266d157cf3a8b645275d2e060d5720412b6487971922d8cb852b037aa850ea35"
+    },
+    {
+      "file": "narrow-maximum-ready-top.png",
+      "group": "Dar maksimum metin",
+      "reason": "Dar ekranda tek kolon seçim",
+      "bytes": 1585613,
+      "sha256": "5387e37450cd3ac455cff656ad22fdfdcadb51c40167bf74bb6c471a3eb8c17c"
+    },
+    {
+      "file": "narrow-maximum-paused-actions.png",
+      "group": "Dar maksimum metin",
+      "reason": "Devam ve erken bitir kontrolleri",
+      "bytes": 1767479,
+      "sha256": "773bc9dc7cd4ff285f7fc26a0706dc2541e7e40ac66e9ffcf0c1dea22f0d639a"
+    },
+    {
+      "file": "narrow-maximum-exit-actions.png",
+      "group": "Dar maksimum metin",
+      "reason": "Dar ekran çıkış eylemleri",
+      "bytes": 334290,
+      "sha256": "5fc44573da5355a45ec47e4b6f3e51e969fd7a43b2a18910d3645df7e906f925"
+    },
+    {
+      "file": "narrow-maximum-completed-actions.png",
+      "group": "Dar maksimum metin",
+      "reason": "Sonuç metni ve bitiş eylemleri",
+      "bytes": 1782201,
+      "sha256": "a11f9db1faa6e85d522ae1145053003ab4af3813ea5fd78df018942298317654"
+    },
+    {
+      "file": "reduced-motion-running.png",
+      "group": "Reduced Motion",
+      "reason": "Native ayar etiketi ve sabit atmosfer",
+      "bytes": 1993175,
+      "sha256": "56923a34f18542202dbc5cfe8eaf210cc0f77b785d98b393778220444b7ee713"
+    },
+    {
+      "file": "production-panic-branches.png",
+      "group": "Üretim regresyonu",
+      "reason": "Panic’in iki ayrı dalı",
+      "bytes": 184676,
+      "sha256": "649bd80336b384ba7ade50bff8e5ea825813fb7c99ed83fb62439503aee36c36"
+    },
+    {
+      "file": "production-urge-ready.png",
+      "group": "Üretim regresyonu",
+      "reason": "Explicit outcome ve trigger özeti",
+      "bytes": 159556,
+      "sha256": "5a8734edb2172d88d5f60a2b479b4e6cd8ec35e338ef5d20617d4b32ab8aaf68"
+    },
+    {
+      "file": "production-slip-explicit-confirm.png",
+      "group": "Üretim regresyonu",
+      "reason": "Ayrı slip nedeni ve açık onay",
+      "bytes": 162520,
+      "sha256": "8723662f57ab9eb7560dd7aa21289925aa2f12c27e34f2cf4f0968e2a27640ec"
+    }
+  ]
+}

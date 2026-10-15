@@ -1,0 +1,17 @@
+# Run with the real Simulator Reduce Motion setting ON; restore its prior value afterward.
+appId: com.umutcyilmaz.bloom.e2e
+name: Urge preview native Reduced Motion
+---
+- openLink: "tms-e2e:///debug/urge-control"
+- assertVisible: {id: "urge.preview.reduced-motion"}
+- tapOn: {id: "urge.preview.start"}
+- assertVisible: {id: "urge.preview.running"}
+- waitForAnimationToEnd: {timeout: 1200}
+- takeScreenshot: "reduced-motion-running"
+- tapOn: {id: "urge.preview.pause"}
+- assertVisible: {id: "urge.preview.paused"}
+- tapOn: {id: "urge.preview.exit"}
+- assertVisible: {id: "urge.preview.exit.dialog"}
+- waitForAnimationToEnd: {timeout: 1200}
+- takeScreenshot: "reduced-motion-dialog"
+- tapOn: {id: "urge.preview.exit.confirm"}

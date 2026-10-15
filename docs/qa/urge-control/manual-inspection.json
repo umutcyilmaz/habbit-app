@@ -1,0 +1,61 @@
+{
+  "date": "2026-10-15",
+  "method": "Gerçek PNG piksel incelemesi / view_image; hash karşılaştırması görsel kabul sayılmaz.",
+  "scope": "Onaylı önceki piksel incelemesinin yayınlanan karelere ait alt kümesi. Bu yayın hazırlığında yeni Simulator veya görsel test koşusu yapılmadı; tam tarihsel notlar yerelde korunur.",
+  "findings": [
+    {
+      "files": [
+        "html-ready.png",
+        "html-running.png"
+      ],
+      "finding": "Kaynak segment geometrisi, LCD oranı ve sayım odağı incelendi. HTML seri/başarı metni native’e aktarılmıyor."
+    },
+    {
+      "files": [
+        "target-maximum-ready-top.png"
+      ],
+      "finding": "Başlık, QA etiketi ve presetler bölünmüyor. Tam native boyuttaki açıklama bir ekranı aşar; kaydırılan karelerde doğal nefese dönme ve erken çıkış metni okunur."
+    },
+    {
+      "files": [
+        "target-maximum-exit-actions.png"
+      ],
+      "finding": "Kısaltılmış Kayıt yok metni artık kelime bölmeden sarılıyor; modal eylemleri ulaşılabilir. Sonuç kayda geçmedi metni ve kapatma eylemi açık."
+    },
+    {
+      "files": [
+        "target-moderate-exit-actions.png"
+      ],
+      "finding": "Orta metinde modal başlığı iki satırda tam; açıklama ve iki düğme kırpılmıyor."
+    },
+    {
+      "files": [
+        "narrow-maximum-ready-top.png",
+        "narrow-maximum-paused-actions.png",
+        "narrow-maximum-exit-actions.png",
+        "narrow-maximum-completed-actions.png"
+      ],
+      "finding": "Dar maksimum metinde süreler tek kolonda. Duraklatılmış durumda Devam et ve Egzersizi bitir görünür. Modal safe-area içinde, metin ve eylemler kaydırılır; Kayıt yok ve sonuç metni bölünmez."
+    },
+    {
+      "files": [
+        "01-native-ready.png",
+        "02-native-running.png",
+        "reduced-motion-running.png"
+      ],
+      "finding": "Son normal ve Reduced Motion kareleri incelendi. LCD, presetler, mavi sis ve açık pause/exit düzeni kaynağa yakın; keskin sis kutusu yok. Motion etiketi native ayarı doğruluyor; modal metni ve eylemleri tam."
+    },
+    {
+      "files": [
+        "production-panic-branches.png",
+        "production-urge-ready.png",
+        "production-slip-explicit-confirm.png"
+      ],
+      "finding": "Üretim Panic’te iki ayrı dal görünür. Urge sonucu Değişmedi, trigger açık içerik ipucu olarak kullanıcı seçimiyle gösterilir. Slip ayrı neden ve Bunlar değişecek/onay ekranındadır."
+    }
+  ],
+  "limitations": [
+    "Gerçek cihaz VoiceOver odak ergonomisi ve uzun süreli enerji ölçümü bu Simulator QA’sının dışındadır.",
+    "Kaydırılan karelerin üst/alt sınırında paragrafın yalnız bir bölümünün görünmesi normal scroll davranışıdır; sabit metin yüksekliği veya truncation kullanılmıyor."
+  ]
+}

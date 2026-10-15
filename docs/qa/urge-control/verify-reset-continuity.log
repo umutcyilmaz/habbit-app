@@ -1,0 +1,5 @@
+
+> tms@0.1.0 verify:reset-continuity
+> node scripts/run-bloom-reset-continuity-verification.cjs
+
+Bloom Reset continuity verification passed (all 15 requested regression groups, fractional/boundary credit, multiple restarts, undo corrections, isolated injected clock, saved offers, retries, and v7 preservation).

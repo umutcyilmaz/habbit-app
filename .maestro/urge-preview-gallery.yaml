@@ -1,0 +1,42 @@
+appId: com.umutcyilmaz.bloom.e2e
+name: Urge final native gallery capture
+---
+- openLink: "tms-e2e:///debug/urge-control"
+- assertVisible: {id: "urge.preview.ready"}
+- tapOn: {id: "urge.preview.exit"}
+- openLink: "tms-e2e:///debug/urge-control"
+- waitForAnimationToEnd: {timeout: 1200}
+- takeScreenshot: "01-native-ready"
+- tapOn: {id: "urge.preview.start"}
+- waitForAnimationToEnd: {timeout: 1200}
+- takeScreenshot: "02-native-running"
+- tapOn: {id: "urge.preview.pause"}
+- waitForAnimationToEnd: {timeout: 1200}
+- takeScreenshot: "03-native-paused"
+- tapOn: {id: "urge.preview.resume"}
+- pressKey: Home
+- launchApp: {stopApp: false}
+- assertVisible: {id: "urge.preview.background"}
+- takeScreenshot: "04-native-background"
+- tapOn: {id: "urge.preview.exit"}
+- waitForAnimationToEnd: {timeout: 1200}
+- takeScreenshot: "05-native-exit-dialog"
+- tapOn: {id: "urge.preview.exit.confirm"}
+- openLink: "tms-e2e:///debug/urge-control?fixture=completion"
+- tapOn: {id: "urge.preview.start"}
+- extendedWaitUntil:
+    visible: {id: "urge.preview.completed"}
+    timeout: 10000
+- waitForAnimationToEnd: {timeout: 1200}
+- takeScreenshot: "06-native-completed"
+- tapOn: {id: "urge.preview.done"}
+- openLink: "tms-e2e:///debug/urge-control"
+- tapOn: {id: "urge.preview.start"}
+- stopApp
+- launchApp: {clearState: false}
+- openLink: "tms-e2e://expo-development-client/?url=http%3A%2F%2F127.0.0.1%3A8084"
+- openLink: "tms-e2e:///debug/urge-control"
+- assertVisible: {id: "urge.preview.ready"}
+- waitForAnimationToEnd: {timeout: 1200}
+- takeScreenshot: "07-native-restarted"
+- tapOn: {id: "urge.preview.exit"}

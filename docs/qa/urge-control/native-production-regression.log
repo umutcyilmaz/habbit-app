@@ -1,0 +1,34 @@
+Running on Bloom Practice Typography QA Target - iOS 26.3 - 3C8CE983-39F5-41A0-B781-2AACDBCD1273
+ > Flow Urge preview production branch regression isolated namespace
+Open tms-e2e:///debug/phase10... COMPLETED
+Assert that id: bloom.qa.phase10.day10-credit is visible... COMPLETED
+Tap on id: bloom.qa.phase10.day10-credit... COMPLETED
+Open tms-e2e:///bloom/panic... COMPLETED
+Assert that id: bloom.panic.triggered is visible... COMPLETED
+Assert that id: bloom.panic.slip is visible... COMPLETED
+Take screenshot production-panic-branches... COMPLETED
+Tap on id: bloom.panic.triggered... COMPLETED
+Assert that id: bloom.urge.resume is visible... COMPLETED
+Assert that id: bloom.urge.interrupt.complete is visible... COMPLETED
+Take screenshot production-urge-interrupt... COMPLETED
+Tap on id: bloom.urge.interrupt.complete... COMPLETED
+Assert that id: bloom.urge.outcome.unchanged is visible... COMPLETED
+Tap on id: bloom.urge.outcome.unchanged... COMPLETED
+Scrolling DOWN until id: bloom.urge.triggers.explicitContentCue is visible with speed 40, visibility percentage 100%, timeout 20000 ms, with centering disabled... COMPLETED
+Tap on id: bloom.urge.triggers.explicitContentCue... COMPLETED
+Scrolling DOWN until id: bloom.urge.triggers.save is visible with speed 40, visibility percentage 100%, timeout 20000 ms, with centering disabled... COMPLETED
+Tap on id: bloom.urge.triggers.save... COMPLETED
+Scrolling DOWN until id: bloom.urge.complete is visible with speed 40, visibility percentage 100%, timeout 20000 ms, with centering disabled... COMPLETED
+Take screenshot production-urge-ready... COMPLETED
+Tap on id: bloom.urge.complete... COMPLETED
+Assert that id: bloom.home is visible... COMPLETED
+Open tms-e2e:///bloom/panic... COMPLETED
+Tap on id: bloom.panic.slip... COMPLETED
+Assert that id: bloom.panic.slip.form is visible... COMPLETED
+Tap on id: bloom.panic.slip.reason.intentionalExplicitContent... COMPLETED
+Scrolling DOWN until id: bloom.panic.slip.confirm is visible with speed 40, visibility percentage 100%, timeout 20000 ms, with centering disabled... COMPLETED
+Take screenshot production-slip-explicit-confirm... COMPLETED
+Tap on id: bloom.panic.slip.confirm... COMPLETED
+Assert that id: bloom.home is visible... COMPLETED
+Open tms-e2e:///debug/urge-control... COMPLETED
+Assert that id: urge.preview.ready is not visible... COMPLETED
