@@ -68,8 +68,8 @@ function verifyIntegrationSources() {
   const feature = readFileSync("src/features/urge-control/useUrgeControlFeature.ts", "utf8");
   const exercise = readFileSync("src/features/urge-control/exercise/UrgeExercise.tsx", "utf8");
   const panic = readFileSync("src/features/panic/usePanicFeature.ts", "utf8");
-  assert(screen.includes('testIDPrefix="bloom.urge.exercise"') && screen.includes('label:"Durum kontrolüne geç"') && !screen.includes("Şunu bitir"),
-    "The current interrupt UI must be the production exercise adapter, without the former card.");
+  // Current/legacy interrupt ownership is checked by executable screen tests
+  // in verifyBloomUrgeControlFeature, rather than a global copy prohibition.
   assert(!/QA önizleme|Kaydedilmez|2 saniyelik bitiş/.test(screen), "Production copy must not contain preview fixture wording.");
   assert(feature.includes("holdInterruptForAcknowledgement") && feature.includes("latestUrge !== durable.current.urgeControl"),
     "The adapter must gate outcome and exit on durable Urge truth.");

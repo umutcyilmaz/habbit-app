@@ -72,6 +72,9 @@ export function UrgeControlResumeScreen() {
         ) : active ? (
           <View style={styles.stack}>
             <AppText testID="bloom.urge.stage" variant="overline" tone="accent">{stageLabels[view.progress.stage]}</AppText>
+            {view.kind === "legacy" && view.progress.stage === "interrupt" ? (
+              <LegacyInterrupt key={view.event.id} locked={locked} onComplete={actions.completeInterrupt} />
+            ) : null}
             {view.progress.stage === "outcome" ? (
               <View style={styles.stack}>
                 <View style={styles.cardStack}>
@@ -159,6 +162,24 @@ export function UrgeControlResumeScreen() {
   );
 }
 
+function LegacyInterrupt({ locked, onComplete }: { locked: boolean; onComplete: () => void }) {
+  const [touched, setTouched] = useState<0 | 1 | 2>(0);
+  return (
+    <View style={styles.stack}>
+      <View style={styles.cardStack}>
+        <AppText variant="display" accessibilityRole="header">Şunu bitir</AppText>
+        <AppText variant="bodyLarge" tone="secondary">Dürtüyü fark et. Bir nefes al, sonra dikkatini çevrene taşı. Hazır olduğunda devam et.</AppText>
+      </View>
+      <View style={styles.circleRow}>
+        <AppButton testID="bloom.urge.interrupt.breathe" label="Nefes al" accessibilityLabel="Nefes almaya odaklan" variant={touched === 1 ? "primary" : "secondary"} style={styles.circleButton} onPress={() => setTouched(1)} />
+        <AppButton testID="bloom.urge.interrupt.notice" label="Çevrene bak" accessibilityLabel="Çevreni fark et" variant={touched === 2 ? "primary" : "secondary"} style={styles.circleButton} onPress={() => setTouched(2)} />
+      </View>
+      <AppText variant="bodySmall" tone="secondary" style={styles.centerText}>Bir süre hedefi yok. Bu kısa ara sana ait.</AppText>
+      <AppButton testID="bloom.urge.interrupt.complete" label="Devam et" disabled={locked} onPress={onComplete} />
+    </View>
+  );
+}
+
 function TriggerSelection({ locked, onSubmit }: { locked: boolean; onSubmit: (triggers: CurrentUrgeControlTrigger[]) => void }) {
   const [selected, setSelected] = useState<CurrentUrgeControlTrigger[]>([]);
   const draft = useRef<CurrentUrgeControlTrigger[]>([]);
@@ -199,6 +220,8 @@ const styles = StyleSheet.create({
   cardStack: { gap: theme.spacing.md },
   statusLine: { alignItems: "center" },
   statusPanel: { gap: theme.spacing.sm, padding: theme.spacing.md, borderRadius: theme.radius.lg, backgroundColor: theme.colors.bg.surface },
+  circleRow: { flexDirection: "row", justifyContent: "center", gap: theme.spacing.md, width: "100%" },
+  circleButton: { flex: 1, width: "auto", maxWidth: 116, aspectRatio: 1, borderRadius: theme.radius.pill, paddingHorizontal: theme.spacing.sm },
   centerText: { textAlign: "center" },
   choiceList: { gap: theme.spacing.sm },
   triggerGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", gap: theme.spacing.xs },

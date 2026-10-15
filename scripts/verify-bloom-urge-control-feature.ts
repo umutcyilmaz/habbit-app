@@ -41,6 +41,7 @@ export async function verifyBloomUrgeControlFeature() {
   await verifyIdentityAndLegacySafety();
   await verifyHookRecovery();
   verifyScreensAndDraft();
+  await verifyLegacyScreenProgression();
   verifyFeatureBoundary();
   console.log("Bloom Urge Control feature verification passed (current/legacy executable steps, every-step failure/retry, strict identity, stale stage/handlers, immutable cue isolation, guarded terminal recovery, durable Today navigation, legacy safety, and controlled screen drafts).");
 }
@@ -127,8 +128,8 @@ async function failAndRetry(h: Harness, pending: Promise<BloomPersistedMutationR
 }
 
 async function verifyIdentityAndLegacySafety() {
-  for (const eventId of [undefined, null, "", " ", ["urge-feature"], ["urge-feature", "urge-feature"], "stale", 42]) {
-    const h = harness(); h.setRoute(eventId);
+  for (const current of [true, false]) for (const eventId of [undefined, null, "", " ", ["urge-feature"], ["urge-feature", "urge-feature"], "stale", 42]) {
+    const h = harness(initial(current)); h.setRoute(eventId);
     assert(h.controller.completeInterrupt(h.runtime.getState().urgeControl) === null && h.controller.discardActive(h.runtime.getState().urgeControl) === null, "Invalid route identity cannot mutate or discard another event.");
     equal(h.counts(), { clocks: 0, ids: 0, mutations: 0 }, "Invalid routes generate no mutation facts.");
   }
@@ -487,24 +488,66 @@ export async function verifyBloomUrgeNavigationGuards() {
   console.log("Combined Urge navigation guards passed: both effect orders, ready/running/paused/completed, one gesture owner, hardware Back/cancel, pending protection, durable downstream release, real root-boundary rejection, real beforeRemove cancellation, retry and preserved event.");
 }
 
+function screenRenderer(getFeature: () => unknown) {
+  const hooks = controlledHooks();
+  const jsx = (type: unknown, props: Record<string, unknown>): Element => ({ type, props });
+  const dependencies: Record<string, unknown> = { react: hooks.react, "react-native": { View: "View", StyleSheet: { create: (value: unknown) => value } },
+    "react/jsx-runtime": { jsx, jsxs: jsx, Fragment: "Fragment" },
+    "../../../shared/design-system/v4/theme": { theme: { spacing: {}, radius: {}, colors: { bg: {} } } },
+    "../useUrgeControlFeature": { useUrgeControlFeature: getFeature }, "../exercise/UrgeExercise": { UrgeExercise: "UrgeExercise" } };
+  for (const name of ["AppButton", "AppCard", "AppScreen", "AppText"]) dependencies[`../../../shared/components/v4/${name}`] = { [name]: name };
+  const module = compile("src/features/urge-control/screens/UrgeControlResumeScreen.tsx", dependencies);
+  return () => hooks.render(() => expand((module.UrgeControlResumeScreen as () => Element)()));
+}
+
+async function verifyLegacyScreenProgression() {
+  const h = harness(initial(false)), hook = hookHarness(h);
+  let feature = hook.render();
+  const render = screenRenderer(() => feature = hook.render());
+  const original = h.runtime.getState();
+  const commands = ["interrupt.complete", "technique.urgeSurfing", "phone-away.start", "phone-away.end", "outcome.reduced", "trigger.stress", "complete"];
+  const stages = ["interrupt", "technique", "phoneAwayReady", "phoneAwayActive", "outcome", "trigger", "readyToComplete"];
+  for (const [index, command] of commands.entries()) {
+    const tree = render();
+    assert(feature.view.kind === "legacy" && feature.view.progress.stage === stages[index], "Production legacy UI must expose every canonical step after acknowledgement.");
+    assert(!nodes(tree).some(node => node.type === "UrgeExercise"), "No legacy step may mount the current exercise.");
+    const id = `bloom.urge.${command}`;
+    assert(nodes(tree).find(node => node.props.testID === id)?.props.disabled === false, "Saved legacy action must be enabled.");
+    if (index === 0) {
+      const counts = h.counts();
+      press(tree, "bloom.urge.interrupt.breathe"); press(tree, "bloom.urge.interrupt.notice");
+      equal(h.counts(), counts, "Legacy attention selections are local UI only.");
+    }
+    press(tree, id); press(tree, id);
+    assert(h.counts().mutations === index + 1, "Double press from the actual screen must dispatch one logical command.");
+    const accepted = h.runtime.getState();
+    if (index === 0) {
+      h.attempts[h.attempts.length - 1]!.fail(); await flush();
+      const failedTree = render();
+      assert(feature.locked && feature.canRetry && hook.blocked(), "Failed legacy write must lock progression and navigation until acknowledged retry.");
+      const counts = h.counts(); press(failedTree, "bloom.urge.retry");
+      equal(h.counts(), counts, "Screen retry must not regenerate event facts.");
+    }
+    h.attempts[h.attempts.length - 1]!.succeed(); await flush();
+    assert(h.runtime.getDurableState() === accepted, "Screen progression requires the original accepted snapshot to become durable.");
+    const event = accepted.urgeControl.activeEvent ?? accepted.urgeControl.records[accepted.urgeControl.records.length - 1];
+    assert(event?.id === "urge-feature" && event.startedAt === at && event.flowVersion === undefined, "Legacy UI must preserve identity, existing start time and version.");
+    unrelated(original, accepted);
+  }
+  assert(h.runtime.getDurableState().urgeControl.activeEvent === null && hook.navigation.length === 1, "Completed legacy screen journey navigates only after durable completion.");
+  hook.hooks.unmount();
+  console.log("Legacy production screen progression passed: all seven explicit actions, acknowledged completion, failed write/retry, double presses, local-only attention, unchanged identity/time/version.");
+}
+
 function verifyScreensAndDraft() {
-  const hooks = controlledHooks(); const submitted: unknown[] = []; const actions: Record<string, (...values: unknown[]) => void> = {};
+  const submitted: unknown[] = []; const actions: Record<string, (...values: unknown[]) => void> = {};
   for (const name of ["completeInterrupt", "selectTechnique", "startPhoneAway", "endPhoneAway", "recordOutcome", "recordTrigger", "complete", "discardActive", "retry", "continueAfterSave", "closeUnavailable"]) actions[name] = (...values) => { submitted.push([name, ...values]); };
   actions.exitExercise = () => true;
   actions.recordTriggers = (values) => { submitted.push(values); };
   let urge = initial().urgeControl;
   urge = { ...urge, activeEvent: { id: "urge-feature", flowVersion: 2, status: "active", startedAt: at, interruptCompletedAt: at, outcome: "reduced" } };
   let feature = { view: getUrgeControlRouteView(urge, "urge-feature", at), actions, locked: false, busy: false, saveState: "saved", message: null, canRetry: false, canContinue: false, terminalReceipt: false, exerciseExitFailed: false };
-  const jsx = (type: unknown, props: Record<string, unknown>): Element => ({ type, props });
-  const dependencies: Record<string, unknown> = { react: hooks.react, "react-native": { View: "View", StyleSheet: { create: (value: unknown) => value } },
-    "react/jsx-runtime": { jsx, jsxs: jsx, Fragment: "Fragment" },
-    "../../../shared/design-system/v4/theme": { theme: {
-      spacing: { xl2: 32, xl3: 48, xs: 8, lg: 20, md: 16, sm: 12 },
-      radius: { lg: 14, pill: 9999 }, colors: { bg: { surface: "surface" } }
-    } }, "../useUrgeControlFeature": { useUrgeControlFeature: () => feature }, "../exercise/UrgeExercise": { UrgeExercise: "UrgeExercise" } };
-  for (const name of ["AppButton", "AppCard", "AppScreen", "AppText"]) dependencies[`../../../shared/components/v4/${name}`] = { [name]: name };
-  const module = compile("src/features/urge-control/screens/UrgeControlResumeScreen.tsx", dependencies);
-  const render = () => hooks.render(() => expand((module.UrgeControlResumeScreen as () => Element)()));
+  const render = screenRenderer(() => feature);
   let tree = render();
   equal(ids(tree, "bloom.urge.triggers.").filter((id) => !id.endsWith("save") && !id.endsWith("skip")), currentTriggers.map((value) => `bloom.urge.triggers.${value}`), "Current screen must offer exactly the eight current trigger options.");
   press(tree, "bloom.urge.triggers.explicitContentCue"); press(tree, "bloom.urge.triggers.stress");
@@ -541,6 +584,25 @@ function verifyScreensAndDraft() {
   feature = { ...feature, view: getUrgeControlRouteView(urge, "urge-feature", at) }; tree = render();
   assert(nodes(tree).some((node) => node.type === "AppText" && node.props.children === "Tetikleyici seçilmedi"),
     "An explicitly skipped trigger question must not invent a trigger on final review.");
+  // Phase 11.8.2C gap: controller lifecycle coverage alone cannot prove that
+  // a legacy user can invoke the first canonical step from the real screen.
+  urge = initial(false).urgeControl;
+  const legacyInterrupt = getUrgeControlRouteView(urge, "urge-feature", at);
+  assert(legacyInterrupt.kind === "legacy" && legacyInterrupt.progress.stage === "interrupt",
+    "The existing legacy fixture must resolve to its canonical interrupt stage.");
+  feature = { ...feature, view: legacyInterrupt, locked: false, busy: false, saveState: "saved", canRetry: false };
+  tree = render();
+  assert(!nodes(tree).some((node) => node.type === "UrgeExercise"), "Legacy interrupt must not render the current native exercise.");
+  const legacyContinue = nodes(tree).find((node) => node.type === "AppButton" && node.props.onPress === actions.completeInterrupt && node.props.disabled !== true);
+  const visibleLegacyActions = nodes(tree).filter((node) => node.type === "AppButton").map((node) => String(node.props.testID));
+  assert(legacyContinue !== undefined,
+    `Legacy interrupt must expose an enabled completeInterrupt action; rendered actions: ${visibleLegacyActions.join(", ")}.`);
+  const beforeLegacyContinue = submitted.length;
+  (legacyContinue.props.onPress as () => void)();
+  equal(submitted[beforeLegacyContinue], ["completeInterrupt"], "Legacy Continue must invoke only its existing interrupt command.");
+  assert(legacyContinue.props.testID === "bloom.urge.interrupt.complete" && nodes(tree).some(node => node.props.children === "Şunu bitir"), "Legacy interrupt restores the original guidance and stable CTA identity.");
+  feature = { ...feature, locked: true, saveState: "unconfirmed" }; tree = render();
+  assert(nodes(tree).find(node => node.props.testID === "bloom.urge.interrupt.complete")?.props.disabled === true, "Pending legacy interrupt must disable Continue.");
   for (const [stage, extra, expected] of [
     ["technique", { interruptCompletedAt: at }, ["changeEnvironment", "grounding54321", "cognitiveTask", "urgeSurfing", "personalReminder"]],
     ["trigger", { interruptCompletedAt: at, selectedTechnique: "urgeSurfing", phoneAwayStartedAt: at, phoneAwayEndedAt: at, outcome: "reduced" }, ["boredom", "stress", "loneliness", "sleeplessnessNighttime", "sexualDesire", "habitAutomatic", "notSure"]]
