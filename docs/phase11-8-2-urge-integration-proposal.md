@@ -1,40 +1,112 @@
-# Phase 11.8.2 — Zor An entegrasyon önerisi
+# Phase 11.8.2 — Doğrudan Zor An entegrasyon sözleşmesi
 
-15 Ekim 2026. Yalnız öneri; Phase 11.8.1 üretim akışını değiştirmez.
+15 Ekim 2026. Phase 11.8.2A reusable egzersiz sınırını hazırlar; üretim
+bağlantısı Phase 11.8.2B incelemesinden sonra yapılacaktır.
 
-## Korunacak sözleşme
+## Onaylanan ürün akışı
 
-Panic’in “Şu an tetiklendim” dalı yalnız Urge Control başlatır veya mevcut olaya döner. “Seriyi bozdum” dalı neden seçimi, gerçek etki önizlemesi ve açık onay sonrasında yalnız Behavior Slip kaydeder. Bu iki dalın CTA’ları, komutları ve kayıt sahipliği ayrı kalmalı. Nefes egzersizinin bitmesi, iptali veya süre aşımı ikinci dalı çağırmamalı.
+Güncel `flowVersion: 2` olayının kalıcı aşamaları değişmez:
+`interrupt → outcome → triggers → completion`. Panic ekranındaki “Şu an
+tetiklendim” eylemi mevcut acknowledged event başlangıç/devam davranışını
+korur. Phase 11.8.2B’de bu olay `interrupt` aşamasındayken üretim resume route’u
+doğrudan yeni Zor An egzersizini gösterecektir; araya eski “Şunu bitir” kartı
+veya isteğe bağlı bir alt ekran konmayacaktır.
 
-Güncel `flowVersion: 2` akışı `interrupt → outcome → triggers → completion` olarak kalır. Eski olaylar kendi technique → phone-away → outcome → singular-trigger akışını sürdürür. Yeni bir nefes tekniği enum’u, `selectedTechnique` alanı, süre alanı, başlangıç/bitiriş olayı veya migration eklenmesi önerilmiyor. v9 anahtarı, mevcut kayıtlar ve eski Pause kayıtları değişmez.
+Sayaç yalnız kullanıcının açık “Başlat” eylemiyle çalışır. Kullanıcı sayacı hiç
+başlatmadan, çalışırken erken bitirerek veya süre dolduktan sonra açıkça “Durum
+kontrolüne geç” eylemini seçebilir. Bu eylem mevcut `completeInterrupt`
+komutunun tek üretim sahibidir. Sürenin dolması callback, outcome veya kayıt
+üretmez; `reduced`, `stillStrong`, `stronger` ya da `unchanged` sonuçlarından
+hiçbiri varsayılmaz. Outcome yalnız sonraki ekrandaki kullanıcı yanıtıyla
+`recordOutcome` üzerinden kaydedilir.
 
-## Süre ve nefes rehberi nasıl eklenebilir?
+X, platform Back ve geri kaydırma hareketi çıkış onayı ister. Onaylanan çıkış
+yalnız egzersiz ekranından Home’a döner; aktif Urge Control olayı korunur ve
+`discardActive` çağrılmaz. “Egzersizden çık” ile “olayı bırak” iki ayrı
+eylemdir. Kullanıcı aktif olayı yeniden açtığında canonical aşama hâlâ
+`interrupt` olur ve egzersiz yeni, durmuş, varsayılan 10 dakikalık sayaçla
+başlar.
 
-| Aşama | Önerilen davranış | Mevcut komut / kayıt anlamı |
-| --- | --- | --- |
-| Panic / tetiklendim | Mevcut acknowledged start/resume devam eder. | Tek gerçek olay, mevcut facade zamanı ve kimliği. Önizleme sayacı olay yaratmaz. |
-| Interrupt | İsteğe bağlı “Nefes ritmini dene” alt görünümü açılır. 5/10/15/20 dk yalnız geçici ekran tercihidir; Başlat açık eylemdir. Rehbersiz kısa ara ve doğrudan Devam et korunur. | Preset seçimi, sayaç başlatma/duraklatma/bitirme hiçbir domain komutu çağırmaz. |
-| Alt görünümden erken dönüş | İstediğin an bitir / çık, interrupt ekranına döner; istenirse buradan açık “Durum kontrolüne geç” seçilir. | Egzersizden çıkış `discardActive` anlamına gelmez. Kullanıcı olayı bırakmayı ayrıca seçerse mevcut açık discard eylemi çalışır. |
-| Süre doldu | “Süre doldu” ve “Nasıl hissediyorsun?” geçiş düğmesi; otomatik geçiş/kayıt yok. | `reduced`, `interruptCompletedAt`, `completedAt` veya triggers varsayılmaz. |
-| Interrupt’tan Devam | Kullanıcı açıkça devam eder; mevcut `completeInterrupt` tek kez, doğru event kimliği ve güncel accepted slice ile çalışır. | Sonraki aşamaya geçmeden mevcut persistence receipt doğrulanır; retry komutu yeniden uygulamaz. |
-| Outcome | Mevcut dört yanıt aynen sorulur: Azaldı / Hâlâ güçlü / Daha güçlü / Değişmedi. | Yalnız kullanıcının yanıtı `recordOutcome` ile kaydedilir. Sayaç değeri yanıta çevrilmez. |
-| Triggers | Çoklu seçim ve açık atlama (`[]`) korunur. | `explicitContentCue` gözlemdir; Behavior Slip veya tracker ihlali değildir. |
-| Completion | Mevcut explicit complete ve durable navigation kullanılır. | Var olan olay tek tamamlanmış kayda dönüşür; nefes sayacı ayrı kayıt üretmez. |
+## Legacy olayların korunması
 
-## Yaşam döngüsü ve devam
+Eski Urge Control olayları mevcut technique → phone-away → outcome →
+singular-trigger akışlarını sürdürür. Doğrudan Zor An ekranı yalnız güncel
+`flowVersion: 2` olayının `interrupt` aşamasına uygulanacaktır. Legacy selector,
+komut, süre gösterimi, event kimliği ve devam davranışı yeniden yorumlanmaz.
+Güncel bir olay outcome, triggers veya completion aşamasına geçtiyse egzersiz
+onu `interrupt` aşamasına geri taşıyamaz.
 
-Sayaç `performance.now()` tabanlı geçici aktif süredir. Arka plana, ekran odağı kaybına ve çıkış diyaloğuna geçince durur; geri dönüşte açık Devam et bekler. Uygulama kapanıp açıldığında süre geri yüklenmez. Üretimde mevcut olay, mevcut selector’ın gösterdiği gerçek aşamadan devam eder. Interrupt içinde açılan nefes alt görünümü yeni ve başlamamış durumda olur. Bu sıfırlama, event’in `startedAt` zamanını veya olayın elapsed selector’ını değiştirmez; bunlar nefeste aktif kalınan süre değildir.
+Panic’in “Seriyi bozdum” dalı Behavior Slip olarak ayrı kalır. Nefes
+egzersizinin başlangıcı, bitişi, süresinin dolması veya çıkışı Behavior Slip,
+Masturbation Tracking ya da Content-Free kaydı oluşturmaz.
 
-Mevcut bir olay outcome/triggers aşamasına geçmişse nefes alt görünümü açılışı domain’i geriye taşıyamaz. Eski olaylar bu alt görünüm için yeniden biçimlendirilmez. Geçerli kimlik, hydration/deletion engelleri ve accepted/durable state kontrolleri üretim controller’ında kalır. Bekleyen kayıt varken alt görünüm navigasyonu persistence guard’ını aşamaz.
+## Phase 11.8.2A’da hazırlanan sınır
 
-## Review gerektiren kararlar
+`src/features/urge-control/exercise/` aşağıdaki reusable parçaların sahibidir:
 
-- Süreler isteğe bağlıdır; varsayılan 10 dk seçimi ürün kararı olarak onaylanmalı. “Bir süre hedefin yok” metni ile uzun presetlerin birlikte nasıl sunulacağı gözden geçirilmeli.
-- 4-4-6 örneği isteğe bağlı kalmalı; doğal nefese dönme ve erken bitirme görünür olmalı. Tedavi veya sonuç garantisi dili kullanılmamalı.
-- HTML’nin 5–60 dk stepper’ı ve “Senin için” soğuk su/yürüyüş kartları bu fazda yok. Bunlar için içerik, süre ve navigasyon ayrı onay ister; kart basışı kendiliğinden egzersiz başlatmamalı.
-- VoiceOver’da yalnız durum değişimi anons edilir. Her saniye veya nefes fazında otomatik konuşma yok; ritim metni kullanıcı tarafından okunabilir. Gerçek cihazda VoiceOver odak sırası ayrıca denenmeli.
-- Süre tercihinin cihazda hatırlanması gerekirse ayrı bir tercih sözleşmesi tasarlanmalı; mevcut event/Pause kayıtlarına alan eklenmemeli. Bu önerinin varsayılanı tercihi kaydetmemektir.
+- Tek monotonic, geçici timer modeli ve 5/10/15/20 dakikalık seçimler.
+- Native LCD, mavi sis, 4-4-6 nefes fazı ve aynı elapsed-time kaynağına bağlı
+  animasyon.
+- AppState, ekran odağı, pause/resume, çıkış diyaloğu, Reduced Motion ve
+  responsive typography yaşam döngüsü.
+- Adapter tarafından sağlanan açık çıkış callback’i.
+- İleride hazır, çalışan, durmuş veya tamamlanmış egzersizden açık değerlendirme
+  eylemi sunabilen callback; callback verilmezse Phase 11.8.1 preview davranışı
+  aynen sürer.
+- Hazır/tamamlanmış durumda da çıkış onayı isteyebilmek için adapter ayarı.
 
-## Entegrasyonun kabul koşulları
+Reusable katman production controller, flow action, persistence, route veya
+event modeli import etmez. Callback’i neyin kalıcı komuta çevireceğine karar
+vermez. Timer tamamlandığında değerlendirme callback’ini otomatik çağırmaz.
 
-Onaydan sonra mevcut controller/facade üzerinden bağlanmalı. Güncel/legacy olay kimliği, açık outcome, optional triggers, geçersiz derin link, kaydetme hatası/tekrar deneme, uygulama kapanması ve Reset/Tracking/Content-Free değişmezliği ayrı test edilmeli. Maksimum metin ve dar ekran denetimleri, alt görünüm ve üretim ekranı arasında da tekrarlanmalı. Phase 11.8.1 preview gate’i entegrasyon onayı sayılmaz.
+`src/features/urge-control/preview/UrgePreviewScreen.tsx` yalnız gated QA
+fixture’ını, QA metinlerini, mevcut Maestro test kimliklerini ve preview kapanış
+yönlendirmesini sağlar. Preview memory runtime ve release gate değişmez. Eski
+preview timer/visual/hook modül yolları uyumluluk adaptörüdür; ikinci bir timer
+veya görsel uygulaması içermez.
+
+Phase 11.8.2A üretim `UrgeControlResumeScreen`, `useUrgeControlFeature`,
+`urgeControlController`, Panic navigation veya domain komutlarını bağlamaz ve
+değiştirmez.
+
+## Phase 11.8.2B bağlantısı
+
+Phase 11.8.2B yalnız güncel event’in `interrupt` görünümünde reusable egzersizi
+render etmelidir. Adapter şu sorumlulukları taşımalıdır:
+
+1. “Durum kontrolüne geç” eylemini mevcut `actions.completeInterrupt` yoluna
+   bağlamak ve acknowledged persistence tamamlanmadan sonraki aşamayı güvenli
+   kabul etmemek.
+2. Exit onayında event’i mutasyona uğratmadan, bekleyen/unconfirmed kayıt
+   korumasını aşmadan Home’a dönmek.
+3. Üretim test kimlikleri ve üretime uygun çıkış/kayıt metinlerini sağlamak;
+   QA “kaydedilmez” metinlerini taşımamak.
+4. Legacy ve interrupt dışındaki güncel aşamalarda mevcut üretim ekranını aynen
+   kullanmak.
+
+Kayıt retry’si komutu yeniden uygulamamalı; mevcut accepted/durable slice ve
+receipt kuralları geçerli kalmalıdır. Event discard yalnız mevcut açık
+`discardActive` eyleminden yapılmalıdır.
+
+## Persistence ve veri sınırı
+
+Egzersiz süresi, seçilen preset, pause durumu ve nefes fazı process-local UI
+durumudur. Uygulama kapanması, ekranın unmount olması veya aktif event’in tekrar
+açılması bunları geri yüklemez. Yeni event/session tablosu, alan, preference,
+schema sürümü veya migration eklenmez. v9 persistence, event identity,
+`startedAt`, outcome, triggers ve completion alanlarının anlamı değişmez.
+
+Üretim domain mutasyonlarının sahibi mevcut controller/facade olmaya devam
+eder. `completeInterrupt`, `recordOutcome`, `recordTriggers`, `complete` ve
+`discardActive` komutları aynı validation ve persistence acknowledgement
+sınırından geçer.
+
+## Phase 11.8.2B kabul denetimleri
+
+Güncel ve legacy olaylar; sayaçsız erken değerlendirme; çalışan egzersizden
+erken değerlendirme; süre dolduktan sonra açık değerlendirme; egzersiz çıkışı
+ve ayrı event discard; bekleyen/başarısız persistence ve retry; geçersiz derin
+link; uygulama kapanıp yeniden açılma ayrı test edilmelidir. Normal ve maksimum
+Dynamic Type, dar ekran, running/paused/completed, çıkış diyaloğu ve Reduced
+Motion üretim adapter’ıyla yeniden görsel olarak incelenmelidir. Preview gate’in
+geçmesi üretim entegrasyon onayı sayılmaz.
