@@ -488,10 +488,10 @@ export async function verifyBloomUrgeNavigationGuards() {
   console.log("Combined Urge navigation guards passed: both effect orders, ready/running/paused/completed, one gesture owner, hardware Back/cancel, pending protection, durable downstream release, real root-boundary rejection, real beforeRemove cancellation, retry and preserved event.");
 }
 
-function screenRenderer(getFeature: () => unknown) {
+function screenRenderer(getFeature: () => unknown, getViewport = () => ({ width: 402, height: 874, fontScale: 1 })) {
   const hooks = controlledHooks();
   const jsx = (type: unknown, props: Record<string, unknown>): Element => ({ type, props });
-  const dependencies: Record<string, unknown> = { react: hooks.react, "react-native": { View: "View", StyleSheet: { create: (value: unknown) => value } },
+  const dependencies: Record<string, unknown> = { react: hooks.react, "react-native": { View: "View", useWindowDimensions: getViewport, StyleSheet: { create: (value: unknown) => value } },
     "react/jsx-runtime": { jsx, jsxs: jsx, Fragment: "Fragment" },
     "../../../shared/design-system/v4/theme": { theme: { spacing: {}, radius: {}, colors: { bg: {} } } },
     "../useUrgeControlFeature": { useUrgeControlFeature: getFeature }, "../exercise/UrgeExercise": { UrgeExercise: "UrgeExercise" } };
@@ -547,7 +547,8 @@ function verifyScreensAndDraft() {
   let urge = initial().urgeControl;
   urge = { ...urge, activeEvent: { id: "urge-feature", flowVersion: 2, status: "active", startedAt: at, interruptCompletedAt: at, outcome: "reduced" } };
   let feature = { view: getUrgeControlRouteView(urge, "urge-feature", at), actions, locked: false, busy: false, saveState: "saved", message: null, canRetry: false, canContinue: false, terminalReceipt: false, exerciseExitFailed: false };
-  const render = screenRenderer(() => feature);
+  let viewport = { width: 402, height: 874, fontScale: 1 };
+  const render = screenRenderer(() => feature, () => viewport);
   let tree = render();
   equal(ids(tree, "bloom.urge.triggers.").filter((id) => !id.endsWith("save") && !id.endsWith("skip")), currentTriggers.map((value) => `bloom.urge.triggers.${value}`), "Current screen must offer exactly the eight current trigger options.");
   press(tree, "bloom.urge.triggers.explicitContentCue"); press(tree, "bloom.urge.triggers.stress");
@@ -611,6 +612,47 @@ function verifyScreensAndDraft() {
     feature = { ...feature, view: getUrgeControlRouteView(urge, "urge-feature", at) }; tree = render();
     equal(ids(tree, `bloom.urge.${stage}.`), expected.map((value) => `bloom.urge.${stage}.${value}`), "Legacy screen must preserve its exact semantic option set.");
     assert(ids(tree, "bloom.urge.triggers.").length === 0, "Legacy presentation never exposes current arrays.");
+  }
+  // Native pixel fit is verified on Simulator. This executable regression
+  // checks live font-size changes, retained local selections and removal of
+  // the fixed geometry that previously clipped the legacy labels.
+  feature = { ...feature, view: legacyInterrupt, locked: false, saveState: "saved" };
+  tree = render();
+  const beforeAttention = submitted.length;
+  press(tree, "bloom.urge.interrupt.breathe");
+  const flatten = (style: unknown): Record<string, unknown> => Array.isArray(style)
+    ? Object.assign({}, ...style.map(flatten)) : style && typeof style === "object" ? style as Record<string, unknown> : {};
+  for (const fontScale of [3.571, 1.35, 1]) {
+    viewport = { width: 375, height: 812, fontScale }; tree = render();
+    const breathe = nodes(tree).find(node => node.props.testID === "bloom.urge.interrupt.breathe")!;
+    const notice = nodes(tree).find(node => node.props.testID === "bloom.urge.interrupt.notice")!;
+    const choices = nodes(tree).find(node => node.type === "View" && Array.isArray(node.props.children)
+      && node.props.children.some(child => child?.props?.testID === "bloom.urge.interrupt.breathe"));
+    assert(choices !== undefined && flatten(choices.props.style).flexDirection === (fontScale === 1 ? "row" : "column"),
+      "Legacy controls retain their normal horizontal layout and stack at accessibility sizes.");
+    assert(breathe.props.label === "Nefes al" && notice.props.label === "Çevrene bak" && breathe.props.variant === "primary",
+      "Resizing must preserve complete legacy labels and the local attention selection.");
+    for (const button of [breathe, notice]) {
+      const style = flatten(button.props.style);
+      if (fontScale > 1) assert(style.aspectRatio === undefined && style.height === undefined && style.maxHeight === undefined && style.maxWidth === undefined,
+        "Large-text legacy controls must grow naturally without the former fixed circle bounds.");
+      else assert(style.aspectRatio === 1 && style.maxWidth === 116, "Normal legacy presentation retains its circle geometry.");
+    }
+  }
+  assert(submitted.length === beforeAttention, "Resizing and attention selection cannot submit domain facts.");
+  for (const current of [true, false]) for (const [outcome, label] of [["reduced", "Azaldı"], ["stillStrong", "Hâlâ güçlü"], ["stronger", "Daha güçlü"], ["unchanged", "Değişmedi"]] as const) {
+    urge = { activeEvent: { id: "urge-feature", status: "active", startedAt: at, interruptCompletedAt: at, outcome,
+      ...(current ? { flowVersion: 2, triggers: [] } : { selectedTechnique: "urgeSurfing", phoneAwayStartedAt: at, phoneAwayEndedAt: at, trigger: "stress" }) }, records: [] };
+    feature = { ...feature, view: getUrgeControlRouteView(urge, "urge-feature", at) };
+    for (const fontScale of [1, 3.571]) {
+      viewport = { width: 375, height: 812, fontScale }; tree = render();
+      const row = nodes(tree).find(node => node.type === "View" && Array.isArray(node.props.children)
+        && node.props.children.some(child => child?.type === "AppText" && child.props.children === "Şu an"));
+      assert(row !== undefined && flatten(row.props.style).flexDirection === (fontScale === 1 ? "row" : "column"),
+        "Both current and legacy maximum-text summaries must give the outcome its own line.");
+      assert(nodes(row.props.children).some(node => node.type === "AppText" && node.props.children === label && node.props.numberOfLines === undefined),
+        "All four canonical outcome labels remain complete and unrestricted in both summary versions.");
+    }
   }
 }
 

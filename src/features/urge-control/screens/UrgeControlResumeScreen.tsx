@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, View, useWindowDimensions } from "react-native";
 
 import type { CurrentUrgeControlTrigger, LegacyUrgeControlTrigger, UrgeControlOutcome, UrgeControlTechnique } from "../../../domain/models/UrgeControlEvent";
 import { AppButton } from "../../../shared/components/v4/AppButton";
@@ -128,10 +128,7 @@ export function UrgeControlResumeScreen() {
                 </AppCard>
                 <AppCard style={styles.cardStack}>
                   <AppText variant="title">Kayıt özeti</AppText>
-                  <View style={styles.summaryRow}>
-                    <AppText tone="secondary">Şu an</AppText>
-                    <AppText variant="label">{outcomes.find(([value]) => value === view.event.outcome)?.[1] ?? "Belirtilmedi"}</AppText>
-                  </View>
+                  <OutcomeSummary outcome={view.event.outcome} />
                   {view.kind === "current" ? (
                     <View style={styles.cardStack}>
                       <AppText tone="secondary">Tetikleyiciler</AppText>
@@ -162,17 +159,29 @@ export function UrgeControlResumeScreen() {
   );
 }
 
+function OutcomeSummary({ outcome }: { outcome: UrgeControlOutcome | undefined }) {
+  const { fontScale } = useWindowDimensions();
+  return (
+    <View style={[styles.summaryRow, fontScale >= 1.35 && styles.summaryStack]}>
+      <AppText tone="secondary">Şu an</AppText>
+      <AppText variant="label" style={styles.summaryValue}>{outcomes.find(([value]) => value === outcome)?.[1] ?? "Belirtilmedi"}</AppText>
+    </View>
+  );
+}
+
 function LegacyInterrupt({ locked, onComplete }: { locked: boolean; onComplete: () => void }) {
   const [touched, setTouched] = useState<0 | 1 | 2>(0);
+  const { fontScale } = useWindowDimensions();
+  const expanded = fontScale >= 1.35;
   return (
     <View style={styles.stack}>
       <View style={styles.cardStack}>
         <AppText variant="display" accessibilityRole="header">Şunu bitir</AppText>
         <AppText variant="bodyLarge" tone="secondary">Dürtüyü fark et. Bir nefes al, sonra dikkatini çevrene taşı. Hazır olduğunda devam et.</AppText>
       </View>
-      <View style={styles.circleRow}>
-        <AppButton testID="bloom.urge.interrupt.breathe" label="Nefes al" accessibilityLabel="Nefes almaya odaklan" variant={touched === 1 ? "primary" : "secondary"} style={styles.circleButton} onPress={() => setTouched(1)} />
-        <AppButton testID="bloom.urge.interrupt.notice" label="Çevrene bak" accessibilityLabel="Çevreni fark et" variant={touched === 2 ? "primary" : "secondary"} style={styles.circleButton} onPress={() => setTouched(2)} />
+      <View style={[styles.circleRow, expanded && styles.legacyChoicesStack]}>
+        <AppButton testID="bloom.urge.interrupt.breathe" label="Nefes al" accessibilityLabel="Nefes almaya odaklan" variant={touched === 1 ? "primary" : "secondary"} style={expanded ? undefined : styles.circleButton} onPress={() => setTouched(1)} />
+        <AppButton testID="bloom.urge.interrupt.notice" label="Çevrene bak" accessibilityLabel="Çevreni fark et" variant={touched === 2 ? "primary" : "secondary"} style={expanded ? undefined : styles.circleButton} onPress={() => setTouched(2)} />
       </View>
       <AppText variant="bodySmall" tone="secondary" style={styles.centerText}>Bir süre hedefi yok. Bu kısa ara sana ait.</AppText>
       <AppButton testID="bloom.urge.interrupt.complete" label="Devam et" disabled={locked} onPress={onComplete} />
@@ -222,10 +231,13 @@ const styles = StyleSheet.create({
   statusPanel: { gap: theme.spacing.sm, padding: theme.spacing.md, borderRadius: theme.radius.lg, backgroundColor: theme.colors.bg.surface },
   circleRow: { flexDirection: "row", justifyContent: "center", gap: theme.spacing.md, width: "100%" },
   circleButton: { flex: 1, width: "auto", maxWidth: 116, aspectRatio: 1, borderRadius: theme.radius.pill, paddingHorizontal: theme.spacing.sm },
+  legacyChoicesStack: { flexDirection: "column" },
   centerText: { textAlign: "center" },
   choiceList: { gap: theme.spacing.sm },
   triggerGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", gap: theme.spacing.xs },
   triggerChoice: { flexGrow: 1, flexBasis: 132, width: "auto", paddingHorizontal: theme.spacing.sm },
   reviewHero: { alignItems: "center", gap: theme.spacing.md },
-  summaryRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: theme.spacing.md }
+  summaryRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: theme.spacing.md },
+  summaryStack: { flexDirection: "column", alignItems: "stretch", gap: theme.spacing.xs },
+  summaryValue: { flexShrink: 1, minWidth: 0 }
 });
